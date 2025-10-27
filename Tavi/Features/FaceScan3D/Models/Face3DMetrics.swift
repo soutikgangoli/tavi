@@ -153,7 +153,7 @@ public struct ROITextureSample {
 // MARK: - ROI Metrics
 
 /// Computed metrics for a single ROI
-public struct ROIMetrics: Codable {
+public struct ROI3DMetrics: Codable {
     /// ROI identifier
     public let roi: Face3DROI
 
@@ -240,7 +240,7 @@ public struct ROIMetrics: Codable {
 /// Complete 3D face metrics computed from mesh and texture
 public struct Face3DMetrics: Codable {
     /// Metrics per ROI
-    public let roiMetrics: [Face3DROI: ROIMetrics]
+    public let roiMetrics: [Face3DROI: ROI3DMetrics]
 
     // Global raw metrics (0-1 range)
 
@@ -294,7 +294,7 @@ public struct Face3DMetrics: Codable {
     public let isHighQuality: Bool  // Overall quality flag
 
     public init(
-        roiMetrics: [Face3DROI: ROIMetrics],
+        roiMetrics: [Face3DROI: ROI3DMetrics],
         globalRoughnessProxy: Float,
         globalPigmentationIndex: Float,
         globalDiscolorationIndex: Float,
@@ -337,13 +337,79 @@ public struct Face3DMetrics: Codable {
     }
 
     /// Get metrics for specific ROI
-    public func metrics(for roi: Face3DROI) -> ROIMetrics? {
+    public func metrics(for roi: Face3DROI) -> ROI3DMetrics? {
         return roiMetrics[roi]
     }
 
     /// Get all ROI metrics sorted by ROI name
-    public var sortedROIMetrics: [(Face3DROI, ROIMetrics)] {
+    public var sortedROI3DMetrics: [(Face3DROI, ROI3DMetrics)] {
         return roiMetrics.sorted { $0.key.rawValue < $1.key.rawValue }
+    }
+
+    // MARK: - Codable Implementation
+
+    enum CodingKeys: String, CodingKey {
+        case roiMetrics, globalRoughnessProxy, globalPigmentationIndex
+        case globalDiscolorationIndex, globalSpecularProxy, globalAverageLuminance
+        case globalRoughnessScore, globalPigmentationScore, globalDiscolorationScore
+        case globalSpecularScore, overallScore, scoreInterpretation
+        case vertexCount, triangleCount, textureWidth, textureHeight
+        case timestamp, processingTime, textureQuality, lowConfidenceROIs, isHighQuality
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        roiMetrics = try container.decode([Face3DROI: ROI3DMetrics].self, forKey: .roiMetrics)
+        globalRoughnessProxy = try container.decode(Float.self, forKey: .globalRoughnessProxy)
+        globalPigmentationIndex = try container.decode(Float.self, forKey: .globalPigmentationIndex)
+        globalDiscolorationIndex = try container.decode(Float.self, forKey: .globalDiscolorationIndex)
+        globalSpecularProxy = try container.decodeIfPresent(Float.self, forKey: .globalSpecularProxy)
+        globalAverageLuminance = try container.decode(Float.self, forKey: .globalAverageLuminance)
+        globalRoughnessScore = try container.decode(Float.self, forKey: .globalRoughnessScore)
+        globalPigmentationScore = try container.decode(Float.self, forKey: .globalPigmentationScore)
+        globalDiscolorationScore = try container.decode(Float.self, forKey: .globalDiscolorationScore)
+        globalSpecularScore = try container.decodeIfPresent(Float.self, forKey: .globalSpecularScore)
+        overallScore = try container.decode(Float.self, forKey: .overallScore)
+        scoreInterpretation = try container.decode(String.self, forKey: .scoreInterpretation)
+        vertexCount = try container.decode(Int.self, forKey: .vertexCount)
+        triangleCount = try container.decode(Int.self, forKey: .triangleCount)
+
+        let width = try container.decode(CGFloat.self, forKey: .textureWidth)
+        let height = try container.decode(CGFloat.self, forKey: .textureHeight)
+        textureResolution = CGSize(width: width, height: height)
+
+        timestamp = try container.decode(TimeInterval.self, forKey: .timestamp)
+        processingTime = try container.decode(TimeInterval.self, forKey: .processingTime)
+        textureQuality = try container.decodeIfPresent(String.self, forKey: .textureQuality)
+        lowConfidenceROIs = try container.decode([Face3DROI].self, forKey: .lowConfidenceROIs)
+        isHighQuality = try container.decode(Bool.self, forKey: .isHighQuality)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(roiMetrics, forKey: .roiMetrics)
+        try container.encode(globalRoughnessProxy, forKey: .globalRoughnessProxy)
+        try container.encode(globalPigmentationIndex, forKey: .globalPigmentationIndex)
+        try container.encode(globalDiscolorationIndex, forKey: .globalDiscolorationIndex)
+        try container.encodeIfPresent(globalSpecularProxy, forKey: .globalSpecularProxy)
+        try container.encode(globalAverageLuminance, forKey: .globalAverageLuminance)
+        try container.encode(globalRoughnessScore, forKey: .globalRoughnessScore)
+        try container.encode(globalPigmentationScore, forKey: .globalPigmentationScore)
+        try container.encode(globalDiscolorationScore, forKey: .globalDiscolorationScore)
+        try container.encodeIfPresent(globalSpecularScore, forKey: .globalSpecularScore)
+        try container.encode(overallScore, forKey: .overallScore)
+        try container.encode(scoreInterpretation, forKey: .scoreInterpretation)
+        try container.encode(vertexCount, forKey: .vertexCount)
+        try container.encode(triangleCount, forKey: .triangleCount)
+        try container.encode(textureResolution.width, forKey: .textureWidth)
+        try container.encode(textureResolution.height, forKey: .textureHeight)
+        try container.encode(timestamp, forKey: .timestamp)
+        try container.encode(processingTime, forKey: .processingTime)
+        try container.encodeIfPresent(textureQuality, forKey: .textureQuality)
+        try container.encode(lowConfidenceROIs, forKey: .lowConfidenceROIs)
+        try container.encode(isHighQuality, forKey: .isHighQuality)
     }
 }
 

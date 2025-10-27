@@ -114,7 +114,7 @@ public struct Face3DSummary: Codable, Identifiable {
         }
 
         // Create ROI summaries
-        let roiSummaries = metrics.sortedROIMetrics.map { (roi, roiMetrics) in
+        let roiSummaries = metrics.sortedROI3DMetrics.map { (roi, roiMetrics) in
             ROISummary.from(roiMetrics: roiMetrics)
         }
 
@@ -192,7 +192,7 @@ public struct ROISummary: Codable, Identifiable {
         self.pixelCount = pixelCount
     }
 
-    public static func from(roiMetrics: ROIMetrics) -> ROISummary {
+    public static func from(roiMetrics: ROI3DMetrics) -> ROISummary {
         return ROISummary(
             roi: roiMetrics.roi,
             roughnessScore: roiMetrics.roughnessScore,

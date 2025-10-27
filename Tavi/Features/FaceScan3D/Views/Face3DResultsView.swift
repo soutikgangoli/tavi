@@ -200,7 +200,7 @@ public struct Face3DResultsView: View {
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            ForEach(metrics.sortedROIMetrics, id: \.0) { (roi, roiMetrics) in
+            ForEach(metrics.sortedROI3DMetrics, id: \.0) { (roi, roiMetrics) in
                 ROIScoreRow(roi: roi, metrics: roiMetrics, isSelected: selectedROI == roi)
                     .onTapGesture {
                         withAnimation {
@@ -322,7 +322,7 @@ struct ScoreCard: View {
 
 struct ROIScoreRow: View {
     let roi: Face3DROI
-    let metrics: ROIMetrics
+    let metrics: ROI3DMetrics
     let isSelected: Bool
 
     var body: some View {
@@ -516,7 +516,7 @@ struct SceneKitView: UIViewRepresentable {
         // Create dummy metrics for preview (0-100% scale)
         let dummyMetrics = Face3DMetrics(
             roiMetrics: [
-                .forehead: ROIMetrics(
+                .forehead: ROI3DMetrics(
                     roi: .forehead,
                     roughnessProxy: 0.15,
                     pigmentationIndex: 0.08,

@@ -221,7 +221,7 @@ public enum MetricType {
     case pigmentationScore
     case specularScore
 
-    func getValue(from metrics: ROIMetrics) -> Float {
+    func getValue(from metrics: ROI3DMetrics) -> Float {
         switch self {
         case .roughness:
             return metrics.roughnessProxy

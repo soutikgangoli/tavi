@@ -433,11 +433,3 @@ private struct CorrectedSample {
     let original: PoseSample
     let correctedImage: UIImage
 }
-
-// MARK: - Vector3 Extension
-
-extension Vector3 {
-    func toSIMD() -> SIMD3<Float> {
-        return SIMD3<Float>(x, y, z)
-    }
-}

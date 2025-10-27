@@ -697,7 +697,7 @@ public class FaceScan3DViewModel: ObservableObject {
     }
 
     /// Get metrics for specific ROI
-    public func getMetrics(for roi: Face3DROI) -> ROIMetrics? {
+    public func getMetrics(for roi: Face3DROI) -> ROI3DMetrics? {
         return face3DMetrics?.metrics(for: roi)
     }
 }

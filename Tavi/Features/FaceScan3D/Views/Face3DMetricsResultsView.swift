@@ -592,7 +592,7 @@ struct ScoreCardWithExplanation: View {
 
 struct ROIMetricRow: View {
     let roi: Face3DROI
-    let metrics: ROIMetrics
+    let metrics: ROI3DMetrics
     let metricType: MetricType
     let isSelected: Bool
 

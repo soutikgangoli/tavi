@@ -108,11 +108,11 @@ public class Face3DMetricsAnalyzer {
         }
 
         // Step 3: Compute metrics for each ROI
-        var roiMetrics: [Face3DROI: ROIMetrics] = [:]
+        var roiMetrics: [Face3DROI: ROI3DMetrics] = [:]
 
         for (roi, sample) in roiSamples {
             let confidence = roiConfidences[roi]
-            let metrics = await computeROIMetrics(sample, rawSample: nil, confidence: confidence)
+            let metrics = await computeROI3DMetrics(sample, rawSample: nil, confidence: confidence)
             roiMetrics[roi] = metrics
             print("   \(roi.displayName): roughness=\(metrics.roughnessProxy), pigmentation=\(metrics.pigmentationIndex), confidence=\(metrics.confidenceLevel)")
         }
@@ -157,7 +157,7 @@ public class Face3DMetricsAnalyzer {
 
     // MARK: - ROI Metrics Computation
 
-    private func computeROIMetrics(_ sample: ROITextureSample, rawSample: ROITextureSample?, confidence: ROIConfidence?) async -> ROIMetrics {
+    private func computeROI3DMetrics(_ sample: ROITextureSample, rawSample: ROITextureSample?, confidence: ROIConfidence?) async -> ROI3DMetrics {
         // Compute roughness proxy
         let roughness = roughnessAnalyzer.computeRoughnessProxy(sample)
 
@@ -182,7 +182,7 @@ public class Face3DMetricsAnalyzer {
         let pigmentationScore = scoring.mapPigmentationScore(pigmentation)
         let specularScore = specular.map { scoring.mapSpecularScore($0) }
 
-        return ROIMetrics(
+        return ROI3DMetrics(
             roi: sample.roi,
             roughnessProxy: roughness,
             pigmentationIndex: pigmentation,
@@ -203,7 +203,7 @@ public class Face3DMetricsAnalyzer {
     // MARK: - Global Metrics
 
     private func computeGlobalMetrics(
-        roiMetrics: [Face3DROI: ROIMetrics],
+        roiMetrics: [Face3DROI: ROI3DMetrics],
         roiSamples: [Face3DROI: ROITextureSample]
     ) -> (
         roughness: Float,
@@ -306,13 +306,5 @@ public class Face3DMetricsAnalyzer {
         }
 
         return sum / Float(pixels.count)
-    }
-}
-
-// MARK: - Vector2 Extension
-
-extension Vector2 {
-    func toSIMD() -> SIMD2<Float> {
-        return SIMD2<Float>(x, y)
     }
 }
