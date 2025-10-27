@@ -509,15 +509,6 @@ struct SceneKitView: UIViewRepresentable {
     }
 }
 
-// MARK: - Metric Type
-
-public enum MetricType {
-    case roughness
-    case pigmentation
-    case luminance
-    case lightness
-}
-
 // MARK: - Preview
 
 #Preview {

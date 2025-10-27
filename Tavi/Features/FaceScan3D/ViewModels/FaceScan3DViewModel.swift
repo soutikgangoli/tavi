@@ -9,6 +9,7 @@
 import Foundation
 import ARKit
 import Combine
+import SwiftUI
 
 @MainActor
 public class FaceScan3DViewModel: ObservableObject {

@@ -34,11 +34,9 @@
 		4834252F636D33EA07325745 /* ROIOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7542B58465F8A1FD58CB4FAD /* ROIOverlay.swift */; };
 		4D0C9F7273A1A576CDCEA25F /* ScoreSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B94A9E3E893D23161EAF918 /* ScoreSummaryView.swift */; };
 		5236B36733863D9CB42CE84F /* DeviceInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D38DFB0D332544215A60BB /* DeviceInfoView.swift */; };
-		56D84CF23AB485063F9FFD3E /* FaceScan3DViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13E93DCB568BCCE9227D9C24 /* FaceScan3DViewModel.swift */; };
 		57554CF79EDF5E81F37860FC /* CaptureController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B82F926FC09A97E06DAF0455 /* CaptureController.swift */; };
 		58FE0A48499B230BE011BCD9 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40D992ED294D025F0611FE1A /* PersistenceController.swift */; };
 		631894B22B7998F6568F6BA5 /* ResultsHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B70F0B959EC3FE26AE375A /* ResultsHistoryView.swift */; };
-		64D0E14818F28F0E90C7BB2E /* Scan3DFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0407B3167AACA2C116A0FE /* Scan3DFlowView.swift */; };
 		678CAAE2CF5CEBB9979446A6 /* FaceMeshGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A29EBCF32C9680290D0FF2EB /* FaceMeshGeometry.swift */; };
 		68809C7532535A7D7C385EB6 /* ARFaceTrackingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E9CEE40631CBA78E6D8DC2D /* ARFaceTrackingViewController.swift */; };
 		6999EC11B2D82EC1CC734BFF /* MetricsCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2E9A1846B45343B1E18608 /* MetricsCalculator.swift */; };
@@ -652,7 +650,6 @@
 				C6C6A38054F9EB9262A0734C /* FaceScan3DViewModel.swift in Sources */,
 				E56D4C24682EA59D8D0DB743 /* FaceScan3DAPI.swift in Sources */,
 				D77C433C02F7335EF3B3B07D /* USAGE_EXAMPLE.swift in Sources */,
-				56D84CF23AB485063F9FFD3E /* FaceScan3DViewModel.swift in Sources */,
 				0B1E3ACD06A658061FBACBB9 /* Face3DResultsIntegration.swift in Sources */,
 				A3A1D3A0E02AFA590DEC4F3B /* Face3DSummary.swift in Sources */,
 				021C0E9856E1D11503C69021 /* Face3DMetrics.swift in Sources */,
@@ -683,7 +680,6 @@
 				04B04B5858E592ED37DE566E /* Face3DMetricsResultsView.swift in Sources */,
 				7DB532F11BB5C3105F79C19E /* FaceScan3DDemoView.swift in Sources */,
 				68809C7532535A7D7C385EB6 /* ARFaceTrackingViewController.swift in Sources */,
-				64D0E14818F28F0E90C7BB2E /* Scan3DFlowView.swift in Sources */,
 				A00CC6CCA491D503335FFC54 /* Face3DViewer.swift in Sources */,
 				7D5826D06835C7D68508477E /* FaceScan3DView.swift in Sources */,
 				45AA96C149B7F7317129FF7C /* TexturedMeshPreviewView.swift in Sources */,
