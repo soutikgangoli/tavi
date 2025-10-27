@@ -155,49 +155,24 @@ struct BlendShapesExample: View {
     @State private var isSmiling = false
     @State private var isBlinking = false
 
+    // Computed properties for smile and blink detection
+    private var smileAmount: Float {
+        guard let blendShapes = viewModel.blendShapes else { return 0 }
+        return (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2
+    }
+
+    private var blinkAmount: Float {
+        guard let blendShapes = viewModel.blendShapes else { return 0 }
+        return (blendShapes.eyeBlinkLeft + blendShapes.eyeBlinkRight) / 2
+    }
+
     var body: some View {
         ZStack {
             FaceScan3DView()
 
             VStack {
                 if let blendShapes = viewModel.blendShapes {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Face Expressions")
-                            .font(.headline)
-
-                        // Detect smile
-                        let smileAmount = (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2
-                        HStack {
-                            Text("Smile:")
-                            ProgressView(value: Double(smileAmount))
-                            Text("\(Int(smileAmount * 100))%")
-                        }
-
-                        // Detect blink
-                        let blinkAmount = (blendShapes.eyeBlinkLeft + blendShapes.eyeBlinkRight) / 2
-                        HStack {
-                            Text("Blink:")
-                            ProgressView(value: Double(blinkAmount))
-                            Text("\(Int(blinkAmount * 100))%")
-                        }
-
-                        // Jaw open
-                        HStack {
-                            Text("Jaw Open:")
-                            ProgressView(value: Double(blendShapes.jawOpen))
-                            Text("\(Int(blendShapes.jawOpen * 100))%")
-                        }
-                    }
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(12)
-                    .padding()
-                    .onChange(of: smileAmount) { _, newValue in
-                        isSmiling = newValue > 0.5
-                    }
-                    .onChange(of: blinkAmount) { _, newValue in
-                        isBlinking = newValue > 0.8
-                    }
+                    blendShapesInfo(blendShapes: blendShapes)
                 }
 
                 Spacer()
@@ -216,6 +191,48 @@ struct BlendShapesExample: View {
                 }
             }
         }
+        .onChange(of: smileAmount) { newValue in
+            isSmiling = newValue > 0.5
+        }
+        .onChange(of: blinkAmount) { newValue in
+            isBlinking = newValue > 0.8
+        }
+    }
+
+    // Separate view for blend shapes info
+    private func blendShapesInfo(blendShapes: FaceBlendShapes) -> some View {
+        let smileVal = (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2
+        let blinkVal = (blendShapes.eyeBlinkLeft + blendShapes.eyeBlinkRight) / 2
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Face Expressions")
+                .font(.headline)
+
+            // Smile
+            HStack {
+                Text("Smile:")
+                ProgressView(value: Double(smileVal))
+                Text("\(Int(smileVal * 100))%")
+            }
+
+            // Blink
+            HStack {
+                Text("Blink:")
+                ProgressView(value: Double(blinkVal))
+                Text("\(Int(blinkVal * 100))%")
+            }
+
+            // Jaw open
+            HStack {
+                Text("Jaw Open:")
+                ProgressView(value: Double(blendShapes.jawOpen))
+                Text("\(Int(blendShapes.jawOpen * 100))%")
+            }
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .cornerRadius(12)
+        .padding()
     }
 }
 

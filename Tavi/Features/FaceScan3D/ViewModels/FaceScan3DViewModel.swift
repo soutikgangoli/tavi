@@ -442,7 +442,7 @@ public class FaceScan3DViewModel: ObservableObject {
             Task { [weak self] in
                 guard let self = self else { return }
 
-                await self.finalizeCapture()
+                _ = await self.finalizeCapture()
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     self.isGuidanceActive = false
