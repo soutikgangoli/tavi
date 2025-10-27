@@ -52,6 +52,7 @@
 		D2D4A53B0B82A6412F7CC44C /* ScoringModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850363E49E1D6E72A8BDFEB6 /* ScoringModels.swift */; };
 		D6DA4E3377BDEB966B7D25A8 /* HistogramView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 236B45B569B80ED889356114 /* HistogramView.swift */; };
 		D940EC864FCFBCBA55334682 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC22071ADA2F86F23F0DB7E6 /* OnboardingView.swift */; };
+		D9557E68BD1C052EFC6A8B44 /* Scan3DFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6354129B4D1A5E51EFEC268E /* Scan3DFlowView.swift */; };
 		DB3C28F518ABEDD9216DD79F /* ROIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129DF55C2A26D686A147DFB0 /* ROIModels.swift */; };
 		DCA2D368A17A58EA2523D961 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E3DBF285C5DADA52D928494 /* ContentView.swift */; };
 		DD014A3B9DBA8EF93501F535 /* DebugScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78D8B316CB23CDC24985ABB /* DebugScreen.swift */; };
@@ -88,6 +89,7 @@
 		57BA24C69212721BFD23E7BC /* StorageManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StorageManager.swift; path = Core/StorageKit/StorageManager.swift; sourceTree = "<group>"; };
 		5BB222BF68912FD4490F011F /* ResultsDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ResultsDetailView.swift; path = Features/Results/ResultsDetailView.swift; sourceTree = "<group>"; };
 		5F48D69AAF2DC0D91FDD8538 /* PrimaryButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PrimaryButton.swift; path = Shared/UI/PrimaryButton.swift; sourceTree = "<group>"; };
+		6354129B4D1A5E51EFEC268E /* Scan3DFlowView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Scan3DFlowView.swift; path = Tavi/Features/FaceScan3D/Views/Scan3DFlowView.swift; sourceTree = "<group>"; };
 		6443DBFB3E874CEA345DAA09 /* TaviApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TaviApp.swift; sourceTree = "<group>"; };
 		655137907D09ADAE0D8B5125 /* VisionAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VisionAnalyzer.swift; path = Core/VisionKit/VisionAnalyzer.swift; sourceTree = "<group>"; };
 		6583C8C7B7CD1CFBD9628CCE /* DeviceCapabilities.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeviceCapabilities.swift; path = Core/ModelsKit/DeviceCapabilities.swift; sourceTree = "<group>"; };
@@ -177,6 +179,14 @@
 			name = ModelsKit;
 			sourceTree = "<group>";
 		};
+		4A6008F308CA0A0FF6A31F0A /* FaceScan3D */ = {
+			isa = PBXGroup;
+			children = (
+				F494884323DFF890E0F300AC /* Views */,
+			);
+			name = FaceScan3D;
+			sourceTree = "<group>";
+		};
 		7B6823FC451B5BEDED5B1FF5 /* Debug */ = {
 			isa = PBXGroup;
 			children = (
@@ -220,6 +230,14 @@
 				1F2A5D1F6EBFE934C7E09CE3 /* VisionKit */,
 			);
 			name = Core;
+			sourceTree = "<group>";
+		};
+		98476367DF90460A487BD539 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				4A6008F308CA0A0FF6A31F0A /* FaceScan3D */,
+			);
+			name = Features;
 			sourceTree = "<group>";
 		};
 		A936833844F3AE3C680C8E7F /* Shared */ = {
@@ -282,6 +300,22 @@
 			name = Features;
 			sourceTree = "<group>";
 		};
+		F26EE79AEE3F8DEE65B3E851 /* Tavi */ = {
+			isa = PBXGroup;
+			children = (
+				98476367DF90460A487BD539 /* Features */,
+			);
+			name = Tavi;
+			sourceTree = "<group>";
+		};
+		F494884323DFF890E0F300AC /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				6354129B4D1A5E51EFEC268E /* Scan3DFlowView.swift */,
+			);
+			name = Views;
+			sourceTree = "<group>";
+		};
 		F8BE7F21F829D416053CDCCA /* Results */ = {
 			isa = PBXGroup;
 			children = (
@@ -298,6 +332,7 @@
 			children = (
 				TaviFolder /* Tavi */,
 				ProductsGroup /* Products */,
+				F26EE79AEE3F8DEE65B3E851 /* Tavi */,
 			);
 			sourceTree = "<group>";
 		};
@@ -339,8 +374,6 @@
 			dependencies = (
 			);
 			name = Tavi;
-			packageProductDependencies = (
-			);
 			productName = Tavi;
 			productReference = TaviApp /* Tavi.app */;
 			productType = "com.apple.product-type.application";
@@ -364,8 +397,6 @@
 				Base,
 			);
 			mainGroup = MainGroup;
-			packageReferences = (
-			);
 			productRefGroup = ProductsGroup /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -444,6 +475,7 @@
 				4834252F636D33EA07325745 /* ROIOverlay.swift in Sources */,
 				4D0C9F7273A1A576CDCEA25F /* ScoreSummaryView.swift in Sources */,
 				AE30DDFCA04D41E27B0F6C53 /* TaviApp.swift in Sources */,
+				D9557E68BD1C052EFC6A8B44 /* Scan3DFlowView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

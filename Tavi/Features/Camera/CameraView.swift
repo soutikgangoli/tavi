@@ -48,6 +48,22 @@ struct CameraView: View {
                     .ignoresSafeArea()
                 }
 
+                // Clean Apple Face ID-style Guide
+                if viewModel.isCapturing && !viewModel.captureInProgress {
+                    FaceIDStyleGuide(
+                        faceResult: viewModel.detectedFaces.first,
+                        lightingStatus: viewModel.currentMetrics?.calibrationStatus,
+                        onAutoCapture: {
+                            Task {
+                                await viewModel.startMultiFrameCapture()
+                                if viewModel.lastCaptureResult != nil {
+                                    showingCaptureResult = true
+                                }
+                            }
+                        }
+                    )
+                }
+
                 // Controls overlay
                 VStack {
                 // Top controls
@@ -118,45 +134,6 @@ struct CameraView: View {
 
                 // Bottom controls
                 VStack(spacing: 20) {
-                    // Calibration HUD
-                    if viewModel.isCapturing {
-                        CalibrationHUD(
-                            metrics: viewModel.currentMetrics,
-                            isCalibrated: viewModel.isCalibrated,
-                            isExposureLocked: viewModel.isExposureLocked,
-                            onCalibrate: {
-                                viewModel.calibrate()
-                            }
-                        )
-                        .onTapGesture {
-                            if viewModel.currentMetrics != nil {
-                                showingCalibrationDetails = true
-                            }
-                        }
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    }
-
-                    // Status indicators
-                    if viewModel.isCapturing {
-                        HStack(spacing: 16) {
-                            Label(viewModel.currentResolution, systemImage: "square.resize")
-                                .font(.caption)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(8)
-
-                            Label(viewModel.currentFrameRate, systemImage: "speedometer")
-                                .font(.caption)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(8)
-                        }
-                    }
-
                     // Control buttons
                     HStack(spacing: 40) {
                         // Exposure lock button
@@ -290,6 +267,14 @@ struct CameraView: View {
             }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                // Automatically start camera when view appears
+                viewModel.startCapture()
+            }
+            .onDisappear {
+                // Stop camera when leaving the view
+                viewModel.stopCapture()
+            }
             .sheet(isPresented: $showingCaptureResult) {
                 if let result = viewModel.lastCaptureResult {
                     CaptureResultView(

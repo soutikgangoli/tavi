@@ -14,19 +14,54 @@ struct ContentView: View {
 
     var body: some View {
         List {
-            Section("Features") {
+            Section("Scan Modes") {
                 NavigationLink {
                     CameraView()
                 } label: {
-                    Label("Camera", systemImage: "camera.fill")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("2D Skin Analysis", systemImage: "camera.fill")
+                            .font(.headline)
+                        Text("Fast multi-frame capture with 2D metrics")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
                 }
 
+                if capabilities.supportsTrueDepth {
+                    NavigationLink {
+                        Scan3DFlowView()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label("3D Face Scan", systemImage: "face.dashed")
+                                .font(.headline)
+                            Text("ARKit TrueDepth scan with 3D metrics")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                } else {
+                    HStack {
+                        Label("3D Face Scan", systemImage: "face.dashed")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text("Requires TrueDepth")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section("History") {
                 NavigationLink {
                     ResultsHistoryView()
                 } label: {
                     Label("Analysis History", systemImage: "clock.arrow.circlepath")
                 }
+            }
 
+            Section("Debug") {
                 NavigationLink {
                     DebugScreen(cameraSession: cameraSession)
                 } label: {

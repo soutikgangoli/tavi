@@ -29,15 +29,21 @@
 	<true/>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>UIRequiresFullScreen</key>
+	<true/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Tavi needs access to your camera to capture images for analysis.</string>
+	<string>Tavi needs access to your camera to capture images for analysis and 3D face scanning.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Tavi needs access to save photos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Tavi needs access to your photo library to analyze images.</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arkit</string>
+	</array>
 </dict>
 </plist>

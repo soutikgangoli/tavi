@@ -7,7 +7,7 @@
 
 import Foundation
 import Combine
-import UIKit
+import SwiftUI
 import CoreVideo
 
 @MainActor
@@ -72,6 +72,7 @@ class CameraViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var frameProcessingQueue = DispatchQueue(label: "com.tavi.frameProcessing", qos: .userInitiated)
     private var latestPixelBuffer: CVPixelBuffer?
+    private var isFaceDetectionInProgress = false
 
     // MARK: - Initialization
 
@@ -109,29 +110,27 @@ class CameraViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // Subscribe to frame updates (optional: for preview or debugging)
+        // Subscribe to frame updates - maximum speed, no throttling
         cameraSession.framePublisher
             .receive(on: frameProcessingQueue)
             .compactMap { [weak self] pixelBuffer -> UIImage? in
                 self?.convertToUIImage(pixelBuffer: pixelBuffer)
             }
-            .throttle(for: .milliseconds(100), scheduler: frameProcessingQueue, latest: true)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] image in
                 self?.latestFrame = image
             }
             .store(in: &cancellables)
 
-        // Subscribe to calibration metrics
+        // Subscribe to calibration metrics - maximum speed
         cameraSession.metricsPublisher
-            .throttle(for: .milliseconds(200), scheduler: DispatchQueue.main, latest: true)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] metrics in
                 self?.currentMetrics = metrics
             }
             .store(in: &cancellables)
 
-        // Subscribe to frames for face detection
+        // Subscribe to frames for face detection - maximum speed
         cameraSession.framePublisher
             .receive(on: frameProcessingQueue)
             .sink { [weak self] pixelBuffer in
@@ -140,8 +139,8 @@ class CameraViewModel: ObservableObject {
                 // Store latest pixel buffer for capture
                 self.latestPixelBuffer = pixelBuffer
 
-                // Throttled face detection
-                if self.faceDetectionEnabled {
+                // Only detect faces if not already in progress
+                if self.faceDetectionEnabled && !self.isFaceDetectionInProgress {
                     self.detectFaces(in: pixelBuffer)
                 }
             }
@@ -288,14 +287,22 @@ class CameraViewModel: ObservableObject {
     // MARK: - Face Detection
 
     private func detectFaces(in pixelBuffer: CVPixelBuffer) {
+        // Mark detection as in progress
+        isFaceDetectionInProgress = true
+
         Task {
+            defer {
+                // Always reset flag when done
+                isFaceDetectionInProgress = false
+            }
+
             do {
                 // Determine orientation based on camera position
                 let orientation: CGImagePropertyOrientation = currentCameraPosition == .front ? .leftMirrored : .right
 
                 let faces = try await faceDetector.detectFaces(in: pixelBuffer, orientation: orientation)
 
-                // Compute ROIs if enabled
+                // Only compute ROIs if enabled and showing them
                 var roiSets: [FaceROISet] = []
                 if showROIs, let imageSize = getImageSize() {
                     for face in faces {
@@ -306,6 +313,7 @@ class CameraViewModel: ObservableObject {
                 }
 
                 await MainActor.run {
+                    // Instant updates for maximum responsiveness
                     self.detectedFaces = faces
                     self.faceROIs = roiSets
                 }

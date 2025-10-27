@@ -11,18 +11,12 @@ import SwiftUI
 struct TaviApp: App {
     let persistenceController = PersistenceController.shared
 
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-
     var body: some Scene {
         WindowGroup {
             NavigationStack {
                 ContentView()
             }
             .environment(\.managedObjectContext, persistenceController.viewContext)
-            .sheet(isPresented: .constant(!hasCompletedOnboarding)) {
-                OnboardingView()
-                    .interactiveDismissDisabled()
-            }
         }
     }
 }
