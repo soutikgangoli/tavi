@@ -1,0 +1,401 @@
+//
+//  OnboardingFlow.swift
+//  Tavi
+//
+//  First-time user onboarding with tutorial screens
+//  Explains metrics and scan process
+//
+
+import SwiftUI
+
+/// Onboarding flow coordinator
+public struct OnboardingFlowView: View {
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var currentPage: Int = 0
+
+    private let pages: [OnboardingPage] = [
+        OnboardingPage(
+            title: "Welcome to Tavi",
+            description: "Clinical-grade skin analysis using your iPhone's TrueDepth camera",
+            imageName: "face.smiling",
+            color: .blue
+        ),
+        OnboardingPage(
+            title: "5 Key Metrics",
+            description: "We analyze:\n• Skin Texture & Roughness\n• Wrinkle Depth\n• Hydration Level\n• Pore Visibility\n• Pigmentation Evenness",
+            imageName: "chart.bar.fill",
+            color: .green
+        ),
+        OnboardingPage(
+            title: "3D Face Scanning",
+            description: "Turn your head to 5 poses:\nStraight → Left → Right → Up → Down\n\nWe capture 10-15 frames per pose for maximum accuracy.",
+            imageName: "arkit",
+            color: .purple
+        ),
+        OnboardingPage(
+            title: "Takes 1 Minute",
+            description: "• 15 seconds: Capture (5 poses × 3s each)\n• 30-45 seconds: Processing\n\nYou'll get instant results!",
+            imageName: "clock.fill",
+            color: .orange
+        ),
+        OnboardingPage(
+            title: "Track Your Progress",
+            description: "Scan weekly to see improvements over time. We'll show you trends, recommendations, and celebrate your wins!",
+            imageName: "chart.line.uptrend.xyaxis",
+            color: .pink
+        ),
+        OnboardingPage(
+            title: "Privacy First",
+            description: "All data stays on your device. We never upload your face scans to the cloud without your permission.",
+            imageName: "lock.shield.fill",
+            color: .indigo
+        )
+    ]
+
+    public var body: some View {
+        VStack {
+            // Page indicator
+            HStack(spacing: 8) {
+                ForEach(0..<pages.count, id: \.self) { index in
+                    Circle()
+                        .fill(index == currentPage ? Color.blue : Color.gray.opacity(0.3))
+                        .frame(width: 8, height: 8)
+                }
+            }
+            .padding(.top, 20)
+
+            TabView(selection: $currentPage) {
+                ForEach(0..<pages.count, id: \.self) { index in
+                    OnboardingPageView(page: pages[index])
+                        .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+
+            // Action buttons
+            HStack(spacing: 20) {
+                if currentPage > 0 {
+                    Button("Back") {
+                        withAnimation {
+                            currentPage -= 1
+                        }
+                    }
+                    .foregroundColor(.gray)
+                }
+
+                Spacer()
+
+                if currentPage < pages.count - 1 {
+                    Button("Next") {
+                        withAnimation {
+                            currentPage += 1
+                        }
+                    }
+                    .fontWeight(.semibold)
+                } else {
+                    Button("Get Started") {
+                        // Mark onboarding as complete
+                        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                        dismiss()
+                    }
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 30)
+                    .padding(.vertical, 12)
+                    .background(Color.blue)
+                    .cornerRadius(25)
+                }
+            }
+            .padding(.horizontal, 30)
+            .padding(.bottom, 40)
+        }
+    }
+}
+
+/// Single onboarding page
+struct OnboardingPageView: View {
+    let page: OnboardingPage
+
+    var body: some View {
+        VStack(spacing: 30) {
+            Spacer()
+
+            // Icon
+            Image(systemName: page.imageName)
+                .font(.system(size: 80))
+                .foregroundColor(page.color)
+
+            // Title
+            Text(page.title)
+                .font(.system(size: 32, weight: .bold))
+                .multilineTextAlignment(.center)
+
+            // Description
+            Text(page.description)
+                .font(.system(size: 18))
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+
+            Spacer()
+        }
+    }
+}
+
+/// Onboarding page data
+struct OnboardingPage {
+    let title: String
+    let description: String
+    let imageName: String
+    let color: Color
+}
+
+/// Metric explanation view (detailed)
+public struct MetricExplanationView: View {
+    let metric: MetricType
+
+    public var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Header
+                HStack {
+                    Image(systemName: metric.iconName)
+                        .font(.system(size: 40))
+                        .foregroundColor(metric.color)
+
+                    VStack(alignment: .leading) {
+                        Text(metric.name)
+                            .font(.title)
+                            .bold()
+
+                        Text(metric.tagline)
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding()
+
+                Divider()
+
+                // What it is
+                SectionView(title: "What It Measures") {
+                    Text(metric.whatItMeasures)
+                        .font(.body)
+                }
+
+                // Why it matters
+                SectionView(title: "Why It Matters") {
+                    Text(metric.whyItMatters)
+                        .font(.body)
+                }
+
+                // How we measure it
+                SectionView(title: "How We Measure It") {
+                    Text(metric.howWeMeasure)
+                        .font(.body)
+                }
+
+                // What affects it
+                SectionView(title: "What Affects This Metric") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(metric.affectingFactors, id: \.self) { factor in
+                            HStack {
+                                Image(systemName: "circle.fill")
+                                    .font(.system(size: 6))
+                                Text(factor)
+                            }
+                        }
+                    }
+                }
+
+                // Tips to improve
+                SectionView(title: "How to Improve") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(metric.improvementTips, id: \.self) { tip in
+                            HStack(alignment: .top) {
+                                Text("•")
+                                    .bold()
+                                Text(tip)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
+        .navigationTitle(metric.name)
+    }
+}
+
+struct SectionView<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.headline)
+
+            content
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(10)
+        }
+    }
+}
+
+/// Metric information data
+extension MetricType {
+    var iconName: String {
+        switch self {
+        case .roughness: return "waveform.path"
+        case .wrinkles: return "line.3.horizontal.decrease"
+        case .hydration: return "drop.fill"
+        case .pores: return "circle.grid.3x3"
+        case .pigmentation: return "paintpalette.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .roughness: return .blue
+        case .wrinkles: return .purple
+        case .hydration: return .cyan
+        case .pores: return .green
+        case .pigmentation: return .orange
+        }
+    }
+
+    var tagline: String {
+        switch self {
+        case .roughness: return "Skin smoothness"
+        case .wrinkles: return "Fine lines & depth"
+        case .hydration: return "Moisture level"
+        case .pores: return "Pore visibility"
+        case .pigmentation: return "Skin tone evenness"
+        }
+    }
+
+    var whatItMeasures: String {
+        switch self {
+        case .roughness:
+            return "Skin texture roughness measures how smooth or uneven your skin surface is. We analyze microscopic texture patterns across your entire face."
+        case .wrinkles:
+            return "We measure actual wrinkle depth in millimeters using 3D geometry. This includes fine lines, crow's feet, forehead lines, and smile lines."
+        case .hydration:
+            return "Skin hydration indicates how well-moisturized your skin appears. We estimate this from surface texture and light reflection patterns."
+        case .pores:
+            return "Pore visibility measures how prominent your pores appear. We analyze pore density and average size across different facial regions."
+        case .pigmentation:
+            return "Pigmentation evenness measures color consistency across your face. We detect dark spots, hyperpigmentation, and overall tone uniformity."
+        }
+    }
+
+    var whyItMatters: String {
+        switch self {
+        case .roughness:
+            return "Smooth skin reflects light better and looks healthier. Rough texture can indicate dehydration, sun damage, or aging."
+        case .wrinkles:
+            return "Wrinkles are a natural part of aging, but deeper wrinkles can indicate collagen loss, sun damage, or dehydration. Tracking them helps you see if your skincare routine is working."
+        case .hydration:
+            return "Well-hydrated skin is more elastic, looks plumper, and has fewer fine lines. Dehydrated skin can appear dull and accentuate wrinkles."
+        case .pores:
+            return "While pore size is largely genetic, visible pores can be minimized with proper skincare. Enlarged pores often indicate oily skin or clogged pores."
+        case .pigmentation:
+            return "Even skin tone is a key indicator of skin health. Uneven pigmentation can result from sun damage, hormones, or inflammation."
+        }
+    }
+
+    var howWeMeasure: String {
+        switch self {
+        case .roughness:
+            return "Using high-resolution texture analysis, we calculate surface roughness from the 12MP camera texture mapped to your 3D face model."
+        case .wrinkles:
+            return "We use 3D curvature analysis to measure actual wrinkle depth in millimeters. This is unique to 3D scanning - 2D photos can't measure depth!"
+        case .hydration:
+            return "We estimate hydration from specular reflectance (how shiny your skin is) combined with roughness data. Very dry skin is rough and non-reflective."
+        case .pores:
+            return "High-frequency texture analysis detects small dark spots (pores) and calculates their density and average size per square centimeter."
+        case .pigmentation:
+            return "We analyze color variance across your face in the LAB color space, which is designed for human perception. We also detect dark spots and hyperpigmentation."
+        }
+    }
+
+    var affectingFactors: [String] {
+        switch self {
+        case .roughness:
+            return ["Hydration level", "Exfoliation frequency", "Sun exposure", "Age", "Genetics"]
+        case .wrinkles:
+            return ["Age", "Sun exposure", "Smoking", "Facial expressions", "Collagen levels", "Hydration"]
+        case .hydration:
+            return ["Water intake", "Moisturizer use", "Humidity", "Climate", "Caffeine/alcohol", "Age"]
+        case .pores:
+            return ["Genetics", "Oil production", "Age", "Sun damage", "Skincare routine"]
+        case .pigmentation:
+            return ["Sun exposure", "Hormones", "Inflammation", "Age spots", "Melasma", "Genetics"]
+        }
+    }
+
+    var improvementTips: [String] {
+        switch self {
+        case .roughness:
+            return [
+                "Exfoliate 2-3 times per week with AHAs/BHAs",
+                "Use a hydrating moisturizer daily",
+                "Apply retinol/retinoids at night",
+                "Stay hydrated (8 glasses of water/day)"
+            ]
+        case .wrinkles:
+            return [
+                "Use retinol or prescription retinoids",
+                "Apply SPF 30+ daily to prevent further damage",
+                "Consider eye cream for crow's feet",
+                "Stay hydrated and get adequate sleep",
+                "Avoid smoking and limit alcohol"
+            ]
+        case .hydration:
+            return [
+                "Drink 8 glasses of water daily",
+                "Use a hydrating serum (hyaluronic acid)",
+                "Apply moisturizer morning and night",
+                "Use a humidifier in dry climates",
+                "Limit hot showers (strip natural oils)"
+            ]
+        case .pores:
+            return [
+                "Cleanse twice daily to prevent clogging",
+                "Use niacinamide to reduce appearance",
+                "Exfoliate regularly with BHAs (salicylic acid)",
+                "Apply retinol to improve skin texture",
+                "Always remove makeup before bed"
+            ]
+        case .pigmentation:
+            return [
+                "Wear SPF 30+ daily (most important!)",
+                "Use vitamin C serum in the morning",
+                "Try niacinamide for dark spots",
+                "Consider prescription treatments (hydroquinone, tretinoin)",
+                "Avoid direct sun exposure"
+            ]
+        }
+    }
+}
+
+public enum MetricType {
+    case roughness
+    case wrinkles
+    case hydration
+    case pores
+    case pigmentation
+
+    var name: String {
+        switch self {
+        case .roughness: return "Skin Texture"
+        case .wrinkles: return "Wrinkles"
+        case .hydration: return "Hydration"
+        case .pores: return "Pores"
+        case .pigmentation: return "Pigmentation"
+        }
+    }
+}
