@@ -79,7 +79,6 @@ public class ARFaceTrackingViewController: UIViewController {
         // Configure camera
         let camera = SCNCamera()
         camera.wantsHDR = true
-        camera.exposureAdaptationMode = .automatic
 
         let cameraNode = SCNNode()
         cameraNode.camera = camera
@@ -144,7 +143,7 @@ public class ARFaceTrackingViewController: UIViewController {
 extension ARFaceTrackingViewController: ARSCNViewDelegate {
 
     public func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        guard let faceAnchor = anchor as? ARFaceAnchor else { return nil }
+        guard anchor is ARFaceAnchor else { return nil }
 
         // Create face geometry node
         let faceGeometry = ARSCNFaceGeometry(device: sceneView.device!)!

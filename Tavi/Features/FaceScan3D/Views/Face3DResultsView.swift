@@ -260,7 +260,7 @@ public struct Face3DResultsView: View {
 
 // MARK: - Score Card
 
-struct ScoreCard: View {
+private struct ScoreCard: View {
     let title: String
     let score: Float
     let icon: String
@@ -401,7 +401,7 @@ struct ROIScoreRow: View {
 
 // MARK: - Info Row
 
-struct InfoRow: View {
+private struct InfoRow: View {
     let label: String
     let value: String
 

@@ -120,7 +120,7 @@ struct DeviceInfoView: View {
 
 // MARK: - Supporting Views
 
-struct InfoRow: View {
+private struct InfoRow: View {
     let label: String
     let value: String
 
@@ -140,7 +140,7 @@ struct InfoRow: View {
     }
 }
 
-struct CapabilityRow: View {
+private struct CapabilityRow: View {
     let label: String
     let isSupported: Bool
     let detail: String
@@ -166,7 +166,7 @@ struct CapabilityRow: View {
     }
 }
 
-struct PerformanceBadge: View {
+private struct PerformanceBadge: View {
     let title: String
     let description: String
     let icon: String

@@ -373,7 +373,7 @@ struct EyeAngleLine: View {
 
 // MARK: - Debug Info View
 
-struct DebugInfoView: View {
+private struct DebugInfoView: View {
     let result: FaceDetectionResult
     let imageSize: CGSize
     let viewSize: CGSize

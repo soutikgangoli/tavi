@@ -130,7 +130,7 @@ public class MeshMerger {
     }
 
     // Helper struct for aligned captures
-    private struct AlignedCapture {
+    fileprivate struct AlignedCapture {
         let vertices: [Vector3]
         let triangleIndices: [Int32]
         let normals: [Vector3]

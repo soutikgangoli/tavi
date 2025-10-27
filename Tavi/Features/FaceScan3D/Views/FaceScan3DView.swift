@@ -99,14 +99,14 @@ public struct FaceScan3DView: View {
                 }
             }
         }
-        .onChange(of: viewModel.currentGeometry) { _, newGeometry in
+        .onChange(of: viewModel.currentGeometry) { newGeometry in
             if let geometry = newGeometry {
                 onGeometryUpdate?(geometry)
             }
         }
-        .onChange(of: viewModel.capturedPoses.count) { oldCount, newCount in
-            // Check if capture is complete
-            if newCount == GuidanceStep.allCases.count && newCount > oldCount {
+        .onChange(of: viewModel.capturedPoses.count) { newCount in
+            // Check if capture is complete (all poses captured)
+            if newCount == GuidanceStep.allCases.count {
                 onCaptureComplete?(viewModel.capturedPoses)
             }
         }
@@ -139,7 +139,7 @@ struct ARFaceTrackingViewRepresentable: UIViewControllerRepresentable {
 
 // MARK: - Debug Info View
 
-struct DebugInfoView: View {
+private struct DebugInfoView: View {
     @ObservedObject var viewModel: FaceScan3DViewModel
 
     var body: some View {

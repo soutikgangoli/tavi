@@ -94,14 +94,14 @@ public struct FaceIDStyleGuide: View {
                     }
                 }
             }
-            .onChange(of: allChecksPassed) { _, newValue in
+            .onChange(of: allChecksPassed) { newValue in
                 if newValue {
                     startHoldTimer()
                 } else {
                     resetHoldTimer()
                 }
             }
-            .onChange(of: holdTimer) { _, newValue in
+            .onChange(of: holdTimer) { newValue in
                 // Auto-capture when countdown reaches 0
                 if allChecksPassed && newValue == 0 && !hasTriggeredCapture {
                     hasTriggeredCapture = true
@@ -140,16 +140,16 @@ public struct FaceIDStyleGuide: View {
         }
 
         // Check if eyes are closed (using landmarks if available)
-        if let leftEye = face.landmarks?.leftEye,
-           let rightEye = face.landmarks?.rightEye,
-           areEyesClosed(leftEye: leftEye, rightEye: rightEye) {
+        let leftEye = face.landmarks.leftEye
+        let rightEye = face.landmarks.rightEye
+        if areEyesClosed(leftEye: leftEye, rightEye: rightEye) {
             return "Eyes are closed"
         }
 
         // Check if mouth is open (using landmarks if available)
-        if let outerLips = face.landmarks?.outerLips,
-           let innerLips = face.landmarks?.innerLips,
-           isMouthOpen(outerLips: outerLips, innerLips: innerLips) {
+        let outerLips = face.landmarks.outerLips
+        let innerLips = face.landmarks.innerLips
+        if isMouthOpen(outerLips: outerLips, innerLips: innerLips) {
             return "Please close your mouth"
         }
 
@@ -158,7 +158,7 @@ public struct FaceIDStyleGuide: View {
         }
 
         if lightingStatus != .good {
-            return lightingStatus == .tooLow ? "Need more light" : "Too bright"
+            return lightingStatus == .tooLow ? "Need more light" : "Lighting issue"
         }
 
         return holdTimer > 0 ? "Great! Please look at the camera" : "Perfect! Hold still..."
@@ -272,9 +272,9 @@ public struct FaceIDStyleGuide: View {
         switch status {
         case .good:
             return .perfect
-        case .acceptable:
+        case .clipped:
             return .okay
-        case .tooLow, .tooHigh:
+        case .tooLow:
             return .empty
         }
     }

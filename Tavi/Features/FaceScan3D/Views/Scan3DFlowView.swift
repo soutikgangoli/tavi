@@ -17,7 +17,7 @@ public struct Scan3DFlowView: View {
     @State private var showResults = false
     @State private var processingProgress: String = ""
 
-    enum FlowState {
+    enum FlowState: Equatable {
         case capturing
         case processing
         case complete
@@ -166,7 +166,7 @@ public struct Scan3DFlowView: View {
             do {
                 // Step 1: Merge meshes
                 processingProgress = "Merging face meshes from all angles..."
-                guard let merged = await viewModel.finalizeCapture() else {
+                guard let _ = await viewModel.finalizeCapture() else {
                     throw ScanError.mergeFailed
                 }
 
@@ -174,7 +174,7 @@ public struct Scan3DFlowView: View {
 
                 // Step 2: Bake texture
                 processingProgress = "Baking unified texture with lighting correction..."
-                guard let bakeResult = await viewModel.bakeTextureFromSequence() else {
+                guard let _ = await viewModel.bakeTextureFromSequence() else {
                     throw ScanError.bakeFailed
                 }
 

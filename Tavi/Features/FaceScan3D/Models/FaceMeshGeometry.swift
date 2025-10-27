@@ -11,7 +11,7 @@ import ARKit
 import simd
 
 /// Complete face mesh geometry data extracted from ARFaceAnchor
-public struct FaceMeshGeometry {
+public struct FaceMeshGeometry: Equatable {
     /// 3D vertex positions in world space
     public let vertices: [SIMD3<Float>]
 
@@ -44,26 +44,46 @@ public struct FaceMeshGeometry {
     public init(faceAnchor: ARFaceAnchor, timestamp: TimeInterval = Date().timeIntervalSince1970) {
         let geometry = faceAnchor.geometry
 
-        // Extract vertices
-        self.vertices = (0..<geometry.vertexCount).map { index in
-            geometry.vertices[index]
+        // Modern ARKit API: vertices, triangleIndices, and textureCoordinates are already arrays
+        // Extract vertices directly
+        self.vertices = Array(geometry.vertices)
+        let vertexCount = self.vertices.count
+
+        // Extract triangle indices and convert from Int16 to Int32
+        self.triangleIndices = geometry.triangleIndices.map { Int32($0) }
+
+        // Compute normals from vertices and triangles (ARFaceGeometry doesn't provide normals)
+        var normals = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: vertexCount)
+
+        // Calculate face normals and accumulate to vertex normals
+        for i in stride(from: 0, to: triangleIndices.count, by: 3) {
+            let i0 = Int(triangleIndices[i])
+            let i1 = Int(triangleIndices[i + 1])
+            let i2 = Int(triangleIndices[i + 2])
+
+            let v0 = vertices[i0]
+            let v1 = vertices[i1]
+            let v2 = vertices[i2]
+
+            // Calculate face normal using cross product
+            let edge1 = v1 - v0
+            let edge2 = v2 - v0
+            let faceNormal = normalize(cross(edge1, edge2))
+
+            // Accumulate to vertex normals
+            normals[i0] += faceNormal
+            normals[i1] += faceNormal
+            normals[i2] += faceNormal
         }
 
-        // Extract triangle indices
-        let indexCount = geometry.triangleCount * 3
-        self.triangleIndices = (0..<indexCount).map { index in
-            geometry.triangleIndices[index]
+        // Normalize all vertex normals
+        for i in 0..<vertexCount {
+            normals[i] = normalize(normals[i])
         }
+        self.normals = normals
 
-        // Extract normals
-        self.normals = (0..<geometry.vertexCount).map { index in
-            geometry.normals[index]
-        }
-
-        // Extract texture coordinates
-        self.textureCoordinates = (0..<geometry.vertexCount).map { index in
-            geometry.textureCoordinates[index]
-        }
+        // Extract texture coordinates directly
+        self.textureCoordinates = Array(geometry.textureCoordinates)
 
         self.transform = faceAnchor.transform
         self.timestamp = timestamp

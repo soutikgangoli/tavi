@@ -369,10 +369,4 @@ public struct OverlayLayer {
     }
 }
 
-/// Type of overlay visualization
-public enum OverlayType {
-    case roughness
-    case pigmentation
-    case discoloration
-    case specular
-}
+// Note: OverlayType is defined in FaceScan3DAPI.swift

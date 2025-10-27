@@ -403,7 +403,7 @@ public struct Face3DMetricsResultsView: View {
 
 // MARK: - Metric Card
 
-struct MetricCard: View {
+private struct MetricCard: View {
     let title: String
     let value: Float
     let icon: String
@@ -445,7 +445,7 @@ struct MetricCard: View {
 
 // MARK: - Score Card
 
-struct ScoreCard: View {
+private struct ScoreCard: View {
     let title: String
     let score: Float
     let icon: String
@@ -513,7 +513,7 @@ struct ScoreCard: View {
 
 // MARK: - Score Card with Explanation
 
-struct ScoreCardWithExplanation: View {
+private struct ScoreCardWithExplanation: View {
     let title: String
     let score: Float
     let icon: String

@@ -322,27 +322,27 @@ public class MeshTextureExporter {
 
         // Write positions (Vec3<Float>)
         for vertex in mesh.vertices {
-            data.append(float: vertex.x)
-            data.append(float: vertex.y)
-            data.append(float: vertex.z)
+            data.appendFloat(vertex.x)
+            data.appendFloat(vertex.y)
+            data.appendFloat(vertex.z)
         }
 
         // Write normals (Vec3<Float>)
         for normal in mesh.normals {
-            data.append(float: normal.x)
-            data.append(float: normal.y)
-            data.append(float: normal.z)
+            data.appendFloat(normal.x)
+            data.appendFloat(normal.y)
+            data.appendFloat(normal.z)
         }
 
         // Write texture coordinates (Vec2<Float>)
         for texCoord in mesh.textureCoordinates {
-            data.append(float: texCoord.x)
-            data.append(float: texCoord.y)
+            data.appendFloat(texCoord.x)
+            data.appendFloat(texCoord.y)
         }
 
         // Write indices (UInt32)
         for index in mesh.triangleIndices {
-            data.append(uint32: UInt32(index))
+            data.appendUInt32(UInt32(index))
         }
 
         return data
@@ -422,9 +422,23 @@ public class MeshTextureExporter {
 
         // Create texture from CGImage
         let textureData = UIImage(cgImage: texture).pngData()!
-        let mdlTexture = MDLTexture(data: textureData, topLeftOrigin: false, name: "albedo")
+        let dimensions = vector_int2(Int32(texture.width), Int32(texture.height))
+        let mdlTexture = MDLTexture(
+            data: textureData,
+            topLeftOrigin: false,
+            name: "albedo",
+            dimensions: dimensions,
+            rowStride: texture.width * 4,
+            channelCount: 4,
+            channelEncoding: .uInt8,
+            isCube: false
+        )
 
-        material.setProperty(MDLMaterialProperty(name: "baseColor", semantic: .baseColor, texture: mdlTexture))
+        // Create material property with texture sampler
+        let textureSampler = MDLTextureSampler()
+        textureSampler.texture = mdlTexture
+        let textureProperty = MDLMaterialProperty(name: "baseColor", semantic: .baseColor, textureSampler: textureSampler)
+        material.setProperty(textureProperty)
         submesh.material = material
 
         return mdlMesh
@@ -452,13 +466,17 @@ public class MeshTextureExporter {
 // MARK: - Data Extensions
 
 extension Data {
-    mutating func append(float: Float) {
-        var value = float
-        withUnsafeBytes(of: &value) { self.append(contentsOf: $0) }
+    mutating func appendFloat(_ value: Float) {
+        var mutableValue = value
+        Swift.withUnsafeBytes(of: &mutableValue) { bytes in
+            self.append(contentsOf: bytes)
+        }
     }
 
-    mutating func append(uint32: UInt32) {
-        var value = uint32.littleEndian
-        withUnsafeBytes(of: &value) { self.append(contentsOf: $0) }
+    mutating func appendUInt32(_ value: UInt32) {
+        var mutableValue = value.littleEndian
+        Swift.withUnsafeBytes(of: &mutableValue) { bytes in
+            self.append(contentsOf: bytes)
+        }
     }
 }

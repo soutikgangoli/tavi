@@ -50,7 +50,7 @@ public class RoughnessAnalyzer {
         vDSP_meanv(luminance, 1, &meanLuma, vDSP_Length(luminance.count))
 
         // Compute mean of absolute high-pass values
-        var absHighpass = highpass.map { abs($0) }
+        let absHighpass = highpass.map { abs($0) }
         var meanHighpass: Float = 0
         vDSP_meanv(absHighpass, 1, &meanHighpass, vDSP_Length(absHighpass.count))
 

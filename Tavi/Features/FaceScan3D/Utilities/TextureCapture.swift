@@ -82,7 +82,7 @@ public class TextureCapture {
 
         // Extract light direction (estimate from ambient)
         var lightDirection: SIMD3<Float>? = nil
-        if let light = lightEstimation {
+        if lightEstimation != nil {
             // Simple approximation: light from above-front
             // In reality, ARKit doesn't give us directional info easily
             // We assume overhead lighting as default
@@ -168,14 +168,4 @@ public class TextureCapture {
     }
 }
 
-// MARK: - simd_float4x4 Extension
-
-extension simd_float4x4 {
-    /// Extract Euler angles from transform matrix
-    var eulerAngles: SIMD3<Float> {
-        let x = atan2(self[2][1], self[2][2])
-        let y = atan2(-self[2][0], sqrt(self[2][1] * self[2][1] + self[2][2] * self[2][2]))
-        let z = atan2(self[1][0], self[0][0])
-        return SIMD3<Float>(x, y, z)
-    }
-}
+// Note: eulerAngles extension is defined in FaceScan3DViewModel.swift

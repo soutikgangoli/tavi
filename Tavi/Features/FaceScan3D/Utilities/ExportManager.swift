@@ -79,13 +79,11 @@ public class ExportManager {
     /// Zip entire export directory
     /// Note: For production, consider using ZIPFoundation or native compression
     public static func zipExportDirectory(_ directory: URL) throws -> URL {
-        let zipURL = directory.deletingLastPathComponent()
-            .appendingPathComponent(directory.lastPathComponent + ".zip")
-
         // For now, just return the directory URL
         // In production, implement proper ZIP compression using:
         // - ZIPFoundation (3rd party)
         // - Or native compression APIs
+        // ZIP URL would be: directory.deletingLastPathComponent().appendingPathComponent(directory.lastPathComponent + ".zip")
 
         print("📦 Export directory ready: \(directory.path)")
         print("   (ZIP compression requires additional implementation)")

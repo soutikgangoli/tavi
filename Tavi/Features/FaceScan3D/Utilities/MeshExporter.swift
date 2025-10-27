@@ -188,22 +188,22 @@ public class MeshExporter {
 extension Data {
     mutating func append(uint32: UInt32) {
         var value = uint32.littleEndian
-        withUnsafeBytes(of: &value) { self.append(contentsOf: $0) }
+        Swift.withUnsafeBytes(of: &value) { self.append(contentsOf: $0) }
     }
 
     mutating func append(int32: Int32) {
         var value = int32.littleEndian
-        withUnsafeBytes(of: &value) { self.append(contentsOf: $0) }
+        Swift.withUnsafeBytes(of: &value) { self.append(contentsOf: $0) }
     }
 
     mutating func append(float: Float) {
         var value = float
-        withUnsafeBytes(of: &value) { self.append(contentsOf: $0) }
+        Swift.withUnsafeBytes(of: &value) { self.append(contentsOf: $0) }
     }
 
     mutating func append(double: Double) {
         var value = double
-        withUnsafeBytes(of: &value) { self.append(contentsOf: $0) }
+        Swift.withUnsafeBytes(of: &value) { self.append(contentsOf: $0) }
     }
 
     mutating func append(captureData capture: MeshCapture) throws {

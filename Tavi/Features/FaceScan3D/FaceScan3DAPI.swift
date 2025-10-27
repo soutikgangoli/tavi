@@ -189,7 +189,7 @@ extension Face3DMetrics {
 
         lines.append("")
         lines.append("Regional Scores:")
-        for (roi, metrics) in sortedROIMetrics {
+        for (roi, metrics) in sortedROI3DMetrics {
             lines.append("  \(roi.displayName):")
             lines.append("    - Smoothness: \(String(format: "%.0f", metrics.roughnessScore))%")
             lines.append("    - Pigmentation: \(String(format: "%.0f", metrics.pigmentationScore))%")

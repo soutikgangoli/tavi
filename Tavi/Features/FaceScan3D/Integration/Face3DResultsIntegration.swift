@@ -28,7 +28,7 @@ public class Face3DResultsIntegration {
 
         // Basic info
         session.id = UUID()
-        session.timestamp = Date()
+        session.date = Date()
         session.deviceModel = UIDevice.current.model
 
         // Overall score (convert from 0-10 to 0-100)
@@ -183,7 +183,7 @@ public class Face3DResultsIntegration {
             "Regional Analysis:".draw(at: CGPoint(x: 50, y: yOffset), withAttributes: sectionAttributes)
             yOffset += 25
 
-            for (roi, roiMetrics) in metrics.sortedROIMetrics {
+            for (roi, roiMetrics) in metrics.roiMetrics.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
                 "\(roi.displayName):".draw(at: CGPoint(x: 60, y: yOffset), withAttributes: detailAttributes)
                 yOffset += 18
 

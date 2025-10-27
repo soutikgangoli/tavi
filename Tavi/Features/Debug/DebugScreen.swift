@@ -495,7 +495,7 @@ struct PerformanceHUD: View {
     }
 }
 
-struct MetricCard: View {
+private struct MetricCard: View {
     let title: String
     let value: String
     let subtitle: String
