@@ -18,6 +18,16 @@ public struct FaceIDStyleGuide: View {
     @State private var isHolding = false
     @State private var hasTriggeredCapture = false
 
+    public init(
+        faceResult: FaceDetectionResult? = nil,
+        lightingStatus: CalibrationStatus? = nil,
+        onAutoCapture: (() -> Void)? = nil
+    ) {
+        self.faceResult = faceResult
+        self.lightingStatus = lightingStatus
+        self.onAutoCapture = onAutoCapture
+    }
+
     public var body: some View {
         GeometryReader { geometry in
             ZStack {
