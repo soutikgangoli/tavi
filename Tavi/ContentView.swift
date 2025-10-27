@@ -16,6 +16,12 @@ struct ContentView: View {
         List {
             Section("Features") {
                 NavigationLink {
+                    CameraView()
+                } label: {
+                    Label("Camera", systemImage: "camera.fill")
+                }
+
+                NavigationLink {
                     ResultsHistoryView()
                 } label: {
                     Label("Analysis History", systemImage: "clock.arrow.circlepath")

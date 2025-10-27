@@ -27,7 +27,12 @@ struct CameraViewWithSaveExample: View {
             if let scores = viewModel.lastScoreSummary {
                 VStack(spacing: 16) {
                     // Show existing score summary
-                    ScoreSummaryView(summary: scores)
+                    ScoreSummaryView(
+                        scores: scores,
+                        faceImage: viewModel.lastCaptureResult?.combinedImage,
+                        roiSet: viewModel.lastCaptureResult?.roiSet,
+                        isPresented: $showingResults
+                    )
 
                     // Save button
                     saveButton
@@ -113,6 +118,7 @@ struct ResultsModalView: View {
     @ObservedObject var viewModel: CameraViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var navigateToHistory = false
+    @State private var showingResults = true
 
     var body: some View {
         NavigationStack {
@@ -120,11 +126,16 @@ struct ResultsModalView: View {
                 VStack(spacing: 24) {
                     // Show scores
                     if let scores = viewModel.lastScoreSummary {
-                        ScoreSummaryView(summary: scores)
+                        ScoreSummaryView(
+                            scores: scores,
+                            faceImage: viewModel.lastCaptureResult?.combinedImage,
+                            roiSet: viewModel.lastCaptureResult?.roiSet,
+                            isPresented: $showingResults
+                        )
                     }
 
                     // Show heatmap if available
-                    if let captureResult = viewModel.lastCaptureResult {
+                    if let _ = viewModel.lastCaptureResult {
                         Text("Heatmap visualization")
                         // Add HeatmapView here
                     }
@@ -176,6 +187,7 @@ struct ResultsModalView: View {
 struct CameraViewAutoSaveExample: View {
     @StateObject private var viewModel = CameraViewModel()
     @State private var autoSaved = false
+    @State private var hasScores = false
 
     var body: some View {
         VStack {
@@ -185,8 +197,8 @@ struct CameraViewAutoSaveExample: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .onChange(of: viewModel.lastScoreSummary) { oldValue, newValue in
-            if newValue != nil, !autoSaved {
+        .onChange(of: viewModel.lastScoreSummary != nil) { newValue in
+            if newValue, !autoSaved {
                 Task {
                     await viewModel.saveSession()
                     autoSaved = true
@@ -283,10 +295,17 @@ struct CompleteFlowExample: View {
         }
     }
 
+    @State private var showingResults = true
+
     private var resultsView: some View {
         VStack(spacing: 24) {
             if let scores = viewModel.lastScoreSummary {
-                ScoreSummaryView(summary: scores)
+                ScoreSummaryView(
+                    scores: scores,
+                    faceImage: viewModel.lastCaptureResult?.combinedImage,
+                    roiSet: viewModel.lastCaptureResult?.roiSet,
+                    isPresented: $showingResults
+                )
 
                 VStack(spacing: 12) {
                     PrimaryButton(title: "Save Results") {

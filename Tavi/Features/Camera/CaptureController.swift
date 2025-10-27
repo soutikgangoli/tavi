@@ -206,9 +206,6 @@ public class CaptureController: ObservableObject {
             throw CaptureError.alignmentFailed
         }
 
-        // Use first frame as reference
-        let referenceFrame = frames[0]
-
         var alignedFrames: [AlignedFrame] = []
 
         for (index, frame) in frames.enumerated() {

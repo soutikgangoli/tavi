@@ -195,11 +195,11 @@ struct GradeBadge: View {
 
     private var gradeColor: Color {
         switch grade {
-        case .A: return .green
-        case .B: return .blue
-        case .C: return .orange
-        case .D: return .red
-        case .F: return .red
+        case .excellent: return .green
+        case .good: return .blue
+        case .fair: return .orange
+        case .poor: return .red
+        case .veryPoor: return .red
         }
     }
 }
@@ -214,8 +214,9 @@ struct GradeBadge: View {
 }
 
 #Preview("Empty State") {
-    NavigationStack {
+    let controller = PersistenceController(inMemory: true)
+    return NavigationStack {
         ResultsHistoryView()
-            .environment(\.managedObjectContext, PersistenceController(inMemory: true).viewContext)
+            .environment(\.managedObjectContext, controller.viewContext)
     }
 }

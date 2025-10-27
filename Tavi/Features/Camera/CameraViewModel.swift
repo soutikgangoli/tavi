@@ -339,7 +339,7 @@ class CameraViewModel: ObservableObject {
 
         do {
             let result = try await captureController.startCapture { [weak self] in
-                await self?.latestPixelBuffer
+                self?.latestPixelBuffer
             }
 
             lastCaptureResult = result
@@ -375,17 +375,17 @@ class CameraViewModel: ObservableObject {
 
         do {
             // Compute metrics on background thread
-            let metrics = try await Task.detached(priority: .userInitiated) { [weak self] in
-                guard let self = self else { throw MetricsError.insufficientROIs }
-                return try self.metricsComputer.computeMetrics(for: roiImages)
+            let metricsComputer = self.metricsComputer
+            let metrics = try await Task.detached(priority: .userInitiated) {
+                return try metricsComputer.computeMetrics(for: roiImages)
             }.value
 
             lastMetricsResult = metrics
 
             // Compute scores from metrics
-            let scores = await Task.detached(priority: .userInitiated) { [weak self] in
-                guard let self = self else { return nil }
-                return self.scoringEngine.computeScores(from: metrics)
+            let scoringEngine = self.scoringEngine
+            let scores = await Task.detached(priority: .userInitiated) {
+                return scoringEngine.computeScores(from: metrics)
             }.value
 
             lastScoreSummary = scores
@@ -413,14 +413,13 @@ class CameraViewModel: ObservableObject {
 
         do {
             // Get the base face image from capture result
-            guard let faceImage = captureResult.alignedFaceImage else {
-                throw NSError(domain: "CameraViewModel", code: -1, userInfo: [NSLocalizedDescriptionKey: "No face image available"])
-            }
+            let faceImage = captureResult.combinedImage
 
             // Generate heatmaps for all metrics
             let heatmaps = try await generateHeatmaps(
                 faceImage: faceImage,
-                metricsResult: lastMetricsResult
+                scores: scores,
+                roiSet: captureResult.roiSet
             )
 
             // Save to Core Data
@@ -442,62 +441,19 @@ class CameraViewModel: ObservableObject {
     /// Generate heatmaps for all metrics
     private func generateHeatmaps(
         faceImage: CGImage,
-        metricsResult: MetricsResult?
+        scores: ScoreSummary,
+        roiSet: FaceROISet
     ) async throws -> [HeatmapMetric: CGImage] {
-        guard let metricsResult = metricsResult else {
-            return [:]
-        }
-
-        var heatmaps: [HeatmapMetric: CGImage] = [:]
-
         // Generate on background thread
-        let generatedHeatmaps = try await Task.detached(priority: .userInitiated) { [weak self] in
-            guard let self = self else { return [:] }
-
-            var result: [HeatmapMetric: CGImage] = [:]
-
-            // Generate composite heatmap
-            if let composite = try? self.heatmapGenerator.generateCompositeHeatmap(
-                baseImage: faceImage,
-                metrics: metricsResult
-            ) {
-                result[.composite] = composite
-            }
-
-            // Generate individual metric heatmaps
-            if let sharpness = try? self.heatmapGenerator.generateMetricHeatmap(
-                baseImage: faceImage,
-                metrics: metricsResult,
-                metric: .sharpness
-            ) {
-                result[.sharpness] = sharpness
-            }
-
-            if let texture = try? self.heatmapGenerator.generateMetricHeatmap(
-                baseImage: faceImage,
-                metrics: metricsResult,
-                metric: .texture
-            ) {
-                result[.texture] = texture
-            }
-
-            if let pigmentation = try? self.heatmapGenerator.generateMetricHeatmap(
-                baseImage: faceImage,
-                metrics: metricsResult,
-                metric: .pigmentation
-            ) {
-                result[.pigmentation] = pigmentation
-            }
-
-            if let moisture = try? self.heatmapGenerator.generateMetricHeatmap(
-                baseImage: faceImage,
-                metrics: metricsResult,
-                metric: .moisture
-            ) {
-                result[.moisture] = moisture
-            }
-
-            return result
+        let heatmapGenerator = self.heatmapGenerator
+        let generatedHeatmaps = try await Task.detached(priority: .userInitiated) {
+            // Generate all heatmaps at once
+            return try heatmapGenerator.generateMultipleHeatmaps(
+                faceImage: faceImage,
+                scores: scores,
+                roiSet: roiSet,
+                metrics: HeatmapMetric.allCases
+            )
         }.value
 
         return generatedHeatmaps

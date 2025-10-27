@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreData
+import CoreGraphics
 import Combine
 
 @MainActor

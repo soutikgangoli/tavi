@@ -5,11 +5,19 @@
 //  Created on 2025-10-27.
 //
 
-import AVFoundation
+@preconcurrency import AVFoundation
+@preconcurrency import CoreVideo
+@preconcurrency import CoreMedia
 import Combine
 import UIKit
 
-public enum CameraPosition {
+// Thread-safe wrapper for CVPixelBuffer to work with Swift 6 concurrency
+// CVPixelBuffer is thread-safe but not marked as Sendable in Swift 6
+struct SendablePixelBuffer: @unchecked Sendable {
+    let buffer: CVPixelBuffer
+}
+
+public enum CameraPosition: Sendable {
     case front
     case back
 }
@@ -34,26 +42,26 @@ public class CameraSession: NSObject {
 
     // MARK: - Frame Publisher
 
-    private let frameSubject = PassthroughSubject<CVPixelBuffer, Never>()
+    nonisolated private let frameSubject = PassthroughSubject<SendablePixelBuffer, Never>()
     public var framePublisher: AnyPublisher<CVPixelBuffer, Never> {
-        frameSubject.eraseToAnyPublisher()
+        frameSubject.map { $0.buffer }.eraseToAnyPublisher()
     }
 
     // MARK: - Calibration Metrics Publisher
 
-    private let metricsSubject = PassthroughSubject<CalibrationMetrics, Never>()
+    nonisolated private let metricsSubject = PassthroughSubject<CalibrationMetrics, Never>()
     public var metricsPublisher: AnyPublisher<CalibrationMetrics, Never> {
         metricsSubject.eraseToAnyPublisher()
     }
 
     // MARK: - Private Properties
 
-    private let captureSession = AVCaptureSession()
-    private var videoDeviceInput: AVCaptureDeviceInput?
-    private let videoDataOutput = AVCaptureVideoDataOutput()
+    nonisolated private let captureSession = AVCaptureSession()
+    nonisolated(unsafe) private var videoDeviceInput: AVCaptureDeviceInput?
+    nonisolated private let videoDataOutput = AVCaptureVideoDataOutput()
     private let sessionQueue = DispatchQueue(label: "com.tavi.camera.session")
     private let metricsQueue = DispatchQueue(label: "com.tavi.camera.metrics", qos: .userInitiated)
-    private var currentDevice: AVCaptureDevice?
+    nonisolated(unsafe) private var currentDevice: AVCaptureDevice?
 
     // MARK: - Initialization
 
@@ -72,7 +80,7 @@ public class CameraSession: NSObject {
         videoDataOutput.setSampleBufferDelegate(self, queue: sessionQueue)
     }
 
-    private func selectBestDevice(for position: CameraPosition) -> AVCaptureDevice? {
+    nonisolated private func selectBestDevice(for position: CameraPosition) -> AVCaptureDevice? {
         let deviceTypes: [AVCaptureDevice.DeviceType]
 
         switch position {
@@ -95,7 +103,7 @@ public class CameraSession: NSObject {
         return discoverySession.devices.first
     }
 
-    private func configureCameraForHighQuality(_ device: AVCaptureDevice) throws {
+    nonisolated private func configureCameraForHighQuality(_ device: AVCaptureDevice) throws {
         try device.lockForConfiguration()
         defer { device.unlockForConfiguration() }
 
@@ -153,7 +161,7 @@ public class CameraSession: NSObject {
         }
     }
 
-    private func configureSession(for position: CameraPosition) throws {
+    nonisolated private func configureSession(for position: CameraPosition) throws {
         captureSession.beginConfiguration()
         defer { captureSession.commitConfiguration() }
 
@@ -371,7 +379,7 @@ public class CameraSession: NSObject {
 
     // MARK: - Private Metrics Computation
 
-    private func computeMetrics(from pixelBuffer: CVPixelBuffer) -> CalibrationMetrics? {
+    nonisolated private func computeMetrics(from pixelBuffer: CVPixelBuffer) -> CalibrationMetrics? {
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
 
@@ -431,15 +439,20 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
             return
         }
 
-        frameSubject.send(pixelBuffer)
+        // Wrap in Sendable wrapper for thread-safe operations
+        let sendableBuffer = SendablePixelBuffer(buffer: pixelBuffer)
+
+        // Send frame to publisher (thread-safe)
+        frameSubject.send(sendableBuffer)
 
         // Compute metrics on separate queue
         metricsQueue.async { [weak self] in
             guard let self = self,
-                  let metrics = self.computeMetrics(from: pixelBuffer) else {
+                  let metrics = self.computeMetrics(from: sendableBuffer.buffer) else {
                 return
             }
 
+            // Send metrics to publisher (thread-safe)
             self.metricsSubject.send(metrics)
         }
     }

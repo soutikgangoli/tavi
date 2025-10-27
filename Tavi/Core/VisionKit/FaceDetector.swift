@@ -5,13 +5,14 @@
 //  Created on 2025-10-27.
 //
 
-import Vision
+@preconcurrency import Vision
+@preconcurrency import CoreVideo
 import CoreImage
 import CoreGraphics
 import UIKit
 import Accelerate
 
-public class FaceDetector {
+public final class FaceDetector: @unchecked Sendable {
 
     // MARK: - Properties
 
@@ -37,14 +38,17 @@ public class FaceDetector {
             throw FaceDetectionError.requestNotInitialized
         }
 
+        // Wrap in Sendable wrapper for concurrency safety
+        let sendableBuffer = SendablePixelBuffer(buffer: pixelBuffer)
+
         return try await withCheckedThrowingContinuation { continuation in
             detectionQueue.async {
-                let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation, options: [:])
+                let handler = VNImageRequestHandler(cvPixelBuffer: sendableBuffer.buffer, orientation: orientation, options: [:])
 
                 do {
                     try handler.perform([request])
 
-                    guard let observations = request.results as? [VNFaceObservation] else {
+                    guard let observations = request.results else {
                         continuation.resume(returning: [])
                         return
                     }
@@ -71,7 +75,7 @@ public class FaceDetector {
                 do {
                     try handler.perform([request])
 
-                    guard let observations = request.results as? [VNFaceObservation] else {
+                    guard let observations = request.results else {
                         continuation.resume(returning: [])
                         return
                     }
@@ -184,9 +188,9 @@ public class FaceDetector {
             boundingBox: observation.boundingBox,
             landmarks: faceLandmarks,
             confidence: observation.confidence,
-            roll: observation.roll?.doubleValue.map { CGFloat($0) },
-            yaw: observation.yaw?.doubleValue.map { CGFloat($0) },
-            pitch: observation.pitch?.doubleValue.map { CGFloat($0) }
+            roll: observation.roll.map { CGFloat($0.doubleValue) },
+            yaw: observation.yaw.map { CGFloat($0.doubleValue) },
+            pitch: observation.pitch.map { CGFloat($0.doubleValue) }
         )
     }
 

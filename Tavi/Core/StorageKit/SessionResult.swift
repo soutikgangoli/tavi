@@ -7,12 +7,13 @@
 
 import Foundation
 import CoreData
+import CoreGraphics
 import UIKit
 
 // MARK: - Session Result Entity
 
 @objc(SessionResult)
-public class SessionResult: NSManagedObject {
+public class SessionResult: NSManagedObject, Identifiable {
 
     @NSManaged public var id: UUID
     @NSManaged public var date: Date
@@ -70,7 +71,7 @@ extension SessionResult {
         self.overallScore = scores.overallScore
 
         // Discoloration (invert for consistency - higher = better)
-        self.discolorationIndex = 100.0 - (scores.roiMetrics.values.map { $0.pigmentationScore }.reduce(0, +) / Double(scores.roiMetrics.count))
+        self.discolorationIndex = 100.0 - (scores.roiScores.values.map { $0.pigmentationScore }.reduce(0, +) / Double(scores.roiScores.count))
 
         // ROI scores
         self.leftCheekScore = scores.roiScores[.leftCheek]?.compositeScore ?? 0

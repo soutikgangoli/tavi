@@ -366,10 +366,10 @@ struct InfoOverlay: View {
                 Divider()
                     .background(.white.opacity(0.3))
 
-                InfoRow(label: "Resolution", value: resolution)
-                InfoRow(label: "Frame Rate", value: frameRate)
-                InfoRow(label: "Camera", value: cameraPosition)
-                InfoRow(label: "Exposure", value: exposureLocked ? "Locked" : "Auto")
+                CameraInfoRow(label: "Resolution", value: resolution)
+                CameraInfoRow(label: "Frame Rate", value: frameRate)
+                CameraInfoRow(label: "Camera", value: cameraPosition)
+                CameraInfoRow(label: "Exposure", value: exposureLocked ? "Locked" : "Auto")
 
                 Divider()
                     .background(.white.opacity(0.3))
@@ -393,7 +393,7 @@ struct InfoOverlay: View {
     }
 }
 
-struct InfoRow: View {
+struct CameraInfoRow: View {
     let label: String
     let value: String
 

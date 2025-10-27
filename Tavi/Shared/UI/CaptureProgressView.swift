@@ -235,6 +235,7 @@ public struct CaptureResultView: View {
                         metrics: metrics,
                         scores: scores,
                         faceImage: result.combinedImage,
+                        roiSet: result.roiSet,
                         isPresented: $showingMetrics
                     )
                 }

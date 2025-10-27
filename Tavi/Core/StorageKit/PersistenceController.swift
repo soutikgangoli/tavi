@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreData
+import CoreGraphics
 
 /// Manages Core Data persistence for the Tavi app
 final class PersistenceController {
@@ -60,7 +61,7 @@ final class PersistenceController {
 
     // MARK: - Initialization
 
-    private init(inMemory: Bool = false) {
+    init(inMemory: Bool = false) {
         container = NSPersistentContainer(name: "TaviModel")
 
         if inMemory {

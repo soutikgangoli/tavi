@@ -162,10 +162,15 @@ public struct HeatmapView: View {
         errorMessage = nil
 
         do {
+            let scores = self.scores
+            let faceImage = self.faceImage
+            let roiSet = self.roiSet
+            let generator = self.generator
+
             let heatmap = try await Task.detached(priority: .userInitiated) {
                 var metricMap: [ROIType: Double] = [:]
 
-                for (roiType, roiScores) in self.scores.roiScores {
+                for (roiType, roiScores) in scores.roiScores {
                     let value: Double
                     switch metric {
                     case .composite:
@@ -182,10 +187,10 @@ public struct HeatmapView: View {
                     metricMap[roiType] = value
                 }
 
-                return try self.generator.generateHeatmap(
-                    faceImage: self.faceImage,
+                return try generator.generateHeatmap(
+                    faceImage: faceImage,
                     metricMap: metricMap,
-                    roiSet: self.roiSet
+                    roiSet: roiSet
                 )
             }.value
 

@@ -129,12 +129,15 @@ struct CompactHistogramView: View {
             .padding()
 
         // Clipped histogram
-        var clippedHist = Array(repeating: 0, count: 256)
-        clippedHist[0] = 500 // Shadow clipping
-        clippedHist[255] = 500 // Highlight clipping
-        for i in 100..<150 {
-            clippedHist[i] = 300
-        }
+        let clippedHist: [Int] = {
+            var hist = Array(repeating: 0, count: 256)
+            hist[0] = 500 // Shadow clipping
+            hist[255] = 500 // Highlight clipping
+            for i in 100..<150 {
+                hist[i] = 300
+            }
+            return hist
+        }()
 
         HistogramView(histogram: clippedHist, height: 150)
             .background(Color.black.opacity(0.8))

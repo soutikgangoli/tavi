@@ -63,7 +63,7 @@ public struct ROIScores {
     /// Composite quality score (0-100%)
     public var compositeScore: Double {
         // Weighted average of all scores
-        let weights = ScoringConstants.compositeWeights
+        let weights = ScoringConstants.default.compositeWeights
 
         return sharpnessScore * weights.sharpness +
                textureScore * weights.texture +

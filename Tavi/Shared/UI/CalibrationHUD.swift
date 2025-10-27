@@ -231,7 +231,7 @@ public struct DetailedCalibrationView: View {
                         .font(.subheadline)
                         .foregroundStyle(.white)
 
-                    HistogramView(histogram: metrics.histogram, totalPixels: metrics.totalPixels)
+                    CalibrationHistogramView(histogram: metrics.histogram, totalPixels: metrics.totalPixels)
                         .frame(height: 100)
 
                     if metrics.isHistogramClipped {
@@ -281,7 +281,7 @@ public struct DetailedCalibrationView: View {
 
 // MARK: - Histogram View
 
-struct HistogramView: View {
+struct CalibrationHistogramView: View {
     let histogram: [Int]
     let totalPixels: Int
 

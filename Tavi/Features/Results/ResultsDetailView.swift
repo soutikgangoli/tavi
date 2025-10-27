@@ -201,12 +201,12 @@ struct ResultsDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                MetricCard(title: "Sharpness", value: session.blurQuality, icon: "camera.aperture")
-                MetricCard(title: "Texture", value: session.textureAvg, icon: "square.grid.3x3")
-                MetricCard(title: "Pigmentation", value: session.pigmentationAvg, icon: "paintpalette")
-                MetricCard(title: "Discoloration", value: session.discolorationIndex, icon: "circle.lefthalf.filled")
-                MetricCard(title: "Moisture (S)", value: session.moistureSpecular, icon: "drop")
-                MetricCard(title: "Moisture (Sm)", value: session.moistureSmoothness, icon: "drop.fill")
+                ResultsMetricCard(title: "Sharpness", value: session.blurQuality, icon: "camera.aperture")
+                ResultsMetricCard(title: "Texture", value: session.textureAvg, icon: "square.grid.3x3")
+                ResultsMetricCard(title: "Pigmentation", value: session.pigmentationAvg, icon: "paintpalette")
+                ResultsMetricCard(title: "Discoloration", value: session.discolorationIndex, icon: "circle.lefthalf.filled")
+                ResultsMetricCard(title: "Moisture (S)", value: session.moistureSpecular, icon: "drop")
+                ResultsMetricCard(title: "Moisture (Sm)", value: session.moistureSmoothness, icon: "drop.fill")
             }
         }
     }
@@ -220,10 +220,10 @@ struct ResultsDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                MetricCard(title: "Left Cheek", value: session.leftCheekScore, icon: "face.smiling")
-                MetricCard(title: "Right Cheek", value: session.rightCheekScore, icon: "face.smiling")
-                MetricCard(title: "Forehead", value: session.foreheadScore, icon: "face.smiling")
-                MetricCard(title: "Chin", value: session.chinScore, icon: "face.smiling")
+                ResultsMetricCard(title: "Left Cheek", value: session.leftCheekScore, icon: "face.smiling")
+                ResultsMetricCard(title: "Right Cheek", value: session.rightCheekScore, icon: "face.smiling")
+                ResultsMetricCard(title: "Forehead", value: session.foreheadScore, icon: "face.smiling")
+                ResultsMetricCard(title: "Chin", value: session.chinScore, icon: "face.smiling")
             }
         }
     }
@@ -273,17 +273,17 @@ struct ResultsDetailView: View {
 
     private func gradeColor(for grade: ScoreGrade) -> Color {
         switch grade {
-        case .A: return .green
-        case .B: return .blue
-        case .C: return .orange
-        case .D, .F: return .red
+        case .excellent: return .green
+        case .good: return .blue
+        case .fair: return .orange
+        case .poor, .veryPoor: return .red
         }
     }
 }
 
 // MARK: - Metric Card
 
-struct MetricCard: View {
+struct ResultsMetricCard: View {
 
     let title: String
     let value: Double

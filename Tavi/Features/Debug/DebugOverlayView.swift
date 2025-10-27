@@ -91,9 +91,9 @@ struct FaceBoundsView: View {
     @ViewBuilder
     private var landmarksView: some View {
         // Left eye
-        if let leftEye = face.landmarks.leftEye {
+        if !face.landmarks.leftEye.isEmpty {
             LandmarkPointsView(
-                points: leftEye,
+                points: face.landmarks.leftEye,
                 imageSize: imageSize,
                 viewSize: viewSize,
                 color: .cyan
@@ -101,9 +101,9 @@ struct FaceBoundsView: View {
         }
 
         // Right eye
-        if let rightEye = face.landmarks.rightEye {
+        if !face.landmarks.rightEye.isEmpty {
             LandmarkPointsView(
-                points: rightEye,
+                points: face.landmarks.rightEye,
                 imageSize: imageSize,
                 viewSize: viewSize,
                 color: .cyan
@@ -111,9 +111,9 @@ struct FaceBoundsView: View {
         }
 
         // Nose
-        if let nose = face.landmarks.nose {
+        if !face.landmarks.nose.isEmpty {
             LandmarkPointsView(
-                points: nose,
+                points: face.landmarks.nose,
                 imageSize: imageSize,
                 viewSize: viewSize,
                 color: .yellow
@@ -121,9 +121,9 @@ struct FaceBoundsView: View {
         }
 
         // Mouth
-        if let outerLips = face.landmarks.outerLips {
+        if !face.landmarks.outerLips.isEmpty {
             LandmarkPointsView(
-                points: outerLips,
+                points: face.landmarks.outerLips,
                 imageSize: imageSize,
                 viewSize: viewSize,
                 color: .red
@@ -131,9 +131,9 @@ struct FaceBoundsView: View {
         }
 
         // Face outline
-        if let faceContour = face.landmarks.faceContour {
+        if !face.landmarks.faceContour.isEmpty {
             LandmarkPointsView(
-                points: faceContour,
+                points: face.landmarks.faceContour,
                 imageSize: imageSize,
                 viewSize: viewSize,
                 color: .green
@@ -216,7 +216,7 @@ struct ROIOverlayDebugView: View {
     var body: some View {
         ForEach(Array(roiSet.rois.keys), id: \.self) { roiType in
             if let roi = roiSet.rois[roiType] {
-                ROIRectangleView(
+                DebugROIRectangleView(
                     roi: roi,
                     roiType: roiType,
                     imageSize: imageSize,
@@ -228,7 +228,7 @@ struct ROIOverlayDebugView: View {
     }
 }
 
-struct ROIRectangleView: View {
+struct DebugROIRectangleView: View {
 
     let roi: FaceROI
     let roiType: ROIType
@@ -266,12 +266,10 @@ struct ROIRectangleView: View {
         switch type {
         case .leftCheek, .rightCheek:
             return .pink
-        case .foreheadCenter, .foreheadLeft, .foreheadRight:
+        case .foreheadCenter:
             return .blue
-        case .chinCenter, .chinLeft, .chinRight:
+        case .chinCenter:
             return .orange
-        case .noseCenter:
-            return .purple
         }
     }
 

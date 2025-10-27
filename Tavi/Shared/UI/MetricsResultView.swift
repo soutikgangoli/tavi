@@ -13,6 +13,7 @@ public struct MetricsResultView: View {
     let metrics: MetricsResult
     let scores: ScoreSummary?
     let faceImage: CGImage?
+    let roiSet: FaceROISet?
     @Binding var isPresented: Bool
     @State private var showingScores = false
 
@@ -20,11 +21,13 @@ public struct MetricsResultView: View {
         metrics: MetricsResult,
         scores: ScoreSummary? = nil,
         faceImage: CGImage? = nil,
+        roiSet: FaceROISet? = nil,
         isPresented: Binding<Bool>
     ) {
         self.metrics = metrics
         self.scores = scores
         self.faceImage = faceImage
+        self.roiSet = roiSet
         self._isPresented = isPresented
     }
 
@@ -86,7 +89,7 @@ public struct MetricsResultView: View {
                     ScoreSummaryView(
                         scores: scores,
                         faceImage: faceImage,
-                        roiSet: metrics.roiSet,
+                        roiSet: roiSet,
                         isPresented: $showingScores
                     )
                 }
@@ -465,6 +468,7 @@ struct MetricBar: View {
             discolorationIndex: 0.22,
             timestamp: Date()
         ),
+        roiSet: nil,
         isPresented: .constant(true)
     )
 }

@@ -458,9 +458,9 @@ struct DebugScreen: View {
 
             CardView {
                 VStack(alignment: .leading, spacing: 12) {
-                    StatRow(title: "Total Frames", value: "\(viewModel.frameCount)")
-                    StatRow(title: "Faces Detected", value: "\(viewModel.detectedFaces.count)")
-                    StatRow(title: "ROI Sets", value: "\(viewModel.faceROIs.count)")
+                    DebugStatRow(title: "Total Frames", value: "\(viewModel.frameCount)")
+                    DebugStatRow(title: "Faces Detected", value: "\(viewModel.detectedFaces.count)")
+                    DebugStatRow(title: "ROI Sets", value: "\(viewModel.faceROIs.count)")
                 }
                 .padding()
             }
@@ -549,13 +549,13 @@ struct FaceInfoCard: View {
                 Divider()
 
                 if let roll = face.roll {
-                    StatRow(title: "Roll", value: String(format: "%.1f°", roll))
+                    DebugStatRow(title: "Roll", value: String(format: "%.1f°", roll))
                 }
                 if let yaw = face.yaw {
-                    StatRow(title: "Yaw", value: String(format: "%.1f°", yaw))
+                    DebugStatRow(title: "Yaw", value: String(format: "%.1f°", yaw))
                 }
                 if let pitch = face.pitch {
-                    StatRow(title: "Pitch", value: String(format: "%.1f°", pitch))
+                    DebugStatRow(title: "Pitch", value: String(format: "%.1f°", pitch))
                 }
             }
             .padding()
@@ -621,7 +621,7 @@ struct EventRow: View {
     }
 }
 
-struct StatRow: View {
+struct DebugStatRow: View {
     let title: String
     let value: String
 
@@ -676,9 +676,9 @@ struct ROIMetricsPopup: View {
                 // ROI Info
                 if let roi = roiSet.rois[roiType] {
                     VStack(alignment: .leading, spacing: 12) {
-                        InfoRow(label: "Center", value: String(format: "(%.2f, %.2f)", roi.center.x, roi.center.y))
-                        InfoRow(label: "Size", value: String(format: "%.1f × %.1f", roi.normalizedRect.width, roi.normalizedRect.height))
-                        InfoRow(label: "Area", value: String(format: "%.4f", roi.normalizedRect.width * roi.normalizedRect.height))
+                        DebugInfoRow(label: "Center", value: String(format: "(%.2f, %.2f)", roi.normalizedRect.midX, roi.normalizedRect.midY))
+                        DebugInfoRow(label: "Size", value: String(format: "%.1f × %.1f", roi.normalizedRect.width, roi.normalizedRect.height))
+                        DebugInfoRow(label: "Area", value: String(format: "%.4f", roi.normalizedRect.width * roi.normalizedRect.height))
 
                         Divider()
 
@@ -700,7 +700,7 @@ struct ROIMetricsPopup: View {
     }
 }
 
-struct InfoRow: View {
+struct DebugInfoRow: View {
     let label: String
     let value: String
 

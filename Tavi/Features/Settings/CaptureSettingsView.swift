@@ -62,7 +62,7 @@ struct CaptureSettingsView: View {
                 }
             }
             .tint(DesignSystem.Colors.accent)
-            .onChange(of: enableHighResCapture) { _, newValue in
+            .onChange(of: enableHighResCapture) { newValue in
                 if newValue {
                     HapticManager.shared.light()
                 }
@@ -92,7 +92,7 @@ struct CaptureSettingsView: View {
                 }
             }
             .tint(DesignSystem.Colors.accent)
-            .onChange(of: enableFaceMesh) { _, newValue in
+            .onChange(of: enableFaceMesh) { newValue in
                 if newValue {
                     HapticManager.shared.light()
                 }
@@ -122,7 +122,7 @@ struct CaptureSettingsView: View {
                 }
             }
             .tint(DesignSystem.Colors.accent)
-            .onChange(of: useRealtimeProcessing) { _, newValue in
+            .onChange(of: useRealtimeProcessing) { newValue in
                 if newValue {
                     HapticManager.shared.light()
                 }

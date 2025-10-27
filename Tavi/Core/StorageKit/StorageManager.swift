@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreData
+import CoreGraphics
 
 /// Legacy storage manager - now redirects to PersistenceController for session data
 /// Kept for backward compatibility with other app preferences
