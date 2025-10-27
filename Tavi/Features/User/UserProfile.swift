@@ -14,6 +14,9 @@ public struct UserProfile: Codable {
     var createdAt: Date
     var updatedAt: Date
 
+    // User identification
+    var name: String?
+
     // Demographics
     var age: Int?
     var gender: Gender?
@@ -205,6 +208,12 @@ public class UserProfileManager {
     }
 
     // Update specific fields
+    public func updateName(_ name: String) {
+        var profile = loadProfile()
+        profile.name = name
+        saveProfile(profile)
+    }
+
     public func updateAge(_ age: Int) {
         var profile = loadProfile()
         profile.age = age

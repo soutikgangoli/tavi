@@ -79,6 +79,8 @@ public enum GuidanceStep: Int, CaseIterable {
     case turnRight
     case lookUp
     case lookDown
+    case tiltLeft
+    case tiltRight
 
     var instruction: String {
         switch self {
@@ -92,6 +94,10 @@ public enum GuidanceStep: Int, CaseIterable {
             return "Tilt your head up a bit"
         case .lookDown:
             return "Tilt your head down a bit"
+        case .tiltLeft:
+            return "Tilt your head to the left (ear toward shoulder)"
+        case .tiltRight:
+            return "Tilt your head to the right (ear toward shoulder)"
         }
     }
 
@@ -107,6 +113,10 @@ public enum GuidanceStep: Int, CaseIterable {
             return "Up"
         case .lookDown:
             return "Down"
+        case .tiltLeft:
+            return "Tilt Left"
+        case .tiltRight:
+            return "Tilt Right"
         }
     }
 
@@ -135,6 +145,15 @@ public enum GuidanceStep: Int, CaseIterable {
         case .lookDown:
             // Face should be tilted down (negative pitch - head tilts forward)
             return pitch < -10 && pitch > -25 && abs(yaw) < 12 && abs(roll) < 10
+
+        case .tiltLeft:
+            // Head tilted to left (positive roll - right ear up, left ear down)
+            // Face should remain forward (not turned left/right or up/down much)
+            return roll > 10 && roll < 25 && abs(yaw) < 12 && abs(pitch) < 10
+
+        case .tiltRight:
+            // Head tilted to right (negative roll - left ear up, right ear down)
+            return roll < -10 && roll > -25 && abs(yaw) < 12 && abs(pitch) < 10
         }
     }
 
@@ -214,6 +233,36 @@ public enum GuidanceStep: Int, CaseIterable {
                 return "Too far, tilt up slightly"
             } else if abs(yaw) > 15 {
                 return yaw > 0 ? "Good angle, now straighten your head" : "Good angle, now straighten your head"
+            }
+            return "Almost there, hold that position"
+
+        case .tiltLeft:
+            // Need roll > 10
+            if roll < 5 {
+                return "Tilt your head more to the left (ear toward shoulder)"
+            } else if roll < 10 {
+                return "Almost there, tilt a bit more to the left"
+            } else if roll > 25 {
+                return "Too much tilt, bring your head back a bit"
+            } else if abs(yaw) > 15 {
+                return yaw > 0 ? "Good tilt, but face the camera more" : "Good tilt, but face the camera more"
+            } else if abs(pitch) > 15 {
+                return pitch > 0 ? "Good tilt, but keep your head level" : "Good tilt, but keep your head level"
+            }
+            return "Almost there, hold that position"
+
+        case .tiltRight:
+            // Need roll < -10
+            if roll > -5 {
+                return "Tilt your head more to the right (ear toward shoulder)"
+            } else if roll > -10 {
+                return "Almost there, tilt a bit more to the right"
+            } else if roll < -25 {
+                return "Too much tilt, bring your head back a bit"
+            } else if abs(yaw) > 15 {
+                return yaw > 0 ? "Good tilt, but face the camera more" : "Good tilt, but face the camera more"
+            } else if abs(pitch) > 15 {
+                return pitch > 0 ? "Good tilt, but keep your head level" : "Good tilt, but keep your head level"
             }
             return "Almost there, hold that position"
         }

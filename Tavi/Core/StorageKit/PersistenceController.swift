@@ -29,6 +29,7 @@ final class PersistenceController {
             session.id = UUID()
             session.date = Date().addingTimeInterval(TimeInterval(-i * 86400))
             session.deviceModel = "iPhone 15 Pro"
+            session.deviceOS = "iOS 17.0"
             session.overallScore = Double.random(in: 60...95)
             session.blurQuality = Double.random(in: 70...95)
             session.textureAvg = Double.random(in: 65...90)

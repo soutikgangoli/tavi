@@ -225,6 +225,9 @@ extension Face3DSummary {
 
         lines.append("=== Face3D Scan Summary ===")
         lines.append("")
+        if let userName = userName {
+            lines.append("User: \(userName)")
+        }
         lines.append("Date: \(date.formatted())")
         lines.append("Device: \(deviceModel) (\(deviceOS))")
         lines.append("Version: \(thresholdsVersion)")

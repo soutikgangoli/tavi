@@ -241,8 +241,7 @@ public struct CaptureSequence: Codable {
     public var metadata: SequenceMetadata
 
     enum CodingKeys: String, CodingKey {
-        case id, captures, startTime, completionTime, metadata
-        // Note: textureSamples excluded from automatic coding
+        case id, captures, textureSamples, startTime, completionTime, metadata
     }
 
     public init() {
@@ -340,6 +339,16 @@ public struct MergedFaceMesh: Codable {
 
         // Calculate bounding box
         self.boundingBox = BoundingBox.from(vertices: vertices)
+    }
+
+    /// Get merged mesh as FaceMeshGeometry for processing
+    public var geometry: FaceMeshGeometry {
+        return FaceMeshGeometry(
+            vertices: vertices.map { $0.toSIMD() },
+            normals: normals.map { $0.toSIMD() },
+            textureCoordinates: textureCoordinates.map { $0.toSIMD() },
+            triangleIndices: triangleIndices
+        )
     }
 
     /// Export to OBJ format

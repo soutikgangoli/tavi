@@ -18,6 +18,7 @@ public class SessionResult: NSManagedObject, Identifiable {
     @NSManaged public var id: UUID
     @NSManaged public var date: Date
     @NSManaged public var deviceModel: String
+    @NSManaged public var deviceOS: String
 
     // Metrics (0-100%)
     @NSManaged public var blurQuality: Double
@@ -41,6 +42,10 @@ public class SessionResult: NSManagedObject, Identifiable {
     @NSManaged public var rightCheekScore: Double
     @NSManaged public var foreheadScore: Double
     @NSManaged public var chinScore: Double
+
+    // Full metrics data (JSON encoded)
+    @NSManaged public var emotionalMetricsData: Data?    // EmotionalMetrics as JSON
+    @NSManaged public var clinicalMetricsData: Data?     // Face3DMetrics as JSON
 }
 
 // MARK: - Convenience Init
@@ -58,6 +63,7 @@ extension SessionResult {
         self.id = UUID()
         self.date = Date()
         self.deviceModel = UIDevice.current.model
+        self.deviceOS = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
 
         // Average scores
         let avg = scores.averageScores

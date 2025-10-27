@@ -124,6 +124,25 @@ public struct FaceMeshGeometry: Equatable {
         self.transform = faceAnchor.transform
         self.timestamp = timestamp
     }
+
+    /// Initialize from raw mesh data (for processed/smoothed meshes)
+    public init(
+        vertices: [SIMD3<Float>],
+        normals: [SIMD3<Float>],
+        textureCoordinates: [SIMD2<Float>],
+        triangleIndices: [Int32],
+        transform: simd_float4x4 = matrix_identity_float4x4,
+        timestamp: TimeInterval = Date().timeIntervalSince1970
+    ) {
+        self.vertices = vertices
+        self.normals = normals
+        self.textureCoordinates = textureCoordinates
+        self.triangleIndices = triangleIndices
+        self.transform = transform
+        self.timestamp = timestamp
+        self.originalVertexCount = vertices.count
+        self.wasExtended = false
+    }
 }
 
 /// Light estimation data from ARFrame

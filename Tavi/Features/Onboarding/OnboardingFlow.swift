@@ -13,48 +13,42 @@ public struct OnboardingFlowView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var currentPage: Int = 0
+    @State private var userName: String = ""
 
     private let pages: [OnboardingPage] = [
         OnboardingPage(
-            title: "Welcome to Tavi",
-            description: "Clinical-grade skin analysis using your iPhone's TrueDepth camera",
+            title: "What's Your Name?",
+            description: "Let's personalize your experience",
+            imageName: "person.circle.fill",
+            color: .blue,
+            requiresInput: true
+        ),
+        OnboardingPage(
+            title: "3D Face Scan in 1 Minute",
+            description: "We'll guide you through 7 head poses to capture your face in 3D.\n\n• Clinical-grade skin analysis\n• Track your progress over time\n• All data stays on your device\n\nLet's get started!",
             imageName: "face.smiling",
             color: .blue
-        ),
-        OnboardingPage(
-            title: "5 Key Metrics",
-            description: "We analyze:\n• Skin Texture & Roughness\n• Wrinkle Depth\n• Hydration Level\n• Pore Visibility\n• Pigmentation Evenness",
-            imageName: "chart.bar.fill",
-            color: .green
-        ),
-        OnboardingPage(
-            title: "3D Face Scanning",
-            description: "Turn your head to 5 poses:\nStraight → Left → Right → Up → Down\n\nWe capture 10-15 frames per pose for maximum accuracy.",
-            imageName: "arkit",
-            color: .purple
-        ),
-        OnboardingPage(
-            title: "Takes 1 Minute",
-            description: "• 15 seconds: Capture (5 poses × 3s each)\n• 30-45 seconds: Processing\n\nYou'll get instant results!",
-            imageName: "clock.fill",
-            color: .orange
-        ),
-        OnboardingPage(
-            title: "Track Your Progress",
-            description: "Scan weekly to see improvements over time. We'll show you trends, recommendations, and celebrate your wins!",
-            imageName: "chart.line.uptrend.xyaxis",
-            color: .pink
-        ),
-        OnboardingPage(
-            title: "Privacy First",
-            description: "All data stays on your device. We never upload your face scans to the cloud without your permission.",
-            imageName: "lock.shield.fill",
-            color: .indigo
         )
     ]
 
     public var body: some View {
         VStack {
+            // Skip button
+            HStack {
+                Spacer()
+                Button("Skip") {
+                    // Skip tutorial, but still save name if entered
+                    if !userName.isEmpty {
+                        UserProfileManager.shared.updateName(userName)
+                    }
+                    UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                    dismiss()
+                }
+                .foregroundColor(.gray)
+                .padding(.top, 20)
+                .padding(.trailing, 20)
+            }
+
             // Page indicator
             HStack(spacing: 8) {
                 ForEach(0..<pages.count, id: \.self) { index in
@@ -63,12 +57,17 @@ public struct OnboardingFlowView: View {
                         .frame(width: 8, height: 8)
                 }
             }
-            .padding(.top, 20)
+            .padding(.top, 10)
 
             TabView(selection: $currentPage) {
                 ForEach(0..<pages.count, id: \.self) { index in
-                    OnboardingPageView(page: pages[index])
-                        .tag(index)
+                    if pages[index].requiresInput {
+                        OnboardingPageView(page: pages[index], userName: $userName)
+                            .tag(index)
+                    } else {
+                        OnboardingPageView(page: pages[index])
+                            .tag(index)
+                    }
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
@@ -95,6 +94,11 @@ public struct OnboardingFlowView: View {
                     .fontWeight(.semibold)
                 } else {
                     Button("Get Started") {
+                        // Save user name to profile
+                        if !userName.isEmpty {
+                            UserProfileManager.shared.updateName(userName)
+                        }
+
                         // Mark onboarding as complete
                         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
                         dismiss()
@@ -116,6 +120,12 @@ public struct OnboardingFlowView: View {
 /// Single onboarding page
 struct OnboardingPageView: View {
     let page: OnboardingPage
+    @Binding var userName: String
+
+    init(page: OnboardingPage, userName: Binding<String> = .constant("")) {
+        self.page = page
+        self._userName = userName
+    }
 
     var body: some View {
         VStack(spacing: 30) {
@@ -138,6 +148,17 @@ struct OnboardingPageView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
 
+            // Input field for name if required
+            if page.requiresInput {
+                TextField("Enter your name", text: $userName)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 18))
+                    .padding(.horizontal, 40)
+                    .padding(.top, 20)
+                    .autocapitalization(.words)
+                    .disableAutocorrection(true)
+            }
+
             Spacer()
         }
     }
@@ -149,6 +170,15 @@ struct OnboardingPage {
     let description: String
     let imageName: String
     let color: Color
+    let requiresInput: Bool
+
+    init(title: String, description: String, imageName: String, color: Color, requiresInput: Bool = false) {
+        self.title = title
+        self.description = description
+        self.imageName = imageName
+        self.color = color
+        self.requiresInput = requiresInput
+    }
 }
 
 /// Metric explanation view (detailed)

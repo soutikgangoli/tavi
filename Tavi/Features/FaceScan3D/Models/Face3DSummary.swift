@@ -15,6 +15,7 @@ public struct Face3DSummary: Codable, Identifiable {
 
     // Metadata
     public let date: Date
+    public let userName: String?  // User's name from profile
     public let deviceModel: String
     public let deviceOS: String
     public let thresholdsVersion: String  // Track scoring configuration version
@@ -50,6 +51,7 @@ public struct Face3DSummary: Codable, Identifiable {
     public init(
         id: UUID = UUID(),
         date: Date,
+        userName: String?,
         deviceModel: String,
         deviceOS: String,
         thresholdsVersion: String,
@@ -72,6 +74,7 @@ public struct Face3DSummary: Codable, Identifiable {
     ) {
         self.id = id
         self.date = date
+        self.userName = userName
         self.deviceModel = deviceModel
         self.deviceOS = deviceOS
         self.thresholdsVersion = thresholdsVersion
@@ -100,6 +103,9 @@ public struct Face3DSummary: Codable, Identifiable {
         thresholdsVersion: String = "1.0"
     ) -> Face3DSummary {
 
+        // Get user name from profile
+        let userName = UserProfileManager.shared.loadProfile().name
+
         // Get device info
         let deviceModel = UIDevice.current.model
         let deviceOS = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
@@ -120,6 +126,7 @@ public struct Face3DSummary: Codable, Identifiable {
 
         return Face3DSummary(
             date: Date(),
+            userName: userName,
             deviceModel: deviceModel,
             deviceOS: deviceOS,
             thresholdsVersion: thresholdsVersion,
