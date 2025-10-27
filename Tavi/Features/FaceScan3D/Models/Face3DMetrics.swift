@@ -13,8 +13,9 @@ import simd
 
 // MARK: - Face ROI Definition
 
-/// Face region of interest (3D UV-based)
-public enum FaceROI: String, CaseIterable, Codable {
+/// Face region of interest for 3D scanning (UV-based)
+/// Note: Renamed from Face3DROI to Face3DROI to avoid conflict with 2D Face3DROI struct
+public enum Face3DROI: String, CaseIterable, Codable {
     case forehead = "Forehead"
     case leftCheek = "LeftCheek"
     case rightCheek = "RightCheek"
@@ -74,7 +75,7 @@ public struct UVBounds: Codable {
 /// Binary mask for a face ROI in UV space
 public struct UIMask {
     /// ROI this mask represents
-    public let roi: FaceROI
+    public let roi: Face3DROI
 
     /// Vertex indices that belong to this ROI
     public let vertexIndices: [Int]
@@ -94,7 +95,7 @@ public struct UIMask {
     public let textureHeight: Int
 
     public init(
-        roi: FaceROI,
+        roi: Face3DROI,
         vertexIndices: [Int],
         triangleIndices: [Int],
         bounds: UVBounds,
@@ -117,7 +118,7 @@ public struct UIMask {
 /// Texture data sampled from an ROI
 public struct ROITextureSample {
     /// ROI this sample is from
-    public let roi: FaceROI
+    public let roi: Face3DROI
 
     /// Pixel colors (RGB) within the ROI
     public let pixels: [SIMD3<Float>]
@@ -135,7 +136,7 @@ public struct ROITextureSample {
     }
 
     public init(
-        roi: FaceROI,
+        roi: Face3DROI,
         pixels: [SIMD3<Float>],
         uvCoordinates: [SIMD2<Float>],
         width: Int,
@@ -154,7 +155,7 @@ public struct ROITextureSample {
 /// Computed metrics for a single ROI
 public struct ROIMetrics: Codable {
     /// ROI identifier
-    public let roi: FaceROI
+    public let roi: Face3DROI
 
     // Raw metric values (0-1 range)
 
@@ -202,7 +203,7 @@ public struct ROIMetrics: Codable {
     public let confidenceLevel: String
 
     public init(
-        roi: FaceROI,
+        roi: Face3DROI,
         roughnessProxy: Float,
         pigmentationIndex: Float,
         specularProxy: Float?,
@@ -239,7 +240,7 @@ public struct ROIMetrics: Codable {
 /// Complete 3D face metrics computed from mesh and texture
 public struct Face3DMetrics: Codable {
     /// Metrics per ROI
-    public let roiMetrics: [FaceROI: ROIMetrics]
+    public let roiMetrics: [Face3DROI: ROIMetrics]
 
     // Global raw metrics (0-1 range)
 
@@ -289,11 +290,11 @@ public struct Face3DMetrics: Codable {
 
     /// Quality validation
     public let textureQuality: String?  // "Good quality" or warning message
-    public let lowConfidenceROIs: [FaceROI]  // ROIs excluded from global metrics
+    public let lowConfidenceROIs: [Face3DROI]  // ROIs excluded from global metrics
     public let isHighQuality: Bool  // Overall quality flag
 
     public init(
-        roiMetrics: [FaceROI: ROIMetrics],
+        roiMetrics: [Face3DROI: ROIMetrics],
         globalRoughnessProxy: Float,
         globalPigmentationIndex: Float,
         globalDiscolorationIndex: Float,
@@ -310,7 +311,7 @@ public struct Face3DMetrics: Codable {
         textureResolution: CGSize,
         processingTime: TimeInterval,
         textureQuality: String? = nil,
-        lowConfidenceROIs: [FaceROI] = [],
+        lowConfidenceROIs: [Face3DROI] = [],
         isHighQuality: Bool = true
     ) {
         self.roiMetrics = roiMetrics
@@ -336,12 +337,12 @@ public struct Face3DMetrics: Codable {
     }
 
     /// Get metrics for specific ROI
-    public func metrics(for roi: FaceROI) -> ROIMetrics? {
+    public func metrics(for roi: Face3DROI) -> ROIMetrics? {
         return roiMetrics[roi]
     }
 
     /// Get all ROI metrics sorted by ROI name
-    public var sortedROIMetrics: [(FaceROI, ROIMetrics)] {
+    public var sortedROIMetrics: [(Face3DROI, ROIMetrics)] {
         return roiMetrics.sorted { $0.key.rawValue < $1.key.rawValue }
     }
 }
@@ -354,14 +355,14 @@ public struct MetricVisualization {
     public let heatmapImage: UIImage?
 
     /// ROI boundary overlays
-    public let roiBoundaries: [FaceROI: UIBezierPath]
+    public let roiBoundaries: [Face3DROI: UIBezierPath]
 
     /// Legend colors for metric ranges
     public let legendColors: [Float: UIColor]
 
     public init(
         heatmapImage: UIImage?,
-        roiBoundaries: [FaceROI: UIBezierPath],
+        roiBoundaries: [Face3DROI: UIBezierPath],
         legendColors: [Float: UIColor]
     ) {
         self.heatmapImage = heatmapImage

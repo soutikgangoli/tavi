@@ -158,7 +158,7 @@ public struct Face3DSummary: Codable, Identifiable {
 public struct ROISummary: Codable, Identifiable {
     public var id: String { roi.rawValue }
 
-    public let roi: FaceROI
+    public let roi: Face3DROI
 
     // Scores (0-100 percentage)
     public let roughnessScore: Float
@@ -173,7 +173,7 @@ public struct ROISummary: Codable, Identifiable {
     public let pixelCount: Int
 
     public init(
-        roi: FaceROI,
+        roi: Face3DROI,
         roughnessScore: Float,
         pigmentationScore: Float,
         specularScore: Float?,

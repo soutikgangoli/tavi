@@ -165,7 +165,7 @@ public class HeatmapOverlayGenerator {
         }
 
         // Compute ROI LAB means and global mean
-        var roiLABMeans: [FaceROI: (l: Float, a: Float, b: Float)] = [:]
+        var roiLABMeans: [Face3DROI: (l: Float, a: Float, b: Float)] = [:]
         var globalL: Float = 0
         var globalA: Float = 0
         var totalPixels: Int = 0
@@ -187,7 +187,7 @@ public class HeatmapOverlayGenerator {
         }
 
         // Draw each ROI
-        for roi in FaceROI.allCases {
+        for roi in Face3DROI.allCases {
             guard let labMean = roiLABMeans[roi] else { continue }
 
             let bounds = roi.uvBounds

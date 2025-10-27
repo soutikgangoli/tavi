@@ -17,7 +17,7 @@ public struct Face3DResultsView: View {
 
     @State private var selectedMetricType: MetricType = .roughness
     @State private var showOriginal: Bool = false
-    @State private var selectedROI: FaceROI? = nil
+    @State private var selectedROI: Face3DROI? = nil
     @State private var show3DView: Bool = true
 
     public init(metrics: Face3DMetrics, texturedMesh: TextureBakeResult? = nil) {
@@ -321,7 +321,7 @@ struct ScoreCard: View {
 // MARK: - ROI Score Row
 
 struct ROIScoreRow: View {
-    let roi: FaceROI
+    let roi: Face3DROI
     let metrics: ROIMetrics
     let isSelected: Bool
 

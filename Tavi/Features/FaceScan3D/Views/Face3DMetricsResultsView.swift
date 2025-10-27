@@ -13,7 +13,7 @@ public struct Face3DMetricsResultsView: View {
     @ObservedObject var viewModel: FaceScan3DViewModel
 
     @State private var selectedMetricType: MetricType = .roughness
-    @State private var selectedROI: FaceROI?
+    @State private var selectedROI: Face3DROI?
     @State private var showHeatmap: Bool = true
 
     public init(viewModel: FaceScan3DViewModel) {
@@ -289,7 +289,7 @@ public struct Face3DMetricsResultsView: View {
                     Text("Region Analysis")
                         .font(.headline)
 
-                    ForEach(FaceROI.allCases, id: \.self) { roi in
+                    ForEach(Face3DROI.allCases, id: \.self) { roi in
                         if let roiMetrics = metrics.metrics(for: roi) {
                             ROIMetricRow(
                                 roi: roi,
@@ -591,7 +591,7 @@ struct ScoreCardWithExplanation: View {
 // MARK: - ROI Metric Row
 
 struct ROIMetricRow: View {
-    let roi: FaceROI
+    let roi: Face3DROI
     let metrics: ROIMetrics
     let metricType: MetricType
     let isSelected: Bool

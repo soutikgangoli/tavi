@@ -37,12 +37,12 @@ public class DiscolorationAnalyzer {
 
     /// Mean LAB color for a region
     public struct LABMean {
-        public let roi: FaceROI
+        public let roi: Face3DROI
         public let l: Float  // Lightness (0-100)
         public let a: Float  // Green-red (-128 to 127)
         public let b: Float  // Blue-yellow (-128 to 127)
 
-        public init(roi: FaceROI, l: Float, a: Float, b: Float) {
+        public init(roi: Face3DROI, l: Float, a: Float, b: Float) {
             self.roi = roi
             self.l = l
             self.a = a
@@ -54,7 +54,7 @@ public class DiscolorationAnalyzer {
 
     /// Compute discoloration index from ROI LAB means
     /// Returns 0-1 score where higher = more uneven skin tone across face
-    public func computeDiscolorationIndex(_ roiMeans: [FaceROI: LABMean]) -> Float {
+    public func computeDiscolorationIndex(_ roiMeans: [Face3DROI: LABMean]) -> Float {
         guard roiMeans.count >= 2 else {
             // Need at least 2 ROIs to compute variance
             return 0

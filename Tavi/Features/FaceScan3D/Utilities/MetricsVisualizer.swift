@@ -130,11 +130,11 @@ public class MetricsVisualizer {
 
     private func generateROIBoundaries(
         for metrics: Face3DMetrics
-    ) -> [FaceROI: UIBezierPath] {
+    ) -> [Face3DROI: UIBezierPath] {
 
-        var boundaries: [FaceROI: UIBezierPath] = [:]
+        var boundaries: [Face3DROI: UIBezierPath] = [:]
 
-        for roi in FaceROI.allCases {
+        for roi in Face3DROI.allCases {
             let path = UIBezierPath()
             let bounds = roi.uvBounds
 

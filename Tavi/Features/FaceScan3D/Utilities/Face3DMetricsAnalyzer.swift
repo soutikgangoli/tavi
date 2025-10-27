@@ -81,7 +81,7 @@ public class Face3DMetricsAnalyzer {
         print("   Generated \(masks.count) ROI masks")
 
         // Step 2: Sample texture for each ROI
-        var roiSamples: [FaceROI: ROITextureSample] = [:]
+        var roiSamples: [Face3DROI: ROITextureSample] = [:]
 
         for (roi, mask) in masks {
             if let sample = ROITextureSampler.sampleROITexture(unifiedTexture, mask: mask) {
@@ -99,7 +99,7 @@ public class Face3DMetricsAnalyzer {
         let roiConfidences = qualityValidator.validateROISamples(roiSamples)
         let globalValidity = qualityValidator.canComputeGlobalMetrics(roiConfidences)
 
-        var lowConfidenceROIs: [FaceROI] = []
+        var lowConfidenceROIs: [Face3DROI] = []
         for (roi, confidence) in roiConfidences {
             if !confidence.isValid {
                 print("   ⚠️ \(roi.displayName) has low confidence (\(confidence.pixelCount) pixels < \(confidence.minimumRequired))")
@@ -108,7 +108,7 @@ public class Face3DMetricsAnalyzer {
         }
 
         // Step 3: Compute metrics for each ROI
-        var roiMetrics: [FaceROI: ROIMetrics] = [:]
+        var roiMetrics: [Face3DROI: ROIMetrics] = [:]
 
         for (roi, sample) in roiSamples {
             let confidence = roiConfidences[roi]
@@ -203,8 +203,8 @@ public class Face3DMetricsAnalyzer {
     // MARK: - Global Metrics
 
     private func computeGlobalMetrics(
-        roiMetrics: [FaceROI: ROIMetrics],
-        roiSamples: [FaceROI: ROITextureSample]
+        roiMetrics: [Face3DROI: ROIMetrics],
+        roiSamples: [Face3DROI: ROITextureSample]
     ) -> (
         roughness: Float,
         pigmentation: Float,
@@ -257,7 +257,7 @@ public class Face3DMetricsAnalyzer {
         let globalSpecular: Float? = specularROICount > 0 && weightSum > 0 ? totalSpecular / weightSum : nil
 
         // Compute discoloration (inter-ROI variance)
-        var roiLABMeans: [FaceROI: DiscolorationAnalyzer.LABMean] = [:]
+        var roiLABMeans: [Face3DROI: DiscolorationAnalyzer.LABMean] = [:]
         for (roi, sample) in roiSamples {
             roiLABMeans[roi] = discolorationAnalyzer.computeLABMean(sample)
         }

@@ -36,11 +36,11 @@ public class ROIMaskGenerator {
     public func generateROIMasks(
         from uvCoordinates: [SIMD2<Float>],
         topology: [Int32]
-    ) -> [FaceROI: UIMask] {
+    ) -> [Face3DROI: UIMask] {
 
-        var masks: [FaceROI: UIMask] = [:]
+        var masks: [Face3DROI: UIMask] = [:]
 
-        for roi in FaceROI.allCases {
+        for roi in Face3DROI.allCases {
             let mask = generateMask(
                 for: roi,
                 uvCoordinates: uvCoordinates,
@@ -55,7 +55,7 @@ public class ROIMaskGenerator {
     // MARK: - Mask Generation
 
     private func generateMask(
-        for roi: FaceROI,
+        for roi: Face3DROI,
         uvCoordinates: [SIMD2<Float>],
         topology: [Int32]
     ) -> UIMask {
@@ -103,7 +103,7 @@ public class ROIMaskGenerator {
 
     /// Generate 2D pixel mask for ROI in texture space
     private func generatePixelMask(
-        for roi: FaceROI,
+        for roi: Face3DROI,
         bounds: UVBounds
     ) -> [[Bool]] {
 

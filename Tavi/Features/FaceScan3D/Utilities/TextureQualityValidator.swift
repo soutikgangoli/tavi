@@ -66,8 +66,8 @@ public class TextureQualityValidator {
     }
 
     /// Validate all ROI samples
-    public func validateROISamples(_ samples: [FaceROI: ROITextureSample]) -> [FaceROI: ROIConfidence] {
-        var confidences: [FaceROI: ROIConfidence] = [:]
+    public func validateROISamples(_ samples: [Face3DROI: ROITextureSample]) -> [Face3DROI: ROIConfidence] {
+        var confidences: [Face3DROI: ROIConfidence] = [:]
 
         for (roi, sample) in samples {
             confidences[roi] = validateROISample(sample)
@@ -77,7 +77,7 @@ public class TextureQualityValidator {
     }
 
     /// Check if global metrics can be computed reliably
-    public func canComputeGlobalMetrics(_ confidences: [FaceROI: ROIConfidence]) -> GlobalMetricsValidity {
+    public func canComputeGlobalMetrics(_ confidences: [Face3DROI: ROIConfidence]) -> GlobalMetricsValidity {
         let totalROIs = confidences.count
         let lowConfidenceROIs = confidences.values.filter { !$0.isValid }.count
 
@@ -222,7 +222,7 @@ public struct TextureQualityResult {
 
 /// Confidence level for an ROI
 public struct ROIConfidence {
-    public let roi: FaceROI
+    public let roi: Face3DROI
     public let isValid: Bool
     public let pixelCount: Int
     public let minimumRequired: Int
