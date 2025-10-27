@@ -35,10 +35,12 @@ public class TextureBaker {
 
     private let configuration: Configuration
     private let albedoEstimator: AlbedoEstimator
+    private let lightingNormalizer: LightingNormalizer
 
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
         self.albedoEstimator = AlbedoEstimator()
+        self.lightingNormalizer = LightingNormalizer()
     }
 
     // MARK: - Main Baking Function
@@ -110,23 +112,34 @@ public class TextureBaker {
 
     // MARK: - Lighting Correction
 
-    /// Apply albedo correction to all samples
+    /// Apply lighting normalization and albedo correction to all samples
     private func correctSamplesLighting(samples: [PoseSample]) async -> [CorrectedSample] {
         var correctedSamples: [CorrectedSample] = []
 
         for sample in samples {
             guard let originalImage = sample.getImage() else { continue }
 
-            // Estimate average light direction (simplified)
+            // Step 1: Apply lighting normalization (white balance, exposure, shadow compensation)
+            let normalizedResult = lightingNormalizer.normalize(image: originalImage)
+            let normalizedImage = normalizedResult?.normalizedImage ?? originalImage
+
+            // Log lighting quality
+            if let quality = normalizedResult?.lightingQuality {
+                print("   📸 Sample \(sample.step): lighting quality \(Int(quality.overallScore * 100))%")
+                if !quality.isAcceptable {
+                    print("      ⚠️ Issues: \(quality.issues.joined(separator: ", "))")
+                }
+            }
+
+            // Step 2: Apply albedo correction to remove directional lighting
             let lightDir = sample.lightDirection?.toSIMD() ?? SIMD3<Float>(0, 1, 0.5)
             let normalizedLightDir = normalize(lightDir)
 
-            // Apply albedo correction
             let correctedImage = albedoEstimator.processImage(
-                image: originalImage,
+                image: normalizedImage,
                 lightDirection: normalizedLightDir,
                 lightIntensity: Float(sample.ambientIntensity)
-            ) ?? originalImage
+            ) ?? normalizedImage
 
             correctedSamples.append(CorrectedSample(
                 original: sample,

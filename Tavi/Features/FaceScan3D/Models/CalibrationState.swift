@@ -85,13 +85,13 @@ public enum GuidanceStep: Int, CaseIterable {
         case .lookStraight:
             return "Please look straight at the camera"
         case .turnLeft:
-            return "Please turn your head left"
+            return "Turn your head slightly to the left"
         case .turnRight:
-            return "Please turn your head right"
+            return "Turn your head slightly to the right"
         case .lookUp:
-            return "Please look up slightly"
+            return "Tilt your head up a bit"
         case .lookDown:
-            return "Please look down slightly"
+            return "Tilt your head down a bit"
         }
     }
 
@@ -111,27 +111,111 @@ public enum GuidanceStep: Int, CaseIterable {
     }
 
     /// Check if the current face pose matches this step
+    /// STRICT validation for high-quality 3D reconstruction
     func isPoseValid(yaw: Float, pitch: Float, roll: Float) -> Bool {
         switch self {
         case .lookStraight:
-            // Face should be centered (minimal rotation)
+            // Face must be truly parallel to camera (STRICT for accuracy)
             return abs(yaw) < 5 && abs(pitch) < 5 && abs(roll) < 8
 
         case .turnLeft:
             // Face should be turned left (positive yaw)
-            return yaw > 15 && yaw < 35 && abs(pitch) < 15 && abs(roll) < 12
+            // Must be in range but also not tilted up/down too much
+            return yaw > 15 && yaw < 35 && abs(pitch) < 12 && abs(roll) < 10
 
         case .turnRight:
             // Face should be turned right (negative yaw)
-            return yaw < -15 && yaw > -35 && abs(pitch) < 15 && abs(roll) < 12
+            return yaw < -15 && yaw > -35 && abs(pitch) < 12 && abs(roll) < 10
 
         case .lookUp:
-            // Face should be tilted up (negative pitch)
-            return pitch < -10 && pitch > -25 && abs(yaw) < 15 && abs(roll) < 12
+            // Face should be tilted up (positive pitch - head tilts back)
+            // Not too much rotation left/right while tilted up
+            return pitch > 10 && pitch < 25 && abs(yaw) < 12 && abs(roll) < 10
 
         case .lookDown:
-            // Face should be tilted down (positive pitch)
-            return pitch > 10 && pitch < 25 && abs(yaw) < 15 && abs(roll) < 12
+            // Face should be tilted down (negative pitch - head tilts forward)
+            return pitch < -10 && pitch > -25 && abs(yaw) < 12 && abs(roll) < 10
+        }
+    }
+
+    /// Get real-time guidance feedback when user is close to target pose
+    func getGuidanceFeedback(yaw: Float, pitch: Float, roll: Float) -> String? {
+        // If already valid, no feedback needed
+        if isPoseValid(yaw: yaw, pitch: pitch, roll: roll) {
+            return nil
+        }
+
+        switch self {
+        case .lookStraight:
+            // Guide user to truly parallel position (strict)
+            if abs(yaw) > 8 {
+                return yaw > 0 ? "Turn more to the right to face camera directly" : "Turn more to the left to face camera directly"
+            }
+            if abs(yaw) > 5 {
+                return yaw > 0 ? "Almost straight, turn a bit more right" : "Almost straight, turn a bit more left"
+            }
+            if abs(pitch) > 8 {
+                return pitch > 0 ? "Tilt your head up to face camera directly" : "Tilt your head down to face camera directly"
+            }
+            if abs(pitch) > 5 {
+                return pitch > 0 ? "Almost level, tilt up just a bit" : "Almost level, tilt down just a bit"
+            }
+            if abs(roll) > 8 {
+                return "Level your head - it's tilted to the side"
+            }
+            return "Almost perfectly straight, hold steady"
+
+        case .turnLeft:
+            // Need yaw > 15
+            if yaw < 10 {
+                return "Turn more to the left"
+            } else if yaw < 15 {
+                return "Almost there, turn a bit more left"
+            } else if yaw > 35 {
+                return "Too far, turn back slightly to the right"
+            } else if abs(pitch) > 15 {
+                return pitch > 0 ? "Good angle, now level your head" : "Good angle, now level your head"
+            }
+            return "Almost there, hold that position"
+
+        case .turnRight:
+            // Need yaw < -15
+            if yaw > -10 {
+                return "Turn more to the right"
+            } else if yaw > -15 {
+                return "Almost there, turn a bit more right"
+            } else if yaw < -35 {
+                return "Too far, turn back slightly to the left"
+            } else if abs(pitch) > 15 {
+                return pitch > 0 ? "Good angle, now level your head" : "Good angle, now level your head"
+            }
+            return "Almost there, hold that position"
+
+        case .lookUp:
+            // Need pitch > 10
+            if pitch < 5 {
+                return "Tilt your head up more"
+            } else if pitch < 10 {
+                return "Almost there, tilt up just a bit more"
+            } else if pitch > 25 {
+                return "Too far, tilt down slightly"
+            } else if abs(yaw) > 15 {
+                return yaw > 0 ? "Good angle, now straighten your head" : "Good angle, now straighten your head"
+            }
+            return "Almost there, hold that position"
+
+        case .lookDown:
+            // Need pitch < -10
+            if pitch > -5 {
+                return "Tilt your head down more"
+            } else if pitch > -10 {
+                return "Almost there, tilt down just a bit more"
+            } else if pitch < -25 {
+                return "Too far, tilt up slightly"
+            } else if abs(yaw) > 15 {
+                return yaw > 0 ? "Good angle, now straighten your head" : "Good angle, now straighten your head"
+            }
+            return "Almost there, hold that position"
         }
     }
 }

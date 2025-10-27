@@ -23,7 +23,7 @@ public struct FaceScan3DView: View {
     public var meshColor: Color = .white
 
     /// Whether to use wireframe mode
-    public var wireframeMode: Bool = false
+    public var wireframeMode: Bool = true
 
     /// Whether to show calibration overlay
     public var showCalibration: Bool = true
@@ -55,6 +55,7 @@ public struct FaceScan3DView: View {
     public var body: some View {
         ZStack {
             // ARKit face tracking view
+            // Show mesh during guidance to visualize 3D face geometry
             ARFaceTrackingViewRepresentable(
                 viewModel: viewModel,
                 showMesh: showMesh,

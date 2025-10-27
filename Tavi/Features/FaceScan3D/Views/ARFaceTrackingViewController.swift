@@ -35,6 +35,20 @@ public class ARFaceTrackingViewController: UIViewController {
         }
     }
 
+    // MARK: - Multi-Frame Capture Properties
+
+    /// Frame averager for collecting multiple frames per pose
+    private var frameAverager: FrameAverager?
+
+    /// Whether multi-frame capture is active
+    private var isMultiFrameCaptureActive: Bool = false
+
+    /// Target number of frames to capture per pose
+    private let targetFrameCount: Int = 12
+
+    /// Minimum frames required (if tracking quality is good)
+    private let minimumFrameCount: Int = 8
+
     // MARK: - Lifecycle
 
     public override func viewDidLoad() {
@@ -136,6 +150,50 @@ public class ARFaceTrackingViewController: UIViewController {
     public func setWireframeMode(_ enabled: Bool) {
         faceNode?.geometry?.firstMaterial?.fillMode = enabled ? .lines : .fill
     }
+
+    // MARK: - Multi-Frame Capture Methods
+
+    /// Start multi-frame capture for current pose
+    public func startMultiFrameCapture() {
+        frameAverager = FrameAverager(
+            minFrames: minimumFrameCount,
+            maxFrames: targetFrameCount
+        )
+        isMultiFrameCaptureActive = true
+
+        Task { @MainActor in
+            viewModel?.onMultiFrameCaptureStarted()
+        }
+    }
+
+    /// Stop multi-frame capture and return averaged result
+    public func stopMultiFrameCapture() -> AveragedFrame? {
+        defer {
+            isMultiFrameCaptureActive = false
+            frameAverager = nil
+        }
+
+        guard let averager = frameAverager else { return nil }
+
+        let result = averager.average()
+
+        Task { @MainActor in
+            viewModel?.onMultiFrameCaptureCompleted(frameCount: averager.frameCount)
+        }
+
+        return result
+    }
+
+    /// Get current frame count in active capture
+    public func getCurrentFrameCount() -> Int {
+        return frameAverager?.frameCount ?? 0
+    }
+
+    /// Check if capture has enough frames
+    public func hasEnoughFrames() -> Bool {
+        guard let averager = frameAverager else { return false }
+        return averager.frameCount >= minimumFrameCount
+    }
 }
 
 // MARK: - ARSCNViewDelegate
@@ -151,9 +209,10 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
 
         // Configure material
         let material = faceGeometry.firstMaterial!
-        material.diffuse.contents = UIColor.white.withAlphaComponent(0.8)
-        material.lightingModel = .physicallyBased
-        material.fillMode = .fill
+        // Set visible wireframe color (white with some transparency)
+        material.diffuse.contents = UIColor.white.withAlphaComponent(0.7)
+        material.lightingModel = .constant
+        material.fillMode = .lines
 
         // Store reference
         faceNode = node
@@ -171,10 +230,70 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
         // Update face mesh geometry
         faceGeometry.update(from: faceAnchor.geometry)
 
-        // Update view model on main thread
+        // If multi-frame capture is active, add frame to averager
+        if isMultiFrameCaptureActive, let averager = frameAverager {
+            // Calculate tracking confidence (0-1)
+            let confidence = calculateTrackingConfidence(faceAnchor: faceAnchor)
+
+            // Add frame to averager
+            averager.addFrame(
+                faceAnchor.geometry,
+                confidence: confidence,
+                timestamp: frame.timestamp
+            )
+
+            // Notify viewModel of frame count update
+            Task { @MainActor in
+                viewModel?.onFrameCaptured(
+                    frameCount: averager.frameCount,
+                    targetCount: targetFrameCount,
+                    confidence: confidence
+                )
+            }
+
+            // Auto-stop if we've reached target
+            if averager.frameCount >= targetFrameCount {
+                Task { @MainActor in
+                    viewModel?.onMultiFrameCaptureReachedTarget()
+                }
+            }
+        }
+
+        // Always update view model with current geometry for real-time display
         Task { @MainActor in
             viewModel?.updateGeometry(faceAnchor: faceAnchor, frame: frame)
         }
+    }
+
+    /// Calculate tracking confidence based on blend shapes and tracking quality
+    private func calculateTrackingConfidence(faceAnchor: ARFaceAnchor) -> Float {
+        // Use tracking state if available (ARKit 3.0+)
+        var confidence: Float = 1.0
+
+        // Penalize if face is too far from neutral (user moving too much)
+        let blendShapes = faceAnchor.blendShapes
+        if let jawOpen = blendShapes[.jawOpen]?.floatValue,
+           let mouthFunnel = blendShapes[.mouthFunnel]?.floatValue {
+            // If mouth is open or puckered, reduce confidence
+            let mouthMovement = max(jawOpen, mouthFunnel)
+            confidence *= (1.0 - mouthMovement * 0.5)
+        }
+
+        // Penalize for extreme head rotations (should be holding pose)
+        let transform = faceAnchor.transform
+        let eulerAngles = simd_float3(
+            atan2(transform.columns.2.y, transform.columns.2.z),
+            atan2(-transform.columns.2.x, sqrt(transform.columns.2.y * transform.columns.2.y + transform.columns.2.z * transform.columns.2.z)),
+            atan2(transform.columns.1.x, transform.columns.0.x)
+        )
+
+        // If head is rotating significantly during capture, reduce confidence
+        let rotationMagnitude = length(eulerAngles)
+        if rotationMagnitude > 0.5 { // ~30 degrees
+            confidence *= 0.7
+        }
+
+        return max(0.1, min(1.0, confidence))
     }
 
     public func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {

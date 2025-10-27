@@ -25,7 +25,9 @@ public struct CalibrationOverlay: View {
                     currentStep: viewModel.currentGuidanceStep,
                     capturedPoses: viewModel.capturedPoses,
                     countdownTimer: viewModel.countdownTimer,
-                    calibrationState: viewModel.calibrationState
+                    calibrationState: viewModel.calibrationState,
+                    guidanceFeedback: viewModel.guidanceFeedback,
+                    qualityWarning: viewModel.qualityWarning
                 )
             }
 
@@ -149,6 +151,8 @@ struct GuidanceView: View {
     let capturedPoses: [GuidanceStep: CapturedPoseData]
     let countdownTimer: Int
     let calibrationState: CalibrationState
+    let guidanceFeedback: String?
+    let qualityWarning: String?
 
     var body: some View {
         VStack {
@@ -183,19 +187,36 @@ struct GuidanceView: View {
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
 
-                // Calibration warnings during guidance
+                // Warnings and feedback
                 if !calibrationState.isCalibrated {
+                    // Calibration warnings (lighting, distance, stability)
                     if let message = calibrationState.primaryMessage {
                         Text(message)
                             .font(.subheadline)
                             .foregroundStyle(.yellow)
                             .padding(.top, 4)
                     }
-                } else if countdownTimer == 0 {
-                    Text("Hold this position")
+                } else if let warning = qualityWarning {
+                    // Image quality warnings (blur, exposure)
+                    Text(warning)
                         .font(.subheadline)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(.orange)
                         .padding(.top, 4)
+                        .transition(.opacity)
+                } else if countdownTimer == 0 {
+                    // Show real-time guidance feedback when not counting down
+                    if let feedback = guidanceFeedback {
+                        Text(feedback)
+                            .font(.subheadline)
+                            .foregroundStyle(.cyan)
+                            .padding(.top, 4)
+                            .transition(.opacity)
+                    } else {
+                        Text("Hold this position")
+                            .font(.subheadline)
+                            .foregroundStyle(.green)
+                            .padding(.top, 4)
+                    }
                 }
             }
             .padding(.horizontal, 32)
@@ -203,6 +224,8 @@ struct GuidanceView: View {
             .background(.ultraThinMaterial)
             .cornerRadius(16)
             .padding(.bottom, 120)
+            .animation(.easeInOut(duration: 0.3), value: guidanceFeedback)
+            .animation(.easeInOut(duration: 0.3), value: qualityWarning)
         }
     }
 }

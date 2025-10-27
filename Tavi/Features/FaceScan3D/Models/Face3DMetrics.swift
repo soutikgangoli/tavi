@@ -293,6 +293,20 @@ public struct Face3DMetrics: Codable {
     public let lowConfidenceROIs: [Face3DROI]  // ROIs excluded from global metrics
     public let isHighQuality: Bool  // Overall quality flag
 
+    // NEW: Advanced metrics
+
+    /// Skin elasticity analysis (requires historical scans)
+    public let elasticityAnalysis: ElasticityAnalysis?
+
+    /// Volume-based aging metrics (cheek hollowing, under-eye bags, symmetry)
+    public let volumeAnalysis: VolumeAnalysis?
+
+    /// Regional analysis (under-eye, lips, nose, jawline)
+    public let regionalAnalysis: RegionalAnalysis?
+
+    /// Skin type classification
+    public let skinTypeAnalysis: SkinTypeAnalysis?
+
     public init(
         roiMetrics: [Face3DROI: ROI3DMetrics],
         globalRoughnessProxy: Float,
@@ -312,7 +326,11 @@ public struct Face3DMetrics: Codable {
         processingTime: TimeInterval,
         textureQuality: String? = nil,
         lowConfidenceROIs: [Face3DROI] = [],
-        isHighQuality: Bool = true
+        isHighQuality: Bool = true,
+        elasticityAnalysis: ElasticityAnalysis? = nil,
+        volumeAnalysis: VolumeAnalysis? = nil,
+        regionalAnalysis: RegionalAnalysis? = nil,
+        skinTypeAnalysis: SkinTypeAnalysis? = nil
     ) {
         self.roiMetrics = roiMetrics
         self.globalRoughnessProxy = globalRoughnessProxy
@@ -334,6 +352,10 @@ public struct Face3DMetrics: Codable {
         self.textureQuality = textureQuality
         self.lowConfidenceROIs = lowConfidenceROIs
         self.isHighQuality = isHighQuality
+        self.elasticityAnalysis = elasticityAnalysis
+        self.volumeAnalysis = volumeAnalysis
+        self.regionalAnalysis = regionalAnalysis
+        self.skinTypeAnalysis = skinTypeAnalysis
     }
 
     /// Get metrics for specific ROI
@@ -355,6 +377,7 @@ public struct Face3DMetrics: Codable {
         case globalSpecularScore, overallScore, scoreInterpretation
         case vertexCount, triangleCount, textureWidth, textureHeight
         case timestamp, processingTime, textureQuality, lowConfidenceROIs, isHighQuality
+        case elasticityAnalysis, volumeAnalysis, regionalAnalysis, skinTypeAnalysis
     }
 
     public init(from decoder: Decoder) throws {
@@ -384,6 +407,10 @@ public struct Face3DMetrics: Codable {
         textureQuality = try container.decodeIfPresent(String.self, forKey: .textureQuality)
         lowConfidenceROIs = try container.decode([Face3DROI].self, forKey: .lowConfidenceROIs)
         isHighQuality = try container.decode(Bool.self, forKey: .isHighQuality)
+        elasticityAnalysis = try container.decodeIfPresent(ElasticityAnalysis.self, forKey: .elasticityAnalysis)
+        volumeAnalysis = try container.decodeIfPresent(VolumeAnalysis.self, forKey: .volumeAnalysis)
+        regionalAnalysis = try container.decodeIfPresent(RegionalAnalysis.self, forKey: .regionalAnalysis)
+        skinTypeAnalysis = try container.decodeIfPresent(SkinTypeAnalysis.self, forKey: .skinTypeAnalysis)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -410,6 +437,10 @@ public struct Face3DMetrics: Codable {
         try container.encodeIfPresent(textureQuality, forKey: .textureQuality)
         try container.encode(lowConfidenceROIs, forKey: .lowConfidenceROIs)
         try container.encode(isHighQuality, forKey: .isHighQuality)
+        try container.encodeIfPresent(elasticityAnalysis, forKey: .elasticityAnalysis)
+        try container.encodeIfPresent(volumeAnalysis, forKey: .volumeAnalysis)
+        try container.encodeIfPresent(regionalAnalysis, forKey: .regionalAnalysis)
+        try container.encodeIfPresent(skinTypeAnalysis, forKey: .skinTypeAnalysis)
     }
 }
 

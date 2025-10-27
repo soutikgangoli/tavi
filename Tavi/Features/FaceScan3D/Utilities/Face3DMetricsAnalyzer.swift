@@ -24,6 +24,12 @@ public class Face3DMetricsAnalyzer {
     private let scoring: Scoring3D
     private let qualityValidator: TextureQualityValidator
 
+    // NEW: Advanced analyzers
+    private let skinElasticityAnalyzer: SkinElasticityAnalyzer
+    private let volumeMetricsAnalyzer: VolumeMetricsAnalyzer
+    private let regionalAnalyzers: RegionalAnalyzers
+    private let skinTypeClassifier: SkinTypeClassifier
+
     // MARK: - Configuration
 
     public struct Configuration {
@@ -32,6 +38,12 @@ public class Face3DMetricsAnalyzer {
 
         /// Quality validation configuration
         public var qualityValidation: TextureQualityValidator.Configuration = TextureQualityValidator.Configuration()
+
+        /// Historical scans for elasticity analysis (optional)
+        public var historicalScans: [HistoricalScan]? = nil
+
+        /// Baseline mesh for volume comparison (optional)
+        public var baselineMesh: FaceMeshGeometry? = nil
 
         public init() {}
     }
@@ -49,6 +61,10 @@ public class Face3DMetricsAnalyzer {
         self.specularAnalyzer = SpecularAnalyzer()
         self.scoring = Scoring3D()
         self.qualityValidator = TextureQualityValidator(configuration: configuration.qualityValidation)
+        self.skinElasticityAnalyzer = SkinElasticityAnalyzer()
+        self.volumeMetricsAnalyzer = VolumeMetricsAnalyzer()
+        self.regionalAnalyzers = RegionalAnalyzers()
+        self.skinTypeClassifier = SkinTypeClassifier()
     }
 
     // MARK: - Main API
@@ -125,6 +141,57 @@ public class Face3DMetricsAnalyzer {
 
         let processingTime = Date().timeIntervalSince1970 - startTime
 
+        // Step 5: Compute advanced metrics (elasticity, volume, regional, skin type)
+        let elasticityAnalysis: ElasticityAnalysis? = if let historicalScans = configuration.historicalScans, !historicalScans.isEmpty {
+            // Compute elasticity only if we have historical data
+            let currentWrinkleDepth: Float = globalResults.roughness  // Use roughness as proxy for wrinkle depth
+            skinElasticityAnalyzer.estimateElasticity(
+                historicalScans: historicalScans,
+                currentWrinkleDepth: currentWrinkleDepth
+            )
+        } else {
+            nil
+        }
+
+        // Convert UnifiedMesh to FaceMeshGeometry for volume/regional analyzers
+        let faceMeshGeometry = convertToFaceMeshGeometry(unifiedMesh: unifiedMesh)
+
+        // Volume metrics
+        let volumeAnalysis: VolumeAnalysis? = volumeMetricsAnalyzer.analyzeVolume(
+            geometry: faceMeshGeometry,
+            baseline: configuration.baselineMesh
+        )
+
+        // Convert CGImage to UIImage for regional and skin type analysis
+        let textureImage = UIImage(cgImage: unifiedTexture)
+
+        // Regional analysis
+        let regionalAnalysis: RegionalAnalysis? = regionalAnalyzers.analyzeRegions(
+            geometry: faceMeshGeometry,
+            texture: textureImage
+        )
+
+        // Skin type classification
+        let skinTypeAnalysis: SkinTypeAnalysis? = skinTypeClassifier.classifySkinType(
+            texture: textureImage,
+            roughnessScore: globalResults.roughnessScore,
+            specularity: globalResults.specular ?? 0
+        )
+
+        print("   Advanced metrics computed:")
+        if let elasticity = elasticityAnalysis {
+            print("   - Elasticity: \(elasticity.overallScore)/100 (\(elasticity.elasticityLevel))")
+        }
+        if let volume = volumeAnalysis {
+            print("   - Volume: \(volume.overallScore)/100")
+        }
+        if let regional = regionalAnalysis {
+            print("   - Regional: Under-eye \(regional.underEyeDarkness.score)/100, Jawline \(regional.jawlineDefinition.score)/100")
+        }
+        if let skinType = skinTypeAnalysis {
+            print("   - Skin Type: \(skinType.skinType) (confidence: \(skinType.confidence))")
+        }
+
         let metrics = Face3DMetrics(
             roiMetrics: roiMetrics,
             globalRoughnessProxy: globalResults.roughness,
@@ -144,7 +211,11 @@ public class Face3DMetricsAnalyzer {
             processingTime: processingTime,
             textureQuality: textureQualityResult.qualityDescription,
             lowConfidenceROIs: lowConfidenceROIs,
-            isHighQuality: textureQualityResult.isValid && globalValidity.isValid
+            isHighQuality: textureQualityResult.isValid && globalValidity.isValid,
+            elasticityAnalysis: elasticityAnalysis,
+            volumeAnalysis: volumeAnalysis,
+            regionalAnalysis: regionalAnalysis,
+            skinTypeAnalysis: skinTypeAnalysis
         )
 
         print("✅ Face3DMetricsAnalyzer: Complete in \(processingTime)s")
@@ -306,5 +377,58 @@ public class Face3DMetricsAnalyzer {
         }
 
         return sum / Float(pixels.count)
+    }
+
+    /// Convert UnifiedMesh to FaceMeshGeometry for advanced analyzers
+    private func convertToFaceMeshGeometry(unifiedMesh: UnifiedMesh) -> FaceMeshGeometry {
+        // Convert Vector3 to SIMD3<Float>
+        let vertices = unifiedMesh.vertices.map { $0.toSIMD() }
+        let normals = unifiedMesh.normals.map { $0.toSIMD() }
+        let textureCoordinates = unifiedMesh.textureCoordinates.map { $0.toSIMD() }
+
+        // Create a dummy transform (identity matrix since we're already in world space)
+        let transform = simd_float4x4(
+            SIMD4<Float>(1, 0, 0, 0),
+            SIMD4<Float>(0, 1, 0, 0),
+            SIMD4<Float>(0, 0, 1, 0),
+            SIMD4<Float>(0, 0, 0, 1)
+        )
+
+        // Create FaceMeshGeometry manually
+        // Note: Since FaceMeshGeometry's init requires ARFaceAnchor, we'll use the raw initializer if available
+        // For now, create a simple struct with required data
+        return FaceMeshGeometry(
+            vertices: vertices,
+            triangleIndices: unifiedMesh.triangleIndices,
+            normals: normals,
+            textureCoordinates: textureCoordinates,
+            transform: transform,
+            timestamp: Date().timeIntervalSince1970,
+            originalVertexCount: unifiedMesh.vertexCount,
+            wasExtended: false
+        )
+    }
+}
+
+// Extension to make FaceMeshGeometry initializable with raw data
+extension FaceMeshGeometry {
+    init(
+        vertices: [SIMD3<Float>],
+        triangleIndices: [Int32],
+        normals: [SIMD3<Float>],
+        textureCoordinates: [SIMD2<Float>],
+        transform: simd_float4x4,
+        timestamp: TimeInterval,
+        originalVertexCount: Int,
+        wasExtended: Bool
+    ) {
+        self.vertices = vertices
+        self.triangleIndices = triangleIndices
+        self.normals = normals
+        self.textureCoordinates = textureCoordinates
+        self.transform = transform
+        self.timestamp = timestamp
+        self.originalVertexCount = originalVertexCount
+        self.wasExtended = wasExtended
     }
 }

@@ -30,6 +30,13 @@ public struct FaceMeshGeometry: Equatable {
     /// Timestamp of this geometry capture
     public let timestamp: TimeInterval
 
+    /// Number of original ARKit vertices (before extension)
+    /// Use this for metrics calculation to avoid extended boundary vertices
+    public let originalVertexCount: Int
+
+    /// Whether this mesh was extended for forehead coverage
+    public let wasExtended: Bool
+
     /// Total number of vertices
     public var vertexCount: Int {
         return vertices.count
@@ -40,30 +47,34 @@ public struct FaceMeshGeometry: Equatable {
         return triangleIndices.count / 3
     }
 
-    /// Initialize from ARFaceAnchor
-    public init(faceAnchor: ARFaceAnchor, timestamp: TimeInterval = Date().timeIntervalSince1970) {
+    /// Initialize from ARFaceAnchor with optional mesh extension for forehead coverage
+    public init(
+        faceAnchor: ARFaceAnchor,
+        timestamp: TimeInterval = Date().timeIntervalSince1970,
+        extendForehead: Bool = true
+    ) {
         let geometry = faceAnchor.geometry
 
         // Modern ARKit API: vertices, triangleIndices, and textureCoordinates are already arrays
         // Extract vertices directly
-        self.vertices = Array(geometry.vertices)
-        let vertexCount = self.vertices.count
+        let arkitVertices = Array(geometry.vertices)
+        let arkitVertexCount = arkitVertices.count
 
         // Extract triangle indices and convert from Int16 to Int32
-        self.triangleIndices = geometry.triangleIndices.map { Int32($0) }
+        let arkitTriangleIndices = geometry.triangleIndices.map { Int32($0) }
 
         // Compute normals from vertices and triangles (ARFaceGeometry doesn't provide normals)
-        var normals = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: vertexCount)
+        var arkitNormals = [SIMD3<Float>](repeating: SIMD3<Float>(0, 0, 0), count: arkitVertexCount)
 
         // Calculate face normals and accumulate to vertex normals
-        for i in stride(from: 0, to: triangleIndices.count, by: 3) {
-            let i0 = Int(triangleIndices[i])
-            let i1 = Int(triangleIndices[i + 1])
-            let i2 = Int(triangleIndices[i + 2])
+        for i in stride(from: 0, to: arkitTriangleIndices.count, by: 3) {
+            let i0 = Int(arkitTriangleIndices[i])
+            let i1 = Int(arkitTriangleIndices[i + 1])
+            let i2 = Int(arkitTriangleIndices[i + 2])
 
-            let v0 = vertices[i0]
-            let v1 = vertices[i1]
-            let v2 = vertices[i2]
+            let v0 = arkitVertices[i0]
+            let v1 = arkitVertices[i1]
+            let v2 = arkitVertices[i2]
 
             // Calculate face normal using cross product
             let edge1 = v1 - v0
@@ -71,19 +82,44 @@ public struct FaceMeshGeometry: Equatable {
             let faceNormal = normalize(cross(edge1, edge2))
 
             // Accumulate to vertex normals
-            normals[i0] += faceNormal
-            normals[i1] += faceNormal
-            normals[i2] += faceNormal
+            arkitNormals[i0] += faceNormal
+            arkitNormals[i1] += faceNormal
+            arkitNormals[i2] += faceNormal
         }
 
         // Normalize all vertex normals
-        for i in 0..<vertexCount {
-            normals[i] = normalize(normals[i])
+        for i in 0..<arkitVertexCount {
+            arkitNormals[i] = normalize(arkitNormals[i])
         }
-        self.normals = normals
 
         // Extract texture coordinates directly
-        self.textureCoordinates = Array(geometry.textureCoordinates)
+        let arkitTexCoords = Array(geometry.textureCoordinates)
+
+        // Apply mesh extension for forehead coverage if requested
+        if extendForehead {
+            let extender = MeshExtender()
+            let extended = extender.extend(
+                vertices: arkitVertices,
+                triangleIndices: arkitTriangleIndices,
+                normals: arkitNormals,
+                textureCoordinates: arkitTexCoords
+            )
+
+            self.vertices = extended.vertices
+            self.triangleIndices = extended.triangleIndices
+            self.normals = extended.normals
+            self.textureCoordinates = extended.textureCoordinates
+            self.originalVertexCount = extended.originalVertexCount
+            self.wasExtended = extended.wasExtended
+        } else {
+            // No extension - use ARKit data directly
+            self.vertices = arkitVertices
+            self.triangleIndices = arkitTriangleIndices
+            self.normals = arkitNormals
+            self.textureCoordinates = arkitTexCoords
+            self.originalVertexCount = arkitVertexCount
+            self.wasExtended = false
+        }
 
         self.transform = faceAnchor.transform
         self.timestamp = timestamp

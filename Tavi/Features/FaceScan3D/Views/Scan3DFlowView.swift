@@ -68,6 +68,8 @@ public struct Scan3DFlowView: View {
         FaceScan3DView(
             showDebug: false,
             showMesh: true,
+            meshColor: .white,
+            wireframeMode: true,
             showCalibration: true,
             onCaptureComplete: { capturedPoses in
                 // All poses captured - start processing pipeline
