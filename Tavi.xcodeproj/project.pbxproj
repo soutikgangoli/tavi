@@ -7,98 +7,157 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		021C0E9856E1D11503C69021 /* Face3DMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E352FAB09312EF243E7F7FA5 /* Face3DMetrics.swift */; };
+		04B04B5858E592ED37DE566E /* Face3DMetricsResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49107B5F66C50C77B63D9004 /* Face3DMetricsResultsView.swift */; };
 		08046D709D1679BC0C4CB058 /* CalibrationHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0940BB42E84B770B466CE52 /* CalibrationHUD.swift */; };
+		08D934E0AAB9ADDD3EF589AE /* PigmentationAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FA49295A108BE15ED9A408D /* PigmentationAnalyzer.swift */; };
 		09129BBDD50D366E174FB954 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDFBCCE1C047A52FF6435BD3 /* ResultsView.swift */; };
+		0B1E3ACD06A658061FBACBB9 /* Face3DResultsIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCDE4D0BF57A63B668438DA3 /* Face3DResultsIntegration.swift */; };
 		0ED64AD3BAAB17F35B9316BE /* CaptureProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A548F59135F13F2BFD33142 /* CaptureProgressView.swift */; };
+		10E4B0DC44634855CBC939C7 /* TextureCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5CFF50D2F5F0F38E8BAB58 /* TextureCapture.swift */; };
+		15F300EABB00B9C0B7F6290F /* SpecularAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDAD50CBA9B8C921F7398AAC /* SpecularAnalyzer.swift */; };
+		26FB34DE11724D11E757F585 /* ROIMaskGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F7E00BC6D357D12B7F5664 /* ROIMaskGenerator.swift */; };
 		27A3431DCE9C2704F143E615 /* MetricsResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01AEC82D71A1C81565BFFE22 /* MetricsResultView.swift */; };
+		2882912FAD45922CEB9C0296 /* HeatmapOverlayGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0F6EF7827998B5FB7C1105A /* HeatmapOverlayGenerator.swift */; };
 		2E2479735CE96DCA940D4218 /* ImageProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DDAE783D98F744605993B48 /* ImageProcessing.swift */; };
 		2ED9F2B2947A78816B846090 /* CalibrationMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F73D21D967A542F53A0986 /* CalibrationMetrics.swift */; };
 		301134FA87F16A1E1691883E /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4222151BC2673775D9BBCC37 /* CameraView.swift */; };
+		317DF4BF1BF73CA39E2479E3 /* MeshExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DD7BCCE40B3CD17B365E330 /* MeshExporter.swift */; };
 		3302E014AB46CE278CD4858A /* FaceDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940BE7238983731A270B4FE5 /* FaceDetector.swift */; };
 		33BB8CBC3FF0BB8AFC4DC249 /* ROIBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 858CE7659093DAB2D88FCB82 /* ROIBuilder.swift */; };
+		3440996411525EDA8FF021B5 /* TextureQualityValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4DA55C1F73B7E99522972DD /* TextureQualityValidator.swift */; };
 		387EA44D181C23B1D010F57E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91F24005A2AE3DF899E6C6CD /* Assets.xcassets */; };
 		424C1E78B6074B5FB05D9E58 /* VisionAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655137907D09ADAE0D8B5125 /* VisionAnalyzer.swift */; };
 		44B6FB58E9211641FD035B01 /* FaceLandmarksOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8333B7F46ED74A08F26C983 /* FaceLandmarksOverlay.swift */; };
+		45AA96C149B7F7317129FF7C /* TexturedMeshPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0F70E97EB0D3E640FE20CE /* TexturedMeshPreviewView.swift */; };
 		45BCBE6A7DA52C7B2BAB6395 /* ScoringEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDADC842756924BFED1EE7C /* ScoringEngine.swift */; };
 		4834252F636D33EA07325745 /* ROIOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7542B58465F8A1FD58CB4FAD /* ROIOverlay.swift */; };
 		4D0C9F7273A1A576CDCEA25F /* ScoreSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B94A9E3E893D23161EAF918 /* ScoreSummaryView.swift */; };
 		5236B36733863D9CB42CE84F /* DeviceInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D38DFB0D332544215A60BB /* DeviceInfoView.swift */; };
+		56D84CF23AB485063F9FFD3E /* FaceScan3DViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13E93DCB568BCCE9227D9C24 /* FaceScan3DViewModel.swift */; };
 		57554CF79EDF5E81F37860FC /* CaptureController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B82F926FC09A97E06DAF0455 /* CaptureController.swift */; };
 		58FE0A48499B230BE011BCD9 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40D992ED294D025F0611FE1A /* PersistenceController.swift */; };
 		631894B22B7998F6568F6BA5 /* ResultsHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B70F0B959EC3FE26AE375A /* ResultsHistoryView.swift */; };
+		64D0E14818F28F0E90C7BB2E /* Scan3DFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0407B3167AACA2C116A0FE /* Scan3DFlowView.swift */; };
+		678CAAE2CF5CEBB9979446A6 /* FaceMeshGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A29EBCF32C9680290D0FF2EB /* FaceMeshGeometry.swift */; };
+		68809C7532535A7D7C385EB6 /* ARFaceTrackingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E9CEE40631CBA78E6D8DC2D /* ARFaceTrackingViewController.swift */; };
 		6999EC11B2D82EC1CC734BFF /* MetricsCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A2E9A1846B45343B1E18608 /* MetricsCalculator.swift */; };
 		6DDC97E9E32E6B6358593362 /* CameraSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D8CD00CE99E68EDEF99B5C4 /* CameraSession.swift */; };
+		71B913C50C282C7440FBCB96 /* CaptureSequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DB5761A8BBAC3E68EB5F34D /* CaptureSequence.swift */; };
 		7504BADD6ECD34889A0F6737 /* DataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F19B71C21AE78FAFE3B238 /* DataModels.swift */; };
 		78E23AE0422CAFF700B6F144 /* OnboardingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC14F448127A6B3CBDCC64CD /* OnboardingModels.swift */; };
 		7C2B7278CEA7EED77B901CBE /* SessionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6A574EE79F95DE4771AE2F /* SessionResult.swift */; };
+		7D5826D06835C7D68508477E /* FaceScan3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BC098C940714432F4819697 /* FaceScan3DView.swift */; };
+		7DB532F11BB5C3105F79C19E /* FaceScan3DDemoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A01DE719F79A10C72A15C574 /* FaceScan3DDemoView.swift */; };
 		7F9126A77A6AAFC4A0F8618E /* ResultsDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB222BF68912FD4490F011F /* ResultsDetailView.swift */; };
 		83A8F967BF21517F32CFF3AF /* CaptureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0430D0449846700C45A3BF /* CaptureModels.swift */; };
 		85B225A1258741D81AB68D02 /* FaceDetectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7BA01FF3F3E5EB2FCD45644 /* FaceDetectionModels.swift */; };
 		8813B4138B170C6E262B34BB /* DebugOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E00EE4E2FDA9B8A3F41D0F /* DebugOverlayView.swift */; };
+		89B2DB57CBF2A8ED065C145F /* MetricsVisualizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8F04937EC17A63D1263765 /* MetricsVisualizer.swift */; };
+		89FE3DFD5E9567022985F622 /* ExportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D5C3318A713FBECDD4EE93 /* ExportManager.swift */; };
+		8A6316EF42F9CDC4A36A48C4 /* AlbedoEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEB4153880E4064F78B81067 /* AlbedoEstimator.swift */; };
 		8A6633F3F2376A2A63F34A71 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0BD86D4127142F047B93AE8 /* DesignSystem.swift */; };
+		8D7CCC11FC561D4C7BDFAE1F /* CalibrationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC9BAC4CFC3514CBFCE5197D /* CalibrationState.swift */; };
+		917F27969380A7AC802C85F5 /* TextureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80AD3BF9E6E28FFBA900F65 /* TextureModels.swift */; };
+		939C6BDB466F661A89193B29 /* RoughnessAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7802AADF7C1EF66B093E0C3E /* RoughnessAnalyzer.swift */; };
+		9685FB3B9D43A0979659E00C /* Face3DMetricsAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17216EC035311355DE592321 /* Face3DMetricsAnalyzer.swift */; };
 		990193BB8504384EF751D4BA /* HeatmapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5539BA74BEFEA8BA4CBFE199 /* HeatmapView.swift */; };
 		9DD7BCCC75BCB878095E8458 /* LoadingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F485CFDFBB3BC5450141CECC /* LoadingOverlay.swift */; };
 		9E73F4E37A9B33D97D02F497 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CB7CC50A7792C8D726C5B5 /* LoadingView.swift */; };
 		9EF391F048FB0C7D04F96C11 /* DebugViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2897F496111551943C94C653 /* DebugViewModel.swift */; };
 		9F58DC53D56DE8F1354D90C7 /* FaceAlignmentExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363E7A11D038CE86D5BBA7FD /* FaceAlignmentExample.swift */; };
+		A00CC6CCA491D503335FFC54 /* Face3DViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4E181E6FDB33C45517D228 /* Face3DViewer.swift */; };
+		A3A1D3A0E02AFA590DEC4F3B /* Face3DSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A40E1EB706405DCFACD1996 /* Face3DSummary.swift */; };
+		A52BAB5A162DBC79DACD390B /* Scoring3D.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0C8E14B03270099EB4BE348 /* Scoring3D.swift */; };
 		A7248E231FBEC16FEACD33F2 /* MetricsComputer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F1C020EED5E45BF6DA965C /* MetricsComputer.swift */; };
+		A8B32927424CC081D3E147F1 /* Face3DResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA6D804F43364ACF1A90416 /* Face3DResultsView.swift */; };
+		AAF80782F94920C359A85FCA /* MeshTextureExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EC33BCB0B75F37D5ED8BEA /* MeshTextureExporter.swift */; };
 		AC27BFE9B484F3551DD48872 /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D355C52AE413AA1CE41382BA /* CameraViewModel.swift */; };
 		AE30DDFCA04D41E27B0F6C53 /* TaviApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6443DBFB3E874CEA345DAA09 /* TaviApp.swift */; };
+		B4F5019CDBADD91A3379742D /* MeshMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34A36B94AD445BCD27738683 /* MeshMerger.swift */; };
 		B771F8D37578BD7C2BB4475C /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57BA24C69212721BFD23E7BC /* StorageManager.swift */; };
 		C05D2B5B5A458222F45C83A6 /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F48D69AAF2DC0D91FDD8538 /* PrimaryButton.swift */; };
 		C4D7F365BC5437FEE3ABD5D6 /* MetricsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524AF1E484DFC80DD5D15D14 /* MetricsModels.swift */; };
 		C6C6A38054F9EB9262A0734C /* FaceScan3DViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32E9C2851A3397EED69A5216 /* FaceScan3DViewModel.swift */; };
 		CC7B8C2E9C37F658BFC1565C /* CaptureSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D057B2332EE5AD613587E /* CaptureSettingsView.swift */; };
+		CF1AC358727598ADDA5B9DF8 /* ImageQualityAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D0555885E975AD81FA98CE /* ImageQualityAnalyzer.swift */; };
 		D148518AD0932CEC45C3AF44 /* ResultsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E02F0705EDBE5D446F56015 /* ResultsViewModel.swift */; };
+		D2326ED4E4E3186B512B1507 /* DiscolorationAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0497ABBAA78374B81EF2FF3D /* DiscolorationAnalyzer.swift */; };
 		D2D4A53B0B82A6412F7CC44C /* ScoringModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850363E49E1D6E72A8BDFEB6 /* ScoringModels.swift */; };
+		D441F9E08ACC779305CE77BC /* CalibrationOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 159CF30771366FCE6AB27A02 /* CalibrationOverlay.swift */; };
+		D4858F68B290D61A013AE2FA /* TextureBaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C37001237707230E86C03A5 /* TextureBaker.swift */; };
 		D6DA4E3377BDEB966B7D25A8 /* HistogramView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 236B45B569B80ED889356114 /* HistogramView.swift */; };
+		D77C433C02F7335EF3B3B07D /* USAGE_EXAMPLE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F3D75E50130B834AB6A0FA /* USAGE_EXAMPLE.swift */; };
 		D940EC864FCFBCBA55334682 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC22071ADA2F86F23F0DB7E6 /* OnboardingView.swift */; };
 		D9557E68BD1C052EFC6A8B44 /* Scan3DFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6354129B4D1A5E51EFEC268E /* Scan3DFlowView.swift */; };
 		DB3C28F518ABEDD9216DD79F /* ROIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129DF55C2A26D686A147DFB0 /* ROIModels.swift */; };
 		DCA2D368A17A58EA2523D961 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E3DBF285C5DADA52D928494 /* ContentView.swift */; };
 		DD014A3B9DBA8EF93501F535 /* DebugScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78D8B316CB23CDC24985ABB /* DebugScreen.swift */; };
+		E56D4C24682EA59D8D0DB743 /* FaceScan3DAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D4E14FA15E3E76B4CDFDDA /* FaceScan3DAPI.swift */; };
 		E71AB09BBBA934371BEA00D2 /* HeatmapGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75977CFD69737D1F047664D7 /* HeatmapGenerator.swift */; };
 		E84A6732C4842F07FCBAEEEB /* DeviceCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6583C8C7B7CD1CFBD9628CCE /* DeviceCapabilities.swift */; };
 		ECF0CD0C869751BB662F5E00 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93CBACD6B443708BB65A7318 /* HapticManager.swift */; };
 		EE07F81193BA34EBD152B6E6 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66EC095CFEBD1A62F9D8755 /* CameraManager.swift */; };
 		EF5777CB4611A7035FC46478 /* SAVE_INTEGRATION_EXAMPLE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C28852ED4B7EF9B241CC81A /* SAVE_INTEGRATION_EXAMPLE.swift */; };
+		F7A98ACF8890E4019CA9A02E /* MetricExplanations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F701599072E5171AE04538 /* MetricExplanations.swift */; };
 		F93057A1D3437BEA8EAD954A /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A7AE67C81902D02F8B5C22C /* CardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		01AEC82D71A1C81565BFFE22 /* MetricsResultView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MetricsResultView.swift; path = Shared/UI/MetricsResultView.swift; sourceTree = "<group>"; };
 		044D057B2332EE5AD613587E /* CaptureSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CaptureSettingsView.swift; path = Features/Settings/CaptureSettingsView.swift; sourceTree = "<group>"; };
+		0497ABBAA78374B81EF2FF3D /* DiscolorationAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DiscolorationAnalyzer.swift; path = Tavi/Features/FaceScan3D/Utilities/DiscolorationAnalyzer.swift; sourceTree = "<group>"; };
 		0B94A9E3E893D23161EAF918 /* ScoreSummaryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScoreSummaryView.swift; path = Shared/UI/ScoreSummaryView.swift; sourceTree = "<group>"; };
+		0BC098C940714432F4819697 /* FaceScan3DView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceScan3DView.swift; path = Tavi/Features/FaceScan3D/Views/FaceScan3DView.swift; sourceTree = "<group>"; };
 		0F0430D0449846700C45A3BF /* CaptureModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CaptureModels.swift; path = Features/Camera/CaptureModels.swift; sourceTree = "<group>"; };
 		129DF55C2A26D686A147DFB0 /* ROIModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ROIModels.swift; path = Core/ModelsKit/ROIModels.swift; sourceTree = "<group>"; };
+		13E93DCB568BCCE9227D9C24 /* FaceScan3DViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceScan3DViewModel.swift; path = Tavi/Features/FaceScan3D/ViewModels/FaceScan3DViewModel.swift; sourceTree = "<group>"; };
+		159CF30771366FCE6AB27A02 /* CalibrationOverlay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CalibrationOverlay.swift; path = Tavi/Features/FaceScan3D/Views/CalibrationOverlay.swift; sourceTree = "<group>"; };
 		15F19B71C21AE78FAFE3B238 /* DataModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DataModels.swift; path = Core/ModelsKit/DataModels.swift; sourceTree = "<group>"; };
+		17216EC035311355DE592321 /* Face3DMetricsAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Face3DMetricsAnalyzer.swift; path = Tavi/Features/FaceScan3D/Utilities/Face3DMetricsAnalyzer.swift; sourceTree = "<group>"; };
+		1A40E1EB706405DCFACD1996 /* Face3DSummary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Face3DSummary.swift; path = Tavi/Features/FaceScan3D/Models/Face3DSummary.swift; sourceTree = "<group>"; };
+		1DD7BCCE40B3CD17B365E330 /* MeshExporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeshExporter.swift; path = Tavi/Features/FaceScan3D/Utilities/MeshExporter.swift; sourceTree = "<group>"; };
 		1E02F0705EDBE5D446F56015 /* ResultsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ResultsViewModel.swift; path = Features/Results/ResultsViewModel.swift; sourceTree = "<group>"; };
+		1FA49295A108BE15ED9A408D /* PigmentationAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PigmentationAnalyzer.swift; path = Tavi/Features/FaceScan3D/Utilities/PigmentationAnalyzer.swift; sourceTree = "<group>"; };
 		236B45B569B80ED889356114 /* HistogramView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HistogramView.swift; path = Features/Debug/HistogramView.swift; sourceTree = "<group>"; };
+		24D0555885E975AD81FA98CE /* ImageQualityAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ImageQualityAnalyzer.swift; path = Tavi/Features/FaceScan3D/Utilities/ImageQualityAnalyzer.swift; sourceTree = "<group>"; };
 		2897F496111551943C94C653 /* DebugViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DebugViewModel.swift; path = Features/Debug/DebugViewModel.swift; sourceTree = "<group>"; };
+		2DB5761A8BBAC3E68EB5F34D /* CaptureSequence.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CaptureSequence.swift; path = Tavi/Features/FaceScan3D/Models/CaptureSequence.swift; sourceTree = "<group>"; };
 		2DDAE783D98F744605993B48 /* ImageProcessing.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ImageProcessing.swift; path = Core/VisionKit/ImageProcessing.swift; sourceTree = "<group>"; };
 		2E3DBF285C5DADA52D928494 /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		2E9CEE40631CBA78E6D8DC2D /* ARFaceTrackingViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ARFaceTrackingViewController.swift; path = Tavi/Features/FaceScan3D/Views/ARFaceTrackingViewController.swift; sourceTree = "<group>"; };
 		32E9C2851A3397EED69A5216 /* FaceScan3DViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceScan3DViewModel.swift; path = Tavi/Features/FaceScan3D/ViewModels/FaceScan3DViewModel.swift; sourceTree = "<group>"; };
+		34A36B94AD445BCD27738683 /* MeshMerger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeshMerger.swift; path = Tavi/Features/FaceScan3D/Utilities/MeshMerger.swift; sourceTree = "<group>"; };
 		363E7A11D038CE86D5BBA7FD /* FaceAlignmentExample.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceAlignmentExample.swift; path = Core/VisionKit/FaceAlignmentExample.swift; sourceTree = "<group>"; };
+		36F3D75E50130B834AB6A0FA /* USAGE_EXAMPLE.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = USAGE_EXAMPLE.swift; path = Tavi/Features/FaceScan3D/USAGE_EXAMPLE.swift; sourceTree = "<group>"; };
 		3A7AE67C81902D02F8B5C22C /* CardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CardView.swift; path = Shared/UI/CardView.swift; sourceTree = "<group>"; };
+		3D0F70E97EB0D3E640FE20CE /* TexturedMeshPreviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TexturedMeshPreviewView.swift; path = Tavi/Features/FaceScan3D/Views/TexturedMeshPreviewView.swift; sourceTree = "<group>"; };
 		40D992ED294D025F0611FE1A /* PersistenceController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PersistenceController.swift; path = Core/StorageKit/PersistenceController.swift; sourceTree = "<group>"; };
 		4222151BC2673775D9BBCC37 /* CameraView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CameraView.swift; path = Features/Camera/CameraView.swift; sourceTree = "<group>"; };
+		49107B5F66C50C77B63D9004 /* Face3DMetricsResultsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Face3DMetricsResultsView.swift; path = Tavi/Features/FaceScan3D/Views/Face3DMetricsResultsView.swift; sourceTree = "<group>"; };
 		4A2E9A1846B45343B1E18608 /* MetricsCalculator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MetricsCalculator.swift; path = Core/MetricsKit/MetricsCalculator.swift; sourceTree = "<group>"; };
 		4C28852ED4B7EF9B241CC81A /* SAVE_INTEGRATION_EXAMPLE.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SAVE_INTEGRATION_EXAMPLE.swift; path = Features/Camera/SAVE_INTEGRATION_EXAMPLE.swift; sourceTree = "<group>"; };
+		4C37001237707230E86C03A5 /* TextureBaker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TextureBaker.swift; path = Tavi/Features/FaceScan3D/Utilities/TextureBaker.swift; sourceTree = "<group>"; };
+		4D5CFF50D2F5F0F38E8BAB58 /* TextureCapture.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TextureCapture.swift; path = Tavi/Features/FaceScan3D/Utilities/TextureCapture.swift; sourceTree = "<group>"; };
 		4D6A574EE79F95DE4771AE2F /* SessionResult.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SessionResult.swift; path = Core/StorageKit/SessionResult.swift; sourceTree = "<group>"; };
 		51E00EE4E2FDA9B8A3F41D0F /* DebugOverlayView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DebugOverlayView.swift; path = Features/Debug/DebugOverlayView.swift; sourceTree = "<group>"; };
 		524AF1E484DFC80DD5D15D14 /* MetricsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MetricsModels.swift; path = Core/MetricsKit/MetricsModels.swift; sourceTree = "<group>"; };
 		5539BA74BEFEA8BA4CBFE199 /* HeatmapView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeatmapView.swift; path = Shared/UI/HeatmapView.swift; sourceTree = "<group>"; };
 		57BA24C69212721BFD23E7BC /* StorageManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StorageManager.swift; path = Core/StorageKit/StorageManager.swift; sourceTree = "<group>"; };
 		5BB222BF68912FD4490F011F /* ResultsDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ResultsDetailView.swift; path = Features/Results/ResultsDetailView.swift; sourceTree = "<group>"; };
+		5E0407B3167AACA2C116A0FE /* Scan3DFlowView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Scan3DFlowView.swift; path = Tavi/Features/FaceScan3D/Views/Scan3DFlowView.swift; sourceTree = "<group>"; };
 		5F48D69AAF2DC0D91FDD8538 /* PrimaryButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PrimaryButton.swift; path = Shared/UI/PrimaryButton.swift; sourceTree = "<group>"; };
 		6354129B4D1A5E51EFEC268E /* Scan3DFlowView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Scan3DFlowView.swift; path = Tavi/Features/FaceScan3D/Views/Scan3DFlowView.swift; sourceTree = "<group>"; };
+		63EC33BCB0B75F37D5ED8BEA /* MeshTextureExporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeshTextureExporter.swift; path = Tavi/Features/FaceScan3D/Utilities/MeshTextureExporter.swift; sourceTree = "<group>"; };
 		6443DBFB3E874CEA345DAA09 /* TaviApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TaviApp.swift; sourceTree = "<group>"; };
 		655137907D09ADAE0D8B5125 /* VisionAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VisionAnalyzer.swift; path = Core/VisionKit/VisionAnalyzer.swift; sourceTree = "<group>"; };
 		6583C8C7B7CD1CFBD9628CCE /* DeviceCapabilities.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeviceCapabilities.swift; path = Core/ModelsKit/DeviceCapabilities.swift; sourceTree = "<group>"; };
+		67D4E14FA15E3E76B4CDFDDA /* FaceScan3DAPI.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceScan3DAPI.swift; path = Tavi/Features/FaceScan3D/FaceScan3DAPI.swift; sourceTree = "<group>"; };
 		68F130A4D45C1971196D9FCE /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6D8CD00CE99E68EDEF99B5C4 /* CameraSession.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CameraSession.swift; path = Core/CameraKit/CameraSession.swift; sourceTree = "<group>"; };
 		7542B58465F8A1FD58CB4FAD /* ROIOverlay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ROIOverlay.swift; path = Shared/UI/ROIOverlay.swift; sourceTree = "<group>"; };
 		75977CFD69737D1F047664D7 /* HeatmapGenerator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeatmapGenerator.swift; path = Core/VisionKit/HeatmapGenerator.swift; sourceTree = "<group>"; };
+		7802AADF7C1EF66B093E0C3E /* RoughnessAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RoughnessAnalyzer.swift; path = Tavi/Features/FaceScan3D/Utilities/RoughnessAnalyzer.swift; sourceTree = "<group>"; };
 		850363E49E1D6E72A8BDFEB6 /* ScoringModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScoringModels.swift; path = Core/MetricsKit/ScoringModels.swift; sourceTree = "<group>"; };
 		858CE7659093DAB2D88FCB82 /* ROIBuilder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ROIBuilder.swift; path = Core/VisionKit/ROIBuilder.swift; sourceTree = "<group>"; };
 		8A548F59135F13F2BFD33142 /* CaptureProgressView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CaptureProgressView.swift; path = Shared/UI/CaptureProgressView.swift; sourceTree = "<group>"; };
@@ -107,22 +166,39 @@
 		93F73D21D967A542F53A0986 /* CalibrationMetrics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CalibrationMetrics.swift; path = Core/ModelsKit/CalibrationMetrics.swift; sourceTree = "<group>"; };
 		940BE7238983731A270B4FE5 /* FaceDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceDetector.swift; path = Core/VisionKit/FaceDetector.swift; sourceTree = "<group>"; };
 		96CB7CC50A7792C8D726C5B5 /* LoadingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LoadingView.swift; path = Shared/UI/LoadingView.swift; sourceTree = "<group>"; };
+		97F701599072E5171AE04538 /* MetricExplanations.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MetricExplanations.swift; path = Tavi/Features/FaceScan3D/Utilities/MetricExplanations.swift; sourceTree = "<group>"; };
+		A01DE719F79A10C72A15C574 /* FaceScan3DDemoView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceScan3DDemoView.swift; path = Tavi/Features/FaceScan3D/Views/FaceScan3DDemoView.swift; sourceTree = "<group>"; };
+		A29EBCF32C9680290D0FF2EB /* FaceMeshGeometry.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceMeshGeometry.swift; path = Tavi/Features/FaceScan3D/Models/FaceMeshGeometry.swift; sourceTree = "<group>"; };
+		A4DA55C1F73B7E99522972DD /* TextureQualityValidator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TextureQualityValidator.swift; path = Tavi/Features/FaceScan3D/Utilities/TextureQualityValidator.swift; sourceTree = "<group>"; };
 		A8D38DFB0D332544215A60BB /* DeviceInfoView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeviceInfoView.swift; path = Features/Settings/DeviceInfoView.swift; sourceTree = "<group>"; };
+		AC8F04937EC17A63D1263765 /* MetricsVisualizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MetricsVisualizer.swift; path = Tavi/Features/FaceScan3D/Utilities/MetricsVisualizer.swift; sourceTree = "<group>"; };
 		ACDADC842756924BFED1EE7C /* ScoringEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScoringEngine.swift; path = Core/MetricsKit/ScoringEngine.swift; sourceTree = "<group>"; };
 		B0940BB42E84B770B466CE52 /* CalibrationHUD.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CalibrationHUD.swift; path = Shared/UI/CalibrationHUD.swift; sourceTree = "<group>"; };
+		B80AD3BF9E6E28FFBA900F65 /* TextureModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TextureModels.swift; path = Tavi/Features/FaceScan3D/Models/TextureModels.swift; sourceTree = "<group>"; };
 		B82F926FC09A97E06DAF0455 /* CaptureController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CaptureController.swift; path = Features/Camera/CaptureController.swift; sourceTree = "<group>"; };
 		BC14F448127A6B3CBDCC64CD /* OnboardingModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OnboardingModels.swift; path = Features/Onboarding/OnboardingModels.swift; sourceTree = "<group>"; };
+		BC9BAC4CFC3514CBFCE5197D /* CalibrationState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CalibrationState.swift; path = Tavi/Features/FaceScan3D/Models/CalibrationState.swift; sourceTree = "<group>"; };
+		BCDE4D0BF57A63B668438DA3 /* Face3DResultsIntegration.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Face3DResultsIntegration.swift; path = Tavi/Features/FaceScan3D/Integration/Face3DResultsIntegration.swift; sourceTree = "<group>"; };
+		C0C8E14B03270099EB4BE348 /* Scoring3D.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Scoring3D.swift; path = Tavi/Features/FaceScan3D/Utilities/Scoring3D.swift; sourceTree = "<group>"; };
+		C1D5C3318A713FBECDD4EE93 /* ExportManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExportManager.swift; path = Tavi/Features/FaceScan3D/Utilities/ExportManager.swift; sourceTree = "<group>"; };
 		C66EC095CFEBD1A62F9D8755 /* CameraManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CameraManager.swift; path = Core/CameraKit/CameraManager.swift; sourceTree = "<group>"; };
 		C7BA01FF3F3E5EB2FCD45644 /* FaceDetectionModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceDetectionModels.swift; path = Core/ModelsKit/FaceDetectionModels.swift; sourceTree = "<group>"; };
+		CDA6D804F43364ACF1A90416 /* Face3DResultsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Face3DResultsView.swift; path = Tavi/Features/FaceScan3D/Views/Face3DResultsView.swift; sourceTree = "<group>"; };
+		CF4E181E6FDB33C45517D228 /* Face3DViewer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Face3DViewer.swift; path = Tavi/Features/FaceScan3D/Views/Face3DViewer.swift; sourceTree = "<group>"; };
 		D0BD86D4127142F047B93AE8 /* DesignSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DesignSystem.swift; path = Shared/UI/DesignSystem.swift; sourceTree = "<group>"; };
 		D1F1C020EED5E45BF6DA965C /* MetricsComputer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MetricsComputer.swift; path = Core/MetricsKit/MetricsComputer.swift; sourceTree = "<group>"; };
 		D355C52AE413AA1CE41382BA /* CameraViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CameraViewModel.swift; path = Features/Camera/CameraViewModel.swift; sourceTree = "<group>"; };
 		D78D8B316CB23CDC24985ABB /* DebugScreen.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DebugScreen.swift; path = Features/Debug/DebugScreen.swift; sourceTree = "<group>"; };
 		DDFBCCE1C047A52FF6435BD3 /* ResultsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ResultsView.swift; path = Features/Results/ResultsView.swift; sourceTree = "<group>"; };
+		E0F6EF7827998B5FB7C1105A /* HeatmapOverlayGenerator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeatmapOverlayGenerator.swift; path = Tavi/Features/FaceScan3D/Utilities/HeatmapOverlayGenerator.swift; sourceTree = "<group>"; };
+		E352FAB09312EF243E7F7FA5 /* Face3DMetrics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Face3DMetrics.swift; path = Tavi/Features/FaceScan3D/Models/Face3DMetrics.swift; sourceTree = "<group>"; };
+		E9F7E00BC6D357D12B7F5664 /* ROIMaskGenerator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ROIMaskGenerator.swift; path = Tavi/Features/FaceScan3D/Utilities/ROIMaskGenerator.swift; sourceTree = "<group>"; };
+		EDAD50CBA9B8C921F7398AAC /* SpecularAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SpecularAnalyzer.swift; path = Tavi/Features/FaceScan3D/Utilities/SpecularAnalyzer.swift; sourceTree = "<group>"; };
 		F485CFDFBB3BC5450141CECC /* LoadingOverlay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LoadingOverlay.swift; path = Shared/UI/LoadingOverlay.swift; sourceTree = "<group>"; };
 		F8333B7F46ED74A08F26C983 /* FaceLandmarksOverlay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceLandmarksOverlay.swift; path = Shared/UI/FaceLandmarksOverlay.swift; sourceTree = "<group>"; };
 		F8B70F0B959EC3FE26AE375A /* ResultsHistoryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ResultsHistoryView.swift; path = Features/Results/ResultsHistoryView.swift; sourceTree = "<group>"; };
 		FC22071ADA2F86F23F0DB7E6 /* OnboardingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OnboardingView.swift; path = Features/Onboarding/OnboardingView.swift; sourceTree = "<group>"; };
+		FEB4153880E4064F78B81067 /* AlbedoEstimator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AlbedoEstimator.swift; path = Tavi/Features/FaceScan3D/Utilities/AlbedoEstimator.swift; sourceTree = "<group>"; };
 		TaviApp /* Tavi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tavi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -159,6 +235,28 @@
 			name = CameraKit;
 			sourceTree = "<group>";
 		};
+		2796760454AB22DC1A3632E5 /* FaceScan3D */ = {
+			isa = PBXGroup;
+			children = (
+				67D4E14FA15E3E76B4CDFDDA /* FaceScan3DAPI.swift */,
+				36F3D75E50130B834AB6A0FA /* USAGE_EXAMPLE.swift */,
+				D47BAB9930D62E5ED595AE22 /* ViewModels */,
+				290C09ECB6D19CD93E0EF2DE /* Integration */,
+				B782C64DC067B063F5CF9631 /* Models */,
+				32B605A3FDCA061BDD361064 /* Utilities */,
+				C220012673015F019C434586 /* Views */,
+			);
+			name = FaceScan3D;
+			sourceTree = "<group>";
+		};
+		290C09ECB6D19CD93E0EF2DE /* Integration */ = {
+			isa = PBXGroup;
+			children = (
+				BCDE4D0BF57A63B668438DA3 /* Face3DResultsIntegration.swift */,
+			);
+			name = Integration;
+			sourceTree = "<group>";
+		};
 		2B46E1C9FF964C5C410078E5 /* StorageKit */ = {
 			isa = PBXGroup;
 			children = (
@@ -167,6 +265,32 @@
 				57BA24C69212721BFD23E7BC /* StorageManager.swift */,
 			);
 			name = StorageKit;
+			sourceTree = "<group>";
+		};
+		32B605A3FDCA061BDD361064 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				63EC33BCB0B75F37D5ED8BEA /* MeshTextureExporter.swift */,
+				34A36B94AD445BCD27738683 /* MeshMerger.swift */,
+				24D0555885E975AD81FA98CE /* ImageQualityAnalyzer.swift */,
+				C1D5C3318A713FBECDD4EE93 /* ExportManager.swift */,
+				E0F6EF7827998B5FB7C1105A /* HeatmapOverlayGenerator.swift */,
+				4D5CFF50D2F5F0F38E8BAB58 /* TextureCapture.swift */,
+				1FA49295A108BE15ED9A408D /* PigmentationAnalyzer.swift */,
+				4C37001237707230E86C03A5 /* TextureBaker.swift */,
+				FEB4153880E4064F78B81067 /* AlbedoEstimator.swift */,
+				17216EC035311355DE592321 /* Face3DMetricsAnalyzer.swift */,
+				EDAD50CBA9B8C921F7398AAC /* SpecularAnalyzer.swift */,
+				AC8F04937EC17A63D1263765 /* MetricsVisualizer.swift */,
+				E9F7E00BC6D357D12B7F5664 /* ROIMaskGenerator.swift */,
+				7802AADF7C1EF66B093E0C3E /* RoughnessAnalyzer.swift */,
+				97F701599072E5171AE04538 /* MetricExplanations.swift */,
+				0497ABBAA78374B81EF2FF3D /* DiscolorationAnalyzer.swift */,
+				1DD7BCCE40B3CD17B365E330 /* MeshExporter.swift */,
+				C0C8E14B03270099EB4BE348 /* Scoring3D.swift */,
+				A4DA55C1F73B7E99522972DD /* TextureQualityValidator.swift */,
+			);
+			name = Utilities;
 			sourceTree = "<group>";
 		};
 		434125C145CF11457A584FD0 /* ModelsKit */ = {
@@ -280,6 +404,19 @@
 			name = Settings;
 			sourceTree = "<group>";
 		};
+		B782C64DC067B063F5CF9631 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				1A40E1EB706405DCFACD1996 /* Face3DSummary.swift */,
+				E352FAB09312EF243E7F7FA5 /* Face3DMetrics.swift */,
+				A29EBCF32C9680290D0FF2EB /* FaceMeshGeometry.swift */,
+				BC9BAC4CFC3514CBFCE5197D /* CalibrationState.swift */,
+				B80AD3BF9E6E28FFBA900F65 /* TextureModels.swift */,
+				2DB5761A8BBAC3E68EB5F34D /* CaptureSequence.swift */,
+			);
+			name = Models;
+			sourceTree = "<group>";
+		};
 		BA6B8CFD96641885F61A27F7 /* UI */ = {
 			isa = PBXGroup;
 			children = (
@@ -299,6 +436,30 @@
 			name = UI;
 			sourceTree = "<group>";
 		};
+		C220012673015F019C434586 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				159CF30771366FCE6AB27A02 /* CalibrationOverlay.swift */,
+				49107B5F66C50C77B63D9004 /* Face3DMetricsResultsView.swift */,
+				A01DE719F79A10C72A15C574 /* FaceScan3DDemoView.swift */,
+				2E9CEE40631CBA78E6D8DC2D /* ARFaceTrackingViewController.swift */,
+				5E0407B3167AACA2C116A0FE /* Scan3DFlowView.swift */,
+				CF4E181E6FDB33C45517D228 /* Face3DViewer.swift */,
+				0BC098C940714432F4819697 /* FaceScan3DView.swift */,
+				3D0F70E97EB0D3E640FE20CE /* TexturedMeshPreviewView.swift */,
+				CDA6D804F43364ACF1A90416 /* Face3DResultsView.swift */,
+			);
+			name = Views;
+			sourceTree = "<group>";
+		};
+		D47BAB9930D62E5ED595AE22 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				13E93DCB568BCCE9227D9C24 /* FaceScan3DViewModel.swift */,
+			);
+			name = ViewModels;
+			sourceTree = "<group>";
+		};
 		DF1FED96A13A2069A28D7355 /* Features */ = {
 			isa = PBXGroup;
 			children = (
@@ -307,6 +468,7 @@
 				902816BBADE9265F002877BB /* Onboarding */,
 				F8BE7F21F829D416053CDCCA /* Results */,
 				B74B13465C465277AE69F0A2 /* Settings */,
+				2796760454AB22DC1A3632E5 /* FaceScan3D */,
 			);
 			name = Features;
 			sourceTree = "<group>";
@@ -488,6 +650,44 @@
 				AE30DDFCA04D41E27B0F6C53 /* TaviApp.swift in Sources */,
 				D9557E68BD1C052EFC6A8B44 /* Scan3DFlowView.swift in Sources */,
 				C6C6A38054F9EB9262A0734C /* FaceScan3DViewModel.swift in Sources */,
+				E56D4C24682EA59D8D0DB743 /* FaceScan3DAPI.swift in Sources */,
+				D77C433C02F7335EF3B3B07D /* USAGE_EXAMPLE.swift in Sources */,
+				56D84CF23AB485063F9FFD3E /* FaceScan3DViewModel.swift in Sources */,
+				0B1E3ACD06A658061FBACBB9 /* Face3DResultsIntegration.swift in Sources */,
+				A3A1D3A0E02AFA590DEC4F3B /* Face3DSummary.swift in Sources */,
+				021C0E9856E1D11503C69021 /* Face3DMetrics.swift in Sources */,
+				678CAAE2CF5CEBB9979446A6 /* FaceMeshGeometry.swift in Sources */,
+				8D7CCC11FC561D4C7BDFAE1F /* CalibrationState.swift in Sources */,
+				917F27969380A7AC802C85F5 /* TextureModels.swift in Sources */,
+				71B913C50C282C7440FBCB96 /* CaptureSequence.swift in Sources */,
+				AAF80782F94920C359A85FCA /* MeshTextureExporter.swift in Sources */,
+				B4F5019CDBADD91A3379742D /* MeshMerger.swift in Sources */,
+				CF1AC358727598ADDA5B9DF8 /* ImageQualityAnalyzer.swift in Sources */,
+				89FE3DFD5E9567022985F622 /* ExportManager.swift in Sources */,
+				2882912FAD45922CEB9C0296 /* HeatmapOverlayGenerator.swift in Sources */,
+				10E4B0DC44634855CBC939C7 /* TextureCapture.swift in Sources */,
+				08D934E0AAB9ADDD3EF589AE /* PigmentationAnalyzer.swift in Sources */,
+				D4858F68B290D61A013AE2FA /* TextureBaker.swift in Sources */,
+				8A6316EF42F9CDC4A36A48C4 /* AlbedoEstimator.swift in Sources */,
+				9685FB3B9D43A0979659E00C /* Face3DMetricsAnalyzer.swift in Sources */,
+				15F300EABB00B9C0B7F6290F /* SpecularAnalyzer.swift in Sources */,
+				89B2DB57CBF2A8ED065C145F /* MetricsVisualizer.swift in Sources */,
+				26FB34DE11724D11E757F585 /* ROIMaskGenerator.swift in Sources */,
+				939C6BDB466F661A89193B29 /* RoughnessAnalyzer.swift in Sources */,
+				F7A98ACF8890E4019CA9A02E /* MetricExplanations.swift in Sources */,
+				D2326ED4E4E3186B512B1507 /* DiscolorationAnalyzer.swift in Sources */,
+				317DF4BF1BF73CA39E2479E3 /* MeshExporter.swift in Sources */,
+				A52BAB5A162DBC79DACD390B /* Scoring3D.swift in Sources */,
+				3440996411525EDA8FF021B5 /* TextureQualityValidator.swift in Sources */,
+				D441F9E08ACC779305CE77BC /* CalibrationOverlay.swift in Sources */,
+				04B04B5858E592ED37DE566E /* Face3DMetricsResultsView.swift in Sources */,
+				7DB532F11BB5C3105F79C19E /* FaceScan3DDemoView.swift in Sources */,
+				68809C7532535A7D7C385EB6 /* ARFaceTrackingViewController.swift in Sources */,
+				64D0E14818F28F0E90C7BB2E /* Scan3DFlowView.swift in Sources */,
+				A00CC6CCA491D503335FFC54 /* Face3DViewer.swift in Sources */,
+				7D5826D06835C7D68508477E /* FaceScan3DView.swift in Sources */,
+				45AA96C149B7F7317129FF7C /* TexturedMeshPreviewView.swift in Sources */,
+				A8B32927424CC081D3E147F1 /* Face3DResultsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
