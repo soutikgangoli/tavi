@@ -137,17 +137,6 @@ public class MeshMerger {
         let textureCoordinates: [Vector2]
     }
 
-    // Protocol to unify MeshCapture and AlignedCapture
-    private protocol CaptureData {
-        var vertices: [Vector3] { get }
-        var triangleIndices: [Int32] { get }
-        var normals: [Vector3] { get }
-        var textureCoordinates: [Vector2] { get }
-    }
-
-    extension MeshCapture: CaptureData {}
-    extension AlignedCapture: CaptureData {}
-
     private struct VertexMap {
         var vertices: [Vector3]
         var sources: [[Int]] // Which capture and vertex index
@@ -378,6 +367,19 @@ public class MeshMerger {
         }
     }
 }
+
+// MARK: - Protocols
+
+/// Protocol to unify MeshCapture and AlignedCapture for generic merging
+fileprivate protocol CaptureData {
+    var vertices: [Vector3] { get }
+    var triangleIndices: [Int32] { get }
+    var normals: [Vector3] { get }
+    var textureCoordinates: [Vector2] { get }
+}
+
+extension MeshCapture: CaptureData {}
+extension MeshMerger.AlignedCapture: CaptureData {}
 
 // MARK: - Extensions
 
