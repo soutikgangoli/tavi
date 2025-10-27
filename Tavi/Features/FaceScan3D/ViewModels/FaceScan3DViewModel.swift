@@ -102,6 +102,12 @@ public class FaceScan3DViewModel: ObservableObject {
     private let metricsAnalyzer = Face3DMetricsAnalyzer()
     private let metricsVisualizer = MetricsVisualizer()
 
+    // MARK: - Initialization
+
+    public init() {
+        // All properties have default values, so no additional setup needed
+    }
+
     // MARK: - Public Methods
 
     /// Update geometry from ARFaceAnchor

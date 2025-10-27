@@ -24,6 +24,10 @@ public struct Scan3DFlowView: View {
         case error(String)
     }
 
+    public init() {
+        // All @State and @StateObject properties have default values
+    }
+
     public var body: some View {
         ZStack {
             // Main content based on state
