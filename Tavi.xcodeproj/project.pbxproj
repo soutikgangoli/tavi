@@ -47,6 +47,7 @@
 		B771F8D37578BD7C2BB4475C /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57BA24C69212721BFD23E7BC /* StorageManager.swift */; };
 		C05D2B5B5A458222F45C83A6 /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F48D69AAF2DC0D91FDD8538 /* PrimaryButton.swift */; };
 		C4D7F365BC5437FEE3ABD5D6 /* MetricsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 524AF1E484DFC80DD5D15D14 /* MetricsModels.swift */; };
+		C6C6A38054F9EB9262A0734C /* FaceScan3DViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32E9C2851A3397EED69A5216 /* FaceScan3DViewModel.swift */; };
 		CC7B8C2E9C37F658BFC1565C /* CaptureSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D057B2332EE5AD613587E /* CaptureSettingsView.swift */; };
 		D148518AD0932CEC45C3AF44 /* ResultsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E02F0705EDBE5D446F56015 /* ResultsViewModel.swift */; };
 		D2D4A53B0B82A6412F7CC44C /* ScoringModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850363E49E1D6E72A8BDFEB6 /* ScoringModels.swift */; };
@@ -76,6 +77,7 @@
 		2897F496111551943C94C653 /* DebugViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DebugViewModel.swift; path = Features/Debug/DebugViewModel.swift; sourceTree = "<group>"; };
 		2DDAE783D98F744605993B48 /* ImageProcessing.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ImageProcessing.swift; path = Core/VisionKit/ImageProcessing.swift; sourceTree = "<group>"; };
 		2E3DBF285C5DADA52D928494 /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		32E9C2851A3397EED69A5216 /* FaceScan3DViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceScan3DViewModel.swift; path = Tavi/Features/FaceScan3D/ViewModels/FaceScan3DViewModel.swift; sourceTree = "<group>"; };
 		363E7A11D038CE86D5BBA7FD /* FaceAlignmentExample.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceAlignmentExample.swift; path = Core/VisionKit/FaceAlignmentExample.swift; sourceTree = "<group>"; };
 		3A7AE67C81902D02F8B5C22C /* CardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CardView.swift; path = Shared/UI/CardView.swift; sourceTree = "<group>"; };
 		40D992ED294D025F0611FE1A /* PersistenceController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PersistenceController.swift; path = Core/StorageKit/PersistenceController.swift; sourceTree = "<group>"; };
@@ -183,6 +185,7 @@
 			isa = PBXGroup;
 			children = (
 				F494884323DFF890E0F300AC /* Views */,
+				A0BE6847561B49EB1DB5282A /* ViewModels */,
 			);
 			name = FaceScan3D;
 			sourceTree = "<group>";
@@ -238,6 +241,14 @@
 				4A6008F308CA0A0FF6A31F0A /* FaceScan3D */,
 			);
 			name = Features;
+			sourceTree = "<group>";
+		};
+		A0BE6847561B49EB1DB5282A /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				32E9C2851A3397EED69A5216 /* FaceScan3DViewModel.swift */,
+			);
+			name = ViewModels;
 			sourceTree = "<group>";
 		};
 		A936833844F3AE3C680C8E7F /* Shared */ = {
@@ -476,6 +487,7 @@
 				4D0C9F7273A1A576CDCEA25F /* ScoreSummaryView.swift in Sources */,
 				AE30DDFCA04D41E27B0F6C53 /* TaviApp.swift in Sources */,
 				D9557E68BD1C052EFC6A8B44 /* Scan3DFlowView.swift in Sources */,
+				C6C6A38054F9EB9262A0734C /* FaceScan3DViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
