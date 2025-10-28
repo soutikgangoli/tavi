@@ -1,0 +1,234 @@
+//
+//  SkinToneNormalizer.swift
+//  Tavi
+//
+//  Normalizes pigmentation metrics across diverse skin tones
+//  Uses LAB color space to account for different skin tone lightness levels
+//  NO ML REQUIRED - uses color science principles
+//
+
+import UIKit
+import simd
+
+/// Normalizes pigmentation and color metrics for diverse skin tones
+public class SkinToneNormalizer {
+
+    // MARK: - Skin Tone Detection
+
+    /// Detected skin tone category (simplified Fitzpatrick scale)
+    public enum SkinToneCategory {
+        case veryLight      // Fitzpatrick I-II
+        case light          // Fitzpatrick III
+        case medium         // Fitzpatrick IV
+        case mediumDark     // Fitzpatrick V
+        case dark           // Fitzpatrick VI
+
+        var referenceL: Float {
+            // Reference L* values in LAB space for each skin tone
+            switch self {
+            case .veryLight: return 85.0      // Very light skin
+            case .light: return 75.0          // Light skin
+            case .medium: return 65.0         // Medium skin
+            case .mediumDark: return 55.0     // Medium-dark skin
+            case .dark: return 45.0           // Dark skin
+            }
+        }
+
+        var pigmentationScaleFactor: Float {
+            // Scale factor to normalize pigmentation scores
+            // Darker skin naturally has more melanin (not a "concern")
+            switch self {
+            case .veryLight: return 1.0
+            case .light: return 0.95
+            case .medium: return 0.90
+            case .mediumDark: return 0.85
+            case .dark: return 0.80
+            }
+        }
+    }
+
+    // MARK: - Public API
+
+    /// Detect skin tone category from texture
+    public func detectSkinTone(texture: UIImage) -> SkinToneCategory {
+        // Sample central face region (avoid background)
+        let averageLAB = calculateAverageLAB(image: texture, centralRegionOnly: true)
+
+        // Classify based on L* (lightness) value
+        let L = averageLAB.l
+
+        if L > 80 {
+            return .veryLight
+        } else if L > 70 {
+            return .light
+        } else if L > 60 {
+            return .medium
+        } else if L > 50 {
+            return .mediumDark
+        } else {
+            return .dark
+        }
+    }
+
+    /// Normalize pigmentation score for skin tone
+    public func normalizePigmentationScore(
+        rawScore: Float,
+        skinTone: SkinToneCategory
+    ) -> Float {
+        // Adjust score based on skin tone
+        // Darker skin tones shouldn't be penalized for natural melanin
+        let adjustedScore = rawScore * skinTone.pigmentationScaleFactor
+
+        // Ensure score stays in 0-100 range
+        return min(100, max(0, adjustedScore))
+    }
+
+    /// Normalize discoloration score for skin tone
+    public func normalizeDiscolorationScore(
+        rawScore: Float,
+        skinTone: SkinToneCategory
+    ) -> Float {
+        // Discoloration is relative to base skin tone
+        // Darker skin may have more natural variation (not necessarily a concern)
+
+        let scaleFactor: Float
+        switch skinTone {
+        case .veryLight:
+            scaleFactor = 1.0  // No adjustment
+        case .light:
+            scaleFactor = 0.95
+        case .medium:
+            scaleFactor = 0.90
+        case .mediumDark:
+            scaleFactor = 0.85
+        case .dark:
+            scaleFactor = 0.80  // More tolerance for natural variation
+        }
+
+        let adjustedScore = rawScore * scaleFactor
+        return min(100, max(0, adjustedScore))
+    }
+
+    /// Get recommended thresholds for this skin tone
+    public func getThresholds(for skinTone: SkinToneCategory) -> (pigmentationThreshold: Float, discolorationThreshold: Float) {
+        // Different thresholds for "concern" detection
+        switch skinTone {
+        case .veryLight, .light:
+            return (pigmentationThreshold: 60, discolorationThreshold: 60)
+        case .medium:
+            return (pigmentationThreshold: 55, discolorationThreshold: 55)
+        case .mediumDark, .dark:
+            return (pigmentationThreshold: 50, discolorationThreshold: 50)
+        }
+    }
+
+    // MARK: - Private Methods
+
+    /// Calculate average LAB color for image
+    private func calculateAverageLAB(image: UIImage, centralRegionOnly: Bool) -> (l: Float, a: Float, b: Float) {
+        guard let cgImage = image.cgImage else {
+            return (l: 70, a: 0, b: 0) // Default
+        }
+
+        let width = cgImage.width
+        let height = cgImage.height
+
+        // Define sampling region (central 50% to avoid background)
+        let sampleRect: CGRect
+        if centralRegionOnly {
+            let centerX = width / 2
+            let centerY = height / 2
+            let sampleWidth = width / 2
+            let sampleHeight = height / 2
+            sampleRect = CGRect(
+                x: centerX - sampleWidth / 2,
+                y: centerY - sampleHeight / 2,
+                width: sampleWidth,
+                height: sampleHeight
+            )
+        } else {
+            sampleRect = CGRect(x: 0, y: 0, width: width, height: height)
+        }
+
+        // Extract RGB data
+        var rgbData = [UInt8](repeating: 0, count: width * height * 4)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let context = CGContext(
+            data: &rgbData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+
+        context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        // Sample pixels in region and convert to LAB
+        var totalL: Float = 0
+        var totalA: Float = 0
+        var totalB: Float = 0
+        var count: Int = 0
+
+        let startX = Int(sampleRect.minX)
+        let endX = Int(sampleRect.maxX)
+        let startY = Int(sampleRect.minY)
+        let endY = Int(sampleRect.maxY)
+
+        for y in startY..<endY {
+            for x in startX..<endX {
+                let index = (y * width + x) * 4
+                let r = Float(rgbData[index]) / 255.0
+                let g = Float(rgbData[index + 1]) / 255.0
+                let b = Float(rgbData[index + 2]) / 255.0
+
+                // Convert RGB to LAB
+                let lab = rgbToLAB(r: r, g: g, b: b)
+                totalL += lab.l
+                totalA += lab.a
+                totalB += lab.b
+                count += 1
+            }
+        }
+
+        guard count > 0 else {
+            return (l: 70, a: 0, b: 0)
+        }
+
+        return (
+            l: totalL / Float(count),
+            a: totalA / Float(count),
+            b: totalB / Float(count)
+        )
+    }
+
+    /// Convert RGB to LAB color space
+    private func rgbToLAB(r: Float, g: Float, b: Float) -> (l: Float, a: Float, b: Float) {
+        // First convert RGB to XYZ
+        var rLinear = r <= 0.04045 ? r / 12.92 : pow((r + 0.055) / 1.055, 2.4)
+        var gLinear = g <= 0.04045 ? g / 12.92 : pow((g + 0.055) / 1.055, 2.4)
+        var bLinear = b <= 0.04045 ? b / 12.92 : pow((b + 0.055) / 1.055, 2.4)
+
+        // Convert to XYZ (D65 illuminant)
+        var x = rLinear * 0.4124 + gLinear * 0.3576 + bLinear * 0.1805
+        var y = rLinear * 0.2126 + gLinear * 0.7152 + bLinear * 0.0722
+        var z = rLinear * 0.0193 + gLinear * 0.1192 + bLinear * 0.9505
+
+        // Normalize for D65 white point
+        x = x / 0.95047
+        y = y / 1.00000
+        z = z / 1.08883
+
+        // Convert XYZ to LAB
+        let fx = x > 0.008856 ? pow(x, 1.0/3.0) : (7.787 * x + 16.0/116.0)
+        let fy = y > 0.008856 ? pow(y, 1.0/3.0) : (7.787 * y + 16.0/116.0)
+        let fz = z > 0.008856 ? pow(z, 1.0/3.0) : (7.787 * z + 16.0/116.0)
+
+        let L = 116.0 * fy - 16.0
+        let A = 500.0 * (fx - fy)
+        let B = 200.0 * (fy - fz)
+
+        return (l: L, a: A, b: B)
+    }
+}

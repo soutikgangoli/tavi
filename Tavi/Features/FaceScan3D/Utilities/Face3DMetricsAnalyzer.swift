@@ -34,6 +34,10 @@ public class Face3DMetricsAnalyzer {
     private let acneAnalyzer: AcneAnalyzer
     private let rednessAnalyzer: RednessAnalyzer
 
+    // Normalizers for diverse skin tones and lighting conditions
+    private let skinToneNormalizer: SkinToneNormalizer
+    private let colorTempNormalizer: ColorTemperatureNormalizer
+
     // MARK: - Configuration
 
     public struct Configuration {
@@ -73,6 +77,8 @@ public class Face3DMetricsAnalyzer {
         self.poreAnalyzer = PoreAnalyzer()
         self.acneAnalyzer = AcneAnalyzer()
         self.rednessAnalyzer = RednessAnalyzer()
+        self.skinToneNormalizer = SkinToneNormalizer()
+        self.colorTempNormalizer = ColorTemperatureNormalizer()
     }
 
     // MARK: - Main API
@@ -149,10 +155,34 @@ public class Face3DMetricsAnalyzer {
 
         let processingTime = Date().timeIntervalSince1970 - startTime
 
-        // Step 5: Compute advanced metrics (elasticity, volume, regional, skin type)
+        // Step 5: Convert UnifiedMesh to FaceMeshGeometry for advanced analyzers
+        let faceMeshGeometry = convertToFaceMeshGeometry(unifiedMesh: unifiedMesh)
+
+        // Convert CGImage to UIImage for texture-based analyzers
+        let textureImage = UIImage(cgImage: unifiedTexture)
+
+        // Step 5: Detect skin tone for normalization
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: textureImage)
+        print("   📊 Detected skin tone: \(skinTone) (reference L*: \(skinTone.referenceL))")
+
+        // Step 5a: Compute wrinkle analysis FIRST (needed for elasticity calculation)
+        let wrinkleAnalysis: WrinkleAnalysis? = wrinkleAnalyzer.analyzeWrinkles(geometry: faceMeshGeometry)
+
+        // Step 5b: Compute elasticity using ACTUAL wrinkle depth (not roughness proxy!)
         let elasticityAnalysis: ElasticityAnalysis? = if let historicalScans = configuration.historicalScans, !historicalScans.isEmpty {
-            // Compute elasticity only if we have historical data
-            let currentWrinkleDepth: Float = globalResults.roughness  // Use roughness as proxy for wrinkle depth
+            // Use actual wrinkle depth from WrinkleAnalyzer
+            let currentWrinkleDepth: Float
+            if let wrinkles = wrinkleAnalysis {
+                // Use average depth from wrinkle regions (most accurate)
+                currentWrinkleDepth = wrinkles.wrinkleRegions.isEmpty ? 0 :
+                    wrinkles.wrinkleRegions.map { $0.depth }.reduce(0, +) / Float(wrinkles.wrinkleRegions.count)
+                print("   Using actual wrinkle depth for elasticity: \(String(format: "%.4f", currentWrinkleDepth))mm")
+            } else {
+                // Fallback to roughness only if wrinkle analysis failed
+                currentWrinkleDepth = globalResults.roughness * 0.001  // Convert to meters
+                print("   ⚠️ Wrinkle analysis unavailable, using roughness fallback")
+            }
+
             skinElasticityAnalyzer.estimateElasticity(
                 historicalScans: historicalScans,
                 currentWrinkleDepth: currentWrinkleDepth
@@ -161,17 +191,13 @@ public class Face3DMetricsAnalyzer {
             nil
         }
 
-        // Convert UnifiedMesh to FaceMeshGeometry for volume/regional analyzers
-        let faceMeshGeometry = convertToFaceMeshGeometry(unifiedMesh: unifiedMesh)
+        // Step 5c: Compute remaining advanced metrics
 
         // Volume metrics
         let volumeAnalysis: VolumeAnalysis? = volumeMetricsAnalyzer.analyzeVolume(
             geometry: faceMeshGeometry,
             baseline: configuration.baselineMesh
         )
-
-        // Convert CGImage to UIImage for regional and skin type analysis
-        let textureImage = UIImage(cgImage: unifiedTexture)
 
         // Regional analysis
         let regionalAnalysis: RegionalAnalysis? = regionalAnalyzers.analyzeRegions(
@@ -185,9 +211,6 @@ public class Face3DMetricsAnalyzer {
             roughnessScore: globalResults.roughnessScore,
             specularity: globalResults.specular ?? 0
         )
-
-        // Wrinkle analysis (3D curvature-based)
-        let wrinkleAnalysis: WrinkleAnalysis? = wrinkleAnalyzer.analyzeWrinkles(geometry: faceMeshGeometry)
 
         // Pore analysis (high-frequency texture)
         let poreAnalysis: PoreAnalysis? = poreAnalyzer.analyzePores(texture: textureImage)
@@ -224,6 +247,28 @@ public class Face3DMetricsAnalyzer {
             print("   - Redness: \(redness.overallScore)/100 (\(redness.rednessLevel))")
         }
 
+        // Step 6: Apply skin tone normalization to pigmentation and discoloration scores
+        let normalizedPigmentationScore = skinToneNormalizer.normalizePigmentationScore(
+            rawScore: globalResults.pigmentationScore,
+            skinTone: skinTone
+        )
+        let normalizedDiscolorationScore = skinToneNormalizer.normalizeDiscolorationScore(
+            rawScore: globalResults.discolorationScore,
+            skinTone: skinTone
+        )
+
+        print("   📊 Skin tone normalization applied:")
+        print("      Pigmentation: \(String(format: "%.1f", globalResults.pigmentationScore)) → \(String(format: "%.1f", normalizedPigmentationScore))")
+        print("      Discoloration: \(String(format: "%.1f", globalResults.discolorationScore)) → \(String(format: "%.1f", normalizedDiscolorationScore))")
+
+        // Recalculate overall score with normalized values
+        let normalizedOverallScore = scoring.computeOverallScore(
+            roughnessScore: globalResults.roughnessScore,
+            pigmentationScore: normalizedPigmentationScore,
+            discolorationScore: normalizedDiscolorationScore,
+            specularScore: globalResults.specularScore
+        )
+
         let metrics = Face3DMetrics(
             roiMetrics: roiMetrics,
             globalRoughnessProxy: globalResults.roughness,
@@ -232,11 +277,11 @@ public class Face3DMetricsAnalyzer {
             globalSpecularProxy: globalResults.specular,
             globalAverageLuminance: globalResults.luminance,
             globalRoughnessScore: globalResults.roughnessScore,
-            globalPigmentationScore: globalResults.pigmentationScore,
-            globalDiscolorationScore: globalResults.discolorationScore,
+            globalPigmentationScore: normalizedPigmentationScore,  // NORMALIZED
+            globalDiscolorationScore: normalizedDiscolorationScore,  // NORMALIZED
             globalSpecularScore: globalResults.specularScore,
-            overallScore: globalResults.overallScore,
-            scoreInterpretation: globalResults.scoreInterpretation,
+            overallScore: normalizedOverallScore,  // NORMALIZED
+            scoreInterpretation: scoring.interpretScore(normalizedOverallScore),
             vertexCount: unifiedMesh.vertexCount,
             triangleCount: unifiedMesh.triangleCount,
             textureResolution: CGSize(width: unifiedTexture.width, height: unifiedTexture.height),

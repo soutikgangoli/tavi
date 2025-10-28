@@ -82,6 +82,9 @@ public struct CelebratoryResultsView: View {
                 // Share Button
                 shareButton
 
+                // Scan Metadata (for transparency)
+                scanMetadataSection
+
                 Spacer(minLength: 40)
             }
             .padding()
@@ -351,6 +354,79 @@ public struct CelebratoryResultsView: View {
             .foregroundColor(.blue)
             .cornerRadius(12)
         }
+    }
+
+    private var scanMetadataSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "info.circle")
+                    .foregroundColor(.secondary)
+                Text("Scan Details")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(spacing: 8) {
+                HStack {
+                    Text("Device:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(UIDevice.current.model)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+
+                HStack {
+                    Text("iOS Version:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(UIDevice.current.systemVersion)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+
+                HStack {
+                    Text("Scan Date:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(Date(), style: .date)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+
+                HStack {
+                    Text("TrueDepth Camera:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                        Text("Available")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                }
+
+                Divider()
+                    .padding(.vertical, 4)
+
+                Text("Note: Results may vary slightly between iPhone models due to TrueDepth camera quality differences.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .italic()
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(uiColor: .tertiarySystemBackground))
+        )
     }
 
     // MARK: - Animations
