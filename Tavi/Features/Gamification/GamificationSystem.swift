@@ -160,6 +160,13 @@ public struct GlowStreak: Codable {
         self.lastScanDate = nil
         self.totalScans = 0
     }
+
+    public init(currentStreak: Int, longestStreak: Int, lastScanDate: Date?, totalScans: Int) {
+        self.currentStreak = currentStreak
+        self.longestStreak = longestStreak
+        self.lastScanDate = lastScanDate
+        self.totalScans = totalScans
+    }
 }
 
 // MARK: - Achievements

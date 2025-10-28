@@ -314,6 +314,58 @@ public class EmotionalMetricsGenerator {
             ))
         }
 
+        // Wrinkle concerns
+        if let wrinkles = metrics.wrinkleAnalysis, wrinkles.overallScore < 70 {
+            let severity: ConcernLevel = wrinkles.overallScore < 50 ? .moderate : .mild
+            concerns.append(EmotionalConcern(
+                title: "Fine lines and wrinkles",
+                emoji: "💧",
+                severity: severity,
+                message: "Let's smooth those fine lines",
+                solution: "Retinol serum at night + hydration",
+                encouragement: "Consistent use shows results in 4-6 weeks!"
+            ))
+        }
+
+        // Pore concerns
+        if let pores = metrics.poreAnalysis, pores.visibility > 30 {
+            let severity: ConcernLevel = pores.visibility > 50 ? .moderate : .mild
+            concerns.append(EmotionalConcern(
+                title: "Visible pores",
+                emoji: "🔬",
+                severity: severity,
+                message: "Let's minimize those pores",
+                solution: "Niacinamide serum + gentle exfoliation",
+                encouragement: "Pores appear smaller with consistent care!"
+            ))
+        }
+
+        // Acne concerns
+        if let acne = metrics.acneAnalysis, acne.blemishCount > 5 {
+            let severity: ConcernLevel = acne.blemishCount > 20 ? .moderate : .mild
+            concerns.append(EmotionalConcern(
+                title: "Active breakouts",
+                emoji: "🌿",
+                severity: severity,
+                message: "Let's clear up those blemishes",
+                solution: "Salicylic acid + spot treatment",
+                encouragement: "Most breakouts improve in 1-2 weeks!"
+            ))
+        }
+
+        // Redness concerns
+        if let redness = metrics.rednessAnalysis, redness.overallScore < 70 {
+            let severity: ConcernLevel = redness.overallScore < 50 ? .moderate : .mild
+            concerns.append(EmotionalConcern(
+                title: "Skin redness and sensitivity",
+                emoji: "🌸",
+                severity: severity,
+                message: "Let's calm that redness",
+                solution: "Gentle, fragrance-free products + calming serum",
+                encouragement: "Redness reduces with the right gentle routine!"
+            ))
+        }
+
         return concerns
     }
 
@@ -373,6 +425,50 @@ public class EmotionalMetricsGenerator {
                     expectedResult: "Brighter, more even tone in 4-6 weeks",
                     priority: .important,
                     icon: "sunrise.fill"
+                ))
+            }
+
+            if concern.title.contains("wrinkles") || concern.title.contains("lines") {
+                steps.append(ActionableStep(
+                    action: "Apply retinol serum",
+                    frequency: "3-4 nights per week",
+                    timing: "Evening, after cleansing",
+                    expectedResult: "Smoother skin, reduced fine lines in 6-8 weeks",
+                    priority: .important,
+                    icon: "moon.stars.fill"
+                ))
+            }
+
+            if concern.title.contains("pores") {
+                steps.append(ActionableStep(
+                    action: "Use niacinamide serum",
+                    frequency: "Morning and evening",
+                    timing: "After cleansing",
+                    expectedResult: "Minimized pore appearance in 3-4 weeks",
+                    priority: .important,
+                    icon: "circle.grid.2x2.fill"
+                ))
+            }
+
+            if concern.title.contains("breakouts") || concern.title.contains("acne") {
+                steps.append(ActionableStep(
+                    action: "Apply salicylic acid treatment",
+                    frequency: "Once daily",
+                    timing: "Evening",
+                    expectedResult: "Clearer skin, fewer breakouts in 2-3 weeks",
+                    priority: .important,
+                    icon: "leaf.fill"
+                ))
+            }
+
+            if concern.title.contains("redness") || concern.title.contains("sensitivity") {
+                steps.append(ActionableStep(
+                    action: "Use calming serum (centella or niacinamide)",
+                    frequency: "Morning and evening",
+                    timing: "After cleansing",
+                    expectedResult: "Reduced redness and irritation in 2-4 weeks",
+                    priority: .important,
+                    icon: "heart.fill"
                 ))
             }
         }

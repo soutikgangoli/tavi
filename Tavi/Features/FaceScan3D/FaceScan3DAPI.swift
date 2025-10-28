@@ -294,9 +294,8 @@ extension Face3DSummary {
      return
  }
 
- // 4. Display results
- let resultsView = Face3DResultsView(metrics: metrics, texturedMesh: bakeResult)
- navigationController.pushViewController(UIHostingController(rootView: resultsView), animated: true)
+ // 4. Display results (use CelebratoryResultsView with emotional metrics)
+ // See EmotionalScan3DFlowView for complete integration
 
  // 5. Generate overlays
  let overlays = generate3DOverlays(metrics: metrics, texture: bakeResult.albedoTexture)

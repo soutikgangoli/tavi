@@ -307,6 +307,18 @@ public struct Face3DMetrics: Codable {
     /// Skin type classification
     public let skinTypeAnalysis: SkinTypeAnalysis?
 
+    /// Wrinkle analysis (3D curvature-based depth measurement)
+    public let wrinkleAnalysis: WrinkleAnalysis?
+
+    /// Pore visibility analysis (high-frequency texture analysis)
+    public let poreAnalysis: PoreAnalysis?
+
+    /// Acne and blemish detection
+    public let acneAnalysis: AcneAnalysis?
+
+    /// Redness and inflammation analysis
+    public let rednessAnalysis: RednessAnalysis?
+
     public init(
         roiMetrics: [Face3DROI: ROI3DMetrics],
         globalRoughnessProxy: Float,
@@ -330,7 +342,11 @@ public struct Face3DMetrics: Codable {
         elasticityAnalysis: ElasticityAnalysis? = nil,
         volumeAnalysis: VolumeAnalysis? = nil,
         regionalAnalysis: RegionalAnalysis? = nil,
-        skinTypeAnalysis: SkinTypeAnalysis? = nil
+        skinTypeAnalysis: SkinTypeAnalysis? = nil,
+        wrinkleAnalysis: WrinkleAnalysis? = nil,
+        poreAnalysis: PoreAnalysis? = nil,
+        acneAnalysis: AcneAnalysis? = nil,
+        rednessAnalysis: RednessAnalysis? = nil
     ) {
         self.roiMetrics = roiMetrics
         self.globalRoughnessProxy = globalRoughnessProxy
@@ -356,6 +372,10 @@ public struct Face3DMetrics: Codable {
         self.volumeAnalysis = volumeAnalysis
         self.regionalAnalysis = regionalAnalysis
         self.skinTypeAnalysis = skinTypeAnalysis
+        self.wrinkleAnalysis = wrinkleAnalysis
+        self.poreAnalysis = poreAnalysis
+        self.acneAnalysis = acneAnalysis
+        self.rednessAnalysis = rednessAnalysis
     }
 
     /// Get metrics for specific ROI

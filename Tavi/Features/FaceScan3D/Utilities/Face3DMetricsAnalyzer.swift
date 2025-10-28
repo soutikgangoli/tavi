@@ -29,6 +29,10 @@ public class Face3DMetricsAnalyzer {
     private let volumeMetricsAnalyzer: VolumeMetricsAnalyzer
     private let regionalAnalyzers: RegionalAnalyzers
     private let skinTypeClassifier: SkinTypeClassifier
+    private let wrinkleAnalyzer: WrinkleAnalyzer
+    private let poreAnalyzer: PoreAnalyzer
+    private let acneAnalyzer: AcneAnalyzer
+    private let rednessAnalyzer: RednessAnalyzer
 
     // MARK: - Configuration
 
@@ -65,6 +69,10 @@ public class Face3DMetricsAnalyzer {
         self.volumeMetricsAnalyzer = VolumeMetricsAnalyzer()
         self.regionalAnalyzers = RegionalAnalyzers()
         self.skinTypeClassifier = SkinTypeClassifier()
+        self.wrinkleAnalyzer = WrinkleAnalyzer()
+        self.poreAnalyzer = PoreAnalyzer()
+        self.acneAnalyzer = AcneAnalyzer()
+        self.rednessAnalyzer = RednessAnalyzer()
     }
 
     // MARK: - Main API
@@ -178,6 +186,18 @@ public class Face3DMetricsAnalyzer {
             specularity: globalResults.specular ?? 0
         )
 
+        // Wrinkle analysis (3D curvature-based)
+        let wrinkleAnalysis: WrinkleAnalysis? = wrinkleAnalyzer.analyzeWrinkles(geometry: faceMeshGeometry)
+
+        // Pore analysis (high-frequency texture)
+        let poreAnalysis: PoreAnalysis? = poreAnalyzer.analyzePores(texture: textureImage)
+
+        // Acne and blemish detection
+        let acneAnalysis: AcneAnalysis? = acneAnalyzer.analyzeAcne(texture: textureImage)
+
+        // Redness and inflammation detection
+        let rednessAnalysis: RednessAnalysis? = rednessAnalyzer.analyzeRedness(texture: textureImage)
+
         print("   Advanced metrics computed:")
         if let elasticity = elasticityAnalysis {
             print("   - Elasticity: \(elasticity.overallScore)/100 (\(elasticity.elasticityLevel))")
@@ -190,6 +210,18 @@ public class Face3DMetricsAnalyzer {
         }
         if let skinType = skinTypeAnalysis {
             print("   - Skin Type: \(skinType.skinType) (confidence: \(skinType.confidence))")
+        }
+        if let wrinkles = wrinkleAnalysis {
+            print("   - Wrinkles: \(wrinkles.overallScore)/100 (\(wrinkles.wrinkleDepth), count: \(wrinkles.wrinkleCount))")
+        }
+        if let pores = poreAnalysis {
+            print("   - Pores: visibility \(pores.visibility)/100")
+        }
+        if let acne = acneAnalysis {
+            print("   - Acne: \(acne.overallScore)/100 (\(acne.severity), count: \(acne.blemishCount))")
+        }
+        if let redness = rednessAnalysis {
+            print("   - Redness: \(redness.overallScore)/100 (\(redness.rednessLevel))")
         }
 
         let metrics = Face3DMetrics(
@@ -215,7 +247,11 @@ public class Face3DMetricsAnalyzer {
             elasticityAnalysis: elasticityAnalysis,
             volumeAnalysis: volumeAnalysis,
             regionalAnalysis: regionalAnalysis,
-            skinTypeAnalysis: skinTypeAnalysis
+            skinTypeAnalysis: skinTypeAnalysis,
+            wrinkleAnalysis: wrinkleAnalysis,
+            poreAnalysis: poreAnalysis,
+            acneAnalysis: acneAnalysis,
+            rednessAnalysis: rednessAnalysis
         )
 
         print("✅ Face3DMetricsAnalyzer: Complete in \(processingTime)s")

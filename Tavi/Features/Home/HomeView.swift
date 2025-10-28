@@ -62,10 +62,18 @@ public struct HomeView: View {
                 }
 
                 // Before/After comparison (if we have 2+ scans)
-                if sessions.count >= 2 {
+                if sessions.count >= 2,
+                   let latest = latestSession,
+                   let previous = previousSession,
+                   let latestMetrics = decodeEmotionalMetrics(from: latest),
+                   let previousMetrics = decodeEmotionalMetrics(from: previous) {
                     NavigationLink {
-                        // Before/after view would go here
-                        Text("Before/After Comparison")
+                        BeforeAfterView(
+                            beforeMetrics: previousMetrics,
+                            afterMetrics: latestMetrics,
+                            beforeDate: previous.date ?? Date(),
+                            afterDate: latest.date ?? Date()
+                        )
                     } label: {
                         beforeAfterCTA
                     }
@@ -492,6 +500,13 @@ public struct HomeView: View {
         case 60..<70: return .orange
         default: return .purple
         }
+    }
+
+    private func decodeEmotionalMetrics(from session: SessionResult) -> EmotionalMetrics? {
+        guard let data = session.emotionalMetricsData else {
+            return nil
+        }
+        return try? JSONDecoder().decode(EmotionalMetrics.self, from: data)
     }
 }
 

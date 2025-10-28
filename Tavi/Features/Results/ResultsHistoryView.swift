@@ -109,69 +109,54 @@ struct SessionCard: View {
     let session: SessionResult
 
     var body: some View {
-        CardView {
-            HStack(spacing: 16) {
-                // Thumbnail
-                thumbnailView
+        HStack(spacing: 12) {
+            // Name, Date Time, Score% in one line
+            Text(compactDisplayText)
+                .font(.body)
+                .foregroundStyle(.primary)
 
-                // Info
-                VStack(alignment: .leading, spacing: 8) {
-                    // Date
-                    Text(session.relativeDate)
-                        .font(.headline)
+            Spacer()
 
-                    // Score with grade
-                    HStack(spacing: 8) {
-                        Text("\(Int(session.overallScore))%")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(scoreColor(for: session.overallScore))
-
-                        GradeBadge(grade: session.grade)
-                    }
-
-                    // Device
-                    Text(session.deviceModel)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                // Chevron
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-            .padding(4)
+            // Chevron
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(Color(uiColor: .secondarySystemBackground))
+        .cornerRadius(12)
     }
 
-    @ViewBuilder
-    private var thumbnailView: some View {
-        if let thumbnailImage = session.thumbnailImage {
-            Image(uiImage: thumbnailImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 80, height: 80)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-        } else {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.2))
-                .frame(width: 80, height: 80)
-                .overlay {
-                    Image(systemName: "face.smiling")
-                        .font(.title)
-                        .foregroundStyle(.secondary)
-                }
-        }
+    private var compactDisplayText: String {
+        let name = UserProfileManager.shared.getName() ?? "User"
+        let dateString = formattedDateTime
+        let scoreString = "\(Int(session.overallScore))%"
+
+        return "\(name), \(dateString), \(scoreString)"
     }
 
-    private func scoreColor(for score: Double) -> Color {
-        switch score {
-        case 80...100: return .green
-        case 60..<80: return .orange
-        default: return .red
+    private var formattedDateTime: String {
+        guard let date = session.date else { return "Unknown date" }
+
+        let formatter = DateFormatter()
+
+        // Get day with ordinal suffix (1st, 2nd, 3rd, etc.)
+        let day = Calendar.current.component(.day, from: date)
+        let daySuffix = ordinalSuffix(for: day)
+
+        // Format: "19th May 3pm"
+        formatter.dateFormat = "d'\(daySuffix)' MMM ha"
+
+        return formatter.string(from: date).lowercased() // "3pm" instead of "3PM"
+    }
+
+    private func ordinalSuffix(for day: Int) -> String {
+        switch day {
+        case 1, 21, 31: return "st"
+        case 2, 22: return "nd"
+        case 3, 23: return "rd"
+        default: return "th"
         }
     }
 }
