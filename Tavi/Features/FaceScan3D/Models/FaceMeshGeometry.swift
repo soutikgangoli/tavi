@@ -205,6 +205,52 @@ public struct FaceBlendShapes {
         return coefficients[.mouthSmileRight]?.floatValue ?? 0
     }
 
+    // MARK: - Additional Expression Blend Shapes
+
+    public var eyeWideLeft: Float {
+        return coefficients[.eyeWideLeft]?.floatValue ?? 0
+    }
+
+    public var eyeWideRight: Float {
+        return coefficients[.eyeWideRight]?.floatValue ?? 0
+    }
+
+    public var eyeSquintLeft: Float {
+        return coefficients[.eyeSquintLeft]?.floatValue ?? 0
+    }
+
+    public var eyeSquintRight: Float {
+        return coefficients[.eyeSquintRight]?.floatValue ?? 0
+    }
+
+    public var browInnerUp: Float {
+        return coefficients[.browInnerUp]?.floatValue ?? 0
+    }
+
+    public var browDownLeft: Float {
+        return coefficients[.browDownLeft]?.floatValue ?? 0
+    }
+
+    public var browDownRight: Float {
+        return coefficients[.browDownRight]?.floatValue ?? 0
+    }
+
+    public var mouthFrownLeft: Float {
+        return coefficients[.mouthFrownLeft]?.floatValue ?? 0
+    }
+
+    public var mouthFrownRight: Float {
+        return coefficients[.mouthFrownRight]?.floatValue ?? 0
+    }
+
+    public var mouthPucker: Float {
+        return coefficients[.mouthPucker]?.floatValue ?? 0
+    }
+
+    public var cheekPuff: Float {
+        return coefficients[.cheekPuff]?.floatValue ?? 0
+    }
+
     /// Initialize from ARFaceAnchor
     public init(faceAnchor: ARFaceAnchor) {
         self.coefficients = faceAnchor.blendShapes

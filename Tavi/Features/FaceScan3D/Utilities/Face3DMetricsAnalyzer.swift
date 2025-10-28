@@ -33,6 +33,7 @@ public class Face3DMetricsAnalyzer {
     private let poreAnalyzer: PoreAnalyzer
     private let acneAnalyzer: AcneAnalyzer
     private let rednessAnalyzer: RednessAnalyzer
+    private let topologyAnalyzer: MeshTopologyAnalyzer
 
     // Normalizers for diverse skin tones and lighting conditions
     private let skinToneNormalizer: SkinToneNormalizer
@@ -77,6 +78,7 @@ public class Face3DMetricsAnalyzer {
         self.poreAnalyzer = PoreAnalyzer()
         self.acneAnalyzer = AcneAnalyzer()
         self.rednessAnalyzer = RednessAnalyzer()
+        self.topologyAnalyzer = MeshTopologyAnalyzer()
         self.skinToneNormalizer = SkinToneNormalizer()
         self.colorTempNormalizer = ColorTemperatureNormalizer()
     }
@@ -159,13 +161,37 @@ public class Face3DMetricsAnalyzer {
         let faceMeshGeometry = convertToFaceMeshGeometry(unifiedMesh: unifiedMesh)
 
         // Convert CGImage to UIImage for texture-based analyzers
-        let textureImage = UIImage(cgImage: unifiedTexture)
+        var textureImage = UIImage(cgImage: unifiedTexture)
+
+        // Step 4.5: Apply color temperature normalization BEFORE all analysis
+        print("   🌡️ Normalizing color temperature...")
+        let detectedColorTemp = colorTempNormalizer.estimateColorTemperature(from: textureImage)
+        let lightingType = colorTempNormalizer.detectLightingType(ambientColorTemperature: detectedColorTemp)
+        print("      Detected: \(String(format: "%.0f", detectedColorTemp))K (\(lightingType))")
+
+        // Normalize to standard daylight (6000K) for consistent analysis
+        let targetColorTemp: CGFloat = 6000
+        if abs(detectedColorTemp - targetColorTemp) > 500 {  // Only normalize if difference > 500K
+            if let normalizedImage = colorTempNormalizer.normalizeColorTemperature(
+                image: textureImage,
+                currentColorTemp: detectedColorTemp,
+                targetColorTemp: targetColorTemp
+            ) {
+                textureImage = normalizedImage
+                print("      ✅ Normalized \(String(format: "%.0f", detectedColorTemp))K → \(String(format: "%.0f", targetColorTemp))K")
+            } else {
+                print("      ⚠️ Color temp normalization failed, using original texture")
+            }
+        } else {
+            print("      ✅ Color temperature already near target (\(String(format: "%.0f", detectedColorTemp))K)")
+        }
 
         // Step 5: Detect skin tone for normalization
         let skinTone = skinToneNormalizer.detectSkinTone(texture: textureImage)
         print("   📊 Detected skin tone: \(skinTone) (reference L*: \(skinTone.referenceL))")
 
         // Step 5a: Compute wrinkle analysis FIRST (needed for elasticity calculation)
+        print("   🔍 Running WrinkleAnalyzer...")
         let wrinkleAnalysis: WrinkleAnalysis? = wrinkleAnalyzer.analyzeWrinkles(geometry: faceMeshGeometry)
 
         // Step 5b: Compute elasticity using ACTUAL wrinkle depth (not roughness proxy!)
@@ -192,6 +218,7 @@ public class Face3DMetricsAnalyzer {
         }
 
         // Step 5c: Compute remaining advanced metrics
+        print("   🔍 Running advanced analyzers...")
 
         // Volume metrics
         let volumeAnalysis: VolumeAnalysis? = volumeMetricsAnalyzer.analyzeVolume(
@@ -213,13 +240,20 @@ public class Face3DMetricsAnalyzer {
         )
 
         // Pore analysis (high-frequency texture)
+        print("   🔍 Running PoreAnalyzer...")
         let poreAnalysis: PoreAnalysis? = poreAnalyzer.analyzePores(texture: textureImage)
 
         // Acne and blemish detection
+        print("   🔍 Running AcneAnalyzer...")
         let acneAnalysis: AcneAnalysis? = acneAnalyzer.analyzeAcne(texture: textureImage)
 
         // Redness and inflammation detection
+        print("   🔍 Running RednessAnalyzer...")
         let rednessAnalysis: RednessAnalysis? = rednessAnalyzer.analyzeRedness(texture: textureImage)
+
+        // Mesh topology quality analysis
+        print("   🔍 Running TopologyAnalyzer...")
+        let topologyAnalysis: TopologyAnalysis? = topologyAnalyzer.analyzeTopology(geometry: faceMeshGeometry)
 
         print("   Advanced metrics computed:")
         if let elasticity = elasticityAnalysis {
@@ -245,6 +279,9 @@ public class Face3DMetricsAnalyzer {
         }
         if let redness = rednessAnalysis {
             print("   - Redness: \(redness.overallScore)/100 (\(redness.rednessLevel))")
+        }
+        if let topology = topologyAnalysis {
+            print("   - Topology: \(String(format: "%.1f", topology.overallScore))/100 (\(topology.qualityLevel)) - Manifold: \(topology.isManifold), Watertight: \(topology.isWatertight)")
         }
 
         // Step 6: Apply skin tone normalization to pigmentation and discoloration scores
@@ -296,7 +333,8 @@ public class Face3DMetricsAnalyzer {
             wrinkleAnalysis: wrinkleAnalysis,
             poreAnalysis: poreAnalysis,
             acneAnalysis: acneAnalysis,
-            rednessAnalysis: rednessAnalysis
+            rednessAnalysis: rednessAnalysis,
+            topologyAnalysis: topologyAnalysis
         )
 
         print("✅ Face3DMetricsAnalyzer: Complete in \(processingTime)s")

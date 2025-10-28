@@ -319,6 +319,9 @@ public struct Face3DMetrics: Codable {
     /// Redness and inflammation analysis
     public let rednessAnalysis: RednessAnalysis?
 
+    /// Mesh topology quality analysis
+    public let topologyAnalysis: TopologyAnalysis?
+
     public init(
         roiMetrics: [Face3DROI: ROI3DMetrics],
         globalRoughnessProxy: Float,
@@ -346,7 +349,8 @@ public struct Face3DMetrics: Codable {
         wrinkleAnalysis: WrinkleAnalysis? = nil,
         poreAnalysis: PoreAnalysis? = nil,
         acneAnalysis: AcneAnalysis? = nil,
-        rednessAnalysis: RednessAnalysis? = nil
+        rednessAnalysis: RednessAnalysis? = nil,
+        topologyAnalysis: TopologyAnalysis? = nil
     ) {
         self.roiMetrics = roiMetrics
         self.globalRoughnessProxy = globalRoughnessProxy
@@ -376,6 +380,7 @@ public struct Face3DMetrics: Codable {
         self.poreAnalysis = poreAnalysis
         self.acneAnalysis = acneAnalysis
         self.rednessAnalysis = rednessAnalysis
+        self.topologyAnalysis = topologyAnalysis
     }
 
     /// Get metrics for specific ROI

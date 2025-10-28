@@ -537,12 +537,19 @@ public class FaceScan3DViewModel: ObservableObject {
             baselineColorTemperature = lightEstimation?.ambientColorTemperature
         }
 
-        // 2. Check for neutral expression (no smiling/frowning)
+        // 2. Check for neutral expression (comprehensive blend shape validation)
         if let blendShapes = blendShapes {
             // Detect smiling
             let smileAmount = (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2.0
             if smileAmount > 0.3 {
                 qualityWarning = "Please keep a neutral expression (no smiling)"
+                return false
+            }
+
+            // Detect frowning
+            let frownAmount = (blendShapes.mouthFrownLeft + blendShapes.mouthFrownRight) / 2.0
+            if frownAmount > 0.3 {
+                qualityWarning = "Please relax your expression (no frowning)"
                 return false
             }
 
@@ -552,10 +559,49 @@ public class FaceScan3DViewModel: ObservableObject {
                 return false
             }
 
+            // Detect lip puckering (duck face)
+            if blendShapes.mouthPucker > 0.2 {
+                qualityWarning = "Please relax your lips"
+                return false
+            }
+
+            // Detect cheek puffing
+            if blendShapes.cheekPuff > 0.2 {
+                qualityWarning = "Please relax your cheeks"
+                return false
+            }
+
             // Detect eye blinking
             let blinkAmount = max(blendShapes.eyeBlinkLeft, blendShapes.eyeBlinkRight)
             if blinkAmount > 0.7 {
                 qualityWarning = "Please keep your eyes open"
+                return false
+            }
+
+            // Detect eyes wide open (surprised expression)
+            let eyeWideAmount = max(blendShapes.eyeWideLeft, blendShapes.eyeWideRight)
+            if eyeWideAmount > 0.3 {
+                qualityWarning = "Please relax your eyes"
+                return false
+            }
+
+            // Detect eye squinting
+            let squintAmount = max(blendShapes.eyeSquintLeft, blendShapes.eyeSquintRight)
+            if squintAmount > 0.3 {
+                qualityWarning = "Please don't squint"
+                return false
+            }
+
+            // Detect raised eyebrows (surprised/worried expression)
+            if blendShapes.browInnerUp > 0.3 {
+                qualityWarning = "Please relax your eyebrows"
+                return false
+            }
+
+            // Detect furrowed brows (angry/concentrating expression)
+            let browDownAmount = max(blendShapes.browDownLeft, blendShapes.browDownRight)
+            if browDownAmount > 0.3 {
+                qualityWarning = "Please relax your forehead"
                 return false
             }
         }
