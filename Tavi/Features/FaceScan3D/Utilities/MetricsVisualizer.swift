@@ -43,7 +43,7 @@ public class MetricsVisualizer {
     /// Generate visualization for metrics
     public func generateVisualization(
         for metrics: Face3DMetrics,
-        type: MetricType
+        type: VisualizerMetricType
     ) -> MetricVisualization {
 
         // Generate heatmap
@@ -66,7 +66,7 @@ public class MetricsVisualizer {
 
     private func generateHeatmap(
         for metrics: Face3DMetrics,
-        type: MetricType
+        type: VisualizerMetricType
     ) -> UIImage? {
 
         let width = configuration.heatmapWidth
@@ -211,7 +211,7 @@ public class MetricsVisualizer {
 // MARK: - Metric Type
 
 /// Type of metric to visualize
-public enum MetricType {
+public enum VisualizerMetricType {
     case roughness
     case pigmentation
     case luminance

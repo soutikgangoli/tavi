@@ -34,17 +34,9 @@ public class SkinToneNormalizer {
             }
         }
 
-        var pigmentationScaleFactor: Float {
-            // Scale factor to normalize pigmentation scores
-            // Darker skin naturally has more melanin (not a "concern")
-            switch self {
-            case .veryLight: return 1.0
-            case .light: return 0.95
-            case .medium: return 0.90
-            case .mediumDark: return 0.85
-            case .dark: return 0.80
-            }
-        }
+        // REMOVED: pigmentationScaleFactor
+        // Old approach reduced scores for dark skin (unfair - could hide real issues)
+        // New approach: Detect RELATIVE changes from baseline (fair for all skin tones)
     }
 
     // MARK: - Public API
@@ -71,55 +63,44 @@ public class SkinToneNormalizer {
     }
 
     /// Normalize pigmentation score for skin tone
+    /// NEW APPROACH: Scores represent RELATIVE variation from baseline
+    /// A score of 60 means "moderate pigmentation variation" for ANY skin tone
     public func normalizePigmentationScore(
         rawScore: Float,
         skinTone: SkinToneCategory
     ) -> Float {
-        // Adjust score based on skin tone
-        // Darker skin tones shouldn't be penalized for natural melanin
-        let adjustedScore = rawScore * skinTone.pigmentationScaleFactor
+        // NO scale factors - raw score already represents relative variation
+        // Pigmentation analysis should detect LOCAL differences (spots, patches)
+        // not penalize overall skin darkness
 
-        // Ensure score stays in 0-100 range
-        return min(100, max(0, adjustedScore))
+        // Just ensure score stays in valid range
+        return min(100, max(0, rawScore))
     }
 
     /// Normalize discoloration score for skin tone
+    /// NEW APPROACH: Scores represent RELATIVE variation from baseline
+    /// Discoloration detection should identify ABNORMAL patches (melasma, PIH, vitiligo)
+    /// not penalize natural skin tone variation
     public func normalizeDiscolorationScore(
         rawScore: Float,
         skinTone: SkinToneCategory
     ) -> Float {
-        // Discoloration is relative to base skin tone
-        // Darker skin may have more natural variation (not necessarily a concern)
+        // NO scale factors - discoloration means "different from person's baseline"
+        // Whether baseline is light or dark doesn't matter
+        // A dark skin person with melasma should get same score as light skin with melasma
 
-        let scaleFactor: Float
-        switch skinTone {
-        case .veryLight:
-            scaleFactor = 1.0  // No adjustment
-        case .light:
-            scaleFactor = 0.95
-        case .medium:
-            scaleFactor = 0.90
-        case .mediumDark:
-            scaleFactor = 0.85
-        case .dark:
-            scaleFactor = 0.80  // More tolerance for natural variation
-        }
-
-        let adjustedScore = rawScore * scaleFactor
-        return min(100, max(0, adjustedScore))
+        // Just ensure score stays in valid range
+        return min(100, max(0, rawScore))
     }
 
     /// Get recommended thresholds for this skin tone
+    /// NEW APPROACH: Uniform thresholds since scores represent relative variation
     public func getThresholds(for skinTone: SkinToneCategory) -> (pigmentationThreshold: Float, discolorationThreshold: Float) {
-        // Different thresholds for "concern" detection
-        switch skinTone {
-        case .veryLight, .light:
-            return (pigmentationThreshold: 60, discolorationThreshold: 60)
-        case .medium:
-            return (pigmentationThreshold: 55, discolorationThreshold: 55)
-        case .mediumDark, .dark:
-            return (pigmentationThreshold: 50, discolorationThreshold: 50)
-        }
+        // SAME threshold for all skin tones (fair approach)
+        // A score of 60 means "moderate concern" regardless of baseline skin color
+        // This ensures equal sensitivity to real pigmentation issues across all Fitzpatrick types
+
+        return (pigmentationThreshold: 60, discolorationThreshold: 60)
     }
 
     // MARK: - Private Methods

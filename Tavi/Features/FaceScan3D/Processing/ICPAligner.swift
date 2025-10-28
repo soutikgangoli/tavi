@@ -52,7 +52,6 @@ class ICPAligner {
         // Subsample vertices for performance
         let sourceIndices = stride(from: 0, to: source.vertices.count, by: subsampleRate).map { $0 }
         let sourcePoints = sourceIndices.map { source.vertices[$0] }
-        let sourceNormals = sourceIndices.map { source.vertices[$0] }
 
         // Build KD-tree for target (for fast nearest neighbor search)
         let targetTree = KDTree(points: target.vertices)
@@ -175,11 +174,37 @@ class ICPAligner {
         return makeTransform(rotation: rotation, translation: translation)
     }
 
-    /// Extract rotation from cross-covariance matrix
+    /// Extract rotation from cross-covariance matrix using proper SVD
     private func extractRotation(from H: simd_float3x3) -> (simd_float3x3, Bool) {
-        // Simplified: use the matrix as-is if it's close to orthonormal
-        // In production, you'd use proper SVD
+        // Compute SVD: H = U * S * V^T
+        // The rotation matrix is R = V * U^T
 
+        let svdResult = computeSVD3x3(H)
+
+        guard svdResult.converged else {
+            print("⚠️ SVD did not converge, using simplified approach")
+            return extractRotationSimplified(from: H)
+        }
+
+        // R = V * U^T
+        let rotation = svdResult.V * simd_transpose(svdResult.U)
+
+        // Ensure proper rotation (det = 1, not reflection det = -1)
+        let det = determinant3x3(rotation)
+
+        if det < 0 {
+            // Flip sign of last column of V to ensure proper rotation
+            var correctedV = svdResult.V
+            correctedV[2] = -correctedV[2]
+            let correctedRotation = correctedV * simd_transpose(svdResult.U)
+            return (correctedRotation, true)
+        } else {
+            return (rotation, true)
+        }
+    }
+
+    /// Simplified rotation extraction (fallback)
+    private func extractRotationSimplified(from H: simd_float3x3) -> (simd_float3x3, Bool) {
         // Normalize columns
         let c0 = normalize(H[0])
         let c1 = normalize(H[1])
@@ -187,7 +212,7 @@ class ICPAligner {
 
         // Check if columns are orthogonal (determinant close to 1)
         let rotation = simd_float3x3(c0, c1, c2)
-        let det = determinant(rotation)
+        let det = determinant3x3(rotation)
 
         if abs(det - 1.0) < 0.1 {
             return (rotation, true)
@@ -195,6 +220,202 @@ class ICPAligner {
             // Return identity if not valid
             return (matrix_identity_float3x3, false)
         }
+    }
+
+    /// Calculate determinant of 3x3 matrix
+    private func determinant3x3(_ m: simd_float3x3) -> Float {
+        let c0 = m[0]
+        let c1 = m[1]
+        let c2 = m[2]
+
+        return c0.x * (c1.y * c2.z - c1.z * c2.y) -
+               c0.y * (c1.x * c2.z - c1.z * c2.x) +
+               c0.z * (c1.x * c2.y - c1.y * c2.x)
+    }
+
+    // MARK: - SVD Implementation
+
+    /// SVD result for 3x3 matrix
+    private struct SVDResult {
+        let U: simd_float3x3      // Left singular vectors
+        let S: SIMD3<Float>       // Singular values
+        let V: simd_float3x3      // Right singular vectors
+        let converged: Bool
+    }
+
+    /// Compute SVD of 3x3 matrix using Jacobi method
+    /// Returns: H = U * diag(S) * V^T
+    private func computeSVD3x3(_ A: simd_float3x3) -> SVDResult {
+        let maxIterations = 30
+        let tolerance: Float = 1e-6
+
+        // Step 1: Compute A^T * A
+        let AtA = simd_transpose(A) * A
+
+        // Step 2: Compute eigendecomposition of A^T * A to get V and S^2
+        let eigenResult = computeEigen3x3(AtA, maxIterations: maxIterations, tolerance: tolerance)
+
+        guard eigenResult.converged else {
+            return SVDResult(U: matrix_identity_float3x3, S: SIMD3<Float>(1, 1, 1), V: matrix_identity_float3x3, converged: false)
+        }
+
+        let V = eigenResult.eigenvectors
+        var S = SIMD3<Float>(
+            sqrt(max(0, eigenResult.eigenvalues.x)),
+            sqrt(max(0, eigenResult.eigenvalues.y)),
+            sqrt(max(0, eigenResult.eigenvalues.z))
+        )
+
+        // Sort singular values in descending order
+        let sorted = sortSingularValues(S: S, V: V)
+        S = sorted.S
+        let sortedV = sorted.V
+
+        // Step 3: Compute U = A * V * S^-1
+        var U = matrix_identity_float3x3
+
+        for i in 0..<3 {
+            if S[i] > tolerance {
+                let vi = sortedV[i]
+                let ui = A * vi / S[i]
+                U[i] = normalize(ui)
+            } else {
+                // For zero singular values, use arbitrary orthonormal vector
+                U[i] = SIMD3<Float>(i == 0 ? 1 : 0, i == 1 ? 1 : 0, i == 2 ? 1 : 0)
+            }
+        }
+
+        return SVDResult(U: U, S: S, V: sortedV, converged: true)
+    }
+
+    /// Eigendecomposition result
+    private struct EigenResult {
+        let eigenvalues: SIMD3<Float>
+        let eigenvectors: simd_float3x3
+        let converged: Bool
+    }
+
+    /// Compute eigendecomposition of symmetric 3x3 matrix using Jacobi method
+    private func computeEigen3x3(_ A: simd_float3x3, maxIterations: Int, tolerance: Float) -> EigenResult {
+        var matrix = A
+        var V = matrix_identity_float3x3
+
+        for iteration in 0..<maxIterations {
+            // Find largest off-diagonal element
+            let (p, q, maxOffDiag) = findLargestOffDiagonal(matrix)
+
+            // Check convergence
+            if maxOffDiag < tolerance {
+                let eigenvalues = SIMD3<Float>(matrix[0][0], matrix[1][1], matrix[2][2])
+                return EigenResult(eigenvalues: eigenvalues, eigenvectors: V, converged: true)
+            }
+
+            // Compute Jacobi rotation
+            let (c, s) = computeJacobiRotation(matrix: matrix, p: p, q: q)
+
+            // Apply rotation: A = J^T * A * J
+            applyJacobiRotation(matrix: &matrix, V: &V, p: p, q: q, c: c, s: s)
+        }
+
+        // Did not converge
+        let eigenvalues = SIMD3<Float>(matrix[0][0], matrix[1][1], matrix[2][2])
+        return EigenResult(eigenvalues: eigenvalues, eigenvectors: V, converged: false)
+    }
+
+    /// Find largest off-diagonal element
+    private func findLargestOffDiagonal(_ A: simd_float3x3) -> (p: Int, q: Int, value: Float) {
+        var maxVal: Float = 0
+        var maxP = 0
+        var maxQ = 1
+
+        for i in 0..<3 {
+            for j in (i+1)..<3 {
+                let val = abs(A[i][j])
+                if val > maxVal {
+                    maxVal = val
+                    maxP = i
+                    maxQ = j
+                }
+            }
+        }
+
+        return (maxP, maxQ, maxVal)
+    }
+
+    /// Compute Jacobi rotation parameters
+    private func computeJacobiRotation(matrix: simd_float3x3, p: Int, q: Int) -> (c: Float, s: Float) {
+        let App = matrix[p][p]
+        let Aqq = matrix[q][q]
+        let Apq = matrix[p][q]
+
+        if abs(Apq) < 1e-10 {
+            return (1.0, 0.0)
+        }
+
+        let tau = (Aqq - App) / (2.0 * Apq)
+        let t: Float
+
+        if tau >= 0 {
+            t = 1.0 / (tau + sqrt(1.0 + tau * tau))
+        } else {
+            t = -1.0 / (-tau + sqrt(1.0 + tau * tau))
+        }
+
+        let c = 1.0 / sqrt(1.0 + t * t)
+        let s = t * c
+
+        return (c, s)
+    }
+
+    /// Apply Jacobi rotation to matrix and eigenvector matrix
+    private func applyJacobiRotation(matrix: inout simd_float3x3, V: inout simd_float3x3, p: Int, q: Int, c: Float, s: Float) {
+        // Update matrix A
+        let App = matrix[p][p]
+        let Aqq = matrix[q][q]
+        let Apq = matrix[p][q]
+
+        matrix[p][p] = c * c * App - 2.0 * s * c * Apq + s * s * Aqq
+        matrix[q][q] = s * s * App + 2.0 * s * c * Apq + c * c * Aqq
+        matrix[p][q] = 0.0
+        matrix[q][p] = 0.0
+
+        // Update other elements
+        for i in 0..<3 {
+            if i != p && i != q {
+                let Aip = matrix[i][p]
+                let Aiq = matrix[i][q]
+                matrix[i][p] = c * Aip - s * Aiq
+                matrix[p][i] = matrix[i][p]
+                matrix[i][q] = s * Aip + c * Aiq
+                matrix[q][i] = matrix[i][q]
+            }
+        }
+
+        // Update eigenvectors V
+        for i in 0..<3 {
+            let Vip = V[i][p]
+            let Viq = V[i][q]
+            V[i][p] = c * Vip - s * Viq
+            V[i][q] = s * Vip + c * Viq
+        }
+    }
+
+    /// Sort singular values in descending order
+    private func sortSingularValues(S: SIMD3<Float>, V: simd_float3x3) -> (S: SIMD3<Float>, V: simd_float3x3) {
+        var values = [(value: Float, index: Int)]()
+        values.append((S.x, 0))
+        values.append((S.y, 1))
+        values.append((S.z, 2))
+
+        values.sort { $0.value > $1.value }
+
+        let sortedS = SIMD3<Float>(values[0].value, values[1].value, values[2].value)
+        var sortedV = matrix_identity_float3x3
+        sortedV[0] = V[values[0].index]
+        sortedV[1] = V[values[1].index]
+        sortedV[2] = V[values[2].index]
+
+        return (sortedS, sortedV)
     }
 
     /// Create 4x4 transformation matrix
@@ -220,11 +441,18 @@ class ICPAligner {
 
 /// Simple KD-tree for 3D point nearest neighbor queries
 private class KDTree {
-    private struct Node {
+    private class Node {
         let point: SIMD3<Float>
         let left: Node?
         let right: Node?
         let axis: Int
+
+        init(point: SIMD3<Float>, left: Node?, right: Node?, axis: Int) {
+            self.point = point
+            self.left = left
+            self.right = right
+            self.axis = axis
+        }
     }
 
     private let root: Node?
@@ -244,10 +472,13 @@ private class KDTree {
         let sortedPoints = points.sorted { getComponent($0, axis: axis) < getComponent($1, axis: axis) }
         let median = sortedPoints.count / 2
 
+        let leftChild = buildTree(points: Array(sortedPoints[..<median]), depth: depth + 1)
+        let rightChild = buildTree(points: Array(sortedPoints[(median + 1)...]), depth: depth + 1)
+
         return Node(
             point: sortedPoints[median],
-            left: buildTree(points: Array(sortedPoints[..<median]), depth: depth + 1),
-            right: buildTree(points: Array(sortedPoints[(median + 1)...]), depth: depth + 1),
+            left: leftChild,
+            right: rightChild,
             axis: axis
         )
     }

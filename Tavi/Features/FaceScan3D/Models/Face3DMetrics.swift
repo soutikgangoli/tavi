@@ -27,6 +27,11 @@ public enum Face3DROI: String, CaseIterable, Codable {
         return rawValue
     }
 
+    /// Unique identifier for this ROI
+    public var identifier: String {
+        return rawValue
+    }
+
     /// Canonical UV bounds for this ROI (approximate)
     /// Based on ARSCNFaceGeometry canonical UV layout
     public var uvBounds: UVBounds {
@@ -150,6 +155,26 @@ public struct ROITextureSample {
     }
 }
 
+// MARK: - Moisture Proxy
+
+/// Moisture estimation from surface properties
+public struct MoistureProxy: Codable {
+    /// Overall moisture index (0-1, higher = more moisture)
+    public let moistureIndex: Double
+
+    /// Specular highlight ratio (0-1)
+    public let specularRatio: Double
+
+    /// Low-frequency smoothness (0-1)
+    public let smoothnessLowFreq: Double
+
+    public init(moistureIndex: Double, specularRatio: Double, smoothnessLowFreq: Double) {
+        self.moistureIndex = moistureIndex
+        self.specularRatio = specularRatio
+        self.smoothnessLowFreq = smoothnessLowFreq
+    }
+}
+
 // MARK: - ROI Metrics
 
 /// Computed metrics for a single ROI
@@ -167,6 +192,21 @@ public struct ROI3DMetrics: Codable {
 
     /// Specular/oiliness proxy (0-1, higher = more specular highlights)
     public let specularProxy: Float?
+
+    /// Blur/sharpness score (0-1, higher = sharper)
+    public let blurScore: Double
+
+    /// Texture energy (0-1, higher = more texture variation)
+    public let textureEnergy: Double
+
+    /// LAB color variance (0-1, higher = more pigmentation variation)
+    public let labVariance: Double
+
+    /// Quality score (0-1, higher = better quality)
+    public let qualityScore: Double
+
+    /// Moisture estimation proxy
+    public let moistureProxy: MoistureProxy
 
     /// Number of pixels analyzed
     public let pixelCount: Int
@@ -207,6 +247,11 @@ public struct ROI3DMetrics: Codable {
         roughnessProxy: Float,
         pigmentationIndex: Float,
         specularProxy: Float?,
+        blurScore: Double = 0.5,
+        textureEnergy: Double = 0.5,
+        labVariance: Double = 0.5,
+        qualityScore: Double = 0.5,
+        moistureProxy: MoistureProxy = MoistureProxy(moistureIndex: 0.5, specularRatio: 0.5, smoothnessLowFreq: 0.5),
         pixelCount: Int,
         averageLuminance: Float,
         averageLightness: Float,
@@ -222,6 +267,11 @@ public struct ROI3DMetrics: Codable {
         self.roughnessProxy = roughnessProxy
         self.pigmentationIndex = pigmentationIndex
         self.specularProxy = specularProxy
+        self.blurScore = blurScore
+        self.textureEnergy = textureEnergy
+        self.labVariance = labVariance
+        self.qualityScore = qualityScore
+        self.moistureProxy = moistureProxy
         self.pixelCount = pixelCount
         self.averageLuminance = averageLuminance
         self.averageLightness = averageLightness
@@ -322,6 +372,9 @@ public struct Face3DMetrics: Codable {
     /// Mesh topology quality analysis
     public let topologyAnalysis: TopologyAnalysis?
 
+    /// Comprehensive scan quality assessment
+    public let scanQuality: ScanQuality?
+
     public init(
         roiMetrics: [Face3DROI: ROI3DMetrics],
         globalRoughnessProxy: Float,
@@ -350,7 +403,8 @@ public struct Face3DMetrics: Codable {
         poreAnalysis: PoreAnalysis? = nil,
         acneAnalysis: AcneAnalysis? = nil,
         rednessAnalysis: RednessAnalysis? = nil,
-        topologyAnalysis: TopologyAnalysis? = nil
+        topologyAnalysis: TopologyAnalysis? = nil,
+        scanQuality: ScanQuality? = nil
     ) {
         self.roiMetrics = roiMetrics
         self.globalRoughnessProxy = globalRoughnessProxy
@@ -381,6 +435,7 @@ public struct Face3DMetrics: Codable {
         self.acneAnalysis = acneAnalysis
         self.rednessAnalysis = rednessAnalysis
         self.topologyAnalysis = topologyAnalysis
+        self.scanQuality = scanQuality
     }
 
     /// Get metrics for specific ROI
@@ -412,12 +467,12 @@ public struct Face3DMetrics: Codable {
         globalRoughnessProxy = try container.decode(Float.self, forKey: .globalRoughnessProxy)
         globalPigmentationIndex = try container.decode(Float.self, forKey: .globalPigmentationIndex)
         globalDiscolorationIndex = try container.decode(Float.self, forKey: .globalDiscolorationIndex)
-        globalSpecularProxy = try container.decodeIfPresent(Float.self, forKey: .globalSpecularProxy)
+        globalSpecularProxy = try container.decode(Optional<Float>.self, forKey: .globalSpecularProxy)
         globalAverageLuminance = try container.decode(Float.self, forKey: .globalAverageLuminance)
         globalRoughnessScore = try container.decode(Float.self, forKey: .globalRoughnessScore)
         globalPigmentationScore = try container.decode(Float.self, forKey: .globalPigmentationScore)
         globalDiscolorationScore = try container.decode(Float.self, forKey: .globalDiscolorationScore)
-        globalSpecularScore = try container.decodeIfPresent(Float.self, forKey: .globalSpecularScore)
+        globalSpecularScore = try container.decode(Optional<Float>.self, forKey: .globalSpecularScore)
         overallScore = try container.decode(Float.self, forKey: .overallScore)
         scoreInterpretation = try container.decode(String.self, forKey: .scoreInterpretation)
         vertexCount = try container.decode(Int.self, forKey: .vertexCount)
@@ -429,13 +484,13 @@ public struct Face3DMetrics: Codable {
 
         timestamp = try container.decode(TimeInterval.self, forKey: .timestamp)
         processingTime = try container.decode(TimeInterval.self, forKey: .processingTime)
-        textureQuality = try container.decodeIfPresent(String.self, forKey: .textureQuality)
+        textureQuality = try container.decode(Optional<String>.self, forKey: .textureQuality)
         lowConfidenceROIs = try container.decode([Face3DROI].self, forKey: .lowConfidenceROIs)
         isHighQuality = try container.decode(Bool.self, forKey: .isHighQuality)
-        elasticityAnalysis = try container.decodeIfPresent(ElasticityAnalysis.self, forKey: .elasticityAnalysis)
-        volumeAnalysis = try container.decodeIfPresent(VolumeAnalysis.self, forKey: .volumeAnalysis)
-        regionalAnalysis = try container.decodeIfPresent(RegionalAnalysis.self, forKey: .regionalAnalysis)
-        skinTypeAnalysis = try container.decodeIfPresent(SkinTypeAnalysis.self, forKey: .skinTypeAnalysis)
+        elasticityAnalysis = try container.decode(Optional<ElasticityAnalysis>.self, forKey: .elasticityAnalysis)
+        volumeAnalysis = try container.decode(Optional<VolumeAnalysis>.self, forKey: .volumeAnalysis)
+        regionalAnalysis = try container.decode(Optional<RegionalAnalysis>.self, forKey: .regionalAnalysis)
+        skinTypeAnalysis = try container.decode(Optional<SkinTypeAnalysis>.self, forKey: .skinTypeAnalysis)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -445,12 +500,12 @@ public struct Face3DMetrics: Codable {
         try container.encode(globalRoughnessProxy, forKey: .globalRoughnessProxy)
         try container.encode(globalPigmentationIndex, forKey: .globalPigmentationIndex)
         try container.encode(globalDiscolorationIndex, forKey: .globalDiscolorationIndex)
-        try container.encodeIfPresent(globalSpecularProxy, forKey: .globalSpecularProxy)
+        try container.encode(globalSpecularProxy, forKey: .globalSpecularProxy)
         try container.encode(globalAverageLuminance, forKey: .globalAverageLuminance)
         try container.encode(globalRoughnessScore, forKey: .globalRoughnessScore)
         try container.encode(globalPigmentationScore, forKey: .globalPigmentationScore)
         try container.encode(globalDiscolorationScore, forKey: .globalDiscolorationScore)
-        try container.encodeIfPresent(globalSpecularScore, forKey: .globalSpecularScore)
+        try container.encode(globalSpecularScore, forKey: .globalSpecularScore)
         try container.encode(overallScore, forKey: .overallScore)
         try container.encode(scoreInterpretation, forKey: .scoreInterpretation)
         try container.encode(vertexCount, forKey: .vertexCount)
@@ -459,13 +514,13 @@ public struct Face3DMetrics: Codable {
         try container.encode(textureResolution.height, forKey: .textureHeight)
         try container.encode(timestamp, forKey: .timestamp)
         try container.encode(processingTime, forKey: .processingTime)
-        try container.encodeIfPresent(textureQuality, forKey: .textureQuality)
+        try container.encode(textureQuality, forKey: .textureQuality)
         try container.encode(lowConfidenceROIs, forKey: .lowConfidenceROIs)
         try container.encode(isHighQuality, forKey: .isHighQuality)
-        try container.encodeIfPresent(elasticityAnalysis, forKey: .elasticityAnalysis)
-        try container.encodeIfPresent(volumeAnalysis, forKey: .volumeAnalysis)
-        try container.encodeIfPresent(regionalAnalysis, forKey: .regionalAnalysis)
-        try container.encodeIfPresent(skinTypeAnalysis, forKey: .skinTypeAnalysis)
+        try container.encode(elasticityAnalysis, forKey: .elasticityAnalysis)
+        try container.encode(volumeAnalysis, forKey: .volumeAnalysis)
+        try container.encode(regionalAnalysis, forKey: .regionalAnalysis)
+        try container.encode(skinTypeAnalysis, forKey: .skinTypeAnalysis)
     }
 }
 
@@ -490,5 +545,115 @@ public struct MetricVisualization {
         self.heatmapImage = heatmapImage
         self.roiBoundaries = roiBoundaries
         self.legendColors = legendColors
+    }
+}
+
+// MARK: - Scan Quality
+
+/// Comprehensive scan quality assessment
+public struct ScanQuality: Codable {
+    /// Overall quality score (0-100)
+    public let overallQuality: Float
+
+    /// Individual quality components
+
+    /// Lighting quality (0-100)
+    public let lightingQuality: Float
+
+    /// Mesh coverage quality (0-100) - how much of face was captured
+    public let coverageQuality: Float
+
+    /// Mesh resolution quality (0-100) - vertex density
+    public let resolutionQuality: Float
+
+    /// Texture clarity (0-100) - sharpness, blur
+    public let textureClarity: Float
+
+    /// Face stability (0-100) - how stable was face during multi-pose capture
+    public let stabilityScore: Float
+
+    /// Quality level categorization
+    public let qualityLevel: QualityLevel
+
+    /// Issues detected during scan
+    public let detectedIssues: [ScanIssue]
+
+    /// Recommendations for improvement
+    public let recommendations: [String]
+
+    public init(
+        overallQuality: Float,
+        lightingQuality: Float,
+        coverageQuality: Float,
+        resolutionQuality: Float,
+        textureClarity: Float,
+        stabilityScore: Float,
+        qualityLevel: QualityLevel,
+        detectedIssues: [ScanIssue],
+        recommendations: [String]
+    ) {
+        self.overallQuality = overallQuality
+        self.lightingQuality = lightingQuality
+        self.coverageQuality = coverageQuality
+        self.resolutionQuality = resolutionQuality
+        self.textureClarity = textureClarity
+        self.stabilityScore = stabilityScore
+        self.qualityLevel = qualityLevel
+        self.detectedIssues = detectedIssues
+        self.recommendations = recommendations
+    }
+}
+
+/// Quality level classification
+public enum QualityLevel: String, Codable {
+    case excellent = "Excellent"
+    case good = "Good"
+    case acceptable = "Acceptable"
+    case poor = "Poor"
+
+    public var description: String {
+        switch self {
+        case .excellent:
+            return "Excellent scan quality - all metrics optimal"
+        case .good:
+            return "Good scan quality - reliable results"
+        case .acceptable:
+            return "Acceptable quality - some metrics may be less reliable"
+        case .poor:
+            return "Poor quality - results may not be accurate, rescan recommended"
+        }
+    }
+}
+
+/// Scan issues that may affect quality
+public enum ScanIssue: String, Codable {
+    case poorLighting = "Poor lighting conditions"
+    case lowCoverage = "Incomplete face coverage"
+    case lowResolution = "Low mesh resolution"
+    case blurryTexture = "Blurry or unclear texture"
+    case facialMovement = "Excessive facial movement"
+    case partialOcclusion = "Partial face occlusion"
+    case extremeExpression = "Non-neutral facial expression"
+    case environmentalNoise = "Environmental interference"
+
+    public var userMessage: String {
+        switch self {
+        case .poorLighting:
+            return "Lighting was too dark or too bright. Try scanning in natural, even lighting."
+        case .lowCoverage:
+            return "Not all face areas were captured. Ensure full face is visible to camera."
+        case .lowResolution:
+            return "Mesh resolution was low. Try holding device steadier during scan."
+        case .blurryTexture:
+            return "Texture was blurry. Avoid moving during scan and ensure good focus."
+        case .facialMovement:
+            return "Face moved too much during scan. Try to stay still."
+        case .partialOcclusion:
+            return "Part of face was blocked. Remove glasses, hair, or hands from face area."
+        case .extremeExpression:
+            return "Facial expression was not neutral. Maintain relaxed, neutral expression."
+        case .environmentalNoise:
+            return "Environmental conditions affected scan. Try in a quieter, more stable environment."
+        }
     }
 }

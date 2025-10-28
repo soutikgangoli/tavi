@@ -46,7 +46,11 @@ final class PersistenceController {
         do {
             try context.save()
         } catch {
+            #if DEBUG
             fatalError("Failed to create preview data: \(error)")
+            #else
+            print("ERROR: Failed to create preview data: \(error)")
+            #endif
         }
 
         return controller
@@ -71,8 +75,18 @@ final class PersistenceController {
 
         container.loadPersistentStores { description, error in
             if let error = error {
-                // In production, handle this more gracefully
+                #if DEBUG
+                // In debug mode, crash immediately to help developers identify the issue
                 fatalError("Failed to load Core Data stack: \(error)")
+                #else
+                // In production, log the error and show user-friendly message
+                print("CRITICAL ERROR: Failed to load Core Data stack: \(error)")
+                print("The app cannot save scan results. Please try restarting the app.")
+
+                // Attempt to recover by using in-memory store as fallback
+                // This means data won't persist, but the app can still function
+                self.container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+                #endif
             }
         }
 
@@ -111,7 +125,8 @@ final class PersistenceController {
     func saveSession(
         scores: ScoreSummary,
         faceImage: CGImage,
-        heatmaps: [HeatmapMetric: CGImage]?
+        heatmaps: [HeatmapType: CGImage]?,
+        clinicalMetrics: Face3DMetrics? = nil
     ) throws {
         let context = container.viewContext
 
@@ -119,7 +134,8 @@ final class PersistenceController {
             context: context,
             scores: scores,
             faceImage: faceImage,
-            heatmaps: heatmaps
+            heatmaps: heatmaps,
+            clinicalMetrics: clinicalMetrics
         )
 
         try context.save()

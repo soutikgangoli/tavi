@@ -62,7 +62,7 @@ public class MeshExtender {
         }
 
         // Create extended vertices by extruding boundary outward
-        let extension = createExtension(
+        let meshExtension = createExtension(
             boundaryEdges: boundaryEdges,
             originalVertices: vertices,
             originalNormals: normals,
@@ -76,10 +76,10 @@ public class MeshExtender {
         var extendedTexCoords = textureCoordinates
         var extendedTriangles = triangleIndices
 
-        extendedVertices.append(contentsOf: extension.newVertices)
-        extendedNormals.append(contentsOf: extension.newNormals)
-        extendedTexCoords.append(contentsOf: extension.newTexCoords)
-        extendedTriangles.append(contentsOf: extension.newTriangles)
+        extendedVertices.append(contentsOf: meshExtension.newVertices)
+        extendedNormals.append(contentsOf: meshExtension.newNormals)
+        extendedTexCoords.append(contentsOf: meshExtension.newTexCoords)
+        extendedTriangles.append(contentsOf: meshExtension.newTriangles)
 
         return ExtendedMesh(
             vertices: extendedVertices,

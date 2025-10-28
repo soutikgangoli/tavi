@@ -7,13 +7,19 @@
 //
 
 import Foundation
-import UIImage
+import UIKit
 import ARKit
+import SwiftUI
+
+/// Edge case severity levels
+public enum EdgeCaseSeverity {
+    case none, mild, moderate, severe
+}
 
 /// Edge case detection results
 public struct EdgeCaseAnalysis {
     let facialHairDetected: Bool
-    let facialHairSeverity: Severity
+    let facialHairSeverity: EdgeCaseSeverity
     let makeupDetected: Bool
     let makeupType: MakeupType?
     let glassesDetected: Bool
@@ -22,17 +28,62 @@ public struct EdgeCaseAnalysis {
     let sunburnDetected: Bool
     let hatDetected: Bool
     let earringsDetected: Bool
+    let lightingQuality: LightingQuality  // NEW: Lighting assessment
+    let currentBrightness: Float  // NEW: 0-1 brightness level
     let warnings: [String]
     let recommendations: [String]
     let shouldProceed: Bool  // false = block scan
+    let blockReason: String?  // NEW: Explanation when shouldProceed = false
 }
 
-public enum Severity {
-    case none, mild, moderate, severe
+/// Lighting quality assessment
+public enum LightingQuality {
+    case tooDark         // < 0.25 - BLOCK
+    case suboptimalDark  // 0.25-0.40 - WARN
+    case optimal         // 0.40-0.70 - GOOD
+    case suboptimalBright // 0.70-0.90 - WARN
+    case tooBright       // > 0.90 - BLOCK
+
+    var shouldBlock: Bool {
+        self == .tooDark || self == .tooBright
+    }
+
+    var description: String {
+        switch self {
+        case .tooDark: return "Too Dark"
+        case .suboptimalDark: return "Low Light"
+        case .optimal: return "Optimal"
+        case .suboptimalBright: return "Bright"
+        case .tooBright: return "Too Bright"
+        }
+    }
 }
 
 public enum MakeupType {
     case foundation, heavyFoundation, specialEffects
+}
+
+/// Lighting strictness levels (imported from settings)
+public enum LightingStrictnessLevel {
+    case strict
+    case relaxed
+    case off
+
+    var minBrightness: Float {
+        switch self {
+        case .strict: return 0.25  // Block <25%
+        case .relaxed: return 0.15  // Block <15%
+        case .off: return 0.0  // Never block
+        }
+    }
+
+    var maxBrightness: Float {
+        switch self {
+        case .strict: return 0.90  // Block >90%
+        case .relaxed: return 0.95  // Block >95%
+        case .off: return 1.0  // Never block
+        }
+    }
 }
 
 /// Edge case detector
@@ -43,11 +94,29 @@ public class EdgeCaseDetector {
     /// Detect all edge cases
     public func detectEdgeCases(
         texture: UIImage,
-        faceAnchor: ARFaceAnchor
+        faceAnchor: ARFaceAnchor,
+        strictness: LightingStrictnessLevel = .strict
     ) -> EdgeCaseAnalysis {
 
         var warnings: [String] = []
         var recommendations: [String] = []
+
+        // LIGHTING DETECTION (First priority - blocks everything else if too dark/bright)
+        let (brightness, lightingQuality) = detectLightingConditions(texture: texture, strictness: strictness)
+
+        if lightingQuality == .tooDark {
+            warnings.append("Lighting too dark for accurate scan")
+            recommendations.append("Move to a brighter area or turn on more lights")
+        } else if lightingQuality == .suboptimalDark {
+            warnings.append("Lighting is low - results may be less accurate")
+            recommendations.append("For best results, move to better lighting")
+        } else if lightingQuality == .tooBright {
+            warnings.append("Lighting too bright - excessive glare detected")
+            recommendations.append("Move away from direct light source or reduce lighting")
+        } else if lightingQuality == .suboptimalBright {
+            warnings.append("Lighting is very bright")
+            recommendations.append("Reduce glare for optimal results")
+        }
 
         // Facial hair detection
         let (facialHairDetected, facialHairSeverity) = detectFacialHair(texture: texture)
@@ -109,8 +178,30 @@ public class EdgeCaseDetector {
             recommendations.append("Large earrings may affect cheek/jawline analysis")
         }
 
-        // Should we proceed? Block for glasses, hand occlusion, and hats (critical), warn for others
-        let shouldProceed = !glassesDetected && !handOcclusionDetected && !hatDetected && makeupType != .heavyFoundation
+        // BLOCKING LOGIC
+        // Block critical issues: glasses, hands on face, hat, heavy makeup, bad lighting
+        let criticalIssues = glassesDetected || handOcclusionDetected || hatDetected || makeupType == .heavyFoundation
+        let badLighting = lightingQuality.shouldBlock
+
+        let shouldProceed = !criticalIssues && !badLighting
+
+        // Determine block reason
+        var blockReason: String? = nil
+        if !shouldProceed {
+            if badLighting {
+                blockReason = lightingQuality == .tooDark ?
+                    "Lighting too dark - move to brighter area" :
+                    "Lighting too bright - reduce glare"
+            } else if glassesDetected {
+                blockReason = "Please remove glasses"
+            } else if handOcclusionDetected {
+                blockReason = "Please remove hands from face"
+            } else if hatDetected {
+                blockReason = "Please remove hat or headband"
+            } else if makeupType == .heavyFoundation {
+                blockReason = "Heavy makeup detected - scan without makeup for accurate results"
+            }
+        }
 
         return EdgeCaseAnalysis(
             facialHairDetected: facialHairDetected,
@@ -123,15 +214,85 @@ public class EdgeCaseDetector {
             sunburnDetected: sunburnDetected,
             hatDetected: hatDetected,
             earringsDetected: earringsDetected,
+            lightingQuality: lightingQuality,
+            currentBrightness: brightness,
             warnings: warnings,
             recommendations: recommendations,
-            shouldProceed: shouldProceed
+            shouldProceed: shouldProceed,
+            blockReason: blockReason
         )
+    }
+
+    // MARK: - Lighting Detection
+
+    /// Detect lighting conditions from texture
+    private func detectLightingConditions(texture: UIImage, strictness: LightingStrictnessLevel) -> (brightness: Float, quality: LightingQuality) {
+        guard let cgImage = texture.cgImage else { return (0.5, .optimal) }
+
+        // Sample center region (face area) for brightness
+        let width = cgImage.width
+        let height = cgImage.height
+        let centerX = width / 2
+        let centerY = height / 2
+        let sampleRadius = min(width, height) / 6
+
+        guard let dataProvider = cgImage.dataProvider,
+              let data = dataProvider.data,
+              let ptr = CFDataGetBytePtr(data) else {
+            return (0.5, .optimal)
+        }
+
+        var totalBrightness: Float = 0
+        var sampleCount = 0
+
+        // Sample 100 pixels from center region
+        for y in stride(from: centerY - sampleRadius, to: centerY + sampleRadius, by: sampleRadius / 5) {
+            for x in stride(from: centerX - sampleRadius, to: centerX + sampleRadius, by: sampleRadius / 5) {
+                guard x >= 0 && x < width && y >= 0 && y < height else { continue }
+
+                let offset = (y * width + x) * 4
+                guard offset + 2 < CFDataGetLength(data) else { continue }
+
+                let r = Float(ptr[offset])
+                let g = Float(ptr[offset + 1])
+                let b = Float(ptr[offset + 2])
+
+                // Luminance (perceived brightness)
+                let luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+
+                totalBrightness += luminance
+                sampleCount += 1
+            }
+        }
+
+        let averageBrightness = sampleCount > 0 ? totalBrightness / Float(sampleCount) : 0.5
+
+        // Get thresholds from strictness level
+        let minBrightness = strictness.minBrightness
+        let maxBrightness = strictness.maxBrightness
+
+        // Classify lighting quality based on strictness
+        let quality: LightingQuality
+        if averageBrightness < minBrightness {
+            quality = .tooDark  // BLOCK
+        } else if averageBrightness < 0.40 {
+            quality = .suboptimalDark  // WARN
+        } else if averageBrightness <= 0.70 {
+            quality = .optimal  // GOOD (40-70%)
+        } else if averageBrightness < maxBrightness {
+            quality = .suboptimalBright  // WARN
+        } else {
+            quality = .tooBright  // BLOCK
+        }
+
+        print("💡 Lighting detected: \(quality.description) (\(String(format: "%.0f", averageBrightness * 100))%)")
+
+        return (averageBrightness, quality)
     }
 
     // MARK: - Facial Hair Detection
 
-    private func detectFacialHair(texture: UIImage) -> (Bool, Severity) {
+    private func detectFacialHair(texture: UIImage) -> (Bool, EdgeCaseSeverity) {
         guard let cgImage = texture.cgImage else { return (false, .none) }
 
         // Extract lower face region (beard/mustache area)
@@ -146,7 +307,7 @@ public class EdgeCaseDetector {
 
         // Calculate darkness (facial hair is typically darker)
         let pixels = extractPixels(from: region)
-        let avgBrightness = pixels.map { Float($0.0 + $0.1 + $0.2) / 3.0 }.reduce(0, +) / Float(max(pixels.count, 1))
+        let avgBrightness = pixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(pixels.count, 1))
 
         // Calculate texture variance (hair has high variance)
         let variance = calculateVariance(pixels: pixels)
@@ -157,9 +318,9 @@ public class EdgeCaseDetector {
 
         if isDark && hasHighVariance {
             // Determine severity based on coverage
-            let darkPixelRatio = Float(pixels.filter { Float($0.0 + $0.1 + $0.2) / 3.0 < 80 }.count) / Float(pixels.count)
+            let darkPixelRatio = Float(pixels.filter { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 < 80 }.count) / Float(pixels.count)
 
-            let severity: Severity
+            let severity: EdgeCaseSeverity
             if darkPixelRatio > 0.5 {
                 severity = .severe  // Heavy beard
             } else if darkPixelRatio > 0.3 {
@@ -358,14 +519,14 @@ public class EdgeCaseDetector {
 
         let foreheadPixels = extractPixels(from: forehead)
         let foreheadVariance = calculateVariance(pixels: foreheadPixels)
-        let foreheadBrightness = foreheadPixels.map { Float($0.0 + $0.1 + $0.2) / 3.0 }.reduce(0, +) / Float(max(foreheadPixels.count, 1))
+        let foreheadBrightness = foreheadPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(foreheadPixels.count, 1))
 
         // Hair characteristics:
         // 1. High variance (different from smooth skin)
         // 2. Generally darker than skin
         // 3. High ratio of dark pixels
 
-        let darkPixelRatio = Float(foreheadPixels.filter { Float($0.0 + $0.1 + $0.2) / 3.0 < 100 }.count) / Float(foreheadPixels.count)
+        let darkPixelRatio = Float(foreheadPixels.filter { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 < 100 }.count) / Float(foreheadPixels.count)
 
         let hasHairTexture = foreheadVariance > 600
         let isDark = foreheadBrightness < 110
@@ -437,11 +598,11 @@ public class EdgeCaseDetector {
                       idx + width < pixels.count,
                       x > 0 && x < width - 1 else { continue }
 
-                let center = Float(pixels[idx].0 + pixels[idx].1 + pixels[idx].2) / 3.0
-                let top = Float(pixels[idx - width].0 + pixels[idx - width].1 + pixels[idx - width].2) / 3.0
-                let bottom = Float(pixels[idx + width].0 + pixels[idx + width].1 + pixels[idx + width].2) / 3.0
-                let left = Float(pixels[idx - 1].0 + pixels[idx - 1].1 + pixels[idx - 1].2) / 3.0
-                let right = Float(pixels[idx + 1].0 + pixels[idx + 1].1 + pixels[idx + 1].2) / 3.0
+                let center = (Float(pixels[idx].0) + Float(pixels[idx].1) + Float(pixels[idx].2)) / 3.0
+                let top = (Float(pixels[idx - width].0) + Float(pixels[idx - width].1) + Float(pixels[idx - width].2)) / 3.0
+                let bottom = (Float(pixels[idx + width].0) + Float(pixels[idx + width].1) + Float(pixels[idx + width].2)) / 3.0
+                let left = (Float(pixels[idx - 1].0) + Float(pixels[idx - 1].1) + Float(pixels[idx - 1].2)) / 3.0
+                let right = (Float(pixels[idx + 1].0) + Float(pixels[idx + 1].1) + Float(pixels[idx + 1].2)) / 3.0
 
                 let edgeMagnitude = abs(center - top) + abs(center - bottom) + abs(center - left) + abs(center - right)
 
@@ -537,7 +698,7 @@ public class EdgeCaseDetector {
 
         let crownVariance = calculateVariance(pixels: crownPixels)
         let crownSaturation = calculateSaturation(pixels: crownPixels)
-        let crownBrightness = crownPixels.map { Float($0.0 + $0.1 + $0.2) / 3.0 }.reduce(0, +) / Float(max(crownPixels.count, 1))
+        let crownBrightness = crownPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(crownPixels.count, 1))
 
         // Check for non-skin-tone colors (hats are usually bright, saturated, or very dark)
         let hasNonSkinColor = crownSaturation > 0.4 || crownBrightness > 200 || crownBrightness < 40
@@ -629,8 +790,8 @@ public class EdgeCaseDetector {
         let hasHighSaturation = (leftSaturation > 0.35 && rightSaturation > 0.35)
 
         // Check for color objects (not skin tone)
-        let leftAvgBrightness = leftPixels.map { Float($0.0 + $0.1 + $0.2) / 3.0 }.reduce(0, +) / Float(max(leftPixels.count, 1))
-        let rightAvgBrightness = rightPixels.map { Float($0.0 + $0.1 + $0.2) / 3.0 }.reduce(0, +) / Float(max(rightPixels.count, 1))
+        let leftAvgBrightness = leftPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(leftPixels.count, 1))
+        let rightAvgBrightness = rightPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(rightPixels.count, 1))
 
         // Very bright or very dark = jewelry
         let hasNonSkinTone = (leftAvgBrightness > 180 || leftAvgBrightness < 60) &&
@@ -665,8 +826,8 @@ public class EdgeCaseDetector {
 
             guard aboveIdx >= 0 && belowIdx < pixels.count else { continue }
 
-            let above = Float(pixels[aboveIdx].0 + pixels[aboveIdx].1 + pixels[aboveIdx].2) / 3.0
-            let below = Float(pixels[belowIdx].0 + pixels[belowIdx].1 + pixels[belowIdx].2) / 3.0
+            let above = (Float(pixels[aboveIdx].0) + Float(pixels[aboveIdx].1) + Float(pixels[aboveIdx].2)) / 3.0
+            let below = (Float(pixels[belowIdx].0) + Float(pixels[belowIdx].1) + Float(pixels[belowIdx].2)) / 3.0
 
             let edgeMagnitude = abs(above - below)
 
@@ -703,7 +864,8 @@ public class EdgeCaseDetector {
     }
 
     private func calculateVariance(pixels: [(UInt8, UInt8, UInt8)]) -> Float {
-        let grayscale = pixels.map { Float($0.0 + $0.1 + $0.2) / 3.0 }
+        // Fix: Convert to Float first to avoid UInt8 overflow (255+255+255 would overflow)
+        let grayscale = pixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }
         let avg = grayscale.reduce(0, +) / Float(max(grayscale.count, 1))
 
         let variance = grayscale.map { pow($0 - avg, 2) }.reduce(0, +) / Float(max(grayscale.count, 1))

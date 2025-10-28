@@ -195,7 +195,8 @@ public class Face3DMetricsAnalyzer {
         let wrinkleAnalysis: WrinkleAnalysis? = wrinkleAnalyzer.analyzeWrinkles(geometry: faceMeshGeometry)
 
         // Step 5b: Compute elasticity using ACTUAL wrinkle depth (not roughness proxy!)
-        let elasticityAnalysis: ElasticityAnalysis? = if let historicalScans = configuration.historicalScans, !historicalScans.isEmpty {
+        let elasticityAnalysis: ElasticityAnalysis?
+        if let historicalScans = configuration.historicalScans, !historicalScans.isEmpty {
             // Use actual wrinkle depth from WrinkleAnalyzer
             let currentWrinkleDepth: Float
             if let wrinkles = wrinkleAnalysis {
@@ -209,12 +210,12 @@ public class Face3DMetricsAnalyzer {
                 print("   ⚠️ Wrinkle analysis unavailable, using roughness fallback")
             }
 
-            skinElasticityAnalyzer.estimateElasticity(
+            elasticityAnalysis = skinElasticityAnalyzer.estimateElasticity(
                 historicalScans: historicalScans,
                 currentWrinkleDepth: currentWrinkleDepth
             )
         } else {
-            nil
+            elasticityAnalysis = nil
         }
 
         // Step 5c: Compute remaining advanced metrics
@@ -263,7 +264,7 @@ public class Face3DMetricsAnalyzer {
             print("   - Volume: \(volume.overallScore)/100")
         }
         if let regional = regionalAnalysis {
-            print("   - Regional: Under-eye \(regional.underEyeDarkness.score)/100, Jawline \(regional.jawlineDefinition.score)/100")
+            print("   - Regional: Under-eye \(regional.underEyeDarkness.score)/100, Jawline \(regional.jawlineDefinition.definition)/100")
         }
         if let skinType = skinTypeAnalysis {
             print("   - Skin Type: \(skinType.skinType) (confidence: \(skinType.confidence))")
@@ -513,41 +514,15 @@ public class Face3DMetricsAnalyzer {
             SIMD4<Float>(0, 0, 0, 1)
         )
 
-        // Create FaceMeshGeometry manually
-        // Note: Since FaceMeshGeometry's init requires ARFaceAnchor, we'll use the raw initializer if available
-        // For now, create a simple struct with required data
+        // Create FaceMeshGeometry using the raw data initializer
         return FaceMeshGeometry(
             vertices: vertices,
-            triangleIndices: unifiedMesh.triangleIndices,
             normals: normals,
             textureCoordinates: textureCoordinates,
+            triangleIndices: unifiedMesh.triangleIndices,
             transform: transform,
-            timestamp: Date().timeIntervalSince1970,
-            originalVertexCount: unifiedMesh.vertexCount,
-            wasExtended: false
+            timestamp: Date().timeIntervalSince1970
         )
     }
 }
 
-// Extension to make FaceMeshGeometry initializable with raw data
-extension FaceMeshGeometry {
-    init(
-        vertices: [SIMD3<Float>],
-        triangleIndices: [Int32],
-        normals: [SIMD3<Float>],
-        textureCoordinates: [SIMD2<Float>],
-        transform: simd_float4x4,
-        timestamp: TimeInterval,
-        originalVertexCount: Int,
-        wasExtended: Bool
-    ) {
-        self.vertices = vertices
-        self.triangleIndices = triangleIndices
-        self.normals = normals
-        self.textureCoordinates = textureCoordinates
-        self.transform = transform
-        self.timestamp = timestamp
-        self.originalVertexCount = originalVertexCount
-        self.wasExtended = wasExtended
-    }
-}

@@ -25,7 +25,7 @@ public class StorageManager {
     public func saveSession(
         scores: ScoreSummary,
         faceImage: CGImage,
-        heatmaps: [HeatmapMetric: CGImage]?
+        heatmaps: [HeatmapType: CGImage]?
     ) throws {
         try persistenceController.saveSession(
             scores: scores,

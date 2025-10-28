@@ -124,7 +124,8 @@ public struct FaceBoundaryGuide: View {
 
         // 2. Distance check
         if !isDistanceGood(face) {
-            let faceSize = face.boundingBox.width * face.boundingBox.height
+            guard let boundingBox = face.boundingBox else { return nil }
+            let faceSize = boundingBox.width * boundingBox.height
             if faceSize < 0.15 {
                 return GuidanceMessage(
                     icon: "arrow.down.forward.and.arrow.up.backward",
@@ -142,8 +143,9 @@ public struct FaceBoundaryGuide: View {
 
         // 3. Centering check
         if !isFaceCentered(face) {
-            let centerX = face.boundingBox.midX
-            let centerY = face.boundingBox.midY
+            guard let boundingBox = face.boundingBox else { return nil }
+            let centerX = boundingBox.midX
+            let centerY = boundingBox.midY
 
             if centerX < 0.4 {
                 return GuidanceMessage(icon: "arrow.right", text: "Slide right a bit", color: .orange)
@@ -217,7 +219,8 @@ public struct FaceBoundaryGuide: View {
     // MARK: - Validation Helpers
 
     private func isDistanceGood(_ face: FaceDetectionResult) -> Bool {
-        let faceSize = face.boundingBox.width * face.boundingBox.height
+        guard let boundingBox = face.boundingBox else { return false }
+        let faceSize = boundingBox.width * boundingBox.height
         return faceSize >= 0.15 && faceSize <= 0.4
     }
 
@@ -235,8 +238,9 @@ public struct FaceBoundaryGuide: View {
     }
 
     private func isFaceCentered(_ face: FaceDetectionResult) -> Bool {
-        let centerX = face.boundingBox.midX
-        let centerY = face.boundingBox.midY
+        guard let boundingBox = face.boundingBox else { return false }
+        let centerX = boundingBox.midX
+        let centerY = boundingBox.midY
 
         return centerX >= 0.4 && centerX <= 0.6 &&
                centerY >= 0.4 && centerY <= 0.6
@@ -244,8 +248,9 @@ public struct FaceBoundaryGuide: View {
 
     private func isFaceInBoundary(_ face: FaceDetectionResult) -> Bool {
         // Face is in boundary if it's somewhat centered
-        let centerX = face.boundingBox.midX
-        let centerY = face.boundingBox.midY
+        guard let boundingBox = face.boundingBox else { return false }
+        let centerX = boundingBox.midX
+        let centerY = boundingBox.midY
 
         return centerX >= 0.3 && centerX <= 0.7 &&
                centerY >= 0.3 && centerY <= 0.7
@@ -272,14 +277,17 @@ struct GuidanceMessage: Equatable {
 
         FaceBoundaryGuide(
             faceResult: FaceDetectionResult(
+                faceFound: true,
                 boundingBox: CGRect(x: 0.4, y: 0.4, width: 0.3, height: 0.3),
+                confidence: 0.99,
                 landmarks: FaceLandmarks(
+                    leftEye: CGPoint(x: 0.45, y: 0.48),
+                    rightEye: CGPoint(x: 0.55, y: 0.48),
+                    nose: CGPoint(x: 0.5, y: 0.55),
+                    mouth: CGPoint(x: 0.5, y: 0.62),
                     allPoints: [],
-                    leftEye: [],
-                    rightEye: [],
                     leftEyebrow: [],
                     rightEyebrow: [],
-                    nose: [],
                     noseCrest: [],
                     medianLine: [],
                     outerLips: [],
@@ -288,10 +296,9 @@ struct GuidanceMessage: Equatable {
                     rightPupil: nil,
                     faceContour: []
                 ),
-                confidence: 0.99,
-                roll: 5,
                 yaw: 10,
-                pitch: -5
+                pitch: -5,
+                roll: 5
             ),
             imageSize: CGSize(width: 1920, height: 1080),
             viewSize: CGSize(width: 390, height: 844),

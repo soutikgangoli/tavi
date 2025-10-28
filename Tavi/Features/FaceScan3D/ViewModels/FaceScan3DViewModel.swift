@@ -10,7 +10,17 @@ import Foundation
 import ARKit
 import Combine
 import SwiftUI
+import UIKit
 import CoreImage
+
+// MARK: - Haptic Feedback Settings
+
+/// Shared settings for haptic feedback
+@MainActor
+private class HapticSettings: ObservableObject {
+    @AppStorage("enableHapticFeedback") var isEnabled: Bool = true
+    static let shared = HapticSettings()
+}
 
 @MainActor
 public class FaceScan3DViewModel: ObservableObject {
@@ -112,15 +122,33 @@ public class FaceScan3DViewModel: ObservableObject {
     private var holdStableTimer: Timer?
     private let meshMerger = MeshMerger()
     private let textureCapture = TextureCapture()
-    private let textureBaker = TextureBaker()
+    private var textureBaker: TextureBaker {
+        // Check high-res capture setting
+        let enableHighRes = UserDefaults.standard.bool(forKey: "enableHighResCapture")
+        var config = TextureBaker.Configuration()
+        if enableHighRes {
+            config.textureWidth = 4096  // 4K resolution
+            config.textureHeight = 4096
+        } else {
+            config.textureWidth = 2048  // Standard resolution
+            config.textureHeight = 2048
+        }
+        return TextureBaker(configuration: config)
+    }
     private let metricsAnalyzer = Face3DMetricsAnalyzer()
     private let metricsVisualizer = MetricsVisualizer()
     private let imageQualityAnalyzer = ImageQualityAnalyzer()
+
+    // Haptic feedback generator for pose validation
+    private let hapticFeedback = UIImpactFeedbackGenerator(style: .medium)
 
     // MARK: - Initialization
 
     public init() {
         // All properties have default values, so no additional setup needed
+
+        // Prepare haptic feedback generator for lower latency
+        hapticFeedback.prepare()
     }
 
     // MARK: - Public Methods
@@ -221,6 +249,13 @@ public class FaceScan3DViewModel: ObservableObject {
             return
         }
 
+        // Pre-flight checks: Edge cases and lighting validation (based on strictness)
+        let strictness = getLightingStrictness()
+        if strictness != .off && !performPreflightChecks() {
+            // Preflight check failed, error message already set
+            return
+        }
+
         // Initialize new sequence
         currentSequence = CaptureSequence()
         mergedMesh = nil
@@ -234,6 +269,63 @@ public class FaceScan3DViewModel: ObservableObject {
         currentGuidanceStep = .lookStraight
         capturedPoses = [:]
         countdownTimer = 0
+    }
+
+    /// Get lighting strictness from settings
+    private func getLightingStrictness() -> LightingStrictnessLevel {
+        let rawValue = UserDefaults.standard.string(forKey: "lightingStrictness") ?? "Strict"
+        switch rawValue {
+        case "Strict": return .strict
+        case "Relaxed": return .relaxed
+        case "Off": return .off
+        default: return .strict
+        }
+    }
+
+    /// Perform pre-flight checks before starting scan
+    /// Returns false if blocking issues detected
+    private func performPreflightChecks() -> Bool {
+        // Edge case detection
+        guard let geometry = currentGeometry,
+              let frame = currentFrame,
+              let pixelBuffer = frame.capturedImage as? CVPixelBuffer else {
+            errorMessage = "Unable to access camera data"
+            return false
+        }
+
+        // Convert pixel buffer to UIImage for edge case detection
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+            errorMessage = "Unable to process camera image"
+            return false
+        }
+        let texture = UIImage(cgImage: cgImage)
+
+        // Get lighting strictness from settings
+        let strictness = getLightingStrictness()
+
+        // Run edge case detection with strictness level
+        let edgeCaseDetector = EdgeCaseDetector()
+        let faceAnchor = ARFaceAnchor(transform: geometry.transform)
+        let edgeCases = edgeCaseDetector.detectEdgeCases(
+            texture: texture,
+            faceAnchor: faceAnchor,
+            strictness: strictness
+        )
+
+        // Check for blocking issues
+        if !edgeCases.shouldProceed {
+            errorMessage = edgeCases.blockReason ?? "Scan blocked - please check conditions"
+            return false
+        }
+
+        // Check for warning issues (don't block, but inform user)
+        if !edgeCases.warnings.isEmpty {
+            qualityWarning = edgeCases.warnings.first
+        }
+
+        return true
     }
 
     /// Capture current frame mesh if calibration is OK
@@ -289,58 +381,17 @@ public class FaceScan3DViewModel: ObservableObject {
         let captures = sequence.captures
 
         let merged = await Task.detached(priority: .userInitiated) {
-            // STEP 1: Outlier Filtering - Remove bad vertices from each capture
-            let outlierFilter = OutlierFilter()
-            var cleanedCaptures: [MeshCapture] = []
+            // Note: Advanced mesh processing (outlier filtering, smoothing, hole filling)
+            // requires additional FaceMeshGeometry conversions. For now, use basic merging.
+            // TODO: Add helper methods to convert between MeshCapture, UnifiedMesh, and FaceMeshGeometry
 
-            for capture in captures {
-                let filterResult = outlierFilter.filter(geometry: capture.geometry)
+            // STEP 1: Merge meshes with ICP alignment
+            let merged = merger.merge(captures: captures)
 
-                // Create cleaned geometry
-                var cleanedGeometry = capture.geometry
-                // Note: Would need to update FaceMeshGeometry to support filtered vertices
-                // For now, this serves as a quality check
+            guard let finalMesh = merged else { return nil }
 
-                if filterResult.outlierPercentage < 0.05 { // Less than 5% outliers is good
-                    cleanedCaptures.append(capture)
-                }
-            }
-
-            // STEP 2: Merge meshes with ICP alignment
-            let merged = merger.merge(captures: cleanedCaptures.isEmpty ? captures : cleanedCaptures)
-
-            guard var finalMesh = merged else { return nil }
-
-            // STEP 3: Smooth the merged mesh (Taubin algorithm)
-            let smoother = MeshSmoother()
-            let smoothingResult = smoother.smooth(
-                geometry: finalMesh.geometry,
-                iterations: 5,
-                preserveFeatures: true
-            )
-
-            // Update merged mesh with smoothed geometry
-            finalMesh.geometry = smoothingResult.geometry
-
-            // STEP 4: Fill holes in the mesh
-            let holeFiller = HoleFiller()
-            let holeFillingResult = holeFiller.fillHoles(geometry: finalMesh.geometry)
-
-            if holeFillingResult.holesFilled > 0 {
-                // Update with filled geometry
-                // finalMesh.geometry = holeFillingResult.filledGeometry
-                print("Filled \(holeFillingResult.holesFilled) holes")
-            }
-
-            // STEP 5: Validate final mesh quality
-            let validator = MeshValidator()
-            let validationResult = validator.validate(geometry: finalMesh.geometry)
-
-            print("Mesh validation: quality=\(validationResult.qualityScore), manifold=\(validationResult.isManifold)")
-
-            if !validationResult.isValid {
-                print("Warning: Mesh validation issues detected: \(validationResult.issues)")
-            }
+            // STEP 2: Validate basic mesh properties
+            print("Merged mesh: \(finalMesh.vertices.count) vertices, \(finalMesh.triangleIndices.count/3) triangles")
 
             return finalMesh
         }.value
@@ -513,6 +564,39 @@ public class FaceScan3DViewModel: ObservableObject {
             return true
         }
 
+        // 0. STRICT MODE: Validate lighting for EACH POSE
+        let strictness = getLightingStrictness()
+        if strictness == .strict {
+            // Convert frame to UIImage for lighting check
+            let pixelBuffer = frame.capturedImage
+            let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+            let context = CIContext()
+
+            if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
+                let texture = UIImage(cgImage: cgImage)
+
+                // Check lighting for this specific pose
+                if let geometry = currentGeometry {
+                    let edgeCaseDetector = EdgeCaseDetector()
+                    let faceAnchor = ARFaceAnchor(transform: geometry.transform)
+                    let edgeCases = edgeCaseDetector.detectEdgeCases(
+                        texture: texture,
+                        faceAnchor: faceAnchor,
+                        strictness: .strict
+                    )
+
+                    // If lighting is bad for this pose, show warning and block countdown
+                    if edgeCases.lightingQuality.shouldBlock {
+                        qualityWarning = "Adjust lighting for this angle (\(edgeCases.lightingQuality.description))"
+                        return false
+                    } else if edgeCases.lightingQuality != .optimal {
+                        qualityWarning = "Lighting could be better (\(edgeCases.lightingQuality.description))"
+                        // Still allow capture, just warn
+                    }
+                }
+            }
+        }
+
         // 1. Check lighting consistency across captures
         if let baseline = baselineLighting,
            let current = lightEstimation?.ambientIntensity {
@@ -659,6 +743,12 @@ public class FaceScan3DViewModel: ObservableObject {
         print("🎬 Starting capture countdown from 3...")
         countdownTimer = 3
 
+        // Haptic feedback: Pose is correct! (if enabled)
+        if HapticSettings.shared.isEnabled {
+            hapticFeedback.impactOccurred()
+            print("📳 Haptic feedback: Pose validated")
+        }
+
         // Create timer and explicitly add to main RunLoop to ensure it fires
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] timer in
             guard let self = self else {
@@ -678,6 +768,13 @@ public class FaceScan3DViewModel: ObservableObject {
                     timer.invalidate()
                     self.holdStableTimer = nil
                     self.countdownTimer = 0
+
+                    // Haptic feedback: Capture complete! (if enabled)
+                    if HapticSettings.shared.isEnabled {
+                        self.hapticFeedback.impactOccurred()
+                        print("📳 Haptic feedback: Pose captured")
+                    }
+
                     self.capturePose(faceAnchor: faceAnchor, yaw: yaw, pitch: pitch, roll: roll)
                 }
             }
@@ -969,7 +1066,7 @@ public class FaceScan3DViewModel: ObservableObject {
     private func generateVisualizations(for metrics: Face3DMetrics) async {
         var visualizations: [MetricType: MetricVisualization] = [:]
 
-        for metricType in [MetricType.roughness, .pigmentation, .luminance, .lightness] {
+        for metricType in [MetricType.roughness, .pigmentation, .luminance, .specular] {
             let viz = metricsVisualizer.generateVisualization(
                 for: metrics,
                 type: metricType

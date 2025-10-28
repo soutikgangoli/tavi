@@ -34,6 +34,8 @@ public struct FaceScan3DView: View {
     /// Callback when all poses are captured
     public var onCaptureComplete: (([GuidanceStep: CapturedPoseData]) -> Void)?
 
+    @AppStorage("enableFaceMesh") private var enableFaceMesh: Bool = true
+
     public init(
         showDebug: Bool = false,
         showMesh: Bool = true,
@@ -55,10 +57,10 @@ public struct FaceScan3DView: View {
     public var body: some View {
         ZStack {
             // ARKit face tracking view
-            // Show mesh during guidance to visualize 3D face geometry
+            // Show mesh during guidance to visualize 3D face geometry (if settings enabled)
             ARFaceTrackingViewRepresentable(
                 viewModel: viewModel,
-                showMesh: showMesh,
+                showMesh: showMesh && enableFaceMesh,
                 meshColor: UIColor(meshColor),
                 wireframeMode: wireframeMode
             )

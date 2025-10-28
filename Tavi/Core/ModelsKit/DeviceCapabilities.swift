@@ -170,8 +170,17 @@ public class DeviceCapabilities {
 
         // Older models
         case .iPhone13Pro: return "iPhone 13 Pro"
+        case .iPhone13ProMax: return "iPhone 13 Pro Max"
         case .iPhone12Pro: return "iPhone 12 Pro"
+        case .iPhone12ProMax: return "iPhone 12 Pro Max"
         case .iPhone11Pro: return "iPhone 11 Pro"
+        case .iPhone11ProMax: return "iPhone 11 Pro Max"
+
+        // Earlier TrueDepth models
+        case .iPhoneX: return "iPhone X"
+        case .iPhoneXS: return "iPhone XS"
+        case .iPhoneXSMax: return "iPhone XS Max"
+        case .iPhoneXR: return "iPhone XR"
 
         case .simulator: return "Simulator"
         case .unknown: return "Unknown iPhone"
@@ -226,7 +235,11 @@ public class DeviceCapabilities {
             return true
 
         // A15 and older
-        case .iPhone14, .iPhone14Plus, .iPhone13Pro, .iPhone12Pro, .iPhone11Pro:
+        case .iPhone14, .iPhone14Plus, .iPhone13Pro, .iPhone13ProMax, .iPhone12Pro, .iPhone12ProMax, .iPhone11Pro, .iPhone11ProMax:
+            return false
+
+        // Earlier TrueDepth models (A12/A13)
+        case .iPhoneX, .iPhoneXS, .iPhoneXSMax, .iPhoneXR:
             return false
 
         // Simulator - assume capable for testing
@@ -380,10 +393,23 @@ public enum iPhoneModel {
     case iPhone14Pro
     case iPhone14ProMax
 
-    // Older models
-    case iPhone13Pro  // A15
-    case iPhone12Pro  // A14
-    case iPhone11Pro  // A13
+    // iPhone 13 series (2021) - A15
+    case iPhone13Pro
+    case iPhone13ProMax
+
+    // iPhone 12 series (2020) - A14
+    case iPhone12Pro
+    case iPhone12ProMax
+
+    // iPhone 11 series (2019) - A13
+    case iPhone11Pro
+    case iPhone11ProMax
+
+    // Earlier TrueDepth models
+    case iPhoneX
+    case iPhoneXS
+    case iPhoneXSMax
+    case iPhoneXR
 
     // Special cases
     case simulator
@@ -401,16 +427,49 @@ public enum iPhoneModel {
             return "A16"
         case .iPhone14, .iPhone14Plus:
             return "A15"
-        case .iPhone13Pro:
+        case .iPhone13Pro, .iPhone13ProMax:
             return "A15"
-        case .iPhone12Pro:
+        case .iPhone12Pro, .iPhone12ProMax:
             return "A14"
-        case .iPhone11Pro:
+        case .iPhone11Pro, .iPhone11ProMax:
             return "A13"
+        case .iPhoneX, .iPhoneXS, .iPhoneXSMax:
+            return "A12"
+        case .iPhoneXR:
+            return "A12"
         case .simulator:
             return "Simulator"
         case .unknown:
             return "Unknown"
+        }
+    }
+
+    public var displayName: String {
+        switch self {
+        case .iPhone16: return "iPhone 16"
+        case .iPhone16Plus: return "iPhone 16 Plus"
+        case .iPhone16Pro: return "iPhone 16 Pro"
+        case .iPhone16ProMax: return "iPhone 16 Pro Max"
+        case .iPhone15: return "iPhone 15"
+        case .iPhone15Plus: return "iPhone 15 Plus"
+        case .iPhone15Pro: return "iPhone 15 Pro"
+        case .iPhone15ProMax: return "iPhone 15 Pro Max"
+        case .iPhone14: return "iPhone 14"
+        case .iPhone14Plus: return "iPhone 14 Plus"
+        case .iPhone14Pro: return "iPhone 14 Pro"
+        case .iPhone14ProMax: return "iPhone 14 Pro Max"
+        case .iPhone13Pro: return "iPhone 13 Pro"
+        case .iPhone13ProMax: return "iPhone 13 Pro Max"
+        case .iPhone12Pro: return "iPhone 12 Pro"
+        case .iPhone12ProMax: return "iPhone 12 Pro Max"
+        case .iPhone11Pro: return "iPhone 11 Pro"
+        case .iPhone11ProMax: return "iPhone 11 Pro Max"
+        case .iPhoneX: return "iPhone X"
+        case .iPhoneXS: return "iPhone XS"
+        case .iPhoneXSMax: return "iPhone XS Max"
+        case .iPhoneXR: return "iPhone XR"
+        case .simulator: return "Simulator"
+        case .unknown: return "Unknown iPhone"
         }
     }
 }

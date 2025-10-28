@@ -57,13 +57,15 @@ struct FaceDetectionView: View {
     var body: some View {
         ZStack {
             // Bounding box
-            BoundingBoxView(
-                boundingBox: result.boundingBox,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                isMirrored: isMirrored,
-                confidence: result.confidence
-            )
+            if let boundingBox = result.boundingBox {
+                BoundingBoxView(
+                    boundingBox: boundingBox,
+                    imageSize: imageSize,
+                    viewSize: viewSize,
+                    isMirrored: isMirrored,
+                    confidence: result.confidence
+                )
+            }
 
             // Landmarks
             LandmarksView(
@@ -122,122 +124,104 @@ struct BoundingBoxView: View {
 // MARK: - Landmarks View
 
 struct LandmarksView: View {
-    let landmarks: FaceLandmarks
+    let landmarks: FaceLandmarks?
     let imageSize: CGSize
     let viewSize: CGSize
     let isMirrored: Bool
 
     var body: some View {
         ZStack {
-            // Face contour (yellow)
-            LandmarkPath(
-                points: landmarks.faceContour,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                isMirrored: isMirrored,
-                color: .yellow,
-                lineWidth: 2,
-                closed: false
-            )
+            if let landmarks = landmarks {
+                // Face contour (yellow)
+                if let faceContour = landmarks.faceContour {
+                    LandmarkPath(
+                        points: faceContour,
+                        imageSize: imageSize,
+                        viewSize: viewSize,
+                        isMirrored: isMirrored,
+                        color: .yellow,
+                        lineWidth: 2,
+                        closed: false
+                    )
+                }
 
-            // Left eye (cyan)
-            LandmarkPath(
-                points: landmarks.leftEye,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                isMirrored: isMirrored,
-                color: .cyan,
-                lineWidth: 1.5,
-                closed: true
-            )
+                // Left eyebrow (blue)
+                if let leftEyebrow = landmarks.leftEyebrow {
+                    LandmarkPath(
+                        points: leftEyebrow,
+                        imageSize: imageSize,
+                        viewSize: viewSize,
+                        isMirrored: isMirrored,
+                        color: .blue,
+                        lineWidth: 1.5,
+                        closed: false
+                    )
+                }
 
-            // Right eye (cyan)
-            LandmarkPath(
-                points: landmarks.rightEye,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                isMirrored: isMirrored,
-                color: .cyan,
-                lineWidth: 1.5,
-                closed: true
-            )
+                // Right eyebrow (blue)
+                if let rightEyebrow = landmarks.rightEyebrow {
+                    LandmarkPath(
+                        points: rightEyebrow,
+                        imageSize: imageSize,
+                        viewSize: viewSize,
+                        isMirrored: isMirrored,
+                        color: .blue,
+                        lineWidth: 1.5,
+                        closed: false
+                    )
+                }
 
-            // Left eyebrow (blue)
-            LandmarkPath(
-                points: landmarks.leftEyebrow,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                isMirrored: isMirrored,
-                color: .blue,
-                lineWidth: 1.5,
-                closed: false
-            )
+                // Nose crest (red)
+                if let noseCrest = landmarks.noseCrest {
+                    LandmarkPath(
+                        points: noseCrest,
+                        imageSize: imageSize,
+                        viewSize: viewSize,
+                        isMirrored: isMirrored,
+                        color: .red,
+                        lineWidth: 1.5,
+                        closed: false
+                    )
+                }
 
-            // Right eyebrow (blue)
-            LandmarkPath(
-                points: landmarks.rightEyebrow,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                isMirrored: isMirrored,
-                color: .blue,
-                lineWidth: 1.5,
-                closed: false
-            )
+                // Outer lips (pink)
+                if let outerLips = landmarks.outerLips {
+                    LandmarkPath(
+                        points: outerLips,
+                        imageSize: imageSize,
+                        viewSize: viewSize,
+                        isMirrored: isMirrored,
+                        color: .pink,
+                        lineWidth: 1.5,
+                        closed: true
+                    )
+                }
 
-            // Nose (orange)
-            LandmarkPath(
-                points: landmarks.nose,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                isMirrored: isMirrored,
-                color: .orange,
-                lineWidth: 1.5,
-                closed: false
-            )
+                // Inner lips (purple)
+                if let innerLips = landmarks.innerLips {
+                    LandmarkPath(
+                        points: innerLips,
+                        imageSize: imageSize,
+                        viewSize: viewSize,
+                        isMirrored: isMirrored,
+                        color: .purple,
+                        lineWidth: 1.5,
+                        closed: true
+                    )
+                }
 
-            // Nose crest (red)
-            LandmarkPath(
-                points: landmarks.noseCrest,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                isMirrored: isMirrored,
-                color: .red,
-                lineWidth: 1.5,
-                closed: false
-            )
-
-            // Outer lips (pink)
-            LandmarkPath(
-                points: landmarks.outerLips,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                isMirrored: isMirrored,
-                color: .pink,
-                lineWidth: 1.5,
-                closed: true
-            )
-
-            // Inner lips (purple)
-            LandmarkPath(
-                points: landmarks.innerLips,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                isMirrored: isMirrored,
-                color: .purple,
-                lineWidth: 1.5,
-                closed: true
-            )
-
-            // Median line (white)
-            LandmarkPath(
-                points: landmarks.medianLine,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                isMirrored: isMirrored,
-                color: .white,
-                lineWidth: 1,
-                closed: false
-            )
+                // Median line (white)
+                if let medianLine = landmarks.medianLine {
+                    LandmarkPath(
+                        points: medianLine,
+                        imageSize: imageSize,
+                        viewSize: viewSize,
+                        isMirrored: isMirrored,
+                        color: .white,
+                        lineWidth: 1,
+                        closed: false
+                    )
+                }
 
             // Pupils (bright green circles)
             if let leftPupil = landmarks.leftPupil {
@@ -273,6 +257,7 @@ struct LandmarksView: View {
                     isMirrored: isMirrored
                 )
             }
+        }
         }
     }
 }
@@ -397,7 +382,7 @@ private struct DebugInfoView: View {
             if let pitch = result.pitch {
                 Text("Pitch: \(String(format: "%.1f°", pitch * 180 / .pi))")
             }
-            if let eyeAngle = result.landmarks.eyeAngle() {
+            if let eyeAngle = result.landmarks?.eyeAngle() {
                 Text("Eye Angle: \(String(format: "%.1f°", eyeAngle * 180 / .pi))")
             }
         }

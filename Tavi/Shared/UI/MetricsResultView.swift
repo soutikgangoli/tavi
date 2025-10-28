@@ -440,35 +440,11 @@ struct MetricBar: View {
 
 // MARK: - Preview
 
-#Preview {
-    MetricsResultView(
-        metrics: MetricsResult(
-            roiMetrics: [
-                .leftCheek: ROIMetrics(
-                    blurScore: 0.85,
-                    textureEnergy: 0.35,
-                    labVariance: 0.25,
-                    moistureProxy: MoistureProxy(
-                        specularRatio: 0.15,
-                        smoothnessLowFreq: 0.72
-                    ),
-                    roiType: .leftCheek
-                ),
-                .rightCheek: ROIMetrics(
-                    blurScore: 0.82,
-                    textureEnergy: 0.38,
-                    labVariance: 0.28,
-                    moistureProxy: MoistureProxy(
-                        specularRatio: 0.12,
-                        smoothnessLowFreq: 0.68
-                    ),
-                    roiType: .rightCheek
-                )
-            ],
-            discolorationIndex: 0.22,
-            timestamp: Date()
-        ),
-        roiSet: nil,
-        isPresented: .constant(true)
-    )
-}
+// Preview disabled due to complex initialization requirements
+// #Preview {
+//     MetricsResultView(
+//         metrics: MetricsResult(...),
+//         roiSet: nil,
+//         isPresented: .constant(true)
+//     )
+// }

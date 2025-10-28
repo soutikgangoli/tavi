@@ -36,6 +36,10 @@ public struct EmotionalImprovement: Codable, Identifiable {
     let percentChange: Int                // +12%
     let message: String                   // "That new moisturizer is working!"
     let sinceDays: Int                    // Days since last scan
+
+    enum CodingKeys: String, CodingKey {
+        case title, emoji, percentChange, message, sinceDays
+    }
 }
 
 /// Area that needs attention (framed positively)
@@ -47,6 +51,10 @@ public struct EmotionalConcern: Codable, Identifiable {
     let message: String                   // "Let's work on reducing these"
     let solution: String                  // "Try an eye cream with retinol"
     let encouragement: String             // "Most people see results in 2-3 weeks!"
+
+    enum CodingKeys: String, CodingKey {
+        case title, emoji, severity, message, solution, encouragement
+    }
 }
 
 public enum ConcernLevel: String, Codable {
@@ -64,6 +72,10 @@ public struct ActionableStep: Codable, Identifiable {
     let expectedResult: String            // "Reduce fine lines 15% in 30 days"
     let priority: StepPriority
     let icon: String                      // SF Symbol name
+
+    enum CodingKeys: String, CodingKey {
+        case action, frequency, timing, expectedResult, priority, icon
+    }
 }
 
 public enum StepPriority: String, Codable {
@@ -498,7 +510,9 @@ public class EmotionalMetricsGenerator {
         }
     }
 
-    private static func daysBetween(_ date1: Date, _ date2: Date) -> Int {
+    private static func daysBetween(_ timestamp1: TimeInterval, _ timestamp2: TimeInterval) -> Int {
+        let date1 = Date(timeIntervalSince1970: timestamp1)
+        let date2 = Date(timeIntervalSince1970: timestamp2)
         let days = Calendar.current.dateComponents([.day], from: date2, to: date1).day ?? 0
         return abs(days)
     }

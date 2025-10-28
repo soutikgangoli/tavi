@@ -142,12 +142,87 @@ class MeshValidator {
         // Count non-manifold edges (shared by more than 2 triangles)
         let nonManifoldEdges = edgeCount.filter { $0.value > 2 }.count
 
-        // Check for non-manifold vertices (complex topology check omitted for brevity)
-        let nonManifoldVertices = 0  // Simplified
+        // Check for non-manifold vertices using disk topology test
+        let nonManifoldVertices = detectNonManifoldVertices(geometry: geometry, edgeCount: edgeCount)
 
-        let isManifold = nonManifoldEdges == 0
+        let isManifold = nonManifoldEdges == 0 && nonManifoldVertices == 0
 
         return (isManifold, nonManifoldEdges, nonManifoldVertices)
+    }
+
+    /// Detect non-manifold vertices (vertices where the edge ring doesn't form a single disk)
+    private func detectNonManifoldVertices(geometry: FaceMeshGeometry, edgeCount: [Edge: Int]) -> Int {
+        // Build vertex-to-triangle adjacency
+        var vertexToTriangles: [Int: Set<Int>] = [:]
+
+        for i in stride(from: 0, to: geometry.triangleIndices.count, by: 3) {
+            let triangleIndex = i / 3
+            let v0 = Int(geometry.triangleIndices[i])
+            let v1 = Int(geometry.triangleIndices[i + 1])
+            let v2 = Int(geometry.triangleIndices[i + 2])
+
+            vertexToTriangles[v0, default: []].insert(triangleIndex)
+            vertexToTriangles[v1, default: []].insert(triangleIndex)
+            vertexToTriangles[v2, default: []].insert(triangleIndex)
+        }
+
+        // Build vertex-to-edge adjacency
+        var vertexToEdges: [Int: Set<Edge>] = [:]
+
+        for (edge, _) in edgeCount {
+            vertexToEdges[edge.v0, default: []].insert(edge)
+            vertexToEdges[edge.v1, default: []].insert(edge)
+        }
+
+        var nonManifoldCount = 0
+
+        // Check each vertex
+        for (vertex, edges) in vertexToEdges {
+            // A manifold vertex should have edges forming a single connected ring
+            // For interior vertices: #edges == #triangles
+            // For boundary vertices: #edges == #triangles + 1
+
+            let triangles = vertexToTriangles[vertex] ?? []
+
+            if edges.isEmpty || triangles.isEmpty {
+                continue
+            }
+
+            // Check if edges form a continuous ring
+            if !isEdgeRingContinuous(edges: Array(edges), centerVertex: vertex) {
+                nonManifoldCount += 1
+            }
+        }
+
+        return nonManifoldCount
+    }
+
+    /// Check if edges around a vertex form a continuous ring (disk topology)
+    private func isEdgeRingContinuous(edges: [Edge], centerVertex: Int) -> Bool {
+        guard edges.count >= 2 else { return true }  // 0 or 1 edge is always continuous
+
+        // Build adjacency map: vertex -> connected vertices
+        var neighbors: Set<Int> = []
+
+        for edge in edges {
+            if edge.v0 == centerVertex {
+                neighbors.insert(edge.v1)
+            } else if edge.v1 == centerVertex {
+                neighbors.insert(edge.v0)
+            }
+        }
+
+        // For a manifold vertex, the degree (number of neighbors) should match edge count
+        // Exception: Boundary vertices can have degree == edges + 1
+
+        let degree = neighbors.count
+
+        // Simple heuristic: if degree significantly differs from edge count, likely non-manifold
+        if abs(degree - edges.count) > 1 {
+            return false
+        }
+
+        return true
     }
 
     /// Find boundary loops

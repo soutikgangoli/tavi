@@ -86,10 +86,10 @@ class TextureExtractor {
 
         // Project vertices to 2D
         let camera = frame.camera
-        var minX: Float = .infinity
-        var maxX: Float = -.infinity
-        var minY: Float = .infinity
-        var maxY: Float = -.infinity
+        var minX: CGFloat = .infinity
+        var maxX: CGFloat = -.infinity
+        var minY: CGFloat = .infinity
+        var maxY: CGFloat = -.infinity
 
         for vertex in geometry.vertices {
             // Transform to world space
@@ -110,7 +110,7 @@ class TextureExtractor {
         }
 
         // Add padding (10%)
-        let padding: Float = 0.1
+        let padding: CGFloat = 0.1
         let width = maxX - minX
         let height = maxY - minY
         let paddedMinX = minX - width * padding
@@ -120,10 +120,10 @@ class TextureExtractor {
 
         // Crop image
         let cropRect = CGRect(
-            x: CGFloat(paddedMinX),
-            y: CGFloat(paddedMinY),
-            width: CGFloat(paddedMaxX - paddedMinX),
-            height: CGFloat(paddedMaxY - paddedMinY)
+            x: paddedMinX,
+            y: paddedMinY,
+            width: paddedMaxX - paddedMinX,
+            height: paddedMaxY - paddedMinY
         )
 
         // Ensure crop rect is within image bounds
@@ -159,10 +159,10 @@ class TextureExtractor {
         let bytesPerRow = cgImage.bytesPerRow
         let pixelInfo = bytesPerRow * y + x * bytesPerPixel
 
-        let r = CGFloat(ptr[pixelInfo]) / 255.0
-        let g = CGFloat(ptr[pixelInfo + 1]) / 255.0
-        let b = CGFloat(ptr[pixelInfo + 2]) / 255.0
-        let a = CGFloat(ptr[pixelInfo + 3]) / 255.0
+        let r = CGFloat(ptr[pixelInfo]) / CGFloat(255.0)
+        let g = CGFloat(ptr[pixelInfo + 1]) / CGFloat(255.0)
+        let b = CGFloat(ptr[pixelInfo + 2]) / CGFloat(255.0)
+        let a = CGFloat(ptr[pixelInfo + 3]) / CGFloat(255.0)
 
         return UIColor(red: r, green: g, blue: b, alpha: a)
     }
@@ -193,10 +193,10 @@ class TextureExtractor {
         let height = texture.fullResolutionImage.size.height
 
         let cropRect = CGRect(
-            x: CGFloat(minU) * width,
-            y: CGFloat(minV) * height,
-            width: CGFloat(maxU - minU) * width,
-            height: CGFloat(maxV - minV) * height
+            x: CGFloat(minU) * CGFloat(width),
+            y: CGFloat(minV) * CGFloat(height),
+            width: CGFloat(maxU - minU) * CGFloat(width),
+            height: CGFloat(maxV - minV) * CGFloat(height)
         )
 
         // Crop image

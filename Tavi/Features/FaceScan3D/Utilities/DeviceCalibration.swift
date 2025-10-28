@@ -10,6 +10,9 @@ import Foundation
 import ARKit
 import UIKit
 
+// Import iPhoneModel from DeviceCapabilities
+// Note: iPhoneModel is defined in Core/ModelsKit/DeviceCapabilities.swift
+
 /// Device information
 public struct DeviceInfo {
     let model: iPhoneModel
@@ -17,37 +20,6 @@ public struct DeviceInfo {
     let trueDepthVersion: TrueDepthVersion
     let supportedARFeatures: Set<ARFeature>
     let calibrationProfile: CalibrationProfile
-}
-
-public enum iPhoneModel {
-    case iPhone12Pro, iPhone12ProMax
-    case iPhone13Pro, iPhone13ProMax
-    case iPhone14Pro, iPhone14ProMax
-    case iPhone15Pro, iPhone15ProMax
-    case iPhoneX  // First TrueDepth
-    case iPhoneXS, iPhoneXSMax, iPhoneXR
-    case iPhone11Pro, iPhone11ProMax
-    case unknown
-
-    var displayName: String {
-        switch self {
-        case .iPhone15Pro: return "iPhone 15 Pro"
-        case .iPhone15ProMax: return "iPhone 15 Pro Max"
-        case .iPhone14Pro: return "iPhone 14 Pro"
-        case .iPhone14ProMax: return "iPhone 14 Pro Max"
-        case .iPhone13Pro: return "iPhone 13 Pro"
-        case .iPhone13ProMax: return "iPhone 13 Pro Max"
-        case .iPhone12Pro: return "iPhone 12 Pro"
-        case .iPhone12ProMax: return "iPhone 12 Pro Max"
-        case .iPhoneX: return "iPhone X"
-        case .iPhoneXS: return "iPhone XS"
-        case .iPhoneXSMax: return "iPhone XS Max"
-        case .iPhoneXR: return "iPhone XR"
-        case .iPhone11Pro: return "iPhone 11 Pro"
-        case .iPhone11ProMax: return "iPhone 11 Pro Max"
-        case .unknown: return "Unknown iPhone"
-        }
-    }
 }
 
 public enum TrueDepthVersion {

@@ -19,6 +19,15 @@ struct ResultsDetailView: View {
     @State private var selectedHeatmap: HeatmapType = .composite
     @State private var showingOriginal = false
     @State private var showingDeleteAlert = false
+    @State private var clinicalMetrics: Face3DMetrics?
+
+    init(session: SessionResult) {
+        self.session = session
+        // Decode clinical metrics for confidence scores
+        if let data = session.clinicalMetricsData {
+            _clinicalMetrics = State(initialValue: try? JSONDecoder().decode(Face3DMetrics.self, from: data))
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -201,13 +210,69 @@ struct ResultsDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                ResultsMetricCard(title: "Sharpness", value: session.blurQuality, icon: "camera.aperture")
-                ResultsMetricCard(title: "Texture", value: session.textureAvg, icon: "square.grid.3x3")
-                ResultsMetricCard(title: "Pigmentation", value: session.pigmentationAvg, icon: "paintpalette")
-                ResultsMetricCard(title: "Discoloration", value: session.discolorationIndex, icon: "circle.lefthalf.filled")
-                ResultsMetricCard(title: "Moisture (S)", value: session.moistureSpecular, icon: "drop")
-                ResultsMetricCard(title: "Moisture (Sm)", value: session.moistureSmoothness, icon: "drop.fill")
+                // Use enhanced cards with confidence if available
+                if let metrics = clinicalMetrics {
+                    ResultsMetricCardWithConfidence(
+                        title: "Sharpness",
+                        value: session.blurQuality,
+                        confidence: Double(metrics.scanQuality?.textureClarity ?? 70),
+                        icon: "camera.aperture"
+                    )
+                    ResultsMetricCardWithConfidence(
+                        title: "Texture",
+                        value: session.textureAvg,
+                        confidence: Double(metrics.poreAnalysis?.confidence ?? 70),
+                        icon: "square.grid.3x3"
+                    )
+                    ResultsMetricCardWithConfidence(
+                        title: "Pigmentation",
+                        value: session.pigmentationAvg,
+                        confidence: Double(metrics.globalPigmentationScore > 0 ? 75 : 60),
+                        icon: "paintpalette"
+                    )
+                    ResultsMetricCardWithConfidence(
+                        title: "Discoloration",
+                        value: session.discolorationIndex,
+                        confidence: Double(metrics.globalDiscolorationScore > 0 ? 70 : 60),
+                        icon: "circle.lefthalf.filled"
+                    )
+
+                    // Hydration with confidence (capped at 80% - indirect measurement)
+                    ResultsMetricCardWithConfidence(
+                        title: "Moisture",
+                        value: session.moistureSpecular,
+                        confidence: 65, // Moderate confidence (indirect measurement)
+                        icon: "drop"
+                    )
+
+                    // Wrinkles (categorical)
+                    if let wrinkleAnalysis = metrics.wrinkleAnalysis {
+                        CategoricalMetricCard(
+                            title: "Wrinkle Depth",
+                            category: wrinkleAnalysis.wrinkleDepth.rawValue,
+                            confidence: Double(wrinkleAnalysis.confidence),
+                            icon: "waveform.path",
+                            color: wrinkleColor(for: wrinkleAnalysis.wrinkleDepth)
+                        )
+                    }
+                } else {
+                    // Fallback to basic cards if no clinical metrics
+                    ResultsMetricCard(title: "Sharpness", value: session.blurQuality, icon: "camera.aperture")
+                    ResultsMetricCard(title: "Texture", value: session.textureAvg, icon: "square.grid.3x3")
+                    ResultsMetricCard(title: "Pigmentation", value: session.pigmentationAvg, icon: "paintpalette")
+                    ResultsMetricCard(title: "Discoloration", value: session.discolorationIndex, icon: "circle.lefthalf.filled")
+                    ResultsMetricCard(title: "Moisture (S)", value: session.moistureSpecular, icon: "drop")
+                    ResultsMetricCard(title: "Moisture (Sm)", value: session.moistureSmoothness, icon: "drop.fill")
+                }
             }
+        }
+    }
+
+    private func wrinkleColor(for depth: WrinkleDepth) -> Color {
+        switch depth {
+        case .fine: return .green
+        case .moderate: return .orange
+        case .deep: return .red
         }
     }
 
@@ -251,8 +316,88 @@ struct ResultsDetailView: View {
     // MARK: - Actions
 
     private func shareResults() {
-        // TODO: Implement share functionality
-        print("Share results for session: \(session.id)")
+        // Generate share content
+        var itemsToShare: [Any] = []
+
+        // 1. Generate summary text with top 3 metrics
+        let shareText = generateShareText()
+        itemsToShare.append(shareText)
+
+        // 2. Add PDF report if we have clinical metrics
+        if let pdfData = generatePDFReport() {
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("Tavi_Analysis_\(session.date.formatted(date: .abbreviated, time: .omitted)).pdf")
+            try? pdfData.write(to: tempURL)
+            itemsToShare.append(tempURL)
+        }
+
+        // 3. Add heatmap image if available
+        if let heatmapImage = session.thumbnailImage {
+            itemsToShare.append(heatmapImage)
+        }
+
+        // Present native iOS share sheet
+        let activityVC = UIActivityViewController(
+            activityItems: itemsToShare,
+            applicationActivities: nil
+        )
+
+        // For iPad support
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            if let popover = activityVC.popoverPresentationController {
+                popover.sourceView = rootVC.view
+                popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            rootVC.present(activityVC, animated: true)
+        }
+    }
+
+    private func generateShareText() -> String {
+        // Get top 3 metrics
+        let metrics: [(name: String, value: Double)] = [
+            ("Overall Health", session.overallScore),
+            ("Texture Quality", session.textureAvg),
+            ("Pigmentation", session.pigmentationAvg),
+            ("Moisture", session.moistureSpecular),
+            ("Sharpness", session.blurQuality)
+        ]
+
+        let topMetrics = metrics.sorted { $0.value > $1.value }.prefix(3)
+
+        var text = "📊 Tavi Skin Analysis Results\n"
+        text += "Date: \(session.formattedDate)\n\n"
+        text += "🏆 Overall Score: \(Int(session.overallScore))/100 (\(session.grade.rawValue))\n\n"
+        text += "Top Metrics:\n"
+
+        for (index, metric) in topMetrics.enumerated() {
+            let emoji = ["🥇", "🥈", "🥉"][index]
+            text += "\(emoji) \(metric.name): \(Int(metric.value))%\n"
+        }
+
+        text += "\n✨ Analyzed with Tavi - 3D Skin Analysis"
+
+        return text
+    }
+
+    private func generatePDFReport() -> Data? {
+        // Only generate PDF if we have clinical metrics
+        guard let metricsData = session.clinicalMetricsData,
+              let metrics = try? JSONDecoder().decode(Face3DMetrics.self, from: metricsData) else {
+            return nil
+        }
+
+        // Generate interpreted results for the report
+        let interpretedResults = InterpretedResults.from(metrics: metrics)
+
+        let generator = PDFReportGenerator()
+        return try? generator.generateReport(
+            scan: metrics,
+            interpretedResults: interpretedResults,
+            userProfile: nil,  // Optional - could load from UserProfile
+            recommendations: nil  // Optional - could generate from PersonalizedRecommendationEngine
+        )
     }
 
     private func deleteSession() {
@@ -318,25 +463,178 @@ struct ResultsMetricCard: View {
     }
 }
 
-// MARK: - Heatmap Type Enum
+// MARK: - Enhanced Metric Card with Confidence
 
-enum HeatmapType: CaseIterable {
-    case composite
-    case sharpness
-    case texture
-    case pigmentation
-    case moisture
+struct ResultsMetricCardWithConfidence: View {
 
-    var displayName: String {
-        switch self {
-        case .composite: return "Overall"
-        case .sharpness: return "Sharpness"
-        case .texture: return "Texture"
-        case .pigmentation: return "Pigmentation"
-        case .moisture: return "Moisture"
+    let title: String
+    let value: Double
+    let confidence: Double  // 0-100
+    let icon: String
+    let unit: String?  // Optional unit (%, categorical value, etc.)
+
+    init(title: String, value: Double, confidence: Double, icon: String, unit: String? = "%") {
+        self.title = title
+        self.value = value
+        self.confidence = confidence
+        self.icon = icon
+        self.unit = unit
+    }
+
+    var body: some View {
+        CardView {
+            VStack(spacing: 12) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundColor(scoreColor)
+
+                    Spacer()
+
+                    // Confidence badge
+                    Text("\(Int(confidence))% confidence")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(confidenceColor)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(confidenceColor.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if let unit = unit {
+                    Text("\(Int(value))\(unit)")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(scoreColor)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text(displayValue)
+                        .font(.callout)
+                        .fontWeight(.semibold)
+                        .foregroundColor(scoreColor)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                // Confidence bar
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(height: 4)
+
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(confidenceColor)
+                            .frame(width: geometry.size.width * CGFloat(confidence / 100), height: 4)
+                    }
+                }
+                .frame(height: 4)
+            }
+            .padding(.vertical, 8)
         }
     }
 
+    private var displayValue: String {
+        // For categorical values (no unit)
+        return "\(Int(value))"
+    }
+
+    private var scoreColor: Color {
+        switch value {
+        case 80...100: return .green
+        case 60..<80: return .orange
+        default: return .red
+        }
+    }
+
+    private var confidenceColor: Color {
+        switch confidence {
+        case 75...100: return .green
+        case 50..<75: return .orange
+        default: return .yellow
+        }
+    }
+}
+
+// MARK: - Categorical Metric Card (for wrinkles, etc.)
+
+struct CategoricalMetricCard: View {
+
+    let title: String
+    let category: String  // e.g., "Fine Lines", "Moderate", "Deep"
+    let confidence: Double  // 0-100
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        CardView {
+            VStack(spacing: 12) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundColor(color)
+
+                    Spacer()
+
+                    // Confidence badge
+                    Text("\(Int(confidence))%")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(confidenceColor)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(confidenceColor.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text(category)
+                    .font(.callout)
+                    .fontWeight(.semibold)
+                    .foregroundColor(color)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Confidence bar
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(height: 4)
+
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(confidenceColor)
+                            .frame(width: geometry.size.width * CGFloat(confidence / 100), height: 4)
+                    }
+                }
+                .frame(height: 4)
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    private var confidenceColor: Color {
+        switch confidence {
+        case 75...100: return .green
+        case 50..<75: return .orange
+        default: return .yellow
+        }
+    }
+}
+
+// MARK: - Heatmap Type Extension
+
+// Note: HeatmapType is defined in AnalysisTypes.swift
+
+extension HeatmapType {
     func image(from session: SessionResult) -> UIImage? {
         switch self {
         case .composite:

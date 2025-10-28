@@ -7,12 +7,61 @@
 
 import SwiftUI
 
+/// Lighting strictness levels
+enum LightingStrictness: String, CaseIterable, Identifiable {
+    case strict = "Strict"
+    case relaxed = "Relaxed"
+    case off = "Off"
+
+    var id: String { rawValue }
+
+    var description: String {
+        switch self {
+        case .strict:
+            return "Calibrates lighting for each pose. Ensures perfect conditions."
+        case .relaxed:
+            return "Lenient thresholds. Blocks only extreme lighting."
+        case .off:
+            return "No blocking. Shows warnings only."
+        }
+    }
+
+    var minBrightness: Float {
+        switch self {
+        case .strict: return 0.25  // Block <25%
+        case .relaxed: return 0.15  // Block <15%
+        case .off: return 0.0  // Never block
+        }
+    }
+
+    var maxBrightness: Float {
+        switch self {
+        case .strict: return 0.90  // Block >90%
+        case .relaxed: return 0.95  // Block >95%
+        case .off: return 1.0  // Never block
+        }
+    }
+
+    var shouldValidatePerPose: Bool {
+        self == .strict  // Only Strict validates every pose
+    }
+}
+
 /// Settings view with capability-aware feature toggles
 struct CaptureSettingsView: View {
 
     @AppStorage("enableHighResCapture") private var enableHighResCapture = false
     @AppStorage("enableFaceMesh") private var enableFaceMesh = true
     @AppStorage("useRealtimeProcessing") private var useRealtimeProcessing = true
+    @AppStorage("enableHapticFeedback") private var enableHapticFeedback = true
+    @AppStorage("lightingStrictness") private var lightingStrictnessRaw = LightingStrictness.strict.rawValue
+
+    private var lightingStrictness: Binding<LightingStrictness> {
+        Binding(
+            get: { LightingStrictness(rawValue: lightingStrictnessRaw) ?? .strict },
+            set: { lightingStrictnessRaw = $0.rawValue }
+        )
+    }
 
     private let capabilities = DeviceCapabilities.current
 
@@ -27,6 +76,12 @@ struct CaptureSettingsView: View {
             if capabilities.shouldEnableFaceMesh {
                 faceMeshSection
             }
+
+            // Haptic Feedback (all devices)
+            hapticFeedbackSection
+
+            // Lighting Guide (all devices)
+            lightingGuideSection
 
             // Real-time Processing (A16+ devices only)
             if capabilities.supportsNeuralEngineA16Plus {
@@ -100,6 +155,73 @@ struct CaptureSettingsView: View {
         } footer: {
             Text("Uses TrueDepth camera to display a 3D mesh of your face for precise positioning.")
                 .font(DesignSystem.Typography.caption)
+        }
+    }
+
+    // MARK: - Haptic Feedback Section
+
+    private var hapticFeedbackSection: some View {
+        Section {
+            Toggle(isOn: $enableHapticFeedback) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Haptic Feedback")
+                        .font(DesignSystem.Typography.body)
+
+                    Text("Vibrate when pose is correct and captured")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.Colors.textSecondary)
+                }
+            }
+            .tint(DesignSystem.Colors.accent)
+            .onChange(of: enableHapticFeedback) { newValue in
+                if newValue {
+                    HapticManager.shared.light()
+                }
+            }
+        } footer: {
+            Text("Get tactile feedback during scanning to know when your pose is perfect.")
+                .font(DesignSystem.Typography.caption)
+        }
+    }
+
+    // MARK: - Lighting Strictness Section
+
+    private var lightingGuideSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Lighting Validation")
+                        .font(DesignSystem.Typography.body)
+
+                    if lightingStrictness.wrappedValue == .strict {
+                        Badge(text: "Recommended", color: DesignSystem.Colors.success)
+                    }
+                }
+
+                Picker("Strictness Level", selection: lightingStrictness) {
+                    ForEach(LightingStrictness.allCases) { level in
+                        Text(level.rawValue).tag(level)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: lightingStrictness.wrappedValue) { _ in
+                    HapticManager.shared.light()
+                }
+
+                // Description
+                Text(lightingStrictness.wrappedValue.description)
+                    .font(DesignSystem.Typography.caption)
+                    .foregroundColor(DesignSystem.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.vertical, 4)
+        } footer: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("• Strict: Validates lighting for every pose (40-70% brightness)")
+                Text("• Relaxed: Blocks only extreme lighting (<15%, >95%)")
+                Text("• Off: No blocking, warnings only")
+            }
+            .font(DesignSystem.Typography.caption)
         }
     }
 

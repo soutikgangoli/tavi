@@ -9,23 +9,32 @@
 import Foundation
 
 /// Consumer-friendly result interpretation
-struct InterpretedResults {
-    let overallHealthScore: Float  // 0-100
-    let overallRating: HealthRating
-    let summary: String
-    let detailedMetrics: [MetricInterpretation]
-    let recommendations: [Recommendation]
-    let percentileRankings: [String: Int]  // Metric -> percentile (0-100)
+public struct InterpretedResults {
+    public let overallHealthScore: Float  // 0-100
+    public let overallRating: HealthRating
+    public let summary: String
+    public let detailedMetrics: [MetricInterpretation]
+    public let recommendations: [ResultsRecommendation]
+    public let percentileRankings: [String: Int]  // Metric -> percentile (0-100)
+
+    public init(overallHealthScore: Float, overallRating: HealthRating, summary: String, detailedMetrics: [MetricInterpretation], recommendations: [ResultsRecommendation], percentileRankings: [String: Int]) {
+        self.overallHealthScore = overallHealthScore
+        self.overallRating = overallRating
+        self.summary = summary
+        self.detailedMetrics = detailedMetrics
+        self.recommendations = recommendations
+        self.percentileRankings = percentileRankings
+    }
 }
 
-enum HealthRating: String {
+public enum HealthRating: String {
     case excellent = "Excellent"
     case veryGood = "Very Good"
     case good = "Good"
     case fair = "Fair"
     case needsAttention = "Needs Attention"
 
-    var color: String {
+    public var color: String {
         switch self {
         case .excellent: return "green"
         case .veryGood: return "lightGreen"
@@ -35,7 +44,7 @@ enum HealthRating: String {
         }
     }
 
-    var emoji: String {
+    public var emoji: String {
         switch self {
         case .excellent: return "⭐"
         case .veryGood: return "✨"
@@ -47,24 +56,40 @@ enum HealthRating: String {
 }
 
 /// Individual metric interpretation
-struct MetricInterpretation {
-    let name: String
-    let score: Float
-    let rating: HealthRating
-    let percentile: Int
-    let description: String
-    let trend: String?  // "improving", "stable", "declining"
+public struct MetricInterpretation {
+    public let name: String
+    public let score: Float
+    public let rating: HealthRating
+    public let percentile: Int
+    public let description: String
+    public let trend: String?  // "improving", "stable", "declining"
+
+    public init(name: String, score: Float, rating: HealthRating, percentile: Int, description: String, trend: String?) {
+        self.name = name
+        self.score = score
+        self.rating = rating
+        self.percentile = percentile
+        self.description = description
+        self.trend = trend
+    }
 }
 
 /// Actionable recommendation
-struct Recommendation {
-    let priority: Priority
-    let area: String
-    let suggestion: String
-    let expectedImpact: String
+public struct ResultsRecommendation {
+    public let priority: ResultsPriority
+    public let area: String
+    public let suggestion: String
+    public let expectedImpact: String
+
+    public init(priority: ResultsPriority, area: String, suggestion: String, expectedImpact: String) {
+        self.priority = priority
+        self.area = area
+        self.suggestion = suggestion
+        self.expectedImpact = expectedImpact
+    }
 }
 
-enum Priority: String {
+public enum ResultsPriority: String {
     case high = "High"
     case medium = "Medium"
     case low = "Low"
@@ -86,13 +111,13 @@ class ResultsInterpretation {
     ) -> InterpretedResults {
 
         var detailedMetrics: [MetricInterpretation] = []
-        var recommendations: [Recommendation] = []
+        var recommendations: [ResultsRecommendation] = []
 
         // Interpret Texture/Roughness
         let roughnessMetric = interpretRoughness(roughness, temporal: temporalComparison)
         detailedMetrics.append(roughnessMetric)
         if roughness > 70 {
-            recommendations.append(Recommendation(
+            recommendations.append(ResultsRecommendation(
                 priority: .high,
                 area: "Texture",
                 suggestion: "Use exfoliating products 2-3x per week",
@@ -104,7 +129,7 @@ class ResultsInterpretation {
         let wrinkleMetric = interpretWrinkles(wrinkles, temporal: temporalComparison)
         detailedMetrics.append(wrinkleMetric)
         if wrinkles.overallScore < 60 {
-            recommendations.append(Recommendation(
+            recommendations.append(ResultsRecommendation(
                 priority: .medium,
                 area: "Wrinkles",
                 suggestion: "Consider retinol or anti-aging serum",
@@ -116,7 +141,7 @@ class ResultsInterpretation {
         let hydrationMetric = interpretHydration(hydration, temporal: temporalComparison)
         detailedMetrics.append(hydrationMetric)
         if hydration.overallScore < 60 {
-            recommendations.append(Recommendation(
+            recommendations.append(ResultsRecommendation(
                 priority: .high,
                 area: "Hydration",
                 suggestion: "Increase water intake and use hydrating moisturizer",
@@ -132,7 +157,7 @@ class ResultsInterpretation {
         let pigmentationMetric = interpretPigmentation(pigmentation, temporal: temporalComparison)
         detailedMetrics.append(pigmentationMetric)
         if pigmentation.evenness < 70 {
-            recommendations.append(Recommendation(
+            recommendations.append(ResultsRecommendation(
                 priority: .medium,
                 area: "Pigmentation",
                 suggestion: "Use SPF daily and consider vitamin C serum",

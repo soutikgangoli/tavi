@@ -12,7 +12,7 @@ import simd
 struct HoleFillingResult {
     let filledVertices: [SIMD3<Float>]
     let filledNormals: [SIMD3<Float>]
-    let filledTriangles: [Int16]
+    let filledTriangles: [Int32]
     let filledTextureCoords: [SIMD2<Float>]
     let holesDetected: Int
     let holesFilled: Int
@@ -71,9 +71,9 @@ class HoleFiller {
 
             // Add new triangles (offset indices)
             for tri in newTris {
-                triangles.append(Int16(tri.0))
-                triangles.append(Int16(tri.1))
-                triangles.append(Int16(tri.2))
+                triangles.append(Int32(tri.0))
+                triangles.append(Int32(tri.1))
+                triangles.append(Int32(tri.2))
             }
 
             newVerticesAdded += newVerts.count
@@ -97,7 +97,7 @@ class HoleFiller {
     // MARK: - Private Methods
 
     /// Build edge connectivity map
-    private func buildEdgeMap(triangles: [Int16]) -> [Edge: Int] {
+    private func buildEdgeMap(triangles: [Int32]) -> [Edge: Int] {
         var edgeCount: [Edge: Int] = [:]
 
         for i in stride(from: 0, to: triangles.count, by: 3) {

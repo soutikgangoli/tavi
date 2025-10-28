@@ -21,6 +21,7 @@ public struct CelebratoryResultsView: View {
     @State private var showSubScores = false
     @State private var showImprovements = false
     @State private var showNextSteps = false
+    @State private var showScanDetails = false
 
     public init(
         emotionalMetrics: EmotionalMetrics,
@@ -197,12 +198,50 @@ public struct CelebratoryResultsView: View {
                 .font(.title2)
                 .fontWeight(.bold)
 
-            VStack(spacing: 12) {
-                SubScoreRow(title: "Radiance", emoji: "✨", score: emotionalMetrics.radiance, color: .yellow)
-                SubScoreRow(title: "Smoothness", emoji: "🧈", score: emotionalMetrics.smoothness, color: .blue)
-                SubScoreRow(title: "Evenness", emoji: "🌟", score: emotionalMetrics.evenness, color: .purple)
-                SubScoreRow(title: "Youthfulness", emoji: "🌸", score: emotionalMetrics.youthfulness, color: .pink)
-                SubScoreRow(title: "Freshness", emoji: "🌿", score: emotionalMetrics.freshness, color: .green)
+            Text("A comprehensive analysis of your skin's key health indicators.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 16) {
+                MetricDetailRow(
+                    title: "Radiance",
+                    emoji: "✨",
+                    score: emotionalMetrics.radiance,
+                    color: .yellow,
+                    description: "Light reflection and natural luminosity"
+                )
+
+                MetricDetailRow(
+                    title: "Smoothness",
+                    emoji: "🧈",
+                    score: emotionalMetrics.smoothness,
+                    color: .blue,
+                    description: "Surface texture and refinement quality"
+                )
+
+                MetricDetailRow(
+                    title: "Evenness",
+                    emoji: "🌟",
+                    score: emotionalMetrics.evenness,
+                    color: .purple,
+                    description: "Tone uniformity and pigmentation balance"
+                )
+
+                MetricDetailRow(
+                    title: "Youthfulness",
+                    emoji: "🌸",
+                    score: emotionalMetrics.youthfulness,
+                    color: .pink,
+                    description: "Firmness and elasticity assessment"
+                )
+
+                MetricDetailRow(
+                    title: "Freshness",
+                    emoji: "🌿",
+                    score: emotionalMetrics.freshness,
+                    color: .green,
+                    description: "Clarity and overall vitality"
+                )
             }
         }
     }
@@ -212,7 +251,7 @@ public struct CelebratoryResultsView: View {
             HStack {
                 Image(systemName: "target")
                     .foregroundColor(.orange)
-                Text("Let's Improve These")
+                Text("Areas for Improvement")
                     .font(.title2)
                     .fontWeight(.bold)
             }
@@ -233,7 +272,7 @@ public struct CelebratoryResultsView: View {
                     .fontWeight(.bold)
             }
 
-            Text("Follow these steps to boost your glow:")
+            Text("Personalized recommendations for optimal results.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -308,7 +347,7 @@ public struct CelebratoryResultsView: View {
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
 
-                Text("Track your progress, build healthy habits, and watch your skin transform!")
+                Text("Track your progress with daily check-ins and evidence-based skincare habits.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -357,72 +396,93 @@ public struct CelebratoryResultsView: View {
     }
 
     private var scanMetadataSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "info.circle")
-                    .foregroundColor(.secondary)
-                Text("Scan Details")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 0) {
+            // Collapsible header
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    showScanDetails.toggle()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.secondary)
+                    Text("Scan Details")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    Image(systemName: showScanDetails ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
 
-            VStack(spacing: 8) {
-                HStack {
-                    Text("Device:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(UIDevice.current.model)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                }
-
-                HStack {
-                    Text("iOS Version:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(UIDevice.current.systemVersion)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                }
-
-                HStack {
-                    Text("Scan Date:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(Date(), style: .date)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                }
-
-                HStack {
-                    Text("TrueDepth Camera:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
+            // Expandable content
+            if showScanDetails {
+                VStack(spacing: 8) {
+                    HStack {
+                        Text("Device:")
                             .font(.caption)
-                            .foregroundColor(.green)
-                        Text("Available")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(UIDevice.current.model)
                             .font(.caption)
                             .fontWeight(.medium)
                     }
+
+                    HStack {
+                        Text("iOS Version:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(UIDevice.current.systemVersion)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+
+                    HStack {
+                        Text("Scan Date:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(Date(), style: .date)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+
+                    HStack {
+                        Text("TrueDepth Camera:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                            Text("Available")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                    }
+
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    Text("Note: Results may vary slightly between iPhone models due to TrueDepth camera quality differences.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .italic()
                 }
-
-                Divider()
-                    .padding(.vertical, 4)
-
-                Text("Note: Results may vary slightly between iPhone models due to TrueDepth camera quality differences.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .italic()
+                .padding([.horizontal, .bottom])
+                .padding(.top, 4)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(uiColor: .tertiarySystemBackground))
@@ -534,6 +594,59 @@ struct SubScoreRow: View {
                 .font(.headline)
                 .foregroundColor(color)
                 .frame(width: 40, alignment: .trailing)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(uiColor: .secondarySystemBackground))
+        )
+    }
+}
+
+struct MetricDetailRow: View {
+    let title: String
+    let emoji: String
+    let score: Int
+    let color: Color
+    let description: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(emoji)
+                    .font(.title2)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+
+                    Text(description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Text("\(score)")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(color)
+            }
+
+            // Progress bar
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(color.opacity(0.2))
+                        .frame(height: 8)
+
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(color)
+                        .frame(width: geometry.size.width * CGFloat(score) / 100, height: 8)
+                }
+            }
+            .frame(height: 8)
         }
         .padding()
         .background(

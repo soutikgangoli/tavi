@@ -6,7 +6,16 @@
 //  This file is for documentation only - not compiled
 //
 
+#if false // Exclude from compilation - documentation only
+
 import SwiftUI
+
+// Placeholder for your existing camera view
+struct CameraView: View {
+    var body: some View {
+        Text("Your existing camera view goes here")
+    }
+}
 
 // MARK: - Example 1: Basic Usage
 
@@ -364,3 +373,5 @@ struct MultiViewExample: View {
         }
     }
 }
+
+#endif // End of documentation examples

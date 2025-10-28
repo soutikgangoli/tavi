@@ -93,7 +93,8 @@ public struct FaceGuidanceView: View {
     // MARK: - Distance Guidance
 
     private func distanceIcon(for face: FaceDetectionResult) -> String {
-        let faceSize = face.boundingBox.width * face.boundingBox.height
+        guard let boundingBox = face.boundingBox else { return "exclamationmark.triangle" }
+        let faceSize = boundingBox.width * boundingBox.height
 
         if faceSize < 0.15 {
             return "arrow.down.forward.and.arrow.up.backward"
@@ -105,7 +106,8 @@ public struct FaceGuidanceView: View {
     }
 
     private func distanceMessage(for face: FaceDetectionResult) -> String {
-        let faceSize = face.boundingBox.width * face.boundingBox.height
+        guard let boundingBox = face.boundingBox else { return "Face bounds unavailable" }
+        let faceSize = boundingBox.width * boundingBox.height
 
         if faceSize < 0.15 {
             return "Move closer to camera"
@@ -117,7 +119,8 @@ public struct FaceGuidanceView: View {
     }
 
     private func distanceStatus(for face: FaceDetectionResult) -> GuidanceStatus {
-        let faceSize = face.boundingBox.width * face.boundingBox.height
+        guard let boundingBox = face.boundingBox else { return .error }
+        let faceSize = boundingBox.width * boundingBox.height
 
         if faceSize < 0.15 || faceSize > 0.4 {
             return .warning
@@ -179,8 +182,9 @@ public struct FaceGuidanceView: View {
     }
 
     private func positionMessage(for face: FaceDetectionResult) -> String {
-        let centerX = face.boundingBox.midX
-        let centerY = face.boundingBox.midY
+        guard let boundingBox = face.boundingBox else { return "Face bounds unavailable" }
+        let centerX = boundingBox.midX
+        let centerY = boundingBox.midY
 
         if centerX < 0.35 {
             return "Move right to center"
@@ -200,8 +204,9 @@ public struct FaceGuidanceView: View {
     }
 
     private func isFaceCentered(_ face: FaceDetectionResult) -> Bool {
-        let centerX = face.boundingBox.midX
-        let centerY = face.boundingBox.midY
+        guard let boundingBox = face.boundingBox else { return false }
+        let centerX = boundingBox.midX
+        let centerY = boundingBox.midY
 
         // Check if face is within central 60% of frame
         return centerX >= 0.35 && centerX <= 0.65 &&
@@ -300,14 +305,17 @@ enum GuidanceStatus {
 
         FaceGuidanceView(
             faceResult: FaceDetectionResult(
+                faceFound: true,
                 boundingBox: CGRect(x: 0.3, y: 0.3, width: 0.4, height: 0.4),
+                confidence: 0.99,
                 landmarks: FaceLandmarks(
+                    leftEye: CGPoint(x: 0.45, y: 0.48),
+                    rightEye: CGPoint(x: 0.55, y: 0.48),
+                    nose: CGPoint(x: 0.5, y: 0.55),
+                    mouth: CGPoint(x: 0.5, y: 0.62),
                     allPoints: [],
-                    leftEye: [],
-                    rightEye: [],
                     leftEyebrow: [],
                     rightEyebrow: [],
-                    nose: [],
                     noseCrest: [],
                     medianLine: [],
                     outerLips: [],
@@ -316,10 +324,9 @@ enum GuidanceStatus {
                     rightPupil: nil,
                     faceContour: []
                 ),
-                confidence: 0.99,
-                roll: 5,
                 yaw: 10,
-                pitch: -5
+                pitch: -5,
+                roll: 5
             ),
             imageSize: CGSize(width: 1920, height: 1080),
             viewSize: CGSize(width: 390, height: 844),

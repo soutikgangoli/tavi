@@ -129,7 +129,7 @@ struct SessionCard: View {
     }
 
     private var compactDisplayText: String {
-        let name = UserProfileManager.shared.getName() ?? "User"
+        let name = UserProfileManager.shared.loadProfile().name ?? "User"
         let dateString = formattedDateTime
         let scoreString = "\(Int(session.overallScore))%"
 
@@ -137,8 +137,7 @@ struct SessionCard: View {
     }
 
     private var formattedDateTime: String {
-        guard let date = session.date else { return "Unknown date" }
-
+        let date = session.date
         let formatter = DateFormatter()
 
         // Get day with ordinal suffix (1st, 2nd, 3rd, etc.)

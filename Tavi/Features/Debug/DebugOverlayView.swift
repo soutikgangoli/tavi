@@ -85,59 +85,62 @@ struct FaceBoundsView: View {
     }
 
     private var convertedBoundingBox: CGRect {
-        convertNormalizedRect(face.boundingBox, to: viewSize, from: imageSize)
+        guard let boundingBox = face.boundingBox else { return .zero }
+        return convertNormalizedRect(boundingBox, to: viewSize, from: imageSize)
     }
 
     @ViewBuilder
     private var landmarksView: some View {
-        // Left eye
-        if !face.landmarks.leftEye.isEmpty {
-            LandmarkPointsView(
-                points: face.landmarks.leftEye,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                color: .cyan
-            )
-        }
+        if let landmarks = face.landmarks {
+            // Left eye
+            if let leftEye = landmarks.leftEyebrow, !leftEye.isEmpty {
+                LandmarkPointsView(
+                    points: leftEye,
+                    imageSize: imageSize,
+                    viewSize: viewSize,
+                    color: .cyan
+                )
+            }
 
-        // Right eye
-        if !face.landmarks.rightEye.isEmpty {
-            LandmarkPointsView(
-                points: face.landmarks.rightEye,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                color: .cyan
-            )
-        }
+            // Right eye
+            if let rightEye = landmarks.rightEyebrow, !rightEye.isEmpty {
+                LandmarkPointsView(
+                    points: rightEye,
+                    imageSize: imageSize,
+                    viewSize: viewSize,
+                    color: .cyan
+                )
+            }
 
-        // Nose
-        if !face.landmarks.nose.isEmpty {
-            LandmarkPointsView(
-                points: face.landmarks.nose,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                color: .yellow
-            )
-        }
+            // Nose
+            if let nose = landmarks.noseCrest, !nose.isEmpty {
+                LandmarkPointsView(
+                    points: nose,
+                    imageSize: imageSize,
+                    viewSize: viewSize,
+                    color: .yellow
+                )
+            }
 
-        // Mouth
-        if !face.landmarks.outerLips.isEmpty {
-            LandmarkPointsView(
-                points: face.landmarks.outerLips,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                color: .red
-            )
-        }
+            // Mouth
+            if let outerLips = landmarks.outerLips, !outerLips.isEmpty {
+                LandmarkPointsView(
+                    points: outerLips,
+                    imageSize: imageSize,
+                    viewSize: viewSize,
+                    color: .red
+                )
+            }
 
-        // Face outline
-        if !face.landmarks.faceContour.isEmpty {
-            LandmarkPointsView(
-                points: face.landmarks.faceContour,
-                imageSize: imageSize,
-                viewSize: viewSize,
-                color: .green
-            )
+            // Face outline
+            if let faceContour = landmarks.faceContour, !faceContour.isEmpty {
+                LandmarkPointsView(
+                    points: faceContour,
+                    imageSize: imageSize,
+                    viewSize: viewSize,
+                    color: .green
+                )
+            }
         }
     }
 
@@ -215,9 +218,18 @@ struct ROIOverlayDebugView: View {
 
     var body: some View {
         ForEach(Array(roiSet.rois.keys), id: \.self) { roiType in
-            if let roi = roiSet.rois[roiType] {
+            if let roiData = roiSet.rois[roiType] {
+                // Convert ROIData to ROIDisplayInfo
+                let rect = CGRect(
+                    x: CGFloat(roiData.bounds.minU) * imageSize.width,
+                    y: CGFloat(roiData.bounds.minV) * imageSize.height,
+                    width: CGFloat(roiData.bounds.maxU - roiData.bounds.minU) * imageSize.width,
+                    height: CGFloat(roiData.bounds.maxV - roiData.bounds.minV) * imageSize.height
+                )
+                let roiDisplayInfo = ROIDisplayInfo(type: roiType, imageRect: rect, confidence: 1.0, scaleFactorIPD: 1.0)
+
                 DebugROIRectangleView(
-                    roi: roi,
+                    roi: roiDisplayInfo,
                     roiType: roiType,
                     imageSize: imageSize,
                     viewSize: viewSize,
@@ -230,7 +242,7 @@ struct ROIOverlayDebugView: View {
 
 struct DebugROIRectangleView: View {
 
-    let roi: FaceROI
+    let roi: ROIDisplayInfo
     let roiType: ROIType
     let imageSize: CGSize
     let viewSize: CGSize
@@ -259,17 +271,20 @@ struct DebugROIRectangleView: View {
     }
 
     private var convertedRect: CGRect {
-        convertNormalizedRect(roi.normalizedRect, to: viewSize, from: imageSize)
+        // Use the imageRect from ROIDisplayInfo
+        convertNormalizedRect(roi.imageRect, to: viewSize, from: imageSize)
     }
 
     private func colorForROI(_ type: ROIType) -> Color {
         switch type {
         case .leftCheek, .rightCheek:
             return .pink
-        case .foreheadCenter:
+        case .forehead:
             return .blue
-        case .chinCenter:
+        case .chin:
             return .orange
+        case .noseBridge:
+            return .green
         }
     }
 

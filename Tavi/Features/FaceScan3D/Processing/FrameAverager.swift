@@ -10,11 +10,18 @@ import ARKit
 import simd
 
 /// Result of frame averaging operation
-struct AveragedFrame {
-    let geometry: ARFaceGeometry
-    let confidence: Float  // 0-1, based on tracking quality
-    let framesUsed: Int
-    let framesRejected: Int
+public struct AveragedFrame {
+    public let geometry: FaceMeshGeometry
+    public let confidence: Float  // 0-1, based on tracking quality
+    public let framesUsed: Int
+    public let framesRejected: Int
+
+    public init(geometry: FaceMeshGeometry, confidence: Float, framesUsed: Int, framesRejected: Int) {
+        self.geometry = geometry
+        self.confidence = confidence
+        self.framesUsed = framesUsed
+        self.framesRejected = framesRejected
+    }
 }
 
 /// Multi-frame averaging with quality-based weighting
@@ -22,10 +29,17 @@ class FrameAverager {
 
     // MARK: - Configuration
 
-    private let minFrames = 8
-    private let maxFrames = 15
+    private let minFrames: Int
+    private let maxFrames: Int
     private let outlierThreshold: Float = 3.0  // Standard deviations
     private let minTrackingConfidence: Float = 0.7
+
+    // MARK: - Initialization
+
+    init(minFrames: Int = 8, maxFrames: Int = 15) {
+        self.minFrames = minFrames
+        self.maxFrames = maxFrames
+    }
 
     // MARK: - Frame Capture
 
@@ -98,15 +112,39 @@ class FrameAverager {
             rejectionCounts[vertexIndex] = rejectedCount
         }
 
-        // Average normals (no outlier rejection, just weighted)
-        var averagedNormals: [SIMD3<Float>] = []
-        for vertexIndex in 0..<vertexCount {
-            let normals = capturedFrames.map { frame in
-                frame.geometry.normals[vertexIndex]
+        // Calculate normals from averaged vertices and triangles
+        // (ARFaceGeometry doesn't provide normals directly, we compute them)
+        var averagedNormals = Array(repeating: SIMD3<Float>.zero, count: vertexCount)
+        var normalCounts = Array(repeating: 0, count: vertexCount)
+
+        // Use reference geometry's triangle structure
+        let triangleIndices = Array(referenceGeometry.triangleIndices)
+        for i in stride(from: 0, to: triangleIndices.count, by: 3) {
+            let i0 = Int(triangleIndices[i])
+            let i1 = Int(triangleIndices[i + 1])
+            let i2 = Int(triangleIndices[i + 2])
+
+            let v0 = averagedVertices[i0]
+            let v1 = averagedVertices[i1]
+            let v2 = averagedVertices[i2]
+
+            let edge1 = v1 - v0
+            let edge2 = v2 - v0
+            let faceNormal = cross(edge1, edge2)
+
+            averagedNormals[i0] += faceNormal
+            averagedNormals[i1] += faceNormal
+            averagedNormals[i2] += faceNormal
+            normalCounts[i0] += 1
+            normalCounts[i1] += 1
+            normalCounts[i2] += 1
+        }
+
+        // Normalize all vertex normals
+        for i in 0..<vertexCount {
+            if normalCounts[i] > 0 {
+                averagedNormals[i] = normalize(averagedNormals[i] / Float(normalCounts[i]))
             }
-            let weights = capturedFrames.map { $0.confidence }
-            let averaged = weightedAverageNormals(normals, weights: weights)
-            averagedNormals.append(averaged)
         }
 
         // Calculate overall confidence
@@ -120,12 +158,13 @@ class FrameAverager {
         print("   Confidence: \(String(format: "%.2f", finalConfidence))")
         print("   Rejections: \(totalRejections) (\(String(format: "%.1f%%", rejectionRate * 100)))")
 
-        // Create averaged geometry
-        let averagedGeometry = createGeometry(
+        // Create averaged geometry (convert Int16 to Int32 for FaceMeshGeometry)
+        let triangleIndicesInt32 = Array(referenceGeometry.triangleIndices).map { Int32($0) }
+        let averagedGeometry = FaceMeshGeometry(
             vertices: averagedVertices,
             normals: averagedNormals,
             textureCoordinates: Array(referenceGeometry.textureCoordinates),
-            triangleIndices: Array(referenceGeometry.triangleIndices)
+            triangleIndices: triangleIndicesInt32
         )
 
         let result = AveragedFrame(
@@ -190,83 +229,4 @@ class FrameAverager {
         return (finalAverage, rejectedCount)
     }
 
-    /// Weighted average of normals
-    private func weightedAverageNormals(_ normals: [SIMD3<Float>], weights: [Float]) -> SIMD3<Float> {
-        var sum = SIMD3<Float>.zero
-        var weightSum: Float = 0
-
-        for (normal, weight) in zip(normals, weights) {
-            sum += normal * weight
-            weightSum += weight
-        }
-
-        let averaged = sum / weightSum
-        return normalize(averaged)
-    }
-
-    /// Create ARFaceGeometry from arrays
-    private func createGeometry(
-        vertices: [SIMD3<Float>],
-        normals: [SIMD3<Float>],
-        textureCoordinates: [SIMD2<Float>],
-        triangleIndices: [Int16]
-    ) -> ARFaceGeometry {
-        // ARFaceGeometry can't be created directly, so we'll wrap it in our own type
-        // For now, return the reference geometry and we'll update vertices via Metal buffer
-        // This is a limitation - in production you'd create a custom mesh type
-
-        // Create custom face geometry wrapper
-        return ARFaceGeometryWrapper(
-            vertices: vertices,
-            normals: normals,
-            textureCoordinates: textureCoordinates,
-            triangleIndices: triangleIndices
-        )
-    }
-}
-
-// MARK: - ARFaceGeometry Wrapper
-
-/// Custom wrapper since ARFaceGeometry can't be instantiated directly
-class ARFaceGeometryWrapper: ARFaceGeometry {
-    private let _vertices: [SIMD3<Float>]
-    private let _normals: [SIMD3<Float>]
-    private let _textureCoordinates: [SIMD2<Float>]
-    private let _triangleIndices: [Int16]
-
-    init(vertices: [SIMD3<Float>], normals: [SIMD3<Float>], textureCoordinates: [SIMD2<Float>], triangleIndices: [Int16]) {
-        self._vertices = vertices
-        self._normals = normals
-        self._textureCoordinates = textureCoordinates
-        self._triangleIndices = triangleIndices
-        super.init()
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) not implemented")
-    }
-
-    override var vertices: UnsafeBufferPointer<SIMD3<Float>> {
-        return _vertices.withUnsafeBufferPointer { $0 }
-    }
-
-    override var normals: UnsafeBufferPointer<SIMD3<Float>> {
-        return _normals.withUnsafeBufferPointer { $0 }
-    }
-
-    override var textureCoordinates: UnsafeBufferPointer<SIMD2<Float>> {
-        return _textureCoordinates.withUnsafeBufferPointer { $0 }
-    }
-
-    override var triangleIndices: UnsafeBufferPointer<Int16> {
-        return _triangleIndices.withUnsafeBufferPointer { $0 }
-    }
-
-    override var triangleCount: Int {
-        return _triangleIndices.count / 3
-    }
-
-    override var vertexCount: Int {
-        return _vertices.count
-    }
 }

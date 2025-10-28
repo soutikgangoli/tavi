@@ -674,11 +674,17 @@ struct ROIMetricsPopup: View {
                 Divider()
 
                 // ROI Info
-                if let roi = roiSet.rois[roiType] {
+                if let roiData = roiSet.rois[roiType] {
                     VStack(alignment: .leading, spacing: 12) {
-                        DebugInfoRow(label: "Center", value: String(format: "(%.2f, %.2f)", roi.normalizedRect.midX, roi.normalizedRect.midY))
-                        DebugInfoRow(label: "Size", value: String(format: "%.1f × %.1f", roi.normalizedRect.width, roi.normalizedRect.height))
-                        DebugInfoRow(label: "Area", value: String(format: "%.4f", roi.normalizedRect.width * roi.normalizedRect.height))
+                        let centerU = (roiData.bounds.minU + roiData.bounds.maxU) / 2.0
+                        let centerV = (roiData.bounds.minV + roiData.bounds.maxV) / 2.0
+                        let width = roiData.bounds.maxU - roiData.bounds.minU
+                        let height = roiData.bounds.maxV - roiData.bounds.minV
+                        let area = width * height
+
+                        DebugInfoRow(label: "Center", value: String(format: "(%.2f, %.2f)", centerU, centerV))
+                        DebugInfoRow(label: "Size", value: String(format: "%.1f × %.1f", width, height))
+                        DebugInfoRow(label: "Area", value: String(format: "%.4f", area))
 
                         Divider()
 

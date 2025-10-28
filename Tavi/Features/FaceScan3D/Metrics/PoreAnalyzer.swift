@@ -10,11 +10,20 @@ import UIKit
 import Accelerate
 
 /// Pore analysis result
-struct PoreAnalysis {
-    let visibility: Float  // 0-100, lower is better
-    let density: Float     // pores per cm²
-    let averageSize: Float // in pixels
-    let regionalScores: [String: Float]
+public struct PoreAnalysis {
+    public let visibility: Float  // 0-100, lower is better
+    public let density: Float     // pores per cm²
+    public let averageSize: Float // in pixels
+    public let regionalScores: [String: Float]
+    public let confidence: Float  // 0-100, reliability of detection
+
+    public init(visibility: Float, density: Float, averageSize: Float, regionalScores: [String: Float], confidence: Float) {
+        self.visibility = visibility
+        self.density = density
+        self.averageSize = averageSize
+        self.regionalScores = regionalScores
+        self.confidence = confidence
+    }
 }
 
 /// Pore analyzer using texture frequency analysis
@@ -26,19 +35,55 @@ class PoreAnalyzer {
     func analyzePores(texture: UIImage) -> PoreAnalysis {
         print("🔬 Analyzing pore visibility...")
 
+        guard let cgImage = texture.cgImage else {
+            print("⚠️ Could not extract CGImage from texture")
+            return PoreAnalysis(visibility: 0, density: 0, averageSize: 0, regionalScores: [:])
+        }
+
         // High-frequency texture energy correlates with visible pores
         let highFreqEnergy = calculateHighFrequencyEnergy(image: texture)
+
+        // Detect individual pores using local minima in high-pass filtered image
+        let poreDetectionResult = detectPores(image: cgImage)
+
+        // Calculate pore density (pores per cm²)
+        // Assume texture covers ~10cm x 10cm of face (approximate)
+        let faceAreaCm2: Float = 100.0  // Approximate face area
+        let density = Float(poreDetectionResult.poreCount) / faceAreaCm2
+
+        // Calculate average pore size
+        let averageSize = poreDetectionResult.averagePoreSize
+
+        // Analyze regional pore distribution
+        let regionalScores = analyzeRegionalPores(
+            image: cgImage,
+            poreLocations: poreDetectionResult.poreLocations
+        )
 
         // Convert to visibility score (0-100)
         let visibility = min(100, highFreqEnergy * 10)
 
-        print("✅ Pore visibility: \(String(format: "%.1f", visibility))/100")
+        // Calculate confidence score
+        let confidence = calculateConfidence(
+            poreCount: poreDetectionResult.poreCount,
+            averagePoreSize: averageSize,
+            imageResolution: (width: cgImage.width, height: cgImage.height),
+            skinBrightness: poreDetectionResult.skinBrightness
+        )
+
+        print("✅ Pore analysis complete:")
+        print("   Visibility: \(String(format: "%.1f", visibility))/100")
+        print("   Density: \(String(format: "%.1f", density)) pores/cm²")
+        print("   Avg size: \(String(format: "%.2f", averageSize)) pixels")
+        print("   Confidence: \(String(format: "%.1f", confidence))%")
+        print("   Regional scores: \(regionalScores.count) regions")
 
         return PoreAnalysis(
             visibility: visibility,
-            density: 0,  // Simplified
-            averageSize: 0,  // Simplified
-            regionalScores: [:]
+            density: density,
+            averageSize: averageSize,
+            regionalScores: regionalScores,
+            confidence: confidence
         )
     }
 
@@ -68,7 +113,7 @@ class PoreAnalyzer {
         context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
         // Apply high-pass filter to detect high-frequency components
-        var floatData = grayData.map { Float($0) / 255.0 }
+        let floatData = grayData.map { Float($0) / 255.0 }
 
         // Simple Laplacian operator (high-pass filter)
         var filteredData = [Float](repeating: 0, count: width * height)
@@ -91,5 +136,288 @@ class PoreAnalyzer {
         let energy = filteredData.reduce(0, +) / Float(filteredData.count)
 
         return energy
+    }
+
+    // MARK: - Pore Detection
+
+    /// Result of pore detection
+    private struct PoreDetectionResult {
+        let poreCount: Int
+        let averagePoreSize: Float
+        let poreLocations: [(x: Int, y: Int, size: Float)]
+        let skinBrightness: Float  // For confidence calculation
+    }
+
+    /// Detect individual pores using local minima detection
+    private func detectPores(image: CGImage) -> PoreDetectionResult {
+        let width = image.width
+        let height = image.height
+
+        // Convert to grayscale
+        var grayData = [UInt8](repeating: 0, count: width * height)
+        let colorSpace = CGColorSpaceCreateDeviceGray()
+        guard let context = CGContext(
+            data: &grayData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width,
+            space: colorSpace,
+            bitmapInfo: 0
+        ) else {
+            return PoreDetectionResult(poreCount: 0, averagePoreSize: 0, poreLocations: [], skinBrightness: 128.0)
+        }
+
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        // Apply Gaussian blur to reduce noise
+        let blurred = applyGaussianBlur(data: grayData, width: width, height: height)
+
+        // Calculate adaptive darkness threshold based on skin tone
+        // This makes pore detection fair across all skin tones (light to dark)
+        let avgSkinBrightness = calculateAverageSkinBrightness(data: blurred, width: width, height: height)
+
+        // Pores are typically 20-30% darker than surrounding skin
+        // Clamp between 50-180 to handle extreme lighting conditions
+        let minDarkness = UInt8(max(50, min(180, Int(avgSkinBrightness * 0.7))))
+
+        print("   Adaptive pore threshold: \(minDarkness) (skin brightness: \(avgSkinBrightness))")
+
+        // Detect local minima (dark spots = pores)
+        var poreLocations: [(x: Int, y: Int, size: Float)] = []
+        let searchRadius = 2  // Search within 2-pixel radius
+
+        for y in stride(from: searchRadius, to: height - searchRadius, by: 3) {
+            for x in stride(from: searchRadius, to: width - searchRadius, by: 3) {
+                let centerValue = blurred[y * width + x]
+
+                // Check if this is a local minimum (darker than neighbors)
+                if centerValue < minDarkness && isLocalMinimum(data: blurred, x: x, y: y, width: width, height: height, radius: searchRadius) {
+                    // Estimate pore size by measuring dark region extent
+                    let poreSize = measurePoreSize(data: blurred, centerX: x, centerY: y, width: width, height: height)
+                    poreLocations.append((x, y, poreSize))
+                }
+            }
+        }
+
+        // Calculate average pore size
+        let averageSize: Float = poreLocations.isEmpty ? 0 : poreLocations.map { $0.size }.reduce(0, +) / Float(poreLocations.count)
+
+        return PoreDetectionResult(
+            poreCount: poreLocations.count,
+            averagePoreSize: averageSize,
+            poreLocations: poreLocations,
+            skinBrightness: avgSkinBrightness
+        )
+    }
+
+    /// Calculate average skin brightness for adaptive thresholding
+    /// This enables fair pore detection across all skin tones (light to dark)
+    private func calculateAverageSkinBrightness(data: [UInt8], width: Int, height: Int) -> Float {
+        // Sample center region of face (avoid edges and hair)
+        let sampleMinX = width / 3
+        let sampleMaxX = width * 2 / 3
+        let sampleMinY = height / 3
+        let sampleMaxY = height * 2 / 3
+
+        var sum: Float = 0
+        var count: Int = 0
+
+        for y in stride(from: sampleMinY, to: sampleMaxY, by: 5) {
+            for x in stride(from: sampleMinX, to: sampleMaxX, by: 5) {
+                sum += Float(data[y * width + x])
+                count += 1
+            }
+        }
+
+        return count > 0 ? sum / Float(count) : 128.0  // Default to mid-gray if sampling fails
+    }
+
+    /// Apply Gaussian blur to reduce noise
+    private func applyGaussianBlur(data: [UInt8], width: Int, height: Int) -> [UInt8] {
+        var blurred = [UInt8](repeating: 0, count: width * height)
+
+        // Simple 3x3 Gaussian kernel
+        let kernel: [[Float]] = [
+            [1, 2, 1],
+            [2, 4, 2],
+            [1, 2, 1]
+        ]
+        let kernelSum: Float = 16.0
+
+        for y in 1..<(height - 1) {
+            for x in 1..<(width - 1) {
+                var sum: Float = 0
+
+                for ky in -1...1 {
+                    for kx in -1...1 {
+                        let pixelValue = Float(data[(y + ky) * width + (x + kx)])
+                        sum += pixelValue * kernel[ky + 1][kx + 1]
+                    }
+                }
+
+                blurred[y * width + x] = UInt8(sum / kernelSum)
+            }
+        }
+
+        return blurred
+    }
+
+    /// Check if pixel is a local minimum
+    private func isLocalMinimum(data: [UInt8], x: Int, y: Int, width: Int, height: Int, radius: Int) -> Bool {
+        let centerValue = data[y * width + x]
+
+        for dy in -radius...radius {
+            for dx in -radius...radius {
+                if dx == 0 && dy == 0 { continue }
+
+                let nx = x + dx
+                let ny = y + dy
+
+                if nx >= 0 && nx < width && ny >= 0 && ny < height {
+                    if data[ny * width + nx] <= centerValue {
+                        return false  // Not a minimum
+                    }
+                }
+            }
+        }
+
+        return true
+    }
+
+    /// Measure pore size by flood-fill like expansion
+    private func measurePoreSize(data: [UInt8], centerX: Int, centerY: Int, width: Int, height: Int) -> Float {
+        let centerValue = data[centerY * width + centerX]
+        let threshold = centerValue + 30  // Pore boundary threshold
+
+        var size: Float = 1.0
+        var visited = Set<Int>()
+        var queue = [(centerX, centerY)]
+        visited.insert(centerY * width + centerX)
+
+        while !queue.isEmpty && size < 100 {  // Limit max pore size to 100 pixels
+            let (x, y) = queue.removeFirst()
+
+            for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                let nx = x + dx
+                let ny = y + dy
+
+                if nx >= 0 && nx < width && ny >= 0 && ny < height {
+                    let index = ny * width + nx
+                    if !visited.contains(index) && data[index] < threshold {
+                        visited.insert(index)
+                        queue.append((nx, ny))
+                        size += 1
+                    }
+                }
+            }
+        }
+
+        return size
+    }
+
+    // MARK: - Regional Analysis
+
+    /// Analyze pore distribution across face regions
+    private func analyzeRegionalPores(
+        image: CGImage,
+        poreLocations: [(x: Int, y: Int, size: Float)]
+    ) -> [String: Float] {
+        let width = image.width
+        let height = image.height
+
+        // Define face regions (normalized coordinates)
+        let regions: [String: (minX: Float, maxX: Float, minY: Float, maxY: Float)] = [
+            "forehead": (0.3, 0.7, 0.1, 0.3),
+            "leftCheek": (0.1, 0.4, 0.4, 0.7),
+            "rightCheek": (0.6, 0.9, 0.4, 0.7),
+            "nose": (0.4, 0.6, 0.3, 0.6),
+            "chin": (0.35, 0.65, 0.7, 0.9)
+        ]
+
+        var regionalScores: [String: Float] = [:]
+
+        for (regionName, bounds) in regions {
+            // Count pores in this region
+            var poreCount = 0
+            var totalPoreSize: Float = 0
+
+            for pore in poreLocations {
+                let normalizedX = Float(pore.x) / Float(width)
+                let normalizedY = Float(pore.y) / Float(height)
+
+                if normalizedX >= bounds.minX && normalizedX <= bounds.maxX &&
+                   normalizedY >= bounds.minY && normalizedY <= bounds.maxY {
+                    poreCount += 1
+                    totalPoreSize += pore.size
+                }
+            }
+
+            // Calculate region score (lower is better)
+            let regionArea = (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY)
+            let density = Float(poreCount) / (regionArea * 100.0)  // Pores per normalized area
+            let avgSize = poreCount > 0 ? totalPoreSize / Float(poreCount) : 0
+
+            // Score: 100 = no pores, 0 = many large pores
+            let score = max(0, 100 - (density * 50 + avgSize * 2))
+            regionalScores[regionName] = score
+        }
+
+        return regionalScores
+    }
+
+    // MARK: - Confidence Calculation
+
+    /// Calculate confidence score for pore detection
+    /// Factors: image quality, lighting, detection consistency
+    private func calculateConfidence(
+        poreCount: Int,
+        averagePoreSize: Float,
+        imageResolution: (width: Int, height: Int),
+        skinBrightness: Float
+    ) -> Float {
+        var confidence: Float = 70.0  // Base confidence for pore detection
+
+        // Factor 1: Image resolution
+        let totalPixels = imageResolution.width * imageResolution.height
+        if totalPixels >= 1_000_000 {  // 1MP+
+            confidence += 10
+        } else if totalPixels >= 500_000 {  // 0.5MP+
+            confidence += 5
+        } else {  // Low resolution
+            confidence -= 10
+        }
+
+        // Factor 2: Lighting conditions (optimal: 100-200 brightness)
+        if skinBrightness >= 100 && skinBrightness <= 200 {
+            confidence += 10  // Optimal lighting
+        } else if skinBrightness >= 80 && skinBrightness <= 220 {
+            confidence += 5   // Good lighting
+        } else if skinBrightness < 60 || skinBrightness > 240 {
+            confidence -= 15  // Poor lighting (too dark or too bright)
+        } else {
+            confidence -= 5   // Suboptimal lighting
+        }
+
+        // Factor 3: Detection count (more pores = more reliable statistics)
+        if poreCount >= 50 {
+            confidence += 10  // Good sample size
+        } else if poreCount >= 20 {
+            confidence += 5   // Adequate sample
+        } else if poreCount < 10 {
+            confidence -= 15  // Too few pores detected
+        }
+
+        // Factor 4: Pore size consistency (should be 2-20 pixels typically)
+        if averagePoreSize >= 2 && averagePoreSize <= 20 {
+            confidence += 5   // Reasonable pore sizes
+        } else if averagePoreSize > 30 {
+            confidence -= 10  // Suspiciously large (likely false positives)
+        }
+
+        // Clamp to 40-95% range
+        // Never 100% confident (texture analysis has inherent limitations)
+        // Never below 40% (still provides useful relative information)
+        return max(40, min(95, confidence))
     }
 }

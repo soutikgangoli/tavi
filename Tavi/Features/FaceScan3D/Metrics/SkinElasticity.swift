@@ -10,14 +10,14 @@ import Foundation
 import simd
 
 /// Skin elasticity analysis result
-public struct ElasticityAnalysis {
+public struct ElasticityAnalysis: Codable {
     let overallScore: Float  // 0-100, higher = better elasticity
     let elasticityLevel: ElasticityLevel
     let recoveryRate: Float  // How fast wrinkles recover (0-1)
     let regionalElasticity: [FaceRegion: Float]
 }
 
-public enum ElasticityLevel: String {
+public enum ElasticityLevel: String, Codable {
     case excellent = "Excellent"
     case good = "Good"
     case moderate = "Moderate"
@@ -34,19 +34,27 @@ public class SkinElasticityAnalyzer {
     // MARK: - Public API
 
     /// Estimate elasticity from temporal wrinkle data
+    /// Returns nil if insufficient historical data (requires minimum 2 scans separated by 3+ days)
     public func estimateElasticity(
         historicalScans: [HistoricalScan],
         currentWrinkleDepth: Float
-    ) -> ElasticityAnalysis {
+    ) -> ElasticityAnalysis? {
 
+        // Require minimum 2 scans for temporal analysis
         guard historicalScans.count >= 2 else {
-            // Not enough data, return moderate estimate
-            return ElasticityAnalysis(
-                overallScore: 60,
-                elasticityLevel: .moderate,
-                recoveryRate: 0.5,
-                regionalElasticity: [:]
-            )
+            print("⚠️ Insufficient data for elasticity analysis (need 2+ scans)")
+            return nil
+        }
+
+        // Require scans to be separated by at least 3 days for meaningful temporal analysis
+        let minTimeDelta: TimeInterval = 3 * 24 * 3600  // 3 days
+        let mostRecentScans = historicalScans.sorted { $0.timestamp > $1.timestamp }.prefix(2)
+        guard mostRecentScans.count == 2 else { return nil }
+
+        let timeDiff = abs(mostRecentScans[0].timestamp - mostRecentScans[1].timestamp)
+        guard timeDiff >= minTimeDelta else {
+            print("⚠️ Scans too close together for elasticity analysis (need 3+ days apart)")
+            return nil
         }
 
         // Calculate recovery rate from wrinkle depth changes
@@ -130,7 +138,7 @@ public struct HistoricalScan {
 }
 
 /// Face regions for analysis
-public enum FaceRegion: String, CaseIterable {
+public enum FaceRegion: String, CaseIterable, Codable {
     case forehead = "Forehead"
     case eyes = "Eye Area"
     case cheeks = "Cheeks"

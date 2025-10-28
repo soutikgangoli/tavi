@@ -69,11 +69,11 @@ public func generate3DOverlays(
 
     // Generate visualization for each metric type
     for overlayType in OverlayType.allCases {
-        let metricType: MetricType = switch overlayType {
+        let metricType: VisualizerMetricType = switch overlayType {
         case .roughness: .roughness
         case .pigmentation: .pigmentation
         case .discoloration: .luminance
-        case .specular: .lightness
+        case .specular: .specular
         }
 
         let viz = visualizer.generateVisualization(for: metrics, type: metricType)

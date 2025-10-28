@@ -72,7 +72,7 @@ struct ROISetView: View {
 // MARK: - ROI Rectangle View
 
 struct ROIRectangleView: View {
-    let roi: FaceROI
+    let roi: ROIDisplayInfo
     let imageSize: CGSize
     let viewSize: CGSize
     let isMirrored: Bool
@@ -93,10 +93,12 @@ struct ROIRectangleView: View {
             return .blue
         case .rightCheek:
             return .cyan
-        case .foreheadCenter:
+        case .forehead:
             return .purple
-        case .chinCenter:
+        case .chin:
             return .orange
+        case .noseBridge:
+            return .green
         }
     }
 
@@ -228,7 +230,7 @@ struct Crosshair: View {
 // MARK: - ROI Label
 
 struct ROILabel: View {
-    let roi: FaceROI
+    let roi: ROIDisplayInfo
     let rect: CGRect
     let color: Color
 
@@ -296,14 +298,15 @@ public struct ROIInfoPanel: View {
 }
 
 struct ROIInfoRow: View {
-    let roi: FaceROI
+    let roi: ROIDisplayInfo
 
     private var color: Color {
         switch roi.type {
         case .leftCheek: return .blue
         case .rightCheek: return .cyan
-        case .foreheadCenter: return .purple
-        case .chinCenter: return .orange
+        case .forehead: return .purple
+        case .chin: return .orange
+        case .noseBridge: return .green
         }
     }
 
@@ -415,8 +418,9 @@ struct ExtractedROICard: View {
         switch extractedROI.type {
         case .leftCheek: return .blue
         case .rightCheek: return .cyan
-        case .foreheadCenter: return .purple
-        case .chinCenter: return .orange
+        case .forehead: return .purple
+        case .chin: return .orange
+        case .noseBridge: return .green
         }
     }
 

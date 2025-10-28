@@ -33,7 +33,39 @@ class OutlierFilter {
     /// Filter outliers from mesh geometry
     func filter(geometry: ARFaceGeometry) -> FilterResult {
         let vertices = Array(geometry.vertices)
-        let normals = Array(geometry.normals)
+
+        // Calculate normals (ARFaceGeometry doesn't provide them directly)
+        let triangleIndices = Array(geometry.triangleIndices)
+        var normals = Array(repeating: SIMD3<Float>.zero, count: vertices.count)
+        var normalCounts = Array(repeating: 0, count: vertices.count)
+
+        for i in stride(from: 0, to: triangleIndices.count, by: 3) {
+            let i0 = Int(triangleIndices[i])
+            let i1 = Int(triangleIndices[i + 1])
+            let i2 = Int(triangleIndices[i + 2])
+
+            let v0 = vertices[i0]
+            let v1 = vertices[i1]
+            let v2 = vertices[i2]
+
+            let edge1 = v1 - v0
+            let edge2 = v2 - v0
+            let faceNormal = cross(edge1, edge2)
+
+            normals[i0] += faceNormal
+            normals[i1] += faceNormal
+            normals[i2] += faceNormal
+            normalCounts[i0] += 1
+            normalCounts[i1] += 1
+            normalCounts[i2] += 1
+        }
+
+        // Normalize
+        for i in 0..<vertices.count {
+            if normalCounts[i] > 0 {
+                normals[i] = normalize(normals[i] / Float(normalCounts[i]))
+            }
+        }
 
         print("🔍 Filtering outliers from \(vertices.count) vertices...")
 
@@ -187,7 +219,7 @@ extension ARFaceGeometry {
         }
 
         // Filter triangles (keep only if all 3 vertices are valid)
-        var newTriangles: [Int16] = []
+        var newTriangles: [Int32] = []
         let triangleCount = self.triangleCount
 
         for triIndex in 0..<triangleCount {
@@ -199,9 +231,9 @@ extension ARFaceGeometry {
             if let new0 = indexMap[i0],
                let new1 = indexMap[i1],
                let new2 = indexMap[i2] {
-                newTriangles.append(Int16(new0))
-                newTriangles.append(Int16(new1))
-                newTriangles.append(Int16(new2))
+                newTriangles.append(Int32(new0))
+                newTriangles.append(Int32(new1))
+                newTriangles.append(Int32(new2))
             }
         }
 

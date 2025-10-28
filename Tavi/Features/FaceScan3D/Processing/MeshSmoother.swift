@@ -104,7 +104,7 @@ class MeshSmoother {
     // MARK: - Private Methods
 
     /// Build vertex adjacency list
-    private func buildAdjacencyList(vertices: [SIMD3<Float>], triangles: [Int16]) -> [[Int]] {
+    private func buildAdjacencyList(vertices: [SIMD3<Float>], triangles: [Int32]) -> [[Int]] {
         var adjacency = Array(repeating: Set<Int>(), count: vertices.count)
 
         for i in stride(from: 0, to: triangles.count, by: 3) {
@@ -184,7 +184,7 @@ class MeshSmoother {
     }
 
     /// Recalculate vertex normals from triangle normals
-    private func recalculateNormals(vertices: [SIMD3<Float>], triangles: [Int16]) -> [SIMD3<Float>] {
+    private func recalculateNormals(vertices: [SIMD3<Float>], triangles: [Int32]) -> [SIMD3<Float>] {
         var normals = Array(repeating: SIMD3<Float>.zero, count: vertices.count)
         var counts = Array(repeating: 0, count: vertices.count)
 

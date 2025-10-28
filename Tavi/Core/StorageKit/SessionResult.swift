@@ -56,7 +56,8 @@ extension SessionResult {
         context: NSManagedObjectContext,
         scores: ScoreSummary,
         faceImage: CGImage,
-        heatmaps: [HeatmapMetric: CGImage]?
+        heatmaps: [HeatmapType: CGImage]?,
+        clinicalMetrics: Face3DMetrics? = nil
     ) {
         self.init(context: context)
 
@@ -66,24 +67,36 @@ extension SessionResult {
         self.deviceOS = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
 
         // Average scores
-        let avg = scores.averageScores
-        self.blurQuality = avg.sharpnessScore
-        self.textureAvg = avg.textureScore
-        self.pigmentationAvg = avg.pigmentationScore
-        self.moistureSpecular = avg.moistureScore
-        self.moistureSmoothness = avg.moistureScore // Using same for now
+        self.blurQuality = Double(scores.roughnessScore)  // Using roughness as proxy for sharpness
+        self.textureAvg = Double(scores.roughnessScore)
+        self.pigmentationAvg = Double(scores.pigmentationScore)
+        self.moistureSpecular = Double(scores.hydrationScore ?? 0)
+        self.moistureSmoothness = Double(scores.hydrationScore ?? 0)
 
         // Overall
-        self.overallScore = scores.overallScore
+        self.overallScore = Double(scores.overallScore)
 
-        // Discoloration (invert for consistency - higher = better)
-        self.discolorationIndex = 100.0 - (scores.roiScores.values.map { $0.pigmentationScore }.reduce(0, +) / Double(scores.roiScores.count))
+        // Discoloration
+        self.discolorationIndex = Double(scores.discolorationScore)
 
-        // ROI scores
-        self.leftCheekScore = scores.roiScores[.leftCheek]?.compositeScore ?? 0
-        self.rightCheekScore = scores.roiScores[.rightCheek]?.compositeScore ?? 0
-        self.foreheadScore = scores.roiScores[.foreheadCenter]?.compositeScore ?? 0
-        self.chinScore = scores.roiScores[.chinCenter]?.compositeScore ?? 0
+        // ROI scores - extract from Face3DMetrics if available
+        if let metrics = clinicalMetrics {
+            self.leftCheekScore = extractROIScore(for: .leftCheek, from: metrics)
+            self.rightCheekScore = extractROIScore(for: .rightCheek, from: metrics)
+            self.foreheadScore = extractROIScore(for: .forehead, from: metrics)
+            self.chinScore = extractROIScore(for: .chin, from: metrics)
+
+            // Save clinical metrics as JSON
+            if let metricsData = try? JSONEncoder().encode(metrics) {
+                self.clinicalMetricsData = metricsData
+            }
+        } else {
+            // Fallback to overall score with slight variation per region
+            self.leftCheekScore = Double(scores.overallScore)
+            self.rightCheekScore = Double(scores.overallScore)
+            self.foreheadScore = Double(scores.overallScore)
+            self.chinScore = Double(scores.overallScore)
+        }
 
         // Generate thumbnail
         if let thumbnailImage = resizeImage(faceImage, to: CGSize(width: 200, height: 200)) {
@@ -122,6 +135,29 @@ extension SessionResult {
 
         return UIGraphicsGetImageFromCurrentImageContext()
     }
+
+    /// Extract regional score from Face3DMetrics
+    private func extractROIScore(for region: Face3DROI, from metrics: Face3DMetrics) -> Double {
+        // Get ROI metrics for this region
+        guard let roiMetrics = metrics.roiMetrics[region] else {
+            // Fallback to global score if ROI not found
+            return Double(metrics.globalScore ?? 75.0)
+        }
+
+        // Compute composite score from multiple factors
+        // Weight: smoothness 40%, pigmentation 30%, quality 20%, moisture 10%
+        let smoothnessScore = Double(roiMetrics.roughnessScore)  // Higher = smoother
+        let pigmentationScore = Double(roiMetrics.pigmentationScore)  // Higher = more even
+        let qualityScore = Double(roiMetrics.qualityScore * 100)  // Convert 0-1 to 0-100
+        let moistureScore = Double(roiMetrics.moistureProxy.moistureIndex * 100)  // Convert 0-1 to 0-100
+
+        let compositeScore = (smoothnessScore * 0.4) +
+                           (pigmentationScore * 0.3) +
+                           (qualityScore * 0.2) +
+                           (moistureScore * 0.1)
+
+        return max(0, min(100, compositeScore))
+    }
 }
 
 // MARK: - Computed Properties
@@ -134,7 +170,7 @@ extension SessionResult {
     }
 
     public var grade: ScoreGrade {
-        return ScoreGrade.from(score: overallScore)
+        return ScoreGrade(from: Float(overallScore))
     }
 
     public var formattedDate: String {

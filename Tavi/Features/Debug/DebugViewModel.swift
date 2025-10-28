@@ -51,7 +51,7 @@ class DebugViewModel: ObservableObject {
 
     private let cameraSession: CameraSession
     private let faceDetector = FaceDetector()
-    private let roiBuilder = ROIBuilder(configuration: .default)
+    private let roiBuilder = ROIBuilder()
     private var cancellables = Set<AnyCancellable>()
 
     // FPS Tracking
@@ -149,8 +149,15 @@ class DebugViewModel: ObservableObject {
         Task {
             do {
                 // Detect faces
-                let orientation: CGImagePropertyOrientation = cameraSession.currentPosition == .front ? .leftMirrored : .right
-                let faces = try await faceDetector.detectFaces(in: pixelBuffer, orientation: orientation)
+                guard let cgImage = convertToCGImage(pixelBuffer: pixelBuffer) else {
+                    await MainActor.run {
+                        self.detectedFaces = []
+                        self.faceROIs = []
+                    }
+                    return
+                }
+
+                let faces = faceDetector.detectFaces(in: cgImage)
 
                 // Compute ROIs
                 var roiSets: [FaceROISet] = []
@@ -208,6 +215,12 @@ class DebugViewModel: ObservableObject {
         }
 
         return UIImage(cgImage: cgImage)
+    }
+
+    private func convertToCGImage(pixelBuffer: CVPixelBuffer) -> CGImage? {
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        let context = CIContext()
+        return context.createCGImage(ciImage, from: ciImage.extent)
     }
 
     private func getImageSize() -> CGSize? {

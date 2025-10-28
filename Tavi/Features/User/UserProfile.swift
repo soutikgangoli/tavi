@@ -74,7 +74,15 @@ public enum SkinTone: String, Codable, CaseIterable {
     }
 }
 
-public enum SkinConcern: String, Codable, CaseIterable {
+public enum SkinType: String, Codable, CaseIterable {
+    case dry = "Dry"
+    case oily = "Oily"
+    case combination = "Combination"
+    case normal = "Normal"
+    case sensitive = "Sensitive"
+}
+
+public enum SkinConcern: String, Codable, CaseIterable, Hashable {
     case wrinkles = "Wrinkles & Fine Lines"
     case darkCircles = "Dark Circles"
     case acne = "Acne"
@@ -87,12 +95,12 @@ public enum SkinConcern: String, Codable, CaseIterable {
     case sagging = "Sagging & Loss of Firmness"
 }
 
-public enum SkinGoal: String, Codable, CaseIterable {
+public enum SkinGoal: String, Codable, CaseIterable, Hashable {
     case antiAging = "Anti-Aging"
     case brighten = "Brighten Skin"
     case evenTone = "Even Skin Tone"
     case hydrate = "Hydrate"
-    case minimize Pores = "Minimize Pores"
+    case minimizePores = "Minimize Pores"
     case firmness = "Improve Firmness"
     case reduceWrinkles = "Reduce Wrinkles"
     case clearAcne = "Clear Acne"
@@ -100,7 +108,7 @@ public enum SkinGoal: String, Codable, CaseIterable {
     case glow = "Achieve Glow"
 }
 
-public enum ProductCategory: String, Codable, CaseIterable {
+public enum ProductCategory: String, Codable, CaseIterable, Hashable {
     case cleanser = "Cleanser"
     case moisturizer = "Moisturizer"
     case serum = "Serum"

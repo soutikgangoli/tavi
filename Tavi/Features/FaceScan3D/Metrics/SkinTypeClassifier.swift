@@ -10,7 +10,7 @@ import Foundation
 import UIKit
 
 /// Skin type classification result
-public struct SkinTypeAnalysis {
+public struct SkinTypeAnalysis: Codable {
     let skinType: SkinType
     let confidence: Float  // 0-1
     let oilinessScore: Float  // 0-100
@@ -18,12 +18,7 @@ public struct SkinTypeAnalysis {
     let regionalTypes: [FaceRegion: SkinType]
 }
 
-public enum SkinType: String {
-    case oily = "Oily"
-    case dry = "Dry"
-    case combination = "Combination"
-    case normal = "Normal"
-}
+// Note: SkinType enum is defined in UserProfile.swift
 
 /// Skin type classifier
 public class SkinTypeClassifier {

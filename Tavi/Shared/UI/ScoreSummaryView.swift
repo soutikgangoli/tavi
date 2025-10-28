@@ -105,7 +105,7 @@ public struct ScoreSummaryView: View {
 
                 // Progress circle
                 Circle()
-                    .trim(from: 0, to: scores.overallScore / 100.0)
+                    .trim(from: 0, to: CGFloat(scores.overallScore) / 100.0)
                     .stroke(
                         gradeColor(scores.grade),
                         style: StrokeStyle(lineWidth: 20, lineCap: .round)
@@ -464,20 +464,27 @@ struct GradeRow: View {
 #Preview {
     ScoreSummaryView(
         scores: ScoreSummary(
+            overallScore: 78.5,
+            roughnessScore: 75.0,
+            pigmentationScore: 72.0,
+            discolorationScore: 70.0,
+            hydrationScore: 68.0,
+            poreScore: 65.0,
+            grade: ScoreGrade.good,
             roiScores: [
-                .leftCheek: ROIScores(
+                Face3DROI.leftCheek: ROIScores(
                     sharpnessScore: 85.0,
                     textureScore: 78.0,
                     pigmentationScore: 72.0,
                     moistureScore: 65.0,
-                    roiType: .leftCheek
+                    roiType: Face3DROI.leftCheek
                 ),
-                .rightCheek: ROIScores(
+                Face3DROI.rightCheek: ROIScores(
                     sharpnessScore: 82.0,
                     textureScore: 75.0,
                     pigmentationScore: 70.0,
                     moistureScore: 68.0,
-                    roiType: .rightCheek
+                    roiType: Face3DROI.rightCheek
                 )
             ],
             averageScores: ROIScores(
@@ -486,7 +493,6 @@ struct GradeRow: View {
                 pigmentationScore: 71.0,
                 moistureScore: 66.5
             ),
-            overallScore: 78.5,
             timestamp: Date()
         ),
         isPresented: .constant(true)

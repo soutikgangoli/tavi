@@ -77,7 +77,7 @@ class ResultsViewModel: ObservableObject {
     func saveSession(
         scores: ScoreSummary,
         faceImage: CGImage,
-        heatmaps: [HeatmapMetric: CGImage]?
+        heatmaps: [HeatmapType: CGImage]?
     ) {
         isLoading = true
         errorMessage = nil

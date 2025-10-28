@@ -9,40 +9,68 @@
 import simd
 
 /// Wrinkle analysis result
-struct WrinkleAnalysis {
-    let overallScore: Float  // 0-100, lower is better (fewer/shallower wrinkles)
-    let wrinkleDepth: WrinkleDepth
-    let wrinkleCount: Int
-    let wrinkleRegions: [WrinkleRegion]
-    let regionalScores: [String: Float]  // By face region
+public struct WrinkleAnalysis {
+    public let overallScore: Float  // 0-100, lower is better (fewer/shallower wrinkles)
+    public let wrinkleDepth: WrinkleDepth
+    public let wrinkleCount: Int
+    public let wrinkleRegions: [WrinkleRegion]
+    public let regionalScores: [String: Float]  // By face region
+    public let confidence: Float  // 0-100, indicates depth measurement reliability
+
+    public init(overallScore: Float, wrinkleDepth: WrinkleDepth, wrinkleCount: Int, wrinkleRegions: [WrinkleRegion], regionalScores: [String: Float], confidence: Float = 70.0) {
+        self.overallScore = overallScore
+        self.wrinkleDepth = wrinkleDepth
+        self.wrinkleCount = wrinkleCount
+        self.wrinkleRegions = wrinkleRegions
+        self.regionalScores = regionalScores
+        self.confidence = confidence  // Default 70% - moderate confidence until validated
+    }
 }
 
-/// Wrinkle depth classification
-enum WrinkleDepth {
-    case minimal   // <0.3mm
-    case shallow   // 0.3-0.7mm
-    case moderate  // 0.7-1.2mm
-    case deep      // >1.2mm
+/// Wrinkle depth classification (categorical - no mm values shown to user)
+/// User sees: Fine, Moderate, or Deep
+/// Internal thresholds based on curvature analysis
+public enum WrinkleDepth: String {
+    case fine = "Fine Lines"        // Minimal to shallow wrinkles (<0.7mm internally)
+    case moderate = "Moderate"      // Moderate wrinkles (0.7-1.2mm internally)
+    case deep = "Deep Wrinkles"     // Deep wrinkles (>1.2mm internally)
 
-    var score: Float {
+    public var score: Float {
         switch self {
-        case .minimal: return 95
-        case .shallow: return 75
-        case .moderate: return 50
+        case .fine: return 85
+        case .moderate: return 55
         case .deep: return 25
+        }
+    }
+
+    public var userDescription: String {
+        switch self {
+        case .fine:
+            return "Fine lines with minimal depth"
+        case .moderate:
+            return "Moderate wrinkles"
+        case .deep:
+            return "Deep wrinkles"
         }
     }
 }
 
 /// Individual wrinkle region
-struct WrinkleRegion {
-    let location: String  // "forehead", "eyes", "mouth", etc.
-    let depth: Float      // in meters
-    let length: Float     // in meters
-    let severity: WrinkleSeverity
+public struct WrinkleRegion {
+    public let location: String  // "forehead", "eyes", "mouth", etc.
+    public let depth: Float      // in meters
+    public let length: Float     // in meters
+    public let severity: WrinkleSeverity
+
+    public init(location: String, depth: Float, length: Float, severity: WrinkleSeverity) {
+        self.location = location
+        self.depth = depth
+        self.length = length
+        self.severity = severity
+    }
 }
 
-enum WrinkleSeverity: String {
+public enum WrinkleSeverity: String {
     case fine
     case moderate
     case deep
@@ -92,17 +120,26 @@ class WrinkleAnalyzer {
             wrinkleCount: wrinkleRegions.count
         )
 
+        // 7. Calculate confidence (moderate until scaling factor is validated)
+        // Confidence based on mesh quality and number of detected regions
+        let baseConfidence: Float = 70.0  // Moderate confidence until calibrated
+        let meshQualityBonus: Float = geometry.vertices.count > 10000 ? 5.0 : 0.0
+        let detectionBonus: Float = wrinkleRegions.count > 0 ? 5.0 : -10.0
+        let confidence = max(40, min(80, baseConfidence + meshQualityBonus + detectionBonus))
+
         print("✅ Wrinkle analysis complete")
         print("   Overall score: \(String(format: "%.1f", overallScore))/100")
         print("   Wrinkle depth: \(depthClassification)")
         print("   Wrinkles detected: \(wrinkleRegions.count)")
+        print("   Confidence: \(String(format: "%.0f", confidence))% (depth measurement)")
 
         return WrinkleAnalysis(
             overallScore: overallScore,
             wrinkleDepth: depthClassification,
             wrinkleCount: wrinkleRegions.count,
             wrinkleRegions: wrinkleRegions,
-            regionalScores: regionalScores
+            regionalScores: regionalScores,
+            confidence: confidence
         )
     }
 
@@ -285,8 +322,28 @@ class WrinkleAnalyzer {
         // Use curvature as proxy for depth
         let avgCurvature = regionVertices.map { curvatures[$0] }.reduce(0, +) / Float(regionVertices.count)
 
-        // Convert curvature to approximate depth (empirical)
-        return avgCurvature * 0.00002  // Scale factor
+        // Convert curvature to approximate depth
+        //
+        // TODO: CRITICAL - This scaling factor (0.00002) is empirical and needs validation
+        // against real measurements (calipers, medical imaging, or known reference wrinkles)
+        // Current factor was derived from observation but may vary with:
+        // - Device model (different cameras have different mesh resolutions)
+        // - Lighting conditions (affects normal computation)
+        // - Mesh smoothing parameters (affects curvature calculation)
+        //
+        // Validation plan:
+        // 1. Capture scans of subjects with known wrinkle depths (measured by calipers)
+        // 2. Compare computed depths against ground truth
+        // 3. Adjust scaling factor and possibly add per-device calibration
+        // 4. Add confidence bounds based on mesh quality
+        let scalingFactor: Float = 0.00002
+        let estimatedDepth = avgCurvature * scalingFactor
+
+        // Clamp to physically reasonable bounds (0.1mm to 3mm for facial wrinkles)
+        // This prevents clearly wrong values from propagating
+        let clampedDepth = max(0.0001, min(0.003, estimatedDepth))
+
+        return clampedDepth
     }
 
     /// Estimate length of wrinkle region
@@ -327,15 +384,14 @@ class WrinkleAnalyzer {
         }
     }
 
-    /// Classify overall wrinkle depth
+    /// Classify overall wrinkle depth (3-category system: Fine/Moderate/Deep)
+    /// Thresholds based on curvature analysis (not shown to user)
     private func classifyDepth(_ avgDepth: Float) -> WrinkleDepth {
-        if avgDepth < 0.0003 {
-            return .minimal
-        } else if avgDepth < 0.0007 {
-            return .shallow
-        } else if avgDepth < 0.0012 {
+        if avgDepth < 0.0007 {  // <0.7mm
+            return .fine
+        } else if avgDepth < 0.0012 {  // 0.7-1.2mm
             return .moderate
-        } else {
+        } else {  // >1.2mm
             return .deep
         }
     }

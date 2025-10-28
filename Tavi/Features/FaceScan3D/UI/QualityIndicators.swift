@@ -9,24 +9,35 @@
 import SwiftUI
 
 /// Scan quality assessment
-struct ScanQuality {
-    let overallScore: Float  // 0-100
-    let rating: QualityRating
-    let lightingQuality: Float
-    let trackingStability: Float
-    let faceCoverage: Float
-    let meshQuality: Float
-    let issues: [String]
-    let isReliable: Bool
+public struct ScanQuality {
+    public let overallScore: Float  // 0-100
+    public let rating: QualityRating
+    public let lightingQuality: Float
+    public let trackingStability: Float
+    public let faceCoverage: Float
+    public let meshQuality: Float
+    public let issues: [String]
+    public let isReliable: Bool
+
+    public init(overallScore: Float, rating: QualityRating, lightingQuality: Float, trackingStability: Float, faceCoverage: Float, meshQuality: Float, issues: [String], isReliable: Bool) {
+        self.overallScore = overallScore
+        self.rating = rating
+        self.lightingQuality = lightingQuality
+        self.trackingStability = trackingStability
+        self.faceCoverage = faceCoverage
+        self.meshQuality = meshQuality
+        self.issues = issues
+        self.isReliable = isReliable
+    }
 }
 
-enum QualityRating: String {
+public enum QualityRating: String {
     case excellent = "Excellent"
     case good = "Good"
     case fair = "Fair"
     case poor = "Poor"
 
-    var color: Color {
+    public var color: Color {
         switch self {
         case .excellent: return .green
         case .good: return .blue

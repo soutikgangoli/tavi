@@ -182,18 +182,62 @@ public struct SocialSharingView: View {
     }
 
     private func shareToInstagram() {
-        // Placeholder - would implement Instagram sharing
-        print("Share to Instagram")
+        // Instagram sharing via native share sheet filtered to Instagram
+        let image = generateShareImage()
+        let text = generateShareText()
+
+        let activityVC = UIActivityViewController(
+            activityItems: [image, text],
+            applicationActivities: nil
+        )
+
+        // Filter to show Instagram if available
+        activityVC.excludedActivityTypes = [
+            .addToReadingList,
+            .assignToContact,
+            .openInIBooks,
+            .saveToCameraRoll
+        ]
+
+        presentShareSheet(activityVC)
     }
 
     private func shareToMessages() {
-        // Placeholder - would implement Messages sharing
-        print("Share to Messages")
+        // Messages sharing via native share sheet filtered to Messages
+        let image = generateShareImage()
+        let text = generateShareText()
+
+        let activityVC = UIActivityViewController(
+            activityItems: [image, text],
+            applicationActivities: nil
+        )
+
+        presentShareSheet(activityVC)
     }
 
     private func shareToEmail() {
-        // Placeholder - would implement Email sharing
-        print("Share to Email")
+        // Email sharing via native share sheet filtered to Mail
+        let image = generateShareImage()
+        let text = generateShareText()
+
+        let activityVC = UIActivityViewController(
+            activityItems: [image, text],
+            applicationActivities: nil
+        )
+
+        presentShareSheet(activityVC)
+    }
+
+    private func presentShareSheet(_ activityVC: UIActivityViewController) {
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            if let popover = activityVC.popoverPresentationController {
+                popover.sourceView = rootVC.view
+                popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            rootVC.present(activityVC, animated: true)
+        }
     }
 
     private func copyShareableText() {
