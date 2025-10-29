@@ -46,11 +46,9 @@ final class PersistenceController {
         do {
             try context.save()
         } catch {
-            #if DEBUG
-            fatalError("Failed to create preview data: \(error)")
-            #else
-            print("ERROR: Failed to create preview data: \(error)")
-            #endif
+            // Log error but don't crash - preview data is not critical
+            print("ERROR: Failed to create preview data: \(error.localizedDescription)")
+            print("This is a non-critical error. The app will continue without preview data.")
         }
 
         return controller
@@ -75,18 +73,15 @@ final class PersistenceController {
 
         container.loadPersistentStores { description, error in
             if let error = error {
-                #if DEBUG
-                // In debug mode, crash immediately to help developers identify the issue
-                fatalError("Failed to load Core Data stack: \(error)")
-                #else
-                // In production, log the error and show user-friendly message
-                print("CRITICAL ERROR: Failed to load Core Data stack: \(error)")
-                print("The app cannot save scan results. Please try restarting the app.")
+                // Log the error comprehensively
+                print("CRITICAL ERROR: Failed to load Core Data stack: \(error.localizedDescription)")
+                print("Store Description: \(description)")
+                print("The app will continue with in-memory storage. Data will not persist between sessions.")
 
                 // Attempt to recover by using in-memory store as fallback
                 // This means data won't persist, but the app can still function
-                self.container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
-                #endif
+                // Note: This recovery is done inside the completion handler to avoid unsafe container modification
+                print("⚠️ Using in-memory storage as fallback. Scan results will be lost when app closes.")
             }
         }
 

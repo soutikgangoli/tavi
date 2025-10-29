@@ -25,19 +25,19 @@ enum DesignSystem {
         /// Alternative accent for secondary actions
         static let accentSecondary = Color(red: 0.0, green: 0.58, blue: 0.74) // Lighter teal
 
-        /// Text colors
-        static let textPrimary = Color.black
-        static let textSecondary = Color(white: 0.4) // Medium gray
-        static let textTertiary = Color(white: 0.6) // Light gray
+        /// Text colors (adaptive for light/dark mode)
+        static let textPrimary = Color(uiColor: .label) // Adapts to dark mode
+        static let textSecondary = Color(uiColor: .secondaryLabel) // Adapts to dark mode
+        static let textTertiary = Color(uiColor: .tertiaryLabel) // Adapts to dark mode
 
-        /// Background colors
-        static let backgroundPrimary = Color.white
-        static let backgroundSecondary = Color(white: 0.97) // Light gray
-        static let backgroundTertiary = Color(white: 0.95)
+        /// Background colors (adaptive for light/dark mode)
+        static let backgroundPrimary = Color(uiColor: .systemBackground) // Adapts to dark mode
+        static let backgroundSecondary = Color(uiColor: .secondarySystemBackground) // Adapts to dark mode
+        static let backgroundTertiary = Color(uiColor: .tertiarySystemBackground) // Adapts to dark mode
 
-        /// Card colors
-        static let cardBackground = Color.white
-        static let cardBorder = Color(white: 0.9)
+        /// Card colors (adaptive for light/dark mode)
+        static let cardBackground = Color(uiColor: .secondarySystemBackground) // Adapts to dark mode
+        static let cardBorder = Color(uiColor: .separator) // Adapts to dark mode
 
         /// Status colors
         static let success = Color(red: 0.0, green: 0.7, blue: 0.4) // Green
@@ -45,9 +45,9 @@ enum DesignSystem {
         static let error = Color(red: 0.9, green: 0.2, blue: 0.2) // Red
         static let info = Color(red: 0.2, green: 0.6, blue: 1.0) // Blue
 
-        /// Overlay colors
-        static let overlay = Color.black.opacity(0.5)
-        static let overlayLight = Color.black.opacity(0.3)
+        /// Overlay colors (adaptive for light/dark mode)
+        static let overlay = Color(uiColor: .label).opacity(0.5) // Adapts to dark mode
+        static let overlayLight = Color(uiColor: .label).opacity(0.3) // Adapts to dark mode
     }
 
     // MARK: - Typography

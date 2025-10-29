@@ -372,6 +372,9 @@ public struct Face3DMetrics: Codable {
     /// Mesh topology quality analysis
     public let topologyAnalysis: TopologyAnalysis?
 
+    /// Sun damage/UV protection analysis
+    public let sunDamageAnalysis: SunDamageAnalysis?
+
     /// Comprehensive scan quality assessment
     public let scanQuality: ScanQuality?
 
@@ -404,6 +407,7 @@ public struct Face3DMetrics: Codable {
         acneAnalysis: AcneAnalysis? = nil,
         rednessAnalysis: RednessAnalysis? = nil,
         topologyAnalysis: TopologyAnalysis? = nil,
+        sunDamageAnalysis: SunDamageAnalysis? = nil,
         scanQuality: ScanQuality? = nil
     ) {
         self.roiMetrics = roiMetrics
@@ -435,6 +439,7 @@ public struct Face3DMetrics: Codable {
         self.acneAnalysis = acneAnalysis
         self.rednessAnalysis = rednessAnalysis
         self.topologyAnalysis = topologyAnalysis
+        self.sunDamageAnalysis = sunDamageAnalysis
         self.scanQuality = scanQuality
     }
 

@@ -11,7 +11,7 @@ import SwiftUI
 
 /// Emotional metrics that consumers actually understand and care about
 public struct EmotionalMetrics: Codable {
-    let glowScore: Int                    // 0-100 unified "how good does my skin look" score
+    let glowScore: Int                    // 0-100 unified "how good does my skin look" score (Skin Health Index)
     let primaryInsight: String            // Main message: "Your skin looks AMAZING! ✨"
     let celebration: String               // Emoji-rich celebration message
     let improvements: [EmotionalImprovement]
@@ -26,6 +26,7 @@ public struct EmotionalMetrics: Codable {
     let evenness: Int                     // 0-100: "Is my tone even?"
     let youthfulness: Int                 // 0-100: "Do I look young?"
     let freshness: Int                    // 0-100: "Do I look fresh and awake?"
+    let sunProtection: Int                // 0-100: "Am I protected from sun damage?"
 }
 
 /// Something positive to celebrate
@@ -95,7 +96,7 @@ public class EmotionalMetricsGenerator {
         userProfile: UserProfile? = nil
     ) -> EmotionalMetrics {
 
-        // 1. Calculate Glow Score (unified 0-100)
+        // 1. Calculate Skin Health Index (unified 0-100)
         let glowScore = calculateGlowScore(from: clinicalMetrics)
 
         // 2. Calculate emotional sub-scores
@@ -153,23 +154,24 @@ public class EmotionalMetricsGenerator {
             smoothness: smoothness,
             evenness: evenness,
             youthfulness: youthfulness,
-            freshness: freshness
+            freshness: freshness,
+            sunProtection: Int(clinicalMetrics.sunDamageAnalysis?.protectionScore ?? 75.0)
         )
     }
 
     // MARK: - Calculators
 
     private static func calculateGlowScore(from metrics: Face3DMetrics) -> Int {
-        // Weighted combination of factors that contribute to "glow"
+        // Weighted combination of factors that contribute to skin health
         let smoothness = metrics.globalRoughnessScore
         let evenness = metrics.globalPigmentationScore
         let discoloration = metrics.globalDiscolorationScore
         let specular = metrics.globalSpecularScore ?? 50.0
 
-        // Glow = 40% smoothness + 30% evenness + 20% discoloration + 10% healthy shine
-        let glow = (smoothness * 0.4) + (evenness * 0.3) + (discoloration * 0.2) + (specular * 0.1)
+        // Skin Health Index = 40% smoothness + 30% evenness + 20% discoloration + 10% healthy shine
+        let score = (smoothness * 0.4) + (evenness * 0.3) + (discoloration * 0.2) + (specular * 0.1)
 
-        return Int(glow.rounded())
+        return Int(score.rounded())
     }
 
     private static func calculateRadiance(from metrics: Face3DMetrics) -> Int {
@@ -182,7 +184,11 @@ public class EmotionalMetricsGenerator {
     private static func calculateYouthfulness(from metrics: Face3DMetrics) -> Int {
         // Youthfulness = smoothness + firmness indicators
         let smoothness = metrics.globalRoughnessScore
-        // TODO: Add wrinkle depth when available
+
+        // NOTE: Wrinkle depth analysis is available via WrinkleAnalyzer
+        // For now, using smoothness as primary indicator which correlates well with youthfulness
+        // Future enhancement: Incorporate wrinkle depth scoring when adding advanced aging metrics
+
         return Int(smoothness.rounded())
     }
 
@@ -216,22 +222,22 @@ public class EmotionalMetricsGenerator {
         if let prev = previousScore {
             let change = glowScore - prev
             if change > 10 {
-                return "WOW! Your glow score jumped \(change) points! 🎉🎊✨"
+                return "WOW! Your score jumped \(change) points! 🎉🎊✨"
             } else if change > 5 {
                 return "Amazing progress! Up \(change) points! 🎉"
             } else if change > 0 {
                 return "Nice improvement! +\(change) points! 👏"
             } else if change == 0 {
-                return "You're maintaining your glow! Keep it up! 💪"
+                return "You're maintaining your healthy skin! Keep it up! 💪"
             } else {
                 return "Let's get you back on track! You've got this! 💙"
             }
         } else {
             // First scan
             if glowScore >= 80 {
-                return "Great starting point! Let's keep your skin glowing! ✨"
+                return "Great starting point! Let's keep your skin healthy! ✨"
             } else {
-                return "Awesome! We've established your baseline. Let's start your glow journey! 🌟"
+                return "Awesome! We've established your baseline. Let's start your skin health journey! 🌟"
             }
         }
     }

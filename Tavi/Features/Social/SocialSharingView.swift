@@ -262,7 +262,7 @@ public struct SocialSharingView: View {
         switch selectedShareType {
         case .progress:
             return """
-            🌟 My skin glow score: \(emotionalMetrics.glowScore)/100!
+            🌟 My Skin Health Index: \(emotionalMetrics.glowScore)/100!
             \(emotionalMetrics.primaryInsight)
 
             Tracking my skincare journey with Tavi ✨
@@ -295,7 +295,7 @@ public struct SocialSharingView: View {
                 return """
                 🏆 30-Day Glow Challenge Progress!
                 Day \(challenge.daysCompleted)/\(challenge.goalDays)
-                Glow Score: \(challenge.baselineGlowScore) → \(challenge.currentGlowScore) (+\(challenge.glowImprovement))
+                Skin Health Index: \(challenge.baselineGlowScore) → \(challenge.currentGlowScore) (+\(challenge.glowImprovement))
 
                 Join me in the challenge! 🌟
                 """
@@ -332,7 +332,7 @@ struct ProgressShareCard: View {
                         .font(.system(size: 72, weight: .bold))
                         .foregroundColor(scoreColor)
 
-                    Text("Glow Score")
+                    Text("Skin Health Index")
                         .font(.title3)
                         .fontWeight(.semibold)
                 }

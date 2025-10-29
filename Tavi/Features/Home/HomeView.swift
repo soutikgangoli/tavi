@@ -91,6 +91,10 @@ public struct HomeView: View {
             }
             .padding()
         }
+        .refreshable {
+            // Reload gamification data and latest session
+            await loadLatestData()
+        }
         .navigationTitle("Tavi")
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingFlowView()
@@ -134,15 +138,18 @@ public struct HomeView: View {
             VStack(spacing: 4) {
                 Text(streak.streakEmoji)
                     .font(.system(size: 48))
+                    .accessibilityHidden(true)
 
                 Text("\(streak.currentStreak)")
                     .font(.system(size: 36, weight: .bold))
                     .foregroundColor(streakColor)
+                    .accessibilityLabel("\(streak.currentStreak) day streak")
 
                 Text("Day Streak")
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
             }
 
             Divider()
@@ -156,7 +163,9 @@ public struct HomeView: View {
 
                 HStack(spacing: 16) {
                     StatPill(label: "Best", value: "\(streak.longestStreak)")
+                        .accessibilityLabel("Best streak: \(streak.longestStreak) days")
                     StatPill(label: "Total", value: "\(streak.totalScans)")
+                        .accessibilityLabel("Total scans: \(streak.totalScans)")
                 }
 
                 if !streak.isActiveToday {
@@ -178,6 +187,8 @@ public struct HomeView: View {
                     )
                 )
         )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Scan streak card")
     }
 
     private var streakColor: Color {
@@ -210,6 +221,7 @@ public struct HomeView: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(milestone.emoji)
                             .font(.title2)
+                            .accessibilityHidden(true)
                         Text("\(milestone.days - challenge.daysCompleted) to go")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
@@ -236,10 +248,11 @@ public struct HomeView: View {
                 }
             }
             .frame(height: 12)
+            .accessibilityLabel("Challenge progress: \(Int(challenge.progressPercentage)) percent complete")
 
             // Improvement
             HStack {
-                Text("Glow Score:")
+                Text("Skin Health Index:")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
@@ -256,12 +269,16 @@ public struct HomeView: View {
 
                 Spacer()
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Skin health index improved from \(challenge.baselineGlowScore) to \(challenge.currentGlowScore), up \(challenge.glowImprovement) points")
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color(uiColor: .secondarySystemBackground))
         )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("30-Day Glow Challenge, day \(challenge.daysCompleted) of \(challenge.goalDays)")
     }
 
     private var scanNowCard: some View {
@@ -300,6 +317,9 @@ public struct HomeView: View {
         }
         .disabled(!capabilities.supportsTrueDepth)
         .opacity(capabilities.supportsTrueDepth ? 1.0 : 0.5)
+        .accessibilityLabel("Start skin scan")
+        .accessibilityHint("Begins a 60-second face scan to analyze your skin health")
+        .accessibilityAddTraits(capabilities.supportsTrueDepth ? [] : .isNotEnabled)
     }
 
     private var recentAchievementsSection: some View {
@@ -342,13 +362,15 @@ public struct HomeView: View {
                             .fontWeight(.bold)
                             .foregroundColor(scoreColor(session.overallScore))
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Score: \(Int(session.overallScore)) out of 100")
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(session.relativeDate)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 
-                        Text("Glow Score")
+                        Text("Skin Health Index")
                             .font(.headline)
 
                         Text("Tap to view details")
@@ -360,9 +382,13 @@ public struct HomeView: View {
 
                     Image(systemName: "chevron.right")
                         .foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Latest scan from \(session.relativeDate), score \(Int(session.overallScore)) out of 100")
+            .accessibilityHint("Double tap to view detailed results")
+            .accessibilityAddTraits(.isButton)
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 16)
@@ -388,12 +414,17 @@ public struct HomeView: View {
             Image(systemName: "arrow.right.circle.fill")
                 .font(.title)
                 .foregroundColor(.blue)
+                .accessibilityHidden(true)
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color.blue.opacity(0.1))
         )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("See your progress")
+        .accessibilityHint("Compare before and after scan results")
+        .accessibilityAddTraits(.isButton)
     }
 
     private var startChallengeCTA: some View {
@@ -407,6 +438,7 @@ public struct HomeView: View {
             VStack(spacing: 12) {
                 Text("🏆")
                     .font(.system(size: 48))
+                    .accessibilityHidden(true)
 
                 Text("Start 30-Day Glow Challenge")
                     .font(.title3)
@@ -431,6 +463,8 @@ public struct HomeView: View {
                     )
             )
         }
+        .accessibilityLabel("Start 30-Day Glow Challenge")
+        .accessibilityHint("Begin a 30-day challenge to build healthy habits and improve your skin")
     }
 
     private var historySection: some View {
@@ -449,6 +483,8 @@ public struct HomeView: View {
                         .font(.subheadline)
                         .foregroundColor(.blue)
                 }
+                .accessibilityLabel("View all scan history")
+                .accessibilityHint("Show complete list of past scans")
             }
 
             if sessions.isEmpty {
@@ -475,6 +511,8 @@ public struct HomeView: View {
                         CompactSessionRow(session: session)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Scan from \(session.relativeDate), score \(Int(session.overallScore))")
+                    .accessibilityHint("Double tap to view details")
                 }
             }
         }
@@ -492,13 +530,21 @@ public struct HomeView: View {
             .sorted { $0.unlockedDate ?? Date.distantPast > $1.unlockedDate ?? Date.distantPast }
     }
 
+    /// Async function to reload latest data for pull-to-refresh
+    private func loadLatestData() async {
+        // Reload gamification data on main actor
+        await MainActor.run {
+            loadGamificationData()
+        }
+    }
+
     private func scoreColor(_ score: Double) -> Color {
         switch score {
-        case 90...100: return .green
-        case 80..<90: return .blue
-        case 70..<80: return .cyan
-        case 60..<70: return .orange
-        default: return .purple
+        case 85...100: return Color(red: 0.0, green: 0.8, blue: 0.2)  // Bright green
+        case 70..<85: return Color(red: 0.6, green: 0.9, blue: 0.3)   // Light green
+        case 50..<70: return Color(red: 1.0, green: 0.8, blue: 0.0)   // Yellow
+        case 25..<50: return Color(red: 1.0, green: 0.6, blue: 0.0)   // Dark yellow/orange
+        default: return Color(red: 1.0, green: 0.3, blue: 0.2)        // Red
         }
     }
 
@@ -541,6 +587,7 @@ struct AchievementRow: View {
         HStack(spacing: 12) {
             Text(achievement.emoji)
                 .font(.title)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(achievement.title)
@@ -564,6 +611,8 @@ struct AchievementRow: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.yellow.opacity(0.1))
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Achievement: \(achievement.title). \(achievement.description). Unlocked \(achievement.unlockedDate?.formatted(date: .abbreviated, time: .omitted) ?? "recently")")
     }
 }
 
@@ -587,6 +636,7 @@ struct CompactSessionRow: View {
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
@@ -594,6 +644,7 @@ struct CompactSessionRow: View {
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color(uiColor: .secondarySystemBackground))
         )
+        .accessibilityElement(children: .combine)
     }
 }
 

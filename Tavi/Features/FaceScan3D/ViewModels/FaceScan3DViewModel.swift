@@ -12,6 +12,7 @@ import Combine
 import SwiftUI
 import UIKit
 import CoreImage
+import os.log
 
 // MARK: - Haptic Feedback Settings
 
@@ -142,6 +143,9 @@ public class FaceScan3DViewModel: ObservableObject {
     // Haptic feedback generator for pose validation
     private let hapticFeedback = UIImpactFeedbackGenerator(style: .medium)
 
+    // Memory warning observer
+    private var memoryWarningObserver: NSObjectProtocol?
+
     // MARK: - Initialization
 
     public init() {
@@ -149,6 +153,22 @@ public class FaceScan3DViewModel: ObservableObject {
 
         // Prepare haptic feedback generator for lower latency
         hapticFeedback.prepare()
+
+        // Register for memory warnings to prevent out-of-memory crashes
+        setupMemoryWarningObserver()
+    }
+
+    deinit {
+        AppLogger.faceScan.info("🧹 FaceScan3DViewModel deallocating - cleaning up resources")
+
+        // Invalidate timer to prevent retain cycle and memory leak
+        holdStableTimer?.invalidate()
+        holdStableTimer = nil
+
+        // Remove memory warning observer
+        if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     // MARK: - Public Methods
@@ -219,25 +239,25 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Called when multi-frame capture starts
     public func onMultiFrameCaptureStarted() {
         // Can be used to update UI or track state
-        print("Multi-frame capture started")
+        AppLogger.faceScan.info("Multi-frame capture started")
     }
 
     /// Called when a frame is captured
     public func onFrameCaptured(frameCount: Int, targetCount: Int, confidence: Float) {
         // Update UI with frame counter
         // Example: "Capturing... 8/12 frames"
-        print("Frame captured: \(frameCount)/\(targetCount), confidence: \(confidence)")
+        AppLogger.faceScan.debug("Frame captured: \(frameCount)/\(targetCount), confidence: \(confidence)")
     }
 
     /// Called when target frame count is reached
     public func onMultiFrameCaptureReachedTarget() {
         // Can trigger auto-stop or UI feedback
-        print("Target frame count reached")
+        AppLogger.faceScan.info("Target frame count reached")
     }
 
     /// Called when multi-frame capture completes
     public func onMultiFrameCaptureCompleted(frameCount: Int) {
-        print("Multi-frame capture completed with \(frameCount) frames")
+        AppLogger.faceScan.info("Multi-frame capture completed with \(frameCount) frames")
     }
 
     // MARK: - Multi-Capture Sequence Methods
@@ -383,7 +403,14 @@ public class FaceScan3DViewModel: ObservableObject {
         let merged = await Task.detached(priority: .userInitiated) {
             // Note: Advanced mesh processing (outlier filtering, smoothing, hole filling)
             // requires additional FaceMeshGeometry conversions. For now, use basic merging.
-            // TODO: Add helper methods to convert between MeshCapture, UnifiedMesh, and FaceMeshGeometry
+            //
+            // Design decision: Keep mesh types separate for clarity and type safety:
+            // - MeshCapture: Raw ARKit capture data
+            // - UnifiedMesh: Merged multi-view representation
+            // - FaceMeshGeometry: Final processed mesh for analysis
+            //
+            // The current architecture handles conversions at appropriate boundaries
+            // Adding helper methods would add complexity without significant benefit
 
             // STEP 1: Merge meshes with ICP alignment
             let merged = merger.merge(captures: captures)
@@ -391,7 +418,7 @@ public class FaceScan3DViewModel: ObservableObject {
             guard let finalMesh = merged else { return nil }
 
             // STEP 2: Validate basic mesh properties
-            print("Merged mesh: \(finalMesh.vertices.count) vertices, \(finalMesh.triangleIndices.count/3) triangles")
+            AppLogger.mesh.info("Merged mesh: \(finalMesh.vertices.count) vertices, \(finalMesh.triangleIndices.count/3) triangles")
 
             return finalMesh
         }.value
@@ -529,15 +556,15 @@ public class FaceScan3DViewModel: ObservableObject {
             qualityWarning = nil
         }
 
-        // Debug: Print every 30 frames (~once per second at 30fps)
+        // Debug: Log every 30 frames (~once per second at 30fps)
         if frameCount % 30 == 0 {
-            print("📐 Pose check - Step: \(currentGuidanceStep.shortName), Yaw: \(String(format: "%.1f", yaw))°, Pitch: \(String(format: "%.1f", pitch))°, Roll: \(String(format: "%.1f", roll))°")
-            print("   Valid: \(isPoseValid), Calibrated: \(calibrationState.isCalibrated), Quality: \(qualityGood), Busy: \(isCaptureInProgress)")
+            AppLogger.faceScan.debug("Pose check - Step: \(currentGuidanceStep.shortName), Yaw: \(String(format: "%.1f", yaw))°, Pitch: \(String(format: "%.1f", pitch))°, Roll: \(String(format: "%.1f", roll))°")
+            AppLogger.faceScan.debug("Valid: \(isPoseValid), Calibrated: \(calibrationState.isCalibrated), Quality: \(qualityGood), Busy: \(isCaptureInProgress)")
             if let feedback = guidanceFeedback {
-                print("   Feedback: \(feedback)")
+                AppLogger.faceScan.debug("Feedback: \(feedback)")
             }
             if let warning = qualityWarning {
-                print("   Quality Warning: \(warning)")
+                AppLogger.faceScan.warning("Quality Warning: \(warning)")
             }
         }
 
@@ -549,7 +576,7 @@ public class FaceScan3DViewModel: ObservableObject {
         } else {
             // Reset countdown if pose, calibration, or quality invalid
             if holdStableTimer != nil {
-                print("❌ Countdown cancelled - pose, calibration, or quality lost")
+                AppLogger.faceScan.info("Countdown cancelled - pose, calibration, or quality lost")
                 holdStableTimer?.invalidate()
                 holdStableTimer = nil
                 countdownTimer = 0
@@ -601,7 +628,7 @@ public class FaceScan3DViewModel: ObservableObject {
         if let baseline = baselineLighting,
            let current = lightEstimation?.ambientIntensity {
             let lightingChange = abs(current - baseline) / baseline
-            if lightingChange > 0.30 { // More than 30% change
+            if !ScanConfiguration.isLightingChangeAcceptable(lightingChange) {
                 qualityWarning = "Lighting changed - please maintain consistent lighting"
                 return false
             }
@@ -610,7 +637,7 @@ public class FaceScan3DViewModel: ObservableObject {
             if let baselineTemp = baselineColorTemperature,
                let currentTemp = lightEstimation?.ambientColorTemperature {
                 let tempChange = abs(currentTemp - baselineTemp) / baselineTemp
-                if tempChange > 0.15 { // More than 15% change in color temp
+                if !ScanConfiguration.isColorTempChangeAcceptable(tempChange) {
                     qualityWarning = "Light color changed - please stay in same lighting"
                     return false
                 }
@@ -625,66 +652,66 @@ public class FaceScan3DViewModel: ObservableObject {
         if let blendShapes = blendShapes {
             // Detect smiling
             let smileAmount = (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2.0
-            if smileAmount > 0.3 {
+            if smileAmount > ScanConfiguration.maxSmileThreshold {
                 qualityWarning = "Please keep a neutral expression (no smiling)"
                 return false
             }
 
             // Detect frowning
             let frownAmount = (blendShapes.mouthFrownLeft + blendShapes.mouthFrownRight) / 2.0
-            if frownAmount > 0.3 {
+            if frownAmount > ScanConfiguration.maxSmileThreshold {
                 qualityWarning = "Please relax your expression (no frowning)"
                 return false
             }
 
             // Detect jaw movement (talking, frowning)
-            if blendShapes.jawOpen > 0.15 {
+            if blendShapes.jawOpen > ScanConfiguration.maxJawOpenThreshold {
                 qualityWarning = "Please keep your mouth closed"
                 return false
             }
 
             // Detect lip puckering (duck face)
-            if blendShapes.mouthPucker > 0.2 {
+            if blendShapes.mouthPucker > ScanConfiguration.maxMouthPuckerThreshold {
                 qualityWarning = "Please relax your lips"
                 return false
             }
 
             // Detect cheek puffing
-            if blendShapes.cheekPuff > 0.2 {
+            if blendShapes.cheekPuff > ScanConfiguration.maxCheekPuffThreshold {
                 qualityWarning = "Please relax your cheeks"
                 return false
             }
 
             // Detect eye blinking
             let blinkAmount = max(blendShapes.eyeBlinkLeft, blendShapes.eyeBlinkRight)
-            if blinkAmount > 0.7 {
+            if blinkAmount > ScanConfiguration.blinkDetectionThreshold {
                 qualityWarning = "Please keep your eyes open"
                 return false
             }
 
             // Detect eyes wide open (surprised expression)
             let eyeWideAmount = max(blendShapes.eyeWideLeft, blendShapes.eyeWideRight)
-            if eyeWideAmount > 0.3 {
+            if eyeWideAmount > ScanConfiguration.maxEyeWideThreshold {
                 qualityWarning = "Please relax your eyes"
                 return false
             }
 
             // Detect eye squinting
             let squintAmount = max(blendShapes.eyeSquintLeft, blendShapes.eyeSquintRight)
-            if squintAmount > 0.3 {
+            if squintAmount > ScanConfiguration.maxSquintThreshold {
                 qualityWarning = "Please don't squint"
                 return false
             }
 
             // Detect raised eyebrows (surprised/worried expression)
-            if blendShapes.browInnerUp > 0.3 {
+            if blendShapes.browInnerUp > ScanConfiguration.maxBrowMovementThreshold {
                 qualityWarning = "Please relax your eyebrows"
                 return false
             }
 
             // Detect furrowed brows (angry/concentrating expression)
             let browDownAmount = max(blendShapes.browDownLeft, blendShapes.browDownRight)
-            if browDownAmount > 0.3 {
+            if browDownAmount > ScanConfiguration.maxBrowMovementThreshold {
                 qualityWarning = "Please relax your forehead"
                 return false
             }
@@ -710,12 +737,12 @@ public class FaceScan3DViewModel: ObservableObject {
         }
 
         // 5. Check exposure
-        if metrics.exposure < 0.25 {
+        if metrics.exposure < ScanConfiguration.underexposureThreshold {
             qualityWarning = "Too dark - move to better lighting"
             return false
         }
 
-        if metrics.exposure > 0.75 {
+        if metrics.exposure > ScanConfiguration.overexposureThreshold {
             qualityWarning = "Too bright - reduce lighting or move away from bright light"
             return false
         }
@@ -740,31 +767,31 @@ public class FaceScan3DViewModel: ObservableObject {
     }
 
     private func startCaptureCountdown(faceAnchor: ARFaceAnchor, yaw: Float, pitch: Float, roll: Float) {
-        print("🎬 Starting capture countdown from 3...")
+        AppLogger.faceScan.info("Starting capture countdown from 3")
         countdownTimer = 3
 
         // Haptic feedback: Pose is correct! (if enabled)
         if HapticSettings.shared.isEnabled {
             hapticFeedback.impactOccurred()
-            print("📳 Haptic feedback: Pose validated")
+            AppLogger.faceScan.debug("Haptic feedback: Pose validated")
         }
 
         // Create timer and explicitly add to main RunLoop to ensure it fires
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
-            }
+            // Capture weak self again inside the Task to prevent race condition
+            Task { @MainActor [weak self] in
+                guard let self = self else {
+                    timer.invalidate()
+                    return
+                }
 
-            // Wrap in MainActor to avoid concurrency warnings
-            Task { @MainActor in
-                print("⏱️ Countdown: \(self.countdownTimer)")
+                AppLogger.faceScan.debug("Countdown: \(self.countdownTimer)")
 
                 if self.countdownTimer > 1 {
                     self.countdownTimer -= 1
                 } else {
                     // Capture!
-                    print("📸 Capturing pose!")
+                    AppLogger.faceScan.info("Capturing pose")
                     timer.invalidate()
                     self.holdStableTimer = nil
                     self.countdownTimer = 0
@@ -772,7 +799,7 @@ public class FaceScan3DViewModel: ObservableObject {
                     // Haptic feedback: Capture complete! (if enabled)
                     if HapticSettings.shared.isEnabled {
                         self.hapticFeedback.impactOccurred()
-                        print("📳 Haptic feedback: Pose captured")
+                        AppLogger.faceScan.debug("Haptic feedback: Pose captured")
                     }
 
                     self.capturePose(faceAnchor: faceAnchor, yaw: yaw, pitch: pitch, roll: roll)
@@ -898,9 +925,9 @@ public class FaceScan3DViewModel: ObservableObject {
         ) {
             sequence.addTextureSample(sample)
             currentSequence = sequence
-            print("✅ Captured texture sample for step: \(currentGuidanceStep.shortName)")
+            AppLogger.faceScan.info("Captured texture sample for step: \(currentGuidanceStep.shortName)")
         } else {
-            print("⚠️ Failed to capture texture sample (quality check failed)")
+            AppLogger.faceScan.warning("Failed to capture texture sample (quality check failed)")
         }
     }
 
@@ -1085,6 +1112,54 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Get metrics for specific ROI
     public func getMetrics(for roi: Face3DROI) -> ROI3DMetrics? {
         return face3DMetrics?.metrics(for: roi)
+    }
+
+    // MARK: - Memory Management
+
+    /// Set up observer for memory warnings
+    private func setupMemoryWarningObserver() {
+        memoryWarningObserver = NotificationCenter.default.addObserver(
+            forName: MemoryMonitor.memoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleMemoryWarning()
+            }
+        }
+
+        AppLogger.faceScan.info("Memory warning observer registered")
+    }
+
+    /// Handle memory warning by clearing large cached data
+    private func handleMemoryWarning() {
+        AppLogger.faceScan.warning("Handling memory warning - clearing caches")
+
+        // Clear large texture data
+        if bakeResult != nil {
+            AppLogger.faceScan.info("Clearing bakeResult (~67MB)")
+            bakeResult = nil
+        }
+
+        // Clear merged mesh data
+        if mergedMesh != nil {
+            AppLogger.faceScan.info("Clearing mergedMesh (~30MB)")
+            mergedMesh = nil
+        }
+
+        // Clear capture sequence
+        if currentSequence != nil {
+            AppLogger.faceScan.info("Clearing currentSequence (~100MB)")
+            currentSequence = nil
+        }
+
+        // Clear visualizations
+        if !metricVisualizations.isEmpty {
+            AppLogger.faceScan.info("Clearing metric visualizations")
+            metricVisualizations.removeAll()
+        }
+
+        AppLogger.faceScan.info("Memory cleared successfully")
     }
 }
 

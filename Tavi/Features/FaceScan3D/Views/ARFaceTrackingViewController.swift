@@ -203,12 +203,35 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
     public func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
         guard anchor is ARFaceAnchor else { return nil }
 
-        // Create face geometry node
-        let faceGeometry = ARSCNFaceGeometry(device: sceneView.device!)!
+        // Safely unwrap Metal device
+        guard let device = sceneView.device else {
+            print("ERROR: Metal device not available")
+            viewModel?.sessionFailed(error: NSError(
+                domain: "ARFaceTracking",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Your device does not support face tracking"]
+            ))
+            return nil
+        }
+
+        // Safely create face geometry
+        guard let faceGeometry = ARSCNFaceGeometry(device: device) else {
+            print("ERROR: Failed to create face geometry")
+            viewModel?.sessionFailed(error: NSError(
+                domain: "ARFaceTracking",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to initialize face tracking"]
+            ))
+            return nil
+        }
+
         let node = SCNNode(geometry: faceGeometry)
 
-        // Configure material
-        let material = faceGeometry.firstMaterial!
+        // Safely unwrap material
+        guard let material = faceGeometry.firstMaterial else {
+            print("ERROR: Face geometry has no material")
+            return nil
+        }
         // Set visible wireframe color (white with some transparency)
         material.diffuse.contents = UIColor.white.withAlphaComponent(0.7)
         material.lightingModel = .constant
@@ -243,25 +266,31 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
             )
 
             // Notify viewModel of frame count update
-            Task { @MainActor in
-                viewModel?.onFrameCaptured(
-                    frameCount: averager.frameCount,
-                    targetCount: targetFrameCount,
-                    confidence: confidence
-                )
+            Task {
+                await MainActor.run {
+                    viewModel?.onFrameCaptured(
+                        frameCount: averager.frameCount,
+                        targetCount: targetFrameCount,
+                        confidence: confidence
+                    )
+                }
             }
 
             // Auto-stop if we've reached target
             if averager.frameCount >= targetFrameCount {
-                Task { @MainActor in
-                    viewModel?.onMultiFrameCaptureReachedTarget()
+                Task {
+                    await MainActor.run {
+                        viewModel?.onMultiFrameCaptureReachedTarget()
+                    }
                 }
             }
         }
 
         // Always update view model with current geometry for real-time display
-        Task { @MainActor in
-            viewModel?.updateGeometry(faceAnchor: faceAnchor, frame: frame)
+        Task {
+            await MainActor.run {
+                viewModel?.updateGeometry(faceAnchor: faceAnchor, frame: frame)
+            }
         }
     }
 

@@ -215,14 +215,32 @@ public class UserProfileManager {
         }
     }
 
-    // Update specific fields
-    public func updateName(_ name: String) {
+    // Update specific fields with validation
+    public func updateName(_ name: String) throws {
+        let validation = InputValidator.validateName(name)
+        guard validation.isValid else {
+            throw NSError(
+                domain: "UserProfileManager",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: validation.errorMessage ?? "Invalid name"]
+            )
+        }
+
         var profile = loadProfile()
         profile.name = name
         saveProfile(profile)
     }
 
-    public func updateAge(_ age: Int) {
+    public func updateAge(_ age: Int) throws {
+        let validation = InputValidator.validateAge(String(age))
+        guard validation.isValid else {
+            throw NSError(
+                domain: "UserProfileManager",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: validation.errorMessage ?? "Invalid age"]
+            )
+        }
+
         var profile = loadProfile()
         profile.age = age
         saveProfile(profile)

@@ -11,6 +11,7 @@ import SwiftUI
 /// Celebratory results view with emotional design
 public struct CelebratoryResultsView: View {
     let emotionalMetrics: EmotionalMetrics
+    let clinicalMetrics: Face3DMetrics?
     let previousMetrics: EmotionalMetrics?
     let onStartChallenge: () -> Void
     let onShareResults: () -> Void
@@ -25,12 +26,14 @@ public struct CelebratoryResultsView: View {
 
     public init(
         emotionalMetrics: EmotionalMetrics,
+        clinicalMetrics: Face3DMetrics? = nil,
         previousMetrics: EmotionalMetrics? = nil,
         onStartChallenge: @escaping () -> Void = {},
         onShareResults: @escaping () -> Void = {},
         onViewProducts: @escaping () -> Void = {}
     ) {
         self.emotionalMetrics = emotionalMetrics
+        self.clinicalMetrics = clinicalMetrics
         self.previousMetrics = previousMetrics
         self.onStartChallenge = onStartChallenge
         self.onShareResults = onShareResults
@@ -45,7 +48,7 @@ public struct CelebratoryResultsView: View {
                     .opacity(showGlowScore ? 1 : 0)
                     .offset(y: showGlowScore ? 0 : -20)
 
-                // Big Glow Score
+                // Big Skin Health Index Score
                 glowScoreCard
                     .opacity(showGlowScore ? 1 : 0)
                     .scaleEffect(showGlowScore ? 1 : 0.8)
@@ -83,6 +86,14 @@ public struct CelebratoryResultsView: View {
                 // Share Button
                 shareButton
 
+                // Clinical Info (expandable dropdown)
+                if let clinicalMetrics = clinicalMetrics {
+                    ClinicalInfoView(
+                        emotionalMetrics: emotionalMetrics,
+                        clinicalMetrics: clinicalMetrics
+                    )
+                }
+
                 // Scan Metadata (for transparency)
                 scanMetadataSection
 
@@ -112,11 +123,11 @@ public struct CelebratoryResultsView: View {
 
     private var glowColor: Color {
         switch emotionalMetrics.glowScore {
-        case 90...100: return .green
-        case 80..<90: return .blue
-        case 70..<80: return .cyan
-        case 60..<70: return .orange
-        default: return .purple
+        case 85...100: return Color(red: 0.0, green: 0.8, blue: 0.2)  // Bright green
+        case 70..<85: return Color(red: 0.6, green: 0.9, blue: 0.3)   // Light green
+        case 50..<70: return Color(red: 1.0, green: 0.8, blue: 0.0)   // Yellow
+        case 25..<50: return Color(red: 1.0, green: 0.6, blue: 0.0)   // Dark yellow/orange
+        default: return Color(red: 1.0, green: 0.3, blue: 0.2)        // Red
         }
     }
 
@@ -157,11 +168,13 @@ public struct CelebratoryResultsView: View {
                         .font(.system(size: 64, weight: .bold))
                         .foregroundColor(glowColor)
 
-                    Text("Glow Score")
+                    Text("Skin Health Index")
                         .font(.headline)
                         .foregroundStyle(.secondary)
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Your skin health index is \(emotionalMetrics.glowScore) out of 100")
 
             // Personalized message
             Text(emotionalMetrics.personalizedMessage)
@@ -174,6 +187,7 @@ public struct CelebratoryResultsView: View {
             RoundedRectangle(cornerRadius: 24)
                 .fill(Color(uiColor: .secondarySystemBackground))
         )
+        .accessibilityElement(children: .contain)
     }
 
     private var improvementsSection: some View {
@@ -242,6 +256,17 @@ public struct CelebratoryResultsView: View {
                     color: .green,
                     description: "Clarity and overall vitality"
                 )
+
+                // Only show Sun Protection if enabled in settings
+                if clinicalMetrics?.sunDamageAnalysis != nil {
+                    MetricDetailRow(
+                        title: "Sun Protection",
+                        emoji: "☀️",
+                        score: emotionalMetrics.sunProtection,
+                        color: .orange,
+                        description: "Protection from UV damage and photoaging"
+                    )
+                }
             }
         }
     }
@@ -341,6 +366,7 @@ public struct CelebratoryResultsView: View {
             VStack(spacing: 8) {
                 Text("🏆")
                     .font(.system(size: 64))
+                    .accessibilityHidden(true)
 
                 Text("Start Your 30-Day Glow Challenge")
                     .font(.title2)
@@ -357,6 +383,7 @@ public struct CelebratoryResultsView: View {
             Button(action: onStartChallenge) {
                 HStack {
                     Image(systemName: "trophy.fill")
+                        .accessibilityHidden(true)
                     Text("Start 30-Day Challenge")
                         .fontWeight(.bold)
                 }
@@ -372,6 +399,8 @@ public struct CelebratoryResultsView: View {
                 .foregroundColor(.white)
                 .cornerRadius(16)
             }
+            .accessibilityLabel("Start 30-Day Glow Challenge")
+            .accessibilityHint("Begin tracking your skin health progress with daily check-ins")
         }
         .padding()
         .background(
@@ -384,6 +413,7 @@ public struct CelebratoryResultsView: View {
         Button(action: onShareResults) {
             HStack {
                 Image(systemName: "square.and.arrow.up")
+                    .accessibilityHidden(true)
                 Text("Share My Progress")
                     .fontWeight(.semibold)
             }
@@ -393,6 +423,8 @@ public struct CelebratoryResultsView: View {
             .foregroundColor(.blue)
             .cornerRadius(12)
         }
+        .accessibilityLabel("Share my progress")
+        .accessibilityHint("Share your skin health results with others")
     }
 
     private var scanMetadataSection: some View {
@@ -615,15 +647,17 @@ struct MetricDetailRow: View {
             HStack {
                 Text(emoji)
                     .font(.title2)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.subheadline)
                         .fontWeight(.semibold)
 
-                    Text(description)
+                    // Compact emotional summary - score dependent
+                    Text(compactEmotionalSummary)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(summaryColor)
                 }
 
                 Spacer()
@@ -647,12 +681,77 @@ struct MetricDetailRow: View {
                 }
             }
             .frame(height: 8)
+            .accessibilityLabel("\(title) progress: \(score) percent")
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(uiColor: .secondarySystemBackground))
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(score) out of 100. \(compactEmotionalSummary)")
+    }
+
+    // MARK: - Compact Summaries (Different from Clinical Breakdown)
+
+    /// Returns compact, score-dependent summary for main results
+    private var compactEmotionalSummary: String {
+        switch title {
+        case "Radiance":
+            switch score {
+            case 80...100: return "Glowing and luminous"
+            case 60...79: return "Good glow, can improve"
+            case 40...59: return "Needs radiance boost"
+            default: return "Requires attention"
+            }
+        case "Smoothness":
+            switch score {
+            case 80...100: return "Silky and refined"
+            case 60...79: return "Pretty smooth"
+            case 40...59: return "Some roughness detected"
+            default: return "Texture needs work"
+            }
+        case "Evenness":
+            switch score {
+            case 80...100: return "Beautifully balanced tone"
+            case 60...79: return "Mostly even"
+            case 40...59: return "Noticeable variation"
+            default: return "Uneven tone"
+            }
+        case "Youthfulness":
+            switch score {
+            case 80...100: return "Firm and resilient"
+            case 60...79: return "Holding up well"
+            case 40...59: return "Early aging signs"
+            default: return "Visible aging"
+            }
+        case "Freshness":
+            switch score {
+            case 80...100: return "Hydrated and vibrant"
+            case 60...79: return "Decent vitality"
+            case 40...59: return "Looking tired"
+            default: return "Needs hydration"
+            }
+        case "Sun Protection":
+            switch score {
+            case 80...100: return "Well protected"
+            case 60...79: return "Some sun exposure"
+            case 40...59: return "Sun damage detected"
+            default: return "Significant UV damage"
+            }
+        default:
+            return description // Fallback to original description
+        }
+    }
+
+    /// Returns color for the summary text based on score
+    private var summaryColor: Color {
+        switch score {
+        case 80...100: return .primary
+        case 60...79: return .secondary
+        case 40...59: return .orange
+        default: return .red
+        }
     }
 }
 

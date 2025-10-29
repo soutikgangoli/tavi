@@ -24,7 +24,7 @@ public struct BeforeAfterView: View {
                 // Header
                 headerSection
 
-                // Glow Score Comparison
+                // Skin Health Index Comparison
                 glowScoreComparison
 
                 // Metrics Improvement Chart
@@ -245,7 +245,7 @@ public struct BeforeAfterView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        Text("Baseline: \(beforeMetrics.glowScore) glow score")
+                        Text("Baseline: \(beforeMetrics.glowScore)")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
@@ -258,7 +258,7 @@ public struct BeforeAfterView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        Text("Current: \(afterMetrics.glowScore) glow score")
+                        Text("Current: \(afterMetrics.glowScore)")
                             .font(.caption)
                             .foregroundColor(.green)
                     }

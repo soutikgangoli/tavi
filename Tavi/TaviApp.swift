@@ -10,13 +10,44 @@ import SwiftUI
 @main
 struct TaviApp: App {
     let persistenceController = PersistenceController.shared
+    @State private var showLoadingScreen = true
+
+    init() {
+        // Configure crash reporting (production monitoring)
+        CrashReporter.shared.configure()
+
+        // Start memory monitoring to prevent out-of-memory crashes
+        Task { @MainActor in
+            MemoryMonitor.shared.startMonitoring()
+        }
+
+        // Log app launch
+        CrashReporter.shared.logUserAction("app_launched")
+        CrashReporter.shared.setCustomKey("device_model", value: UIDevice.current.model)
+        CrashReporter.shared.setCustomKey("ios_version", value: UIDevice.current.systemVersion)
+    }
 
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
-                ContentView()
+            ZStack {
+                // Main app content
+                NavigationStack {
+                    ContentView()
+                }
+                .environment(\.managedObjectContext, persistenceController.viewContext)
+                .opacity(showLoadingScreen ? 0 : 1)
+
+                // Fancy loading screen (shows on first launch)
+                if showLoadingScreen {
+                    FancyLoadingScreen {
+                        // When loading completes, fade out loading screen
+                        showLoadingScreen = false
+                    }
+                    .transition(.opacity)
+                    .zIndex(1)
+                }
             }
-            .environment(\.managedObjectContext, persistenceController.viewContext)
+            .animation(.easeOut(duration: 0.4), value: showLoadingScreen)
         }
     }
 }

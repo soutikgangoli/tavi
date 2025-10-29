@@ -34,6 +34,7 @@ public class Face3DMetricsAnalyzer {
     private let acneAnalyzer: AcneAnalyzer
     private let rednessAnalyzer: RednessAnalyzer
     private let topologyAnalyzer: MeshTopologyAnalyzer
+    private let sunDamageAnalyzer: SunDamageAnalyzer
 
     // Normalizers for diverse skin tones and lighting conditions
     private let skinToneNormalizer: SkinToneNormalizer
@@ -79,6 +80,7 @@ public class Face3DMetricsAnalyzer {
         self.acneAnalyzer = AcneAnalyzer()
         self.rednessAnalyzer = RednessAnalyzer()
         self.topologyAnalyzer = MeshTopologyAnalyzer()
+        self.sunDamageAnalyzer = SunDamageAnalyzer()
         self.skinToneNormalizer = SkinToneNormalizer()
         self.colorTempNormalizer = ColorTemperatureNormalizer()
     }
@@ -338,12 +340,67 @@ public class Face3DMetricsAnalyzer {
             topologyAnalysis: topologyAnalysis
         )
 
+        // Sun damage analysis (runs AFTER normalization to use corrected scores)
+        // Check if sun damage analysis is enabled in settings
+        let enableSunDamageAnalysis = UserDefaults.standard.bool(forKey: "enableSunDamageAnalysis")
+
+        let sunDamageAnalysis: SunDamageAnalysis?
+        if enableSunDamageAnalysis {
+            print("   🔍 Running SunDamageAnalyzer...")
+            sunDamageAnalysis = sunDamageAnalyzer.analyzeSunDamage(
+                from: metrics,
+                skinTone: skinTone
+            )
+
+            if let sunDamage = sunDamageAnalysis {
+                print("   - Sun Protection: \(String(format: "%.1f", sunDamage.protectionScore))/100 (\(sunDamage.damageLevel.rawValue))")
+                print("      Components: Pigmentation \(String(format: "%.0f", sunDamage.pigmentationHealth))%, Photoaging \(String(format: "%.0f", sunDamage.photoagingResistance))%, Texture \(String(format: "%.0f", sunDamage.textureHealth))%")
+                print("      Normalized for \(skinTone): ✅")
+            }
+        } else {
+            print("   ⏭️  Skipping SunDamageAnalyzer (disabled in settings)")
+            sunDamageAnalysis = nil
+        }
+
+        // Update metrics with sun damage analysis
+        let finalMetrics = Face3DMetrics(
+            roiMetrics: metrics.roiMetrics,
+            globalRoughnessProxy: metrics.globalRoughnessProxy,
+            globalPigmentationIndex: metrics.globalPigmentationIndex,
+            globalDiscolorationIndex: metrics.globalDiscolorationIndex,
+            globalSpecularProxy: metrics.globalSpecularProxy,
+            globalAverageLuminance: metrics.globalAverageLuminance,
+            globalRoughnessScore: metrics.globalRoughnessScore,
+            globalPigmentationScore: metrics.globalPigmentationScore,
+            globalDiscolorationScore: metrics.globalDiscolorationScore,
+            globalSpecularScore: metrics.globalSpecularScore,
+            overallScore: metrics.overallScore,
+            scoreInterpretation: metrics.scoreInterpretation,
+            vertexCount: metrics.vertexCount,
+            triangleCount: metrics.triangleCount,
+            textureResolution: metrics.textureResolution,
+            processingTime: metrics.processingTime,
+            textureQuality: metrics.textureQuality,
+            lowConfidenceROIs: metrics.lowConfidenceROIs,
+            isHighQuality: metrics.isHighQuality,
+            elasticityAnalysis: metrics.elasticityAnalysis,
+            volumeAnalysis: metrics.volumeAnalysis,
+            regionalAnalysis: metrics.regionalAnalysis,
+            skinTypeAnalysis: metrics.skinTypeAnalysis,
+            wrinkleAnalysis: metrics.wrinkleAnalysis,
+            poreAnalysis: metrics.poreAnalysis,
+            acneAnalysis: metrics.acneAnalysis,
+            rednessAnalysis: metrics.rednessAnalysis,
+            topologyAnalysis: metrics.topologyAnalysis,
+            sunDamageAnalysis: sunDamageAnalysis
+        )
+
         print("✅ Face3DMetricsAnalyzer: Complete in \(processingTime)s")
         print("   Overall Score: \(globalResults.overallScore)/10 (\(globalResults.scoreInterpretation))")
         if !lowConfidenceROIs.isEmpty {
             print("   ⚠️ Low confidence ROIs (excluded from global): \(lowConfidenceROIs.map { $0.displayName }.joined(separator: ", "))")
         }
-        return metrics
+        return finalMetrics
     }
 
     // MARK: - ROI Metrics Computation

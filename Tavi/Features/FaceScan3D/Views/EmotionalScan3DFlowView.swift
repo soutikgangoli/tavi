@@ -19,6 +19,7 @@ public struct EmotionalScan3DFlowView: View {
     @State private var showResults = false
     @State private var processingProgress: String = ""
     @State private var emotionalMetrics: EmotionalMetrics?
+    @State private var clinicalMetrics: Face3DMetrics?
     @State private var showShareSheet = false
     @State private var showAchievementUnlock = false
     @State private var newAchievements: [Achievement] = []
@@ -46,6 +47,7 @@ public struct EmotionalScan3DFlowView: View {
                 if let metrics = emotionalMetrics {
                     CelebratoryResultsView(
                         emotionalMetrics: metrics,
+                        clinicalMetrics: clinicalMetrics,
                         previousMetrics: loadPreviousMetrics(),
                         onStartChallenge: {
                             startChallenge()
@@ -221,46 +223,79 @@ public struct EmotionalScan3DFlowView: View {
     private func processCapture() {
         flowState = .processing
 
+        // Log scan processing start with context
+        CrashReporter.shared.logUserAction("scan_processing_started")
+        CrashReporter.shared.setCustomKey("capture_count", value: viewModel.capturedPoses.count)
+
         Task {
             do {
-                // Step 1: Merge meshes
+                // Step 1: Merge meshes (with timeout protection)
                 processingProgress = "Merging your 3D face scan... ✨"
-                guard let merged = await viewModel.finalizeCapture() else {
-                    throw ScanError.mergeFailed
+                CrashReporter.shared.setCustomKey("processing_step", value: "mesh_merge")
+
+                let merged = try await withTimeout(
+                    seconds: ScanConfiguration.meshMergeTimeout,
+                    operation: "Mesh Merge"
+                ) {
+                    guard let result = await viewModel.finalizeCapture() else {
+                        throw ScanError.mergeFailed
+                    }
+                    return result
                 }
 
                 try await Task.sleep(nanoseconds: 500_000_000)
 
-                // Step 2: Bake texture
+                // Step 2: Bake texture (with timeout protection)
                 processingProgress = "Creating your skin texture map... 🎨"
-                guard let bakeResult = await viewModel.bakeTextureFromSequence() else {
-                    throw ScanError.bakeFailed
+                CrashReporter.shared.setCustomKey("processing_step", value: "texture_bake")
+
+                let bakeResult = try await withTimeout(
+                    seconds: ScanConfiguration.textureBakeTimeout,
+                    operation: "Texture Baking"
+                ) {
+                    guard let result = await viewModel.bakeTextureFromSequence() else {
+                        throw ScanError.bakeFailed
+                    }
+                    return result
                 }
 
                 try await Task.sleep(nanoseconds: 500_000_000)
 
-                // Step 3: Compute clinical metrics
+                // Step 3: Compute clinical metrics (with timeout protection)
                 processingProgress = "Analyzing your skin... 🔬"
-                guard let clinicalMetrics = await viewModel.compute3DMetrics() else {
-                    throw ScanError.metricsFailed
+                CrashReporter.shared.setCustomKey("processing_step", value: "metrics_analysis")
+
+                let computedClinicalMetrics = try await withTimeout(
+                    seconds: ScanConfiguration.metricsComputationTimeout,
+                    operation: "Metrics Computation"
+                ) {
+                    guard let result = await viewModel.compute3DMetrics() else {
+                        throw ScanError.metricsFailed
+                    }
+                    return result
                 }
 
                 try await Task.sleep(nanoseconds: 500_000_000)
 
                 // Step 4: Convert to emotional metrics
-                processingProgress = "Calculating your glow score... 🌟"
+                processingProgress = "Calculating your Skin Health Index... 🌟"
+                CrashReporter.shared.setCustomKey("processing_step", value: "emotional_metrics")
 
                 let userProfile = UserProfileManager.shared.loadProfile()
-                let previousClinicalMetrics = loadPreviousClinicalMetrics()
+                let previousClinicalMetrics = await loadPreviousClinicalMetrics()
 
                 let emotional = EmotionalMetricsGenerator.generate(
-                    from: clinicalMetrics,
+                    from: computedClinicalMetrics,
                     previousMetrics: previousClinicalMetrics,
                     userProfile: userProfile
                 )
 
+                // Store both metrics for results view
+                self.clinicalMetrics = computedClinicalMetrics
+
                 // Step 5: Update gamification
                 processingProgress = "Updating your progress... 🎉"
+                CrashReporter.shared.setCustomKey("processing_step", value: "gamification")
 
                 let updatedStreak = GamificationManager.shared.recordScan()
 
@@ -279,13 +314,19 @@ public struct EmotionalScan3DFlowView: View {
                     challengeComplete: challenge?.isCompleted ?? false
                 )
 
-                // Step 6: Save to Core Data
+                // Step 6: Save to Core Data (with timeout protection)
                 processingProgress = "Saving your results... 💾"
+                CrashReporter.shared.setCustomKey("processing_step", value: "core_data_save")
 
-                saveToCoreData(
-                    emotionalMetrics: emotional,
-                    clinicalMetrics: clinicalMetrics
-                )
+                try await withTimeout(
+                    seconds: ScanConfiguration.coreDataSaveTimeout,
+                    operation: "CoreData Save"
+                ) {
+                    await saveToCoreData(
+                        emotionalMetrics: emotional,
+                        clinicalMetrics: clinicalMetrics
+                    )
+                }
 
                 try await Task.sleep(nanoseconds: 300_000_000)
 
@@ -295,6 +336,11 @@ public struct EmotionalScan3DFlowView: View {
                     self.newAchievements = unlockedAchievements
                     flowState = .complete
 
+                    // Log success with metrics
+                    CrashReporter.shared.logUserAction("scan_completed_successfully")
+                    CrashReporter.shared.setCustomKey("glow_score", value: emotional.glowScore)
+                    CrashReporter.shared.setCustomKey("achievements_unlocked", value: unlockedAchievements.count)
+
                     // Show achievement unlock if any
                     if !unlockedAchievements.isEmpty {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -303,9 +349,59 @@ public struct EmotionalScan3DFlowView: View {
                     }
                 }
 
-            } catch {
+            } catch let scanError as ScanError {
+                // Log scan error with full context
+                CrashReporter.shared.logScanError(
+                    scanError,
+                    operation: "scan_processing",
+                    metrics: ["capture_count": viewModel.capturedPoses.count]
+                )
+
+                // Handle specific scan errors with tailored recovery suggestions
                 await MainActor.run {
-                    flowState = .error(error.localizedDescription)
+                    switch scanError {
+                    case .mergeFailed:
+                        flowState = .error("Failed to merge 3D face meshes. Please try scanning again with better lighting.")
+                    case .bakeFailed:
+                        flowState = .error("Failed to generate skin texture. Please ensure good, even lighting and try again.")
+                    case .metricsFailed:
+                        flowState = .error("Failed to analyze skin metrics. Please rescan with a neutral expression.")
+                    case .invalidData:
+                        flowState = .error("Invalid scan data captured. Please hold still and maintain a neutral expression.")
+                    case .processingTimeout:
+                        flowState = .error("Processing took too long. Please close other apps and try again.")
+                    case .arSessionFailed:
+                        flowState = .error("Face tracking failed. Please restart the app and try again.")
+                    case .cameraUnavailable:
+                        flowState = .error("Camera unavailable. Please check camera permissions and try again.")
+                    case .cancelled:
+                        flowState = .error("Scan was cancelled.")
+                    case .processingError(let message):
+                        flowState = .error("Processing error: \(message)")
+                    }
+                }
+            } catch let timeoutError as TimeoutError {
+                // Log timeout error
+                CrashReporter.shared.logError(timeoutError, context: [
+                    "operation": "scan_processing",
+                    "timeout_type": "processing_timeout"
+                ])
+
+                // Handle timeout errors specifically
+                await MainActor.run {
+                    flowState = .error("Processing timed out. Please close other apps, ensure good device performance, and try again.")
+                }
+            } catch {
+                // Log unexpected error with full context
+                CrashReporter.shared.logError(error, context: [
+                    "operation": "scan_processing",
+                    "error_type": "unexpected",
+                    "capture_count": viewModel.capturedPoses.count
+                ])
+
+                // Generic error fallback
+                await MainActor.run {
+                    flowState = .error("An unexpected error occurred: \(error.localizedDescription). Please try again.")
                 }
             }
         }
@@ -313,73 +409,82 @@ public struct EmotionalScan3DFlowView: View {
 
     // MARK: - Data Helpers
 
-    private func loadPreviousClinicalMetrics() -> Face3DMetrics? {
-        // Fetch most recent session from Core Data
-        let request = SessionResult.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
-        request.fetchLimit = 1  // Get most recent session
+    private func loadPreviousClinicalMetrics() async -> Face3DMetrics? {
+        // Use perform to safely access CoreData from any thread
+        return await viewContext.perform {
+            // Fetch most recent session from Core Data
+            let request = SessionResult.fetchRequest()
+            request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+            request.fetchLimit = 1  // Get most recent session
 
-        guard let sessions = try? viewContext.fetch(request),
-              let lastSession = sessions.first,
-              let data = lastSession.clinicalMetricsData,
-              let metrics = try? JSONDecoder().decode(Face3DMetrics.self, from: data) else {
-            print("ℹ️ No previous clinical metrics found (this is expected for first scan)")
-            return nil
+            guard let sessions = try? self.viewContext.fetch(request),
+                  let lastSession = sessions.first,
+                  let data = lastSession.clinicalMetricsData,
+                  let metrics = try? JSONDecoder().decode(Face3DMetrics.self, from: data) else {
+                print("ℹ️ No previous clinical metrics found (this is expected for first scan)")
+                return nil
+            }
+
+            print("✅ Loaded previous clinical metrics from \(lastSession.date ?? Date())")
+            return metrics
         }
-
-        print("✅ Loaded previous clinical metrics from \(lastSession.date)")
-        return metrics
     }
 
-    private func loadPreviousMetrics() -> EmotionalMetrics? {
-        // Fetch most recent session from Core Data
-        let request = SessionResult.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
-        request.fetchLimit = 1  // Get most recent session
+    private func loadPreviousMetrics() async -> EmotionalMetrics? {
+        // Use perform to safely access CoreData from any thread
+        return await viewContext.perform {
+            // Fetch most recent session from Core Data
+            let request = SessionResult.fetchRequest()
+            request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
+            request.fetchLimit = 1  // Get most recent session
 
-        guard let sessions = try? viewContext.fetch(request),
-              let lastSession = sessions.first,
-              let data = lastSession.emotionalMetricsData,
-              let metrics = try? JSONDecoder().decode(EmotionalMetrics.self, from: data) else {
-            print("ℹ️ No previous emotional metrics found (this is expected for first scan)")
-            return nil
+            guard let sessions = try? self.viewContext.fetch(request),
+                  let lastSession = sessions.first,
+                  let data = lastSession.emotionalMetricsData,
+                  let metrics = try? JSONDecoder().decode(EmotionalMetrics.self, from: data) else {
+                print("ℹ️ No previous emotional metrics found (this is expected for first scan)")
+                return nil
+            }
+
+            print("✅ Loaded previous emotional metrics from \(lastSession.date ?? Date())")
+            return metrics
         }
-
-        print("✅ Loaded previous emotional metrics from \(lastSession.date)")
-        return metrics
     }
 
-    private func saveToCoreData(emotionalMetrics: EmotionalMetrics, clinicalMetrics: Face3DMetrics) {
-        let session = SessionResult(context: viewContext)
-        session.id = UUID()
-        session.date = Date()
-        session.deviceModel = UIDevice.current.model
-        session.deviceOS = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
+    private func saveToCoreData(emotionalMetrics: EmotionalMetrics, clinicalMetrics: Face3DMetrics) async {
+        // Use perform to safely access CoreData from any thread
+        await viewContext.perform {
+            let session = SessionResult(context: self.viewContext)
+            session.id = UUID()
+            session.date = Date()
+            session.deviceModel = UIDevice.current.model
+            session.deviceOS = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
 
-        // Save overall and sub-scores
-        session.overallScore = Double(emotionalMetrics.glowScore)
-        session.textureAvg = Double(emotionalMetrics.smoothness)
-        session.pigmentationAvg = Double(emotionalMetrics.evenness)
-        session.blurQuality = Double(emotionalMetrics.youthfulness)
-        session.moistureSpecular = Double(emotionalMetrics.radiance)
-        session.moistureSmoothness = Double(emotionalMetrics.freshness)
+            // Save overall and sub-scores
+            session.overallScore = Double(emotionalMetrics.glowScore)
+            session.textureAvg = Double(emotionalMetrics.smoothness)
+            session.pigmentationAvg = Double(emotionalMetrics.evenness)
+            session.blurQuality = Double(emotionalMetrics.youthfulness)
+            session.moistureSpecular = Double(emotionalMetrics.radiance)
+            session.moistureSmoothness = Double(emotionalMetrics.freshness)
 
-        // Store full emotional metrics as JSON
-        if let emotionalData = try? JSONEncoder().encode(emotionalMetrics) {
-            session.emotionalMetricsData = emotionalData
-        }
+            // Store full emotional metrics as JSON
+            if let emotionalData = try? JSONEncoder().encode(emotionalMetrics) {
+                session.emotionalMetricsData = emotionalData
+            }
 
-        // Store full clinical metrics as JSON (for comparisons)
-        if let clinicalData = try? JSONEncoder().encode(clinicalMetrics) {
-            session.clinicalMetricsData = clinicalData
-        }
+            // Store full clinical metrics as JSON (for comparisons)
+            if let clinicalData = try? JSONEncoder().encode(clinicalMetrics) {
+                session.clinicalMetricsData = clinicalData
+            }
 
-        // Save to Core Data
-        do {
-            try viewContext.save()
-            print("✅ Session saved successfully!")
-        } catch {
-            print("❌ Failed to save session: \(error)")
+            // Save to Core Data
+            do {
+                try self.viewContext.save()
+                print("✅ Session saved successfully!")
+            } catch {
+                print("❌ Failed to save session: \(error)")
+            }
         }
     }
 

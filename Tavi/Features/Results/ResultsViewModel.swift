@@ -41,7 +41,7 @@ class ResultsViewModel: ObservableObject {
             sessions = try storageManager.fetchAllSessions()
             isLoading = false
         } catch {
-            errorMessage = "Failed to load sessions: \(error.localizedDescription)"
+            errorMessage = "Unable to load your scan history. Please try again later."
             isLoading = false
             print("Error loading sessions: \(error)")
         }
@@ -56,7 +56,7 @@ class ResultsViewModel: ObservableObject {
             sessions = try storageManager.fetchRecentSessions(limit: limit)
             isLoading = false
         } catch {
-            errorMessage = "Failed to load sessions: \(error.localizedDescription)"
+            errorMessage = "Unable to load recent scans. Please try again later."
             isLoading = false
             print("Error loading sessions: \(error)")
         }
@@ -68,7 +68,7 @@ class ResultsViewModel: ObservableObject {
             try storageManager.deleteSession(session)
             loadSessions() // Reload after deletion
         } catch {
-            errorMessage = "Failed to delete session: \(error.localizedDescription)"
+            errorMessage = "Unable to delete this scan. Please try again."
             print("Error deleting session: \(error)")
         }
     }
@@ -91,7 +91,7 @@ class ResultsViewModel: ObservableObject {
             loadSessions() // Reload to include new session
             isLoading = false
         } catch {
-            errorMessage = "Failed to save session: \(error.localizedDescription)"
+            errorMessage = "Unable to save your scan results. Please ensure you have enough storage space and try again."
             isLoading = false
             print("Error saving session: \(error)")
         }

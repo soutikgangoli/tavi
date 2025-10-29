@@ -70,6 +70,10 @@ struct ResultsHistoryView: View {
             }
             .padding()
         }
+        .refreshable {
+            // Refresh all CoreData objects from persistent store
+            viewContext.refreshAllObjects()
+        }
     }
 
     // MARK: - Empty State
@@ -126,6 +130,10 @@ struct SessionCard: View {
         .padding(.horizontal, 16)
         .background(Color(uiColor: .secondarySystemBackground))
         .cornerRadius(12)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Scan from \(session.relativeDate), overall score \(Int(session.overallScore)) percent")
+        .accessibilityHint("Double tap to view detailed results")
+        .accessibilityAddTraits(.isButton)
     }
 
     private var compactDisplayText: String {

@@ -15,14 +15,14 @@ public class PDFReportGenerator {
 
     // MARK: - Public API
 
-    /// Generate comprehensive PDF report
+    /// Generate comprehensive PDF report (async to avoid blocking UI)
     public func generateReport(
         scan: Face3DMetrics,
         interpretedResults: InterpretedResults,
         scanQuality: ScanQuality,
         userProfile: UserProfile?,
         recommendations: PersonalizedRecommendations?
-    ) -> URL? {
+    ) async -> URL? {
 
         // Create PDF context
         let pdfMetaData = [
@@ -57,17 +57,19 @@ public class PDFReportGenerator {
             drawPage4TechnicalData(context: context, pageSize: pageSize, scan: scan, quality: scanQuality)
         }
 
-        // Save to temporary file
+        // Save to temporary file asynchronously to avoid blocking UI
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("TaviReport_\(Date().timeIntervalSince1970).pdf")
 
-        do {
-            try data.write(to: tempURL)
-            return tempURL
-        } catch {
-            print("Error saving PDF: \(error)")
-            return nil
-        }
+        return await Task.detached(priority: .userInitiated) {
+            do {
+                try data.write(to: tempURL, options: .atomic)
+                return tempURL
+            } catch {
+                print("Error saving PDF: \(error)")
+                return nil
+            }
+        }.value
     }
 
     // MARK: - Page 1: Summary
@@ -473,10 +475,15 @@ public class PDFReportGenerator {
 
         CTFrameDraw(frame, context)
 
-        // Calculate height used
-        let lines = CTFrameGetLines(frame) as! [CTLine]
-        let lineCount = lines.count
+        // Calculate height used - safely cast CTFrameGetLines result
+        guard let lines = CTFrameGetLines(frame) as? [CTLine] else {
+            print("⚠️ Failed to extract lines from CTFrame - using fallback calculation")
+            // Fallback: estimate based on text length and font size
+            let estimatedLines = (attributedString.length / 80) + 1 // ~80 chars per line
+            return yPosition + CGFloat(estimatedLines) * (fontSize + 4)
+        }
 
+        let lineCount = lines.count
         return yPosition + CGFloat(lineCount) * (fontSize + 4)
     }
 

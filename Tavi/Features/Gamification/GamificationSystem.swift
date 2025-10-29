@@ -238,7 +238,7 @@ public struct Achievement: Codable, Identifiable {
         Achievement(
             id: "glow_up_10",
             title: "Glow Up",
-            description: "Improve glow score by 10 points",
+            description: "Improve Skin Health Index by 10 points",
             emoji: "✨",
             category: .improvement,
             isUnlocked: false
@@ -246,7 +246,7 @@ public struct Achievement: Codable, Identifiable {
         Achievement(
             id: "glow_up_25",
             title: "Transformation",
-            description: "Improve glow score by 25 points",
+            description: "Improve Skin Health Index by 25 points",
             emoji: "🌟",
             category: .improvement,
             isUnlocked: false
@@ -254,7 +254,7 @@ public struct Achievement: Codable, Identifiable {
         Achievement(
             id: "glow_90",
             title: "Radiant Skin",
-            description: "Achieve a glow score of 90+",
+            description: "Achieve a Skin Health Index of 90+",
             emoji: "💫",
             category: .improvement,
             isUnlocked: false

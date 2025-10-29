@@ -55,6 +55,7 @@ struct CaptureSettingsView: View {
     @AppStorage("useRealtimeProcessing") private var useRealtimeProcessing = true
     @AppStorage("enableHapticFeedback") private var enableHapticFeedback = true
     @AppStorage("lightingStrictness") private var lightingStrictnessRaw = LightingStrictness.strict.rawValue
+    @AppStorage("enableSunDamageAnalysis") private var enableSunDamageAnalysis = false
 
     private var lightingStrictness: Binding<LightingStrictness> {
         Binding(
@@ -82,6 +83,9 @@ struct CaptureSettingsView: View {
 
             // Lighting Guide (all devices)
             lightingGuideSection
+
+            // Sun Damage Analysis (all devices)
+            sunDamageAnalysisSection
 
             // Real-time Processing (A16+ devices only)
             if capabilities.supportsNeuralEngineA16Plus {
@@ -222,6 +226,36 @@ struct CaptureSettingsView: View {
                 Text("• Off: No blocking, warnings only")
             }
             .font(DesignSystem.Typography.caption)
+        }
+    }
+
+    // MARK: - Sun Damage Analysis Section
+
+    private var sunDamageAnalysisSection: some View {
+        Section {
+            Toggle(isOn: $enableSunDamageAnalysis) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Sun Damage Analysis")
+                            .font(DesignSystem.Typography.body)
+
+                        Badge(text: "Advanced", color: DesignSystem.Colors.warning)
+                    }
+
+                    Text("Assess UV protection and photoaging indicators")
+                        .font(DesignSystem.Typography.caption)
+                        .foregroundColor(DesignSystem.Colors.textSecondary)
+                }
+            }
+            .tint(DesignSystem.Colors.accent)
+            .onChange(of: enableSunDamageAnalysis) { newValue in
+                if newValue {
+                    HapticManager.shared.light()
+                }
+            }
+        } footer: {
+            Text("Analyzes 5 indicators (pigmentation, photoaging, texture, redness, pores) to assess sun damage. Normalized for all skin tones. Disable if you prefer not to track UV damage.")
+                .font(DesignSystem.Typography.caption)
         }
     }
 

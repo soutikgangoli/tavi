@@ -41,9 +41,12 @@
 	<string>Tavi needs access to save photos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Tavi needs access to your photo library to analyze images.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Tavi uses Face ID to protect your private scan results and photos.</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arkit</string>
+		<string>truedepth-camera</string>
 	</array>
 </dict>
 </plist>
