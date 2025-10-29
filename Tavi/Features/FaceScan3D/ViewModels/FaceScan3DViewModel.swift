@@ -122,6 +122,10 @@ public class FaceScan3DViewModel: ObservableObject {
     private var stabilityCheckCount: Int = 0
     private var holdStableTimer: Timer?
     private let meshMerger = MeshMerger()
+    private let streamingMerger = StreamingMeshMerger()
+
+    // Memory threshold for using streaming merger (in vertices)
+    private let streamingThreshold = 50_000
     private let textureCapture = TextureCapture()
     private var textureBaker: TextureBaker {
         // Check high-res capture setting
@@ -396,32 +400,75 @@ public class FaceScan3DViewModel: ObservableObject {
 
         isMerging = true
 
+        // Calculate total vertices to decide on merger strategy
+        let totalVertices = sequence.captures.reduce(0) { $0 + $1.vertices.count }
+        let useStreaming = totalVertices > streamingThreshold
+
+        if useStreaming {
+            AppLogger.mesh.info("🌊 Using streaming merger for \(totalVertices) vertices (threshold: \(streamingThreshold))")
+        } else {
+            AppLogger.mesh.info("⚡️ Using standard merger for \(totalVertices) vertices")
+        }
+
         // Process on background thread with full clinical-grade pipeline
         let merger = meshMerger
+        let streamMerger = streamingMerger
         let captures = sequence.captures
 
-        let merged = await Task.detached(priority: .userInitiated) {
-            // Note: Advanced mesh processing (outlier filtering, smoothing, hole filling)
-            // requires additional FaceMeshGeometry conversions. For now, use basic merging.
-            //
-            // Design decision: Keep mesh types separate for clarity and type safety:
-            // - MeshCapture: Raw ARKit capture data
-            // - UnifiedMesh: Merged multi-view representation
-            // - FaceMeshGeometry: Final processed mesh for analysis
-            //
-            // The current architecture handles conversions at appropriate boundaries
-            // Adding helper methods would add complexity without significant benefit
+        let merged: MergedFaceMesh?
+        if useStreaming {
+            // Use streaming merger for large meshes
+            do {
+                merged = try await streamMerger.merge(captures: captures) { progress, message in
+                    Task { @MainActor in
+                        AppLogger.mesh.debug("Streaming merge progress: \(Int(progress * 100))% - \(message)")
+                    }
+                }
+            } catch {
+                AppLogger.mesh.error("Streaming merge failed: \(error.localizedDescription)")
+                CrashReporter.shared.logError(
+                    error,
+                    context: [
+                        "operation": "streaming_mesh_merge",
+                        "vertex_count": totalVertices,
+                        "capture_count": captures.count
+                    ]
+                )
+                isMerging = false
+                errorMessage = "Failed to merge face scans. Please try again."
+                return nil
+            }
+        } else {
+            // Use standard merger for smaller meshes
+            merged = await Task.detached(priority: .userInitiated) {
+                // Note: Advanced mesh processing (outlier filtering, smoothing, hole filling)
+                // requires additional FaceMeshGeometry conversions. For now, use basic merging.
+                //
+                // Design decision: Keep mesh types separate for clarity and type safety:
+                // - MeshCapture: Raw ARKit capture data
+                // - UnifiedMesh: Merged multi-view representation
+                // - FaceMeshGeometry: Final processed mesh for analysis
+                //
+                // The current architecture handles conversions at appropriate boundaries
+                // Adding helper methods would add complexity without significant benefit
 
-            // STEP 1: Merge meshes with ICP alignment
-            let merged = merger.merge(captures: captures)
+                // STEP 1: Merge meshes with ICP alignment
+                let merged = merger.merge(captures: captures)
 
-            guard let finalMesh = merged else { return nil }
+                guard let finalMesh = merged else { return nil }
 
-            // STEP 2: Validate basic mesh properties
-            AppLogger.mesh.info("Merged mesh: \(finalMesh.vertices.count) vertices, \(finalMesh.triangleIndices.count/3) triangles")
+                // STEP 2: Validate basic mesh properties
+                AppLogger.mesh.info("Merged mesh: \(finalMesh.vertices.count) vertices, \(finalMesh.triangleIndices.count/3) triangles")
 
-            return finalMesh
-        }.value
+                return finalMesh
+            }.value
+        }
+
+        guard merged != nil else {
+            AppLogger.mesh.error("Mesh merging failed")
+            isMerging = false
+            return nil
+        }
 
         // Update sequence
         sequence.complete()

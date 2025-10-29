@@ -7,16 +7,22 @@
 //
 
 import Foundation
+#if canImport(Sentry)
+import Sentry
+#endif
 
 /// Crash reporting manager for production monitoring
 ///
-/// To enable Firebase Crashlytics:
-/// 1. Add Firebase SDK via SPM: https://github.com/firebase/firebase-ios-sdk
-/// 2. Add GoogleService-Info.plist to project
-/// 3. Uncomment Firebase imports below
-/// 4. Call configure() in TaviApp.init()
+/// Uses Sentry for crash and error tracking:
+/// - Automatic crash detection
+/// - Non-fatal error logging
+/// - Performance monitoring
+/// - Release tracking
+/// - User context and breadcrumbs
 ///
-/// For now, this provides local logging until Firebase is set up.
+/// To configure:
+/// 1. Add Sentry DSN to Info.plist or environment
+/// 2. Call configure() in TaviApp.init()
 class CrashReporter {
     static let shared = CrashReporter()
 
@@ -29,20 +35,72 @@ class CrashReporter {
 
     /// Configure crash reporting (call from app launch)
     func configure() {
+        #if canImport(Sentry)
+        configureSentry()
+        #else
+        print("📊 CrashReporter: Sentry SDK not available - using local logging only")
+        print("   To enable Sentry: Add package dependency https://github.com/getsentry/sentry-cocoa.git")
+        isEnabled = true
+        #endif
+    }
+
+    #if canImport(Sentry)
+    private func configureSentry() {
         #if DEBUG
         print("📊 CrashReporter: Development mode - crashes logged locally")
         isEnabled = true
+
+        // Initialize Sentry in debug mode (only for testing)
+        SentrySDK.start { options in
+            options.dsn = ProcessInfo.processInfo.environment["SENTRY_DSN"] ?? ""
+            options.environment = "development"
+            options.debug = true
+            options.enableAutoSessionTracking = true
+            options.sessionTrackingIntervalMillis = 5000
+
+            // Disable in debug to avoid noise, unless testing
+            options.enabled = ProcessInfo.processInfo.environment["SENTRY_ENABLED"] == "true"
+        }
         #else
-        print("📊 CrashReporter: Production mode - Firebase not yet configured")
+        print("📊 CrashReporter: Production mode - Sentry enabled")
         isEnabled = true
 
-        // TODO: Uncomment when Firebase is added via SPM
-        // import FirebaseCore
-        // import FirebaseCrashlytics
-        // FirebaseApp.configure()
-        // Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(true)
+        // Initialize Sentry for production
+        SentrySDK.start { options in
+            // TODO: Replace with your Sentry DSN from https://sentry.io
+            options.dsn = ProcessInfo.processInfo.environment["SENTRY_DSN"] ?? ""
+            options.environment = "production"
+            options.debug = false
+
+            // Enable performance monitoring
+            options.enableAutoPerformanceTracing = true
+            options.tracesSampleRate = 0.2  // 20% of transactions
+
+            // Enable session tracking
+            options.enableAutoSessionTracking = true
+
+            // Attach stack traces to errors
+            options.attachStacktrace = true
+
+            // Set release version
+            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+               let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+                options.releaseName = "\(version) (\(build))"
+            }
+
+            // Before send callback - filter out low priority errors
+            options.beforeSend = { event in
+                // Filter out cancellation errors (user-initiated)
+                if let exceptions = event.exceptions,
+                   exceptions.contains(where: { $0.type?.contains("CancellationError") ?? false }) {
+                    return nil
+                }
+                return event
+            }
+        }
         #endif
     }
+    #endif
 
     // MARK: - Error Logging
 
@@ -56,9 +114,27 @@ class CrashReporter {
         let errorInfo = formatError(error, context: context)
         logger.error("🔴 Error: \(errorInfo)")
 
-        // TODO: Send to Firebase Crashlytics
-        // Crashlytics.crashlytics().record(error: error)
-        // Crashlytics.crashlytics().setCustomKeysAndValues(context)
+        // Send to Sentry
+        #if canImport(Sentry)
+        SentrySDK.capture(error: error) { scope in
+            // Add context as tags and extras
+            for (key, value) in context {
+                if let stringValue = value as? String, stringValue.count < 200 {
+                    scope.setTag(value: stringValue, key: key)
+                } else {
+                    scope.setExtra(value: value, key: key)
+                }
+            }
+
+            // Add error-specific context
+            if let scanError = error as? ScanError {
+                scope.setTag(value: scanError.id, key: "scan_error_type")
+                scope.setTag(value: String(scanError.isRecoverable), key: "is_recoverable")
+                scope.setTag(value: String(scanError.isBlockingError), key: "is_blocking")
+                scope.setLevel(.error)
+            }
+        }
+        #endif
     }
 
     /// Log a non-fatal message (for tracking issues that aren't exceptions)
@@ -88,13 +164,25 @@ class CrashReporter {
             logger.critical("‼️ \(formattedMessage)")
         }
 
-        // TODO: Send to Firebase Crashlytics as non-fatal
-        // let error = NSError(
-        //     domain: "com.tavi.nonfatal",
-        //     code: level.rawValue,
-        //     userInfo: [NSLocalizedDescriptionKey: message]
-        // )
-        // Crashlytics.crashlytics().record(error: error)
+        // Send to Sentry as breadcrumb or message
+        #if canImport(Sentry)
+        if level == .debug || level == .info {
+            // Low priority - just breadcrumb
+            let crumb = Breadcrumb(level: level.toSentryLevel(), category: "app.message")
+            crumb.message = message
+            SentrySDK.addBreadcrumb(crumb)
+        } else {
+            // Warning/error/critical - send as event
+            let event = Event(level: level.toSentryLevel())
+            event.message = SentryMessage(formatted: message)
+
+            for (key, value) in metadata {
+                event.extra?[key] = value
+            }
+
+            SentrySDK.capture(event: event)
+        }
+        #endif
     }
 
     /// Log a scan-specific error
@@ -126,9 +214,14 @@ class CrashReporter {
 
         logger.info("👤 User context set: \(userID)")
 
-        // TODO: Set Firebase user ID
-        // Crashlytics.crashlytics().setUserID(userID)
-        // Crashlytics.crashlytics().setCustomKeysAndValues(metadata)
+        // Set Sentry user context
+        #if canImport(Sentry)
+        let user = User(userId: userID)
+        for (key, value) in metadata {
+            user.data?[key] = value
+        }
+        SentrySDK.setUser(user)
+        #endif
     }
 
     /// Clear user context (e.g., on logout)
@@ -137,8 +230,10 @@ class CrashReporter {
 
         logger.info("👤 User context cleared")
 
-        // TODO: Clear Firebase user ID
-        // Crashlytics.crashlytics().setUserID(nil)
+        // Clear Sentry user context
+        #if canImport(Sentry)
+        SentrySDK.setUser(nil)
+        #endif
     }
 
     // MARK: - Custom Keys (Breadcrumbs)
@@ -153,8 +248,16 @@ class CrashReporter {
 
         logger.debug("🔑 Custom key: \(key) = \(value)")
 
-        // TODO: Set Firebase custom key
-        // Crashlytics.crashlytics().setCustomValue(value, forKey: key)
+        // Set as Sentry tag or context
+        #if canImport(Sentry)
+        SentrySDK.configureScope { scope in
+            if let stringValue = value as? String, stringValue.count < 200 {
+                scope.setTag(value: stringValue, key: key)
+            } else {
+                scope.setContext(value: [key: value], key: "custom_keys")
+            }
+        }
+        #endif
     }
 
     /// Log a user action breadcrumb
@@ -162,6 +265,14 @@ class CrashReporter {
     func logUserAction(_ action: String) {
         setCustomKey("last_action", value: action)
         logger.info("👆 User action: \(action)")
+
+        // Add Sentry breadcrumb
+        #if canImport(Sentry)
+        let crumb = Breadcrumb(level: .info, category: "user.action")
+        crumb.message = action
+        crumb.type = "user"
+        SentrySDK.addBreadcrumb(crumb)
+        #endif
     }
 
     // MARK: - Formatting Helpers
@@ -214,6 +325,18 @@ class CrashReporter {
         case warning = 2
         case error = 3
         case critical = 4
+
+        #if canImport(Sentry)
+        func toSentryLevel() -> SentryLevel {
+            switch self {
+            case .debug: return .debug
+            case .info: return .info
+            case .warning: return .warning
+            case .error: return .error
+            case .critical: return .fatal
+            }
+        }
+        #endif
     }
 }
 

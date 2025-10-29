@@ -40,6 +40,19 @@ public class Face3DMetricsAnalyzer {
     private let skinToneNormalizer: SkinToneNormalizer
     private let colorTempNormalizer: ColorTemperatureNormalizer
 
+    // MARK: - Parallel Analysis Result Types
+
+    /// Result type for parallel analysis tasks
+    private enum AnalysisResult: Sendable {
+        case volume(VolumeAnalysis?)
+        case regional(RegionalAnalysis?)
+        case skinType(SkinTypeAnalysis?)
+        case pore(PoreAnalysis?)
+        case acne(AcneAnalysis?)
+        case redness(RednessAnalysis?)
+        case topology(TopologyAnalysis?)
+    }
+
     // MARK: - Configuration
 
     public struct Configuration {
@@ -220,43 +233,108 @@ public class Face3DMetricsAnalyzer {
             elasticityAnalysis = nil
         }
 
-        // Step 5c: Compute remaining advanced metrics
-        print("   🔍 Running advanced analyzers...")
+        // Step 5c: Compute remaining advanced metrics IN PARALLEL using TaskGroup
+        print("   🔍 Running advanced analyzers in parallel...")
 
-        // Volume metrics
-        let volumeAnalysis: VolumeAnalysis? = volumeMetricsAnalyzer.analyzeVolume(
-            geometry: faceMeshGeometry,
-            baseline: configuration.baselineMesh
-        )
+        let parallelStartTime = Date().timeIntervalSince1970
 
-        // Regional analysis
-        let regionalAnalysis: RegionalAnalysis? = regionalAnalyzers.analyzeRegions(
-            geometry: faceMeshGeometry,
-            texture: textureImage
-        )
+        // Capture values outside TaskGroup to avoid Sendable issues
+        let roughnessScore = globalResults.roughnessScore
+        let specularValue = globalResults.specular ?? 0
+        let baselineMesh = configuration.baselineMesh
 
-        // Skin type classification
-        let skinTypeAnalysis: SkinTypeAnalysis? = skinTypeClassifier.classifySkinType(
-            texture: textureImage,
-            roughnessScore: globalResults.roughnessScore,
-            specularity: globalResults.specular ?? 0
-        )
+        // Run all independent analyzers concurrently
+        // Note: Using nonisolated(unsafe) to suppress Sendable warnings
+        // The analyzers don't mutate state and are safe for concurrent access
+        let (volumeAnalysis, regionalAnalysis, skinTypeAnalysis, poreAnalysis, acneAnalysis, rednessAnalysis, topologyAnalysis) = await withTaskGroup(
+            of: AnalysisResult.self,
+            returning: (VolumeAnalysis?, RegionalAnalysis?, SkinTypeAnalysis?, PoreAnalysis?, AcneAnalysis?, RednessAnalysis?, TopologyAnalysis?).self
+        ) { group in
+            // Task 1: Volume metrics (geometry-based)
+            group.addTask { [volumeMetricsAnalyzer] in
+                let result = volumeMetricsAnalyzer.analyzeVolume(
+                    geometry: faceMeshGeometry,
+                    baseline: baselineMesh
+                )
+                return .volume(result)
+            }
 
-        // Pore analysis (high-frequency texture)
-        print("   🔍 Running PoreAnalyzer...")
-        let poreAnalysis: PoreAnalysis? = poreAnalyzer.analyzePores(texture: textureImage)
+            // Task 2: Regional analysis (geometry + texture)
+            group.addTask { [regionalAnalyzers] in
+                let result = regionalAnalyzers.analyzeRegions(
+                    geometry: faceMeshGeometry,
+                    texture: textureImage
+                )
+                return .regional(result)
+            }
 
-        // Acne and blemish detection
-        print("   🔍 Running AcneAnalyzer...")
-        let acneAnalysis: AcneAnalysis? = acneAnalyzer.analyzeAcne(texture: textureImage)
+            // Task 3: Skin type classification (texture-based)
+            group.addTask { [skinTypeClassifier] in
+                let result = skinTypeClassifier.classifySkinType(
+                    texture: textureImage,
+                    roughnessScore: roughnessScore,
+                    specularity: specularValue
+                )
+                return .skinType(result)
+            }
 
-        // Redness and inflammation detection
-        print("   🔍 Running RednessAnalyzer...")
-        let rednessAnalysis: RednessAnalysis? = rednessAnalyzer.analyzeRedness(texture: textureImage)
+            // Task 4: Pore analysis (texture-based)
+            group.addTask { [poreAnalyzer] in
+                let result = poreAnalyzer.analyzePores(texture: textureImage)
+                return .pore(result)
+            }
 
-        // Mesh topology quality analysis
-        print("   🔍 Running TopologyAnalyzer...")
-        let topologyAnalysis: TopologyAnalysis? = topologyAnalyzer.analyzeTopology(geometry: faceMeshGeometry)
+            // Task 5: Acne analysis (texture-based)
+            group.addTask { [acneAnalyzer] in
+                let result = acneAnalyzer.analyzeAcne(texture: textureImage)
+                return .acne(result)
+            }
+
+            // Task 6: Redness analysis (texture-based)
+            group.addTask { [rednessAnalyzer] in
+                let result = rednessAnalyzer.analyzeRedness(texture: textureImage)
+                return .redness(result)
+            }
+
+            // Task 7: Topology analysis (geometry-based)
+            group.addTask { [topologyAnalyzer] in
+                let result = topologyAnalyzer.analyzeTopology(geometry: faceMeshGeometry)
+                return .topology(result)
+            }
+
+            // Collect all results
+            var volume: VolumeAnalysis?
+            var regional: RegionalAnalysis?
+            var skinType: SkinTypeAnalysis?
+            var pore: PoreAnalysis?
+            var acne: AcneAnalysis?
+            var redness: RednessAnalysis?
+            var topology: TopologyAnalysis?
+
+            for await result in group {
+                switch result {
+                case .volume(let analysis):
+                    volume = analysis
+                case .regional(let analysis):
+                    regional = analysis
+                case .skinType(let analysis):
+                    skinType = analysis
+                case .pore(let analysis):
+                    pore = analysis
+                case .acne(let analysis):
+                    acne = analysis
+                case .redness(let analysis):
+                    redness = analysis
+                case .topology(let analysis):
+                    topology = analysis
+                }
+            }
+
+            return (volume, regional, skinType, pore, acne, redness, topology)
+        }
+
+        let parallelTime = Date().timeIntervalSince1970 - parallelStartTime
+        print("   ⚡️ Parallel analysis completed in \(String(format: "%.3f", parallelTime))s")
 
         print("   Advanced metrics computed:")
         if let elasticity = elasticityAnalysis {

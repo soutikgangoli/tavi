@@ -15,7 +15,7 @@ public struct EmotionalScan3DFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
 
-    @State private var flowState: FlowState = .capturing
+    @State private var flowState: FlowState = .preparing(countdown: 3)
     @State private var showResults = false
     @State private var processingProgress: String = ""
     @State private var emotionalMetrics: EmotionalMetrics?
@@ -25,6 +25,7 @@ public struct EmotionalScan3DFlowView: View {
     @State private var newAchievements: [Achievement] = []
 
     enum FlowState: Equatable {
+        case preparing(countdown: Int)  // Grace period with countdown
         case capturing
         case processing
         case complete
@@ -37,6 +38,9 @@ public struct EmotionalScan3DFlowView: View {
         ZStack {
             // Main content based on state
             switch flowState {
+            case .preparing(let countdown):
+                preparingView(countdown: countdown)
+
             case .capturing:
                 capturingView
 
@@ -76,7 +80,11 @@ public struct EmotionalScan3DFlowView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                if flowState == .capturing {
+                if case .preparing = flowState {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                } else if case .capturing = flowState {
                     Button("Cancel") {
                         dismiss()
                     }
@@ -167,6 +175,124 @@ public struct EmotionalScan3DFlowView: View {
 
     @State private var rotationAngle: Double = 0
 
+    // MARK: - Preparing View
+
+    private func preparingView(countdown: Int) -> some View {
+        ZStack {
+            // Background blur
+            Color.black.opacity(0.85)
+                .ignoresSafeArea()
+
+            VStack(spacing: 40) {
+                Spacer()
+
+                // Countdown circle
+                ZStack {
+                    Circle()
+                        .stroke(Color.white.opacity(0.2), lineWidth: 8)
+                        .frame(width: 180, height: 180)
+
+                    Circle()
+                        .trim(from: 0, to: CGFloat(countdown) / 3.0)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.blue, .cyan],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                        )
+                        .frame(width: 180, height: 180)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeInOut(duration: 1.0), value: countdown)
+
+                    Text("\(countdown)")
+                        .font(.system(size: 72, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                }
+
+                VStack(spacing: 16) {
+                    Text("Get Ready!")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+
+                    VStack(spacing: 8) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "face.smiling")
+                                .foregroundColor(.cyan)
+                            Text("Keep a neutral expression")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+
+                        HStack(spacing: 12) {
+                            Image(systemName: "light.max")
+                                .foregroundColor(.yellow)
+                            Text("Ensure good lighting")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+
+                        HStack(spacing: 12) {
+                            Image(systemName: "figure.stand")
+                                .foregroundColor(.green)
+                            Text("Hold device at eye level")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+                    }
+                    .padding(.horizontal, 32)
+                }
+
+                // Skip button
+                Button {
+                    flowState = .capturing
+                    viewModel.startGuidance()
+                } label: {
+                    Text("Skip")
+                        .font(.headline)
+                        .foregroundColor(.white.opacity(0.8))
+                        .padding(.horizontal, 40)
+                        .padding(.vertical, 12)
+                        .background(Color.white.opacity(0.2))
+                        .cornerRadius(25)
+                }
+                .padding(.bottom, 40)
+
+                Spacer()
+            }
+        }
+        .onAppear {
+            startCountdown()
+        }
+    }
+
+    // MARK: - Countdown Logic
+
+    private func startCountdown() {
+        guard case .preparing(let currentCount) = flowState, currentCount > 0 else {
+            // Countdown complete - start capturing
+            flowState = .capturing
+            viewModel.startGuidance()
+            return
+        }
+
+        // Continue countdown
+        Task {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)  // 1 second
+            if case .preparing = flowState {  // Only continue if still preparing
+                let nextCount = currentCount - 1
+                if nextCount > 0 {
+                    flowState = .preparing(countdown: nextCount)
+                } else {
+                    flowState = .capturing
+                    viewModel.startGuidance()
+                }
+            }
+        }
+    }
+
     // MARK: - Error View
 
     private func errorView(message: String) -> some View {
@@ -190,9 +316,8 @@ public struct EmotionalScan3DFlowView: View {
             }
 
             Button {
-                // Restart capture
-                flowState = .capturing
-                viewModel.startGuidance()
+                // Restart capture with grace period
+                flowState = .preparing(countdown: 3)
             } label: {
                 Label("Try Again", systemImage: "arrow.clockwise")
                     .font(.headline)

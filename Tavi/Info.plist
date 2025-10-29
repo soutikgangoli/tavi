@@ -48,5 +48,11 @@
 		<string>arkit</string>
 		<string>truedepth-camera</string>
 	</array>
+	<!-- Sentry Configuration (Optional - Enable after adding Sentry SDK) -->
+	<!-- Uncomment the lines below and add your DSN from https://sentry.io -->
+	<!--
+	<key>SENTRY_DSN</key>
+	<string>https://YOUR_DSN_HERE@sentry.io/YOUR_PROJECT_ID</string>
+	-->
 </dict>
 </plist>
