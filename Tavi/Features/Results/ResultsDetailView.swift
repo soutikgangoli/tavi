@@ -44,6 +44,11 @@ struct ResultsDetailView: View {
                 // Metrics Grid
                 metricsGrid
 
+                // Glow vs Radiance Breakdown (if available)
+                if let metrics = clinicalMetrics, let glowAnalysis = metrics.glowAnalysis {
+                    glowRadianceBreakdown(glowAnalysis)
+                }
+
                 // ROI Scores
                 roiScoresSection
 
@@ -237,6 +242,26 @@ struct ResultsDetailView: View {
                         icon: "circle.lefthalf.filled"
                     )
 
+                    // Glow Score (Overall Health Index)
+                    if let glowAnalysis = metrics.glowAnalysis {
+                        ResultsMetricCardWithConfidence(
+                            title: "Glow (Health)",
+                            value: Double(glowAnalysis.glowScore),
+                            confidence: Double(glowAnalysis.confidence),
+                            icon: "sparkles"
+                        )
+                    }
+
+                    // Radiance Score (Pure Luminosity)
+                    if let glowAnalysis = metrics.glowAnalysis {
+                        ResultsMetricCardWithConfidence(
+                            title: "Radiance (Brightness)",
+                            value: Double(glowAnalysis.radianceScore),
+                            confidence: Double(glowAnalysis.confidence),
+                            icon: "sun.max"
+                        )
+                    }
+
                     // Hydration with confidence (capped at 80% - indirect measurement)
                     ResultsMetricCardWithConfidence(
                         title: "Moisture",
@@ -274,6 +299,163 @@ struct ResultsDetailView: View {
         case .moderate: return .orange
         case .deep: return .red
         }
+    }
+
+    // MARK: - Glow vs Radiance Breakdown
+
+    private func glowRadianceBreakdown(_ analysis: GlowAnalysis) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Glow vs Radiance Analysis")
+                .font(.headline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text("Understanding the difference between your skin's overall health and pure luminosity.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            // Side-by-side comparison
+            HStack(spacing: 16) {
+                // Glow (Health Index)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(.orange)
+                        Text("Glow (Health)")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                    }
+
+                    Text("\(Int(analysis.glowScore))/100")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.orange)
+
+                    Text("Overall health index")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Components:")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        HStack {
+                            Text("Smoothness")
+                                .font(.caption2)
+                            Spacer()
+                            Text("\(Int(analysis.smoothnessContribution))")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack {
+                            Text("Evenness")
+                                .font(.caption2)
+                            Spacer()
+                            Text("\(Int(analysis.evennessContribution))")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack {
+                            Text("Discoloration")
+                                .font(.caption2)
+                            Spacer()
+                            Text("\(Int(analysis.discolorationContribution))")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack {
+                            Text("Specular")
+                                .font(.caption2)
+                            Spacer()
+                            Text("\(Int(analysis.specularContribution))")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.orange.opacity(0.1))
+                )
+
+                // Radiance (Luminosity)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "sun.max")
+                            .foregroundColor(.yellow)
+                        Text("Radiance (Brightness)")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                    }
+
+                    Text("\(Int(analysis.radianceScore))/100")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.yellow)
+
+                    Text("Pure luminosity")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Components:")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        HStack {
+                            Text("LAB L* Lightness")
+                                .font(.caption2)
+                            Spacer()
+                            Text("\(Int(analysis.labLightness * 100))")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack {
+                            Text("Specular Highlights")
+                                .font(.caption2)
+                            Spacer()
+                            Text("\(Int(analysis.specularHighlightRatio * 100))")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack {
+                            Text("Luminosity Index")
+                                .font(.caption2)
+                            Spacer()
+                            Text("\(Int(analysis.luminosityIndex))")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.yellow.opacity(0.1))
+                )
+            }
+
+            // Explanation
+            Text("💡 **Glow** measures overall skin health (texture + tone + shine), while **Radiance** measures how much light your skin reflects (physics-based brightness).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(uiColor: .secondarySystemBackground))
+        )
     }
 
     // MARK: - ROI Scores
@@ -316,6 +498,12 @@ struct ResultsDetailView: View {
     // MARK: - Actions
 
     private func shareResults() {
+        Task {
+            await performShare()
+        }
+    }
+
+    private func performShare() async {
         // Generate share content
         var itemsToShare: [Any] = []
 
@@ -324,7 +512,7 @@ struct ResultsDetailView: View {
         itemsToShare.append(shareText)
 
         // 2. Add PDF report if we have clinical metrics
-        if let pdfData = generatePDFReport() {
+        if let pdfData = await generatePDFReport() {
             let tempURL = FileManager.default.temporaryDirectory
                 .appendingPathComponent("Tavi_Analysis_\(session.date.formatted(date: .abbreviated, time: .omitted)).pdf")
             try? pdfData.write(to: tempURL)
@@ -336,21 +524,23 @@ struct ResultsDetailView: View {
             itemsToShare.append(heatmapImage)
         }
 
-        // Present native iOS share sheet
-        let activityVC = UIActivityViewController(
-            activityItems: itemsToShare,
-            applicationActivities: nil
-        )
+        // Present native iOS share sheet on main actor
+        await MainActor.run {
+            let activityVC = UIActivityViewController(
+                activityItems: itemsToShare,
+                applicationActivities: nil
+            )
 
-        // For iPad support
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootVC = windowScene.windows.first?.rootViewController {
-            if let popover = activityVC.popoverPresentationController {
-                popover.sourceView = rootVC.view
-                popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
-                popover.permittedArrowDirections = []
+            // For iPad support
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootVC = windowScene.windows.first?.rootViewController {
+                if let popover = activityVC.popoverPresentationController {
+                    popover.sourceView = rootVC.view
+                    popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                    popover.permittedArrowDirections = []
+                }
+                rootVC.present(activityVC, animated: true)
             }
-            rootVC.present(activityVC, animated: true)
         }
     }
 
@@ -381,7 +571,7 @@ struct ResultsDetailView: View {
         return text
     }
 
-    private func generatePDFReport() -> Data? {
+    private func generatePDFReport() async -> Data? {
         // Only generate PDF if we have clinical metrics
         guard let metricsData = session.clinicalMetricsData,
               let metrics = try? JSONDecoder().decode(Face3DMetrics.self, from: metricsData) else {
@@ -391,13 +581,25 @@ struct ResultsDetailView: View {
         // Generate interpreted results for the report
         let interpretedResults = InterpretedResults.from(metrics: metrics)
 
+        // Ensure we have scan quality data
+        guard let scanQuality = metrics.scanQuality else {
+            return nil
+        }
+
+        // Generate PDF report
         let generator = PDFReportGenerator()
-        return try? generator.generateReport(
+        guard let pdfURL = await generator.generateReport(
             scan: metrics,
             interpretedResults: interpretedResults,
+            scanQuality: scanQuality,
             userProfile: nil,  // Optional - could load from UserProfile
             recommendations: nil  // Optional - could generate from PersonalizedRecommendationEngine
-        )
+        ) else {
+            return nil
+        }
+
+        // Convert URL to Data
+        return try? Data(contentsOf: pdfURL)
     }
 
     private func deleteSession() {

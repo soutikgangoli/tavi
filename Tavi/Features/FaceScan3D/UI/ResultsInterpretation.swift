@@ -25,6 +25,198 @@ public struct InterpretedResults {
         self.recommendations = recommendations
         self.percentileRankings = percentileRankings
     }
+
+    /// Factory method to create InterpretedResults from Face3DMetrics
+    public static func from(metrics: Face3DMetrics) -> InterpretedResults {
+        // Use the overall score from Face3DMetrics
+        let overallScore = metrics.overallScore
+
+        // Determine rating based on score
+        let rating: HealthRating
+        switch overallScore {
+        case 90...100:
+            rating = .excellent
+        case 80..<90:
+            rating = .veryGood
+        case 70..<80:
+            rating = .good
+        case 60..<70:
+            rating = .fair
+        default:
+            rating = .needsAttention
+        }
+
+        // Generate summary
+        let summary = generateSummary(score: overallScore, rating: rating)
+
+        // Create detailed metrics for each analyzed component
+        var detailedMetrics: [MetricInterpretation] = []
+
+        // Smoothness/Roughness
+        detailedMetrics.append(MetricInterpretation(
+            name: "Skin Smoothness",
+            score: metrics.globalRoughnessScore,
+            rating: ratingForScore(metrics.globalRoughnessScore),
+            percentile: Int(metrics.globalRoughnessScore),
+            description: "Overall skin texture and surface smoothness",
+            trend: nil
+        ))
+
+        // Pigmentation
+        detailedMetrics.append(MetricInterpretation(
+            name: "Skin Tone Evenness",
+            score: metrics.globalPigmentationScore,
+            rating: ratingForScore(metrics.globalPigmentationScore),
+            percentile: Int(metrics.globalPigmentationScore),
+            description: "Uniformity of skin tone and pigmentation",
+            trend: nil
+        ))
+
+        // Discoloration
+        detailedMetrics.append(MetricInterpretation(
+            name: "Discoloration",
+            score: metrics.globalDiscolorationScore,
+            rating: ratingForScore(metrics.globalDiscolorationScore),
+            percentile: Int(metrics.globalDiscolorationScore),
+            description: "Dark spots and hyperpigmentation",
+            trend: nil
+        ))
+
+        // Add wrinkle analysis if available
+        if let wrinkles = metrics.wrinkleAnalysis {
+            detailedMetrics.append(MetricInterpretation(
+                name: "Wrinkles & Fine Lines",
+                score: wrinkles.overallScore,
+                rating: ratingForScore(wrinkles.overallScore),
+                percentile: Int(wrinkles.overallScore),
+                description: "Wrinkle depth and fine line visibility",
+                trend: nil
+            ))
+        }
+
+        // Add pore analysis if available
+        if let pores = metrics.poreAnalysis {
+            let poreScore = 100 - pores.visibility // Invert so higher is better
+            detailedMetrics.append(MetricInterpretation(
+                name: "Pore Visibility",
+                score: poreScore,
+                rating: ratingForScore(poreScore),
+                percentile: Int(poreScore),
+                description: "Size and visibility of skin pores",
+                trend: nil
+            ))
+        }
+
+        // Generate recommendations based on weak areas
+        let recommendations = generateRecommendations(metrics: metrics)
+
+        // Calculate percentile rankings (simplified - using scores as percentiles)
+        var percentileRankings: [String: Int] = [:]
+        percentileRankings["Overall"] = Int(overallScore)
+        percentileRankings["Smoothness"] = Int(metrics.globalRoughnessScore)
+        percentileRankings["Pigmentation"] = Int(metrics.globalPigmentationScore)
+        percentileRankings["Discoloration"] = Int(metrics.globalDiscolorationScore)
+
+        return InterpretedResults(
+            overallHealthScore: overallScore,
+            overallRating: rating,
+            summary: summary,
+            detailedMetrics: detailedMetrics,
+            recommendations: recommendations,
+            percentileRankings: percentileRankings
+        )
+    }
+
+    // MARK: - Helper Methods
+
+    private static func generateSummary(score: Float, rating: HealthRating) -> String {
+        switch rating {
+        case .excellent:
+            return "Your skin is in excellent condition! Keep up your current routine."
+        case .veryGood:
+            return "Your skin is looking very good with just minor areas for improvement."
+        case .good:
+            return "Your skin is in good condition with some areas that could benefit from targeted care."
+        case .fair:
+            return "Your skin shows moderate concerns that can be addressed with a consistent skincare routine."
+        case .needsAttention:
+            return "Your skin needs attention in several areas. A dedicated skincare routine will help improve these concerns."
+        }
+    }
+
+    private static func ratingForScore(_ score: Float) -> HealthRating {
+        switch score {
+        case 90...100: return .excellent
+        case 80..<90: return .veryGood
+        case 70..<80: return .good
+        case 60..<70: return .fair
+        default: return .needsAttention
+        }
+    }
+
+    private static func generateRecommendations(metrics: Face3DMetrics) -> [ResultsRecommendation] {
+        var recommendations: [ResultsRecommendation] = []
+
+        // Roughness recommendations
+        if metrics.globalRoughnessScore < 70 {
+            recommendations.append(ResultsRecommendation(
+                priority: .high,
+                area: "Skin Texture",
+                suggestion: "Use a gentle exfoliating product 2-3 times per week to improve smoothness",
+                expectedImpact: "Smoother, more refined skin texture within 2-4 weeks"
+            ))
+        }
+
+        // Pigmentation recommendations
+        if metrics.globalPigmentationScore < 70 {
+            recommendations.append(ResultsRecommendation(
+                priority: .high,
+                area: "Skin Tone",
+                suggestion: "Apply Vitamin C serum daily and use SPF 30+ sunscreen",
+                expectedImpact: "More even skin tone within 4-6 weeks"
+            ))
+        }
+
+        // Discoloration recommendations
+        if metrics.globalDiscolorationScore < 70 {
+            recommendations.append(ResultsRecommendation(
+                priority: .medium,
+                area: "Dark Spots",
+                suggestion: "Use brightening serum with niacinamide or alpha arbutin",
+                expectedImpact: "Reduced hyperpigmentation within 6-8 weeks"
+            ))
+        }
+
+        // Wrinkle recommendations
+        if let wrinkles = metrics.wrinkleAnalysis, wrinkles.overallScore < 70 {
+            recommendations.append(ResultsRecommendation(
+                priority: .medium,
+                area: "Anti-Aging",
+                suggestion: "Incorporate retinol serum 3-4 nights per week",
+                expectedImpact: "Reduced fine lines and wrinkles within 8-12 weeks"
+            ))
+        }
+
+        // Pore recommendations
+        if let pores = metrics.poreAnalysis, pores.visibility > 30 {
+            recommendations.append(ResultsRecommendation(
+                priority: .low,
+                area: "Pore Refinement",
+                suggestion: "Use niacinamide serum and clay mask weekly",
+                expectedImpact: "Minimized pore appearance within 3-4 weeks"
+            ))
+        }
+
+        // Always recommend sun protection
+        recommendations.append(ResultsRecommendation(
+            priority: .high,
+            area: "Sun Protection",
+            suggestion: "Apply broad-spectrum SPF 30+ sunscreen every morning",
+            expectedImpact: "Prevention of new damage and photoaging"
+        ))
+
+        return recommendations
+    }
 }
 
 public enum HealthRating: String {

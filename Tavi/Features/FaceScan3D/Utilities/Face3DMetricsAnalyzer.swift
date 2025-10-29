@@ -440,7 +440,19 @@ public class Face3DMetricsAnalyzer {
             sunDamageAnalysis = nil
         }
 
-        // Update metrics with sun damage analysis
+        // Glow and radiance analysis (differentiated measurements)
+        print("   ✨ Running GlowAnalyzer...")
+        let glowAnalyzer = GlowAnalyzer()
+        let glowAnalysis = glowAnalyzer.analyzeGlow(
+            texture: UIImage(cgImage: unifiedTexture),
+            geometry: unifiedMesh.geometry,
+            existingMetrics: metrics,
+            specularAnalyzer: specularAnalyzer
+        )
+        print("   - Glow Score (Health): \(String(format: "%.1f", glowAnalysis.glowScore))/100")
+        print("   - Radiance Score (Luminosity): \(String(format: "%.1f", glowAnalysis.radianceScore))/100")
+
+        // Update metrics with sun damage analysis and glow analysis
         let finalMetrics = Face3DMetrics(
             roiMetrics: metrics.roiMetrics,
             globalRoughnessProxy: metrics.globalRoughnessProxy,
@@ -470,7 +482,8 @@ public class Face3DMetricsAnalyzer {
             acneAnalysis: metrics.acneAnalysis,
             rednessAnalysis: metrics.rednessAnalysis,
             topologyAnalysis: metrics.topologyAnalysis,
-            sunDamageAnalysis: sunDamageAnalysis
+            sunDamageAnalysis: sunDamageAnalysis,
+            glowAnalysis: glowAnalysis
         )
 
         print("✅ Face3DMetricsAnalyzer: Complete in \(processingTime)s")

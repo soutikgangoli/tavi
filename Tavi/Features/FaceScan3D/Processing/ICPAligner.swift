@@ -300,7 +300,7 @@ class ICPAligner {
         var matrix = A
         var V = matrix_identity_float3x3
 
-        for iteration in 0..<maxIterations {
+        for _ in 0..<maxIterations {
             // Find largest off-diagonal element
             let (p, q, maxOffDiag) = findLargestOffDiagonal(matrix)
 

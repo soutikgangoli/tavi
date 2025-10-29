@@ -307,7 +307,9 @@ public class EdgeCaseDetector {
 
         // Calculate darkness (facial hair is typically darker)
         let pixels = extractPixels(from: region)
-        let avgBrightness = pixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(pixels.count, 1))
+        let brightnessValues = pixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }
+        let sumBrightness = brightnessValues.reduce(0, +)
+        let avgBrightness = sumBrightness / Float(max(pixels.count, 1))
 
         // Calculate texture variance (hair has high variance)
         let variance = calculateVariance(pixels: pixels)
@@ -318,7 +320,8 @@ public class EdgeCaseDetector {
 
         if isDark && hasHighVariance {
             // Determine severity based on coverage
-            let darkPixelRatio = Float(pixels.filter { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 < 80 }.count) / Float(pixels.count)
+            let darkPixels = pixels.filter { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 < 80 }
+            let darkPixelRatio = Float(darkPixels.count) / Float(pixels.count)
 
             let severity: EdgeCaseSeverity
             if darkPixelRatio > 0.5 {
@@ -444,7 +447,7 @@ public class EdgeCaseDetector {
 
         let geometry = faceAnchor.geometry
         let vertices = geometry.vertices
-        let vertexCount = geometry.vertexCount
+        let vertexCount = geometry.vertices.count
 
         // Check for suspicious vertex patterns in lower face (where hands typically appear)
         var suspiciousVertices = 0
@@ -466,18 +469,22 @@ public class EdgeCaseDetector {
         // Strategy 2: Check for non-skin-tone colors in cheek regions (hand skin might differ)
         guard let cgImage = texture.cgImage else { return false }
 
+        let imageWidth = CGFloat(cgImage.width)
+        let imageHeight = CGFloat(cgImage.height)
+
         let leftCheekRegion = cgImage.cropping(to: CGRect(
-            x: cgImage.width / 6,
-            y: cgImage.height / 2,
-            width: cgImage.width / 8,
-            height: cgImage.height / 6
+            x: imageWidth / 6,
+            y: imageHeight / 2,
+            width: imageWidth / 8,
+            height: imageHeight / 6
         ))
 
+        let rightCheekX = imageWidth * 2 / 3
         let rightCheekRegion = cgImage.cropping(to: CGRect(
-            x: cgImage.width * 2 / 3,
-            y: cgImage.height / 2,
-            width: cgImage.width / 8,
-            height: cgImage.height / 6
+            x: rightCheekX,
+            y: imageHeight / 2,
+            width: imageWidth / 8,
+            height: imageHeight / 6
         ))
 
         guard let leftCheek = leftCheekRegion, let rightCheek = rightCheekRegion else {
@@ -519,14 +526,17 @@ public class EdgeCaseDetector {
 
         let foreheadPixels = extractPixels(from: forehead)
         let foreheadVariance = calculateVariance(pixels: foreheadPixels)
-        let foreheadBrightness = foreheadPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(foreheadPixels.count, 1))
+        let foreheadBrightnessValues = foreheadPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }
+        let sumForeheadBrightness = foreheadBrightnessValues.reduce(0, +)
+        let foreheadBrightness = sumForeheadBrightness / Float(max(foreheadPixels.count, 1))
 
         // Hair characteristics:
         // 1. High variance (different from smooth skin)
         // 2. Generally darker than skin
         // 3. High ratio of dark pixels
 
-        let darkPixelRatio = Float(foreheadPixels.filter { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 < 100 }.count) / Float(foreheadPixels.count)
+        let darkForeheadPixels = foreheadPixels.filter { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 < 100 }
+        let darkPixelRatio = Float(darkForeheadPixels.count) / Float(foreheadPixels.count)
 
         let hasHairTexture = foreheadVariance > 600
         let isDark = foreheadBrightness < 110
@@ -537,7 +547,7 @@ public class EdgeCaseDetector {
 
         let geometry = faceAnchor.geometry
         let vertices = geometry.vertices
-        let vertexCount = geometry.vertexCount
+        let vertexCount = geometry.vertices.count
 
         // Check for missing/invalid vertices in upper face
         var invalidUpperVertices = 0
@@ -698,7 +708,9 @@ public class EdgeCaseDetector {
 
         let crownVariance = calculateVariance(pixels: crownPixels)
         let crownSaturation = calculateSaturation(pixels: crownPixels)
-        let crownBrightness = crownPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(crownPixels.count, 1))
+        let crownBrightnessValues = crownPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }
+        let sumCrownBrightness = crownBrightnessValues.reduce(0, +)
+        let crownBrightness = sumCrownBrightness / Float(max(crownPixels.count, 1))
 
         // Check for non-skin-tone colors (hats are usually bright, saturated, or very dark)
         let hasNonSkinColor = crownSaturation > 0.4 || crownBrightness > 200 || crownBrightness < 40
@@ -709,7 +721,7 @@ public class EdgeCaseDetector {
         // Strategy 2: Check for missing vertices in crown area (ARKit loses tracking above forehead)
         let geometry = faceAnchor.geometry
         let vertices = geometry.vertices
-        let vertexCount = geometry.vertexCount
+        let vertexCount = geometry.vertices.count
 
         var crownVertices = 0
         for i in 0..<vertexCount {
@@ -790,8 +802,13 @@ public class EdgeCaseDetector {
         let hasHighSaturation = (leftSaturation > 0.35 && rightSaturation > 0.35)
 
         // Check for color objects (not skin tone)
-        let leftAvgBrightness = leftPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(leftPixels.count, 1))
-        let rightAvgBrightness = rightPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(rightPixels.count, 1))
+        let leftBrightnessValues = leftPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }
+        let sumLeftBrightness = leftBrightnessValues.reduce(0, +)
+        let leftAvgBrightness = sumLeftBrightness / Float(max(leftPixels.count, 1))
+
+        let rightBrightnessValues = rightPixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }
+        let sumRightBrightness = rightBrightnessValues.reduce(0, +)
+        let rightAvgBrightness = sumRightBrightness / Float(max(rightPixels.count, 1))
 
         // Very bright or very dark = jewelry
         let hasNonSkinTone = (leftAvgBrightness > 180 || leftAvgBrightness < 60) &&

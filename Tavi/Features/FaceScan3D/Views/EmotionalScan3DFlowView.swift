@@ -369,6 +369,11 @@ public struct EmotionalScan3DFlowView: View {
                     return result
                 }
 
+                // Log merge success for debugging
+                let vertexCount = merged.vertices.count
+                let faceCount = merged.triangleIndices.count / 3
+                AppLogger.faceScan.info("Mesh merge completed: \(vertexCount) vertices, \(faceCount) faces")
+
                 try await Task.sleep(nanoseconds: 500_000_000)
 
                 // Step 2: Bake texture (with timeout protection)
@@ -384,6 +389,9 @@ public struct EmotionalScan3DFlowView: View {
                     }
                     return result
                 }
+
+                // Log bake success for debugging
+                AppLogger.faceScan.info("Texture bake completed: \(bakeResult.textureWidth)x\(bakeResult.textureHeight)")
 
                 try await Task.sleep(nanoseconds: 500_000_000)
 

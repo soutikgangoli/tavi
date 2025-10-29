@@ -212,7 +212,7 @@ public class VolumeMetricsAnalyzer {
         // Compare left and right sides
         for i in 0..<vertices.count {
             let vertex = vertices[i]
-            let distanceFromCenter = abs(vertex.x - centerX)
+            _ = abs(vertex.x - centerX)  // distanceFromCenter (for reference)
 
             // Find corresponding point on opposite side
             let mirroredX = centerX - (vertex.x - centerX)
@@ -483,15 +483,14 @@ public class VolumeMetricsAnalyzer {
             // Find furthest point from any face
             var maxDistance: Float = 0
             var furthestPoint: Int = -1
-            var furthestFace: Int = -1
+            _ = -1  // furthestFace (not needed for expansion)
 
-            for (faceIndex, face) in faces.enumerated() {
+            for (_, face) in faces.enumerated() {
                 for pointIndex in unassignedPoints {
                     let distance = distanceFromFace(point: points[pointIndex], face: face, points: points)
                     if distance > maxDistance {
                         maxDistance = distance
                         furthestPoint = pointIndex
-                        furthestFace = faceIndex
                     }
                 }
             }
@@ -585,7 +584,7 @@ public class VolumeMetricsAnalyzer {
         var horizonEdges: [(Int, Int)] = []
         var edgeFaceCount: [[Int]: Int] = [:]  // edge -> count of adjacent faces
 
-        for (index, face) in faces.enumerated() {
+        for face in faces {
             let edges = [
                 [face.v0, face.v1].sorted(),
                 [face.v1, face.v2].sorted(),

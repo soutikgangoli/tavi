@@ -64,7 +64,7 @@ class HoleFiller {
             )
 
             // Add new vertices
-            let baseIndex = vertices.count
+            _ = vertices.count  // baseIndex (used in caller for centroid offset)
             vertices.append(contentsOf: newVerts)
             normals.append(contentsOf: newNorms)
             textureCoords.append(contentsOf: newTexCoords)

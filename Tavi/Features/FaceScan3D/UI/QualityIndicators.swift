@@ -165,7 +165,7 @@ class QualityCalculator {
 
     func calculateQuality(
         lightingQuality: ProcessingLightingQuality,
-        validationResult: ValidationResult,
+        validationResult: MeshValidationResult,
         frameCount: Int,
         coverage: Float
     ) -> UIScanQuality {

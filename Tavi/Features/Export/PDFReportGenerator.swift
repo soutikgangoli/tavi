@@ -212,12 +212,13 @@ public class PDFReportGenerator {
         yPosition += 10
 
         let qualityText = """
-        Overall Score: \(String(format: "%.0f", quality.overallScore))/100
-        Rating: \(quality.rating.rawValue)
+        Overall Quality: \(String(format: "%.0f", quality.overallQuality))/100
+        Quality Level: \(quality.qualityLevel.rawValue)
         Lighting Quality: \(String(format: "%.0f", quality.lightingQuality))%
-        Tracking Stability: \(String(format: "%.0f", quality.trackingStability))%
-        Face Coverage: \(String(format: "%.0f", quality.faceCoverage))%
-        Mesh Quality: \(String(format: "%.0f", quality.meshQuality))%
+        Stability Score: \(String(format: "%.0f", quality.stabilityScore))%
+        Coverage Quality: \(String(format: "%.0f", quality.coverageQuality))%
+        Texture Clarity: \(String(format: "%.0f", quality.textureClarity))%
+        Resolution Quality: \(String(format: "%.0f", quality.resolutionQuality))%
         """
 
         yPosition = drawText(context: cgContext, text: qualityText, yPosition: yPosition, pageSize: pageSize, fontSize: 12)
@@ -236,7 +237,7 @@ public class PDFReportGenerator {
         Generated: \(Date().formatted(date: .complete, time: .shortened))
         """
 
-        drawText(context: cgContext, text: disclaimer, yPosition: yPosition, pageSize: pageSize, fontSize: 10)
+        _ = drawText(context: cgContext, text: disclaimer, yPosition: yPosition, pageSize: pageSize, fontSize: 10)
 
         drawFooter(context: cgContext, pageSize: pageSize, pageNumber: 4)
     }

@@ -437,7 +437,7 @@ public class MeshTopologyAnalyzer {
 
         var discontinuityCount = 0
 
-        for (edge, info) in edgeData.edges {
+        for (_, info) in edgeData.edges {
             guard info.triangles.count == 2 else { continue }
 
             let tri0 = info.triangles[0]

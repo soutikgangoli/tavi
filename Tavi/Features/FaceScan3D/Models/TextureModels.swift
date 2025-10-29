@@ -179,6 +179,16 @@ public struct UnifiedMesh: Codable {
 
     public var vertexCount: Int { vertices.count }
     public var triangleCount: Int { triangleIndices.count / 3 }
+
+    /// Convert to FaceMeshGeometry for processing
+    public var geometry: FaceMeshGeometry {
+        return FaceMeshGeometry(
+            vertices: vertices.map { $0.toSIMD() },
+            normals: normals.map { $0.toSIMD() },
+            textureCoordinates: textureCoordinates.map { $0.toSIMD() },
+            triangleIndices: triangleIndices
+        )
+    }
 }
 
 // MARK: - Face Scan Metadata

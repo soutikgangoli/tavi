@@ -147,50 +147,41 @@ class DebugViewModel: ObservableObject {
         let startTime = Date()
 
         Task {
-            do {
-                // Detect faces
-                guard let cgImage = convertToCGImage(pixelBuffer: pixelBuffer) else {
-                    await MainActor.run {
-                        self.detectedFaces = []
-                        self.faceROIs = []
-                    }
-                    return
-                }
-
-                let faces = faceDetector.detectFaces(in: cgImage)
-
-                // Compute ROIs
-                var roiSets: [FaceROISet] = []
-                if let imageSize = getImageSize() {
-                    for face in faces {
-                        if let roiSet = try? roiBuilder.computeROIs(for: face, imageSize: imageSize) {
-                            roiSets.append(roiSet)
-                        }
-                    }
-                }
-
-                // Calculate processing latency
-                let latency = Date().timeIntervalSince(startTime) * 1000 // Convert to ms
-
-                // Update UI on main thread
-                await MainActor.run {
-                    self.detectedFaces = faces
-                    self.faceROIs = roiSets
-                    self.trackLatency(latency)
-                }
-
-                // Convert to UIImage for display
-                if let uiImage = convertToUIImage(pixelBuffer: pixelBuffer) {
-                    await MainActor.run {
-                        self.latestFrame = uiImage
-                    }
-                }
-
-            } catch {
-                // Silently fail - face detection errors are normal
+            // Detect faces
+            guard let cgImage = convertToCGImage(pixelBuffer: pixelBuffer) else {
                 await MainActor.run {
                     self.detectedFaces = []
                     self.faceROIs = []
+                }
+                return
+            }
+
+            let faces = faceDetector.detectFaces(in: cgImage)
+
+            // Compute ROIs
+            var roiSets: [FaceROISet] = []
+            if let imageSize = getImageSize() {
+                for face in faces {
+                    if let roiSet = try? roiBuilder.computeROIs(for: face, imageSize: imageSize) {
+                        roiSets.append(roiSet)
+                    }
+                }
+            }
+
+            // Calculate processing latency
+            let latency = Date().timeIntervalSince(startTime) * 1000 // Convert to ms
+
+            // Update UI on main thread
+            await MainActor.run {
+                self.detectedFaces = faces
+                self.faceROIs = roiSets
+                self.trackLatency(latency)
+            }
+
+            // Convert to UIImage for display
+            if let uiImage = convertToUIImage(pixelBuffer: pixelBuffer) {
+                await MainActor.run {
+                    self.latestFrame = uiImage
                 }
             }
         }

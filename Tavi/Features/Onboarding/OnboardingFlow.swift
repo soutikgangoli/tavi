@@ -39,7 +39,7 @@ public struct OnboardingFlowView: View {
                 Button("Skip") {
                     // Skip tutorial, but still save name if entered
                     if !userName.isEmpty {
-                        UserProfileManager.shared.updateName(userName)
+                        try? UserProfileManager.shared.updateName(userName)
                     }
                     UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
                     dismiss()
@@ -96,7 +96,7 @@ public struct OnboardingFlowView: View {
                     Button("Get Started") {
                         // Save user name to profile
                         if !userName.isEmpty {
-                            UserProfileManager.shared.updateName(userName)
+                            try? UserProfileManager.shared.updateName(userName)
                         }
 
                         // Mark onboarding as complete

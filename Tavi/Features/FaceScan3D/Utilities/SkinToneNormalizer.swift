@@ -189,9 +189,9 @@ public class SkinToneNormalizer {
     /// Convert RGB to LAB color space
     private func rgbToLAB(r: Float, g: Float, b: Float) -> (l: Float, a: Float, b: Float) {
         // First convert RGB to XYZ
-        var rLinear = r <= 0.04045 ? r / 12.92 : pow((r + 0.055) / 1.055, 2.4)
-        var gLinear = g <= 0.04045 ? g / 12.92 : pow((g + 0.055) / 1.055, 2.4)
-        var bLinear = b <= 0.04045 ? b / 12.92 : pow((b + 0.055) / 1.055, 2.4)
+        let rLinear = r <= 0.04045 ? r / 12.92 : pow((r + 0.055) / 1.055, 2.4)
+        let gLinear = g <= 0.04045 ? g / 12.92 : pow((g + 0.055) / 1.055, 2.4)
+        let bLinear = b <= 0.04045 ? b / 12.92 : pow((b + 0.055) / 1.055, 2.4)
 
         // Convert to XYZ (D65 illuminant)
         var x = rLinear * 0.4124 + gLinear * 0.3576 + bLinear * 0.1805

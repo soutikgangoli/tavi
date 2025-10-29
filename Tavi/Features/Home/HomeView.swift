@@ -71,8 +71,8 @@ public struct HomeView: View {
                         BeforeAfterView(
                             beforeMetrics: previousMetrics,
                             afterMetrics: latestMetrics,
-                            beforeDate: previous.date ?? Date(),
-                            afterDate: latest.date ?? Date()
+                            beforeDate: previous.date,
+                            afterDate: latest.date
                         )
                     } label: {
                         beforeAfterCTA
@@ -318,8 +318,7 @@ public struct HomeView: View {
         .disabled(!capabilities.supportsTrueDepth)
         .opacity(capabilities.supportsTrueDepth ? 1.0 : 0.5)
         .accessibilityLabel("Start skin scan")
-        .accessibilityHint("Begins a 60-second face scan to analyze your skin health")
-        .accessibilityAddTraits(capabilities.supportsTrueDepth ? [] : .isNotEnabled)
+        .accessibilityHint(capabilities.supportsTrueDepth ? "Begins a 60-second face scan to analyze your skin health" : "TrueDepth camera required for face scanning")
     }
 
     private var recentAchievementsSection: some View {

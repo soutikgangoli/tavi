@@ -57,15 +57,20 @@ public struct ClinicalInfoView: View {
                         .foregroundStyle(.secondary)
                         .padding(.top, 16)
 
-                    // Radiance breakdown - WHY is it 88?
+                    // Radiance breakdown - Pure luminosity measurement
                     VStack(alignment: .leading, spacing: 16) {
                         // Header
                         HStack {
                             Text("✨")
                                 .font(.title2)
-                            Text("Radiance: \(emotionalMetrics.radiance)/100")
-                                .font(.headline)
-                                .foregroundColor(.yellow)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Radiance: \(emotionalMetrics.radiance)/100")
+                                    .font(.headline)
+                                    .foregroundColor(.yellow)
+                                Text("(Skin brightness & light reflection)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
                             Spacer()
                             Text("Why \(emotionalMetrics.radiance)?")
                                 .font(.caption)
@@ -125,7 +130,8 @@ public struct ClinicalInfoView: View {
                                             Image(systemName: "grid")
                                                 .font(.caption2)
                                                 .foregroundColor(.blue)
-                                            Text("Analyzed \(clinicalMetrics.roiMetrics.count) face regions (forehead, cheeks, nose, chin)")
+                                            let regionCount = String(clinicalMetrics.roiMetrics.count)
+                                            Text("Analyzed \(regionCount) face regions (forehead, cheeks, nose, chin)")
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
@@ -134,7 +140,7 @@ public struct ClinicalInfoView: View {
                                             Image(systemName: "ruler")
                                                 .font(.caption2)
                                                 .foregroundColor(.blue)
-                                            Text("Color variance in LAB space across \(clinicalMetrics.textureResolution.width)×\(Int(clinicalMetrics.textureResolution.height))px texture")
+                                            Text("Color variance in LAB space across \(String(format: "%.0f", clinicalMetrics.textureResolution.width))×\(String(format: "%.0f", clinicalMetrics.textureResolution.height))px texture")
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
@@ -245,10 +251,10 @@ public struct ClinicalInfoView: View {
                                     Text("Final Calculation:")
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
-                                    Text("(\(String(format: "%.1f", clinicalMetrics.globalPigmentationScore)) × 0.6) + (\(String(format: "%.1f", clinicalMetrics.globalSpecularScore ?? 50.0)) × 0.4) = \(emotionalMetrics.radiance)")
-                                        .font(.caption)
+                                    let finalScore = String(emotionalMetrics.radiance)
+                                    Text("(\(String(format: "%.1f", clinicalMetrics.globalPigmentationScore)) × 0.6) + (\(String(format: "%.1f", clinicalMetrics.globalSpecularScore ?? 50.0)) × 0.4) = \(finalScore)")
+                                        .font(.system(.caption, design: .monospaced))
                                         .foregroundColor(.secondary)
-                                        .fontFamily(.system(.body, design: .monospaced))
                                 }
                             }
                             .padding(12)
@@ -336,7 +342,9 @@ public struct ClinicalInfoView: View {
                                             Image(systemName: "viewfinder")
                                                 .font(.caption2)
                                                 .foregroundColor(.blue)
-                                            Text("Scanned \(clinicalMetrics.vertexCount) vertices, \(clinicalMetrics.triangleCount) triangles")
+                                            let vertexCountStr = String(clinicalMetrics.vertexCount)
+                                            let triangleCountStr = String(clinicalMetrics.triangleCount)
+                                            Text("Scanned \(vertexCountStr) vertices, \(triangleCountStr) triangles")
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
@@ -345,7 +353,8 @@ public struct ClinicalInfoView: View {
                                             Image(systemName: "grid")
                                                 .font(.caption2)
                                                 .foregroundColor(.blue)
-                                            Text("Analyzed \(clinicalMetrics.roiMetrics.count) regions for micro-texture patterns")
+                                            let regionCountStr = String(clinicalMetrics.roiMetrics.count)
+                                            Text("Analyzed \(regionCountStr) regions for micro-texture patterns")
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
@@ -388,7 +397,7 @@ public struct ClinicalInfoView: View {
                                         .foregroundColor(.secondary)
                                     Text("(Lower roughness = Higher smoothness)")
                                         .font(.caption2)
-                                        .foregroundColor(.tertiary)
+                                        .foregroundStyle(.tertiary)
                                 }
                             }
                             .padding(12)
@@ -485,7 +494,8 @@ public struct ClinicalInfoView: View {
                                             Image(systemName: "grid")
                                                 .font(.caption2)
                                                 .foregroundColor(.blue)
-                                            Text("Inter-regional variance across \(clinicalMetrics.roiMetrics.count) zones")
+                                            let zoneCount = String(clinicalMetrics.roiMetrics.count)
+                                            Text("Inter-regional variance across \(zoneCount) zones")
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
@@ -528,7 +538,7 @@ public struct ClinicalInfoView: View {
                                         .foregroundColor(.secondary)
                                     Text("(Lower variance = Higher evenness)")
                                         .font(.caption2)
-                                        .foregroundColor(.tertiary)
+                                        .foregroundStyle(.tertiary)
                                 }
                             }
                             .padding(12)
@@ -581,7 +591,8 @@ public struct ClinicalInfoView: View {
                                         Text("Texture Smoothness")
                                             .font(.subheadline)
                                         Spacer()
-                                        Text("\(emotionalMetrics.smoothness)")
+                                        let smoothnessValue = String(emotionalMetrics.smoothness)
+                                        Text("\(smoothnessValue)")
                                             .font(.subheadline)
                                             .foregroundColor(.pink)
                                             .fontWeight(.semibold)
@@ -648,7 +659,7 @@ public struct ClinicalInfoView: View {
                                                 Image(systemName: "camera.fill")
                                                     .font(.caption2)
                                                     .foregroundColor(.blue)
-                                                Text("Wrinkle Count: \(wrinkles.totalWrinkles) detected")
+                                                Text("Wrinkle Count: \(wrinkles.wrinkleCount) detected")
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
                                             }
@@ -657,7 +668,7 @@ public struct ClinicalInfoView: View {
                                                 Image(systemName: "ruler.fill")
                                                     .font(.caption2)
                                                     .foregroundColor(.blue)
-                                                Text("Average Depth: \(String(format: "%.4f", wrinkles.averageDepth))m (\(wrinkles.averageDepth < 0.0003 ? "Fine" : wrinkles.averageDepth < 0.0008 ? "Moderate" : "Deep"))")
+                                                Text("Depth: \(wrinkles.wrinkleDepth.rawValue)")
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
                                             }
@@ -666,7 +677,8 @@ public struct ClinicalInfoView: View {
                                                 Image(systemName: "waveform.path")
                                                     .font(.caption2)
                                                     .foregroundColor(.blue)
-                                                Text("3D curvature analysis on \(clinicalMetrics.vertexCount) vertices")
+                                                let vertexCountForCurvature = String(clinicalMetrics.vertexCount)
+                                                Text("3D curvature analysis on \(vertexCountForCurvature) vertices")
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
                                             }
@@ -714,18 +726,21 @@ public struct ClinicalInfoView: View {
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                     if let wrinkles = clinicalMetrics.wrinkleAnalysis {
-                                        Text("Youthfulness ≈ (\(emotionalMetrics.smoothness) + \(String(format: "%.1f", wrinkles.overallScore))) / 2 = \(emotionalMetrics.youthfulness)")
+                                        let smoothnessStr = String(emotionalMetrics.smoothness)
+                                        let youthfulnessStr = String(emotionalMetrics.youthfulness)
+                                        Text("Youthfulness ≈ (\(smoothnessStr) + \(String(format: "%.1f", wrinkles.overallScore))) / 2 = \(youthfulnessStr)")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
-                                            .fontFamily(.system(.body, design: .monospaced))
+                                            .font(.system(.body, design: .monospaced))
                                     } else {
-                                        Text("Youthfulness ≈ Smoothness = \(emotionalMetrics.youthfulness)")
+                                        let youthfulnessStr = String(emotionalMetrics.youthfulness)
+                                        Text("Youthfulness ≈ Smoothness = \(youthfulnessStr)")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     }
                                     Text("(Better texture + Fewer wrinkles = More youthful)")
                                         .font(.caption2)
-                                        .foregroundColor(.tertiary)
+                                        .foregroundStyle(.tertiary)
                                 }
                             }
                             .padding(12)
@@ -778,7 +793,8 @@ public struct ClinicalInfoView: View {
                                         Text("50% of Tone Evenness")
                                             .font(.subheadline)
                                         Spacer()
-                                        Text("\(emotionalMetrics.evenness)")
+                                        let evennessValue = String(emotionalMetrics.evenness)
+                                        Text("\(evennessValue)")
                                             .font(.subheadline)
                                             .foregroundColor(.green)
                                             .fontWeight(.semibold)
@@ -825,7 +841,8 @@ public struct ClinicalInfoView: View {
                                         Text("50% of Texture Smoothness")
                                             .font(.subheadline)
                                         Spacer()
-                                        Text("\(emotionalMetrics.smoothness)")
+                                        let smoothnessValue2 = String(emotionalMetrics.smoothness)
+                                        Text("\(smoothnessValue2)")
                                             .font(.subheadline)
                                             .foregroundColor(.green)
                                             .fontWeight(.semibold)
@@ -868,13 +885,16 @@ public struct ClinicalInfoView: View {
                                     Text("Final Calculation:")
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
-                                    Text("(\(emotionalMetrics.evenness) × 0.5) + (\(emotionalMetrics.smoothness) × 0.5) = \(emotionalMetrics.freshness)")
+                                    let evennessStr = String(emotionalMetrics.evenness)
+                                    let smoothnessStr = String(emotionalMetrics.smoothness)
+                                    let freshnessStr = String(emotionalMetrics.freshness)
+                                    Text("(\(evennessStr) × 0.5) + (\(smoothnessStr) × 0.5) = \(freshnessStr)")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                        .fontFamily(.system(.body, design: .monospaced))
+                                        .font(.system(.body, design: .monospaced))
                                     Text("Freshness serves as a proxy for hydration - we cannot measure moisture directly from 3D scans")
                                         .font(.caption2)
-                                        .foregroundColor(.tertiary)
+                                        .foregroundStyle(.tertiary)
                                 }
                             }
                             .padding(12)
@@ -953,7 +973,8 @@ public struct ClinicalInfoView: View {
                                                 Image(systemName: "checkmark.shield.fill")
                                                     .font(.caption2)
                                                     .foregroundColor(.green)
-                                                Text("✅ Accurate - Normalized for \(sunDamage.detectedSkinTone)")
+                                                let skinToneStr = String(describing: sunDamage.detectedSkinTone)
+                                                Text("✅ Accurate - Normalized for \(skinToneStr)")
                                                     .font(.caption)
                                                     .foregroundColor(.green)
                                                     .fontWeight(.medium)
@@ -1106,7 +1127,8 @@ public struct ClinicalInfoView: View {
                                                 Image(systemName: "checkmark.shield.fill")
                                                     .font(.caption2)
                                                     .foregroundColor(.green)
-                                                Text("✅ Accurate - Normalized for \(sunDamage.detectedSkinTone)")
+                                                let skinToneStr = String(describing: sunDamage.detectedSkinTone)
+                                                Text("✅ Accurate - Normalized for \(skinToneStr)")
                                                     .font(.caption)
                                                     .foregroundColor(.green)
                                                     .fontWeight(.medium)
@@ -1149,7 +1171,7 @@ public struct ClinicalInfoView: View {
                                                     Image(systemName: "circle.grid.cross.fill")
                                                         .font(.caption2)
                                                         .foregroundColor(.blue)
-                                                    Text("Enlarged pores from collagen loss (\(pores.totalPores) detected)")
+                                                    Text("Enlarged pores from collagen loss (density: \(String(format: "%.1f", pores.density)) per cm²)")
                                                         .font(.caption)
                                                         .foregroundColor(.secondary)
                                                 }
@@ -1190,13 +1212,15 @@ public struct ClinicalInfoView: View {
                                         Text("Final Calculation:")
                                             .font(.subheadline)
                                             .fontWeight(.semibold)
-                                        Text("(\(String(format: "%.1f", sunDamage.pigmentationHealth)) × 0.30) + (\(String(format: "%.1f", sunDamage.photoagingResistance)) × 0.25) + (\(String(format: "%.1f", sunDamage.textureHealth)) × 0.20) + (\(String(format: "%.1f", sunDamage.vascularHealth)) × 0.15) + (\(String(format: "%.1f", sunDamage.poreHealth)) × 0.10) = \(emotionalMetrics.sunProtection)")
+                                        let finalSunScore = String(emotionalMetrics.sunProtection)
+                                        Text("(\(String(format: "%.1f", sunDamage.pigmentationHealth)) × 0.30) + (\(String(format: "%.1f", sunDamage.photoagingResistance)) × 0.25) + (\(String(format: "%.1f", sunDamage.textureHealth)) × 0.20) + (\(String(format: "%.1f", sunDamage.vascularHealth)) × 0.15) + (\(String(format: "%.1f", sunDamage.poreHealth)) × 0.10) = \(finalSunScore)")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
-                                            .fontFamily(.system(.body, design: .monospaced))
-                                        Text("All components normalized for \(sunDamage.detectedSkinTone) to ensure fairness")
+                                            .font(.system(.body, design: .monospaced))
+                                        let skinTone = String(describing: sunDamage.detectedSkinTone)
+                                        Text("All components normalized for \(skinTone) to ensure fairness")
                                             .font(.caption2)
-                                            .foregroundColor(.tertiary)
+                                            .foregroundStyle(.tertiary)
                                     }
                                 }
                                 .padding(12)
@@ -1223,17 +1247,17 @@ public struct ClinicalInfoView: View {
 
     // MARK: - Emotional Summary Helpers
 
-    /// Returns score-dependent emotional summary for Radiance
+    /// Returns score-dependent emotional summary for Radiance (Physics-Based Luminosity)
     private func radianceEmotionalSummary(score: Int) -> String {
         switch score {
         case 80...100:
-            return "Your skin has a beautiful, healthy glow! We looked at how even your skin tone is and how much natural shine you have. These two things together tell us your skin is radiating that fresh, luminous look."
+            return "Your skin is radiating beautifully! We measured how much light your skin reflects using LAB color space analysis and found bright, healthy luminosity. Your skin has that lit-from-within glow that catches the light perfectly."
         case 60...79:
-            return "Your skin has a decent glow, but there's room to improve. We checked your skin tone evenness and natural shine. Working on these areas will help bring out more radiance."
+            return "Your skin has decent radiance, but could be brighter. We analyzed your skin's light reflection and brightness levels. With proper exfoliation and hydration, you can boost that luminous quality."
         case 40...59:
-            return "Your radiance could use some attention. We noticed your skin tone isn't as even as it could be, and the natural shine is lacking. With the right care, you can definitely boost this glow."
+            return "Your skin appears dull and needs brightening. Our luminosity analysis shows moderate light reflection. This can be improved with vitamin C, proper hydration, and regular exfoliation to reveal that natural brightness."
         default: // 0-39
-            return "Your skin needs some serious love in the radiance department. Both your skin tone evenness and natural shine are showing that your skin could really benefit from a targeted routine to bring back that healthy glow."
+            return "Your skin looks very dull and needs serious brightening. Our physics-based light analysis shows low luminosity. Focus on brightening serums (vitamin C, niacinamide), gentle exfoliation, and deep hydration to restore that natural radiance."
         }
     }
 
@@ -1425,7 +1449,7 @@ struct MetricBreakdownCard: View {
                     .foregroundStyle(.secondary)
             }
             .padding(12)
-            .background(Color(uiColor: .quaternarySystemBackground))
+            .background(Color(UIColor.quaternarySystemFill))
             .cornerRadius(8)
         }
         .padding()
@@ -1457,7 +1481,8 @@ struct ConfidenceRow: View {
             Text(metric)
                 .font(.subheadline)
             Spacer()
-            Text("\(Int(confidence))%")
+            let confidenceInt = String(Int(confidence))
+            Text("\(confidenceInt)%")
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .foregroundColor(confidenceLevel.1)

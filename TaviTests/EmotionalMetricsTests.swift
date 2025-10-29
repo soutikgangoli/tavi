@@ -349,4 +349,79 @@ class EmotionalMetricsTests: XCTestCase {
             processingTime: 1.0
         )
     }
+
+    // MARK: - Glow vs Radiance Differentiation Tests (NEW)
+
+    func testGlowAndRadiance_AreDifferent() {
+        // Verify that glow (health index) and radiance (luminosity) measure different things
+        let metrics = createMockMetrics(
+            roughness: 80,      // High smoothness
+            pigmentation: 50,   // Poor evenness
+            discoloration: 60,  // Moderate discoloration
+            specular: 90        // High specular (shiny)
+        )
+
+        let emotional = EmotionalMetricsGenerator.generate(from: metrics)
+
+        // Glow uses 4 factors (smoothness, evenness, discoloration, specular)
+        // Radiance should primarily use brightness + specular
+
+        // They should produce different scores because:
+        // - Glow considers texture (smoothness) and tone (evenness, discoloration)
+        // - Radiance only considers light reflection
+
+        XCTAssertNotEqual(emotional.glowScore, emotional.radiance,
+                         "Glow (health index) and radiance (luminosity) should measure different things")
+    }
+
+    func testGlowFormula_Uses4Factors() {
+        // Glow should use: 40% smoothness + 30% evenness + 20% discoloration + 10% specular
+        let metrics = createMockMetrics(
+            roughness: 100,     // Perfect smoothness (40 points)
+            pigmentation: 100,  // Perfect evenness (30 points)
+            discoloration: 100, // Perfect discoloration (20 points)
+            specular: 100       // Perfect specular (10 points)
+        )
+
+        let emotional = EmotionalMetricsGenerator.generate(from: metrics)
+
+        // Should be ~100 (all factors perfect)
+        XCTAssertEqual(emotional.glowScore, 100, "Perfect scores should yield glow score of 100")
+    }
+
+    func testRadiance_FocusesOnLuminosity() {
+        // Radiance should focus on brightness, not texture
+        // Case 1: Bright skin with poor texture
+        let brightDullTexture = createMockMetrics(
+            roughness: 40,      // Poor smoothness
+            pigmentation: 90,   // Great evenness (bright)
+            discoloration: 50,  // Poor discoloration
+            specular: 90        // High specular (shiny)
+        )
+
+        let emotional1 = EmotionalMetricsGenerator.generate(from: brightDullTexture)
+
+        // Radiance should be relatively high (focuses on brightness + specular)
+        // Glow should be moderate (considers texture too)
+        XCTAssertGreaterThan(emotional1.radiance, emotional1.glowScore,
+                            "Bright skin should have higher radiance than glow when texture is poor")
+    }
+
+    func testGlow_ConsidersOverallHealth() {
+        // Glow should consider all health factors
+        // Case: Dull skin but great texture
+        let dullGreatTexture = createMockMetrics(
+            roughness: 90,      // Great smoothness
+            pigmentation: 40,   // Poor evenness (dull)
+            discoloration: 90,  // Great discoloration
+            specular: 40        // Low specular (matte)
+        )
+
+        let emotional2 = EmotionalMetricsGenerator.generate(from: dullGreatTexture)
+
+        // Glow should be moderate (considers texture + tone)
+        // Radiance should be low (dull skin)
+        XCTAssertGreaterThan(emotional2.glowScore, emotional2.radiance,
+                            "Smooth skin should have higher glow than radiance when brightness is low")
+    }
 }

@@ -11,6 +11,87 @@ import UIKit
 import CoreGraphics
 import simd
 
+// MARK: - Glow Analysis
+
+/// Comprehensive glow and radiance analysis result
+public struct GlowAnalysis: Codable, Sendable {
+    // MARK: - Overall Scores
+
+    /// Overall skin health glow score (0-100)
+    /// Formula: 40% smoothness + 30% evenness + 20% discoloration + 10% specular
+    public let glowScore: Float
+
+    /// Pure luminosity/radiance score (0-100)
+    /// Formula: LAB L* lightness + specular highlights (physics-based brightness)
+    public let radianceScore: Float
+
+    // MARK: - Glow Components (Health Index)
+
+    /// Contribution from smoothness (0-100)
+    public let smoothnessContribution: Float
+
+    /// Contribution from tone evenness (0-100)
+    public let evennessContribution: Float
+
+    /// Contribution from discoloration uniformity (0-100)
+    public let discolorationContribution: Float
+
+    /// Contribution from specular highlights (0-100)
+    public let specularContribution: Float
+
+    // MARK: - Radiance Components (Pure Luminosity)
+
+    /// LAB color space L* channel (0-100, measures lightness)
+    public let labLightness: Float
+
+    /// Specular highlight ratio (0-1, bright pixel percentage)
+    public let specularHighlightRatio: Float
+
+    /// Combined luminosity index (0-100, pure brightness)
+    public let luminosityIndex: Float
+
+    // MARK: - Regional Analysis
+
+    /// Glow score per face region
+    public let regionalGlow: [Face3DROI: Float]
+
+    /// Radiance score per face region
+    public let regionalRadiance: [Face3DROI: Float]
+
+    // MARK: - Confidence
+
+    /// Measurement confidence (0-100)
+    public let confidence: Float
+
+    public init(
+        glowScore: Float,
+        radianceScore: Float,
+        smoothnessContribution: Float,
+        evennessContribution: Float,
+        discolorationContribution: Float,
+        specularContribution: Float,
+        labLightness: Float,
+        specularHighlightRatio: Float,
+        luminosityIndex: Float,
+        regionalGlow: [Face3DROI: Float],
+        regionalRadiance: [Face3DROI: Float],
+        confidence: Float
+    ) {
+        self.glowScore = glowScore
+        self.radianceScore = radianceScore
+        self.smoothnessContribution = smoothnessContribution
+        self.evennessContribution = evennessContribution
+        self.discolorationContribution = discolorationContribution
+        self.specularContribution = specularContribution
+        self.labLightness = labLightness
+        self.specularHighlightRatio = specularHighlightRatio
+        self.luminosityIndex = luminosityIndex
+        self.regionalGlow = regionalGlow
+        self.regionalRadiance = regionalRadiance
+        self.confidence = confidence
+    }
+}
+
 // MARK: - Face ROI Definition
 
 /// Face region of interest for 3D scanning (UV-based)
@@ -378,6 +459,9 @@ public struct Face3DMetrics: Codable, Sendable {
     /// Comprehensive scan quality assessment
     public let scanQuality: ScanQuality?
 
+    /// Glow and radiance analysis (differentiated measurements)
+    public let glowAnalysis: GlowAnalysis?
+
     public init(
         roiMetrics: [Face3DROI: ROI3DMetrics],
         globalRoughnessProxy: Float,
@@ -408,7 +492,8 @@ public struct Face3DMetrics: Codable, Sendable {
         rednessAnalysis: RednessAnalysis? = nil,
         topologyAnalysis: TopologyAnalysis? = nil,
         sunDamageAnalysis: SunDamageAnalysis? = nil,
-        scanQuality: ScanQuality? = nil
+        scanQuality: ScanQuality? = nil,
+        glowAnalysis: GlowAnalysis? = nil
     ) {
         self.roiMetrics = roiMetrics
         self.globalRoughnessProxy = globalRoughnessProxy
@@ -441,6 +526,7 @@ public struct Face3DMetrics: Codable, Sendable {
         self.topologyAnalysis = topologyAnalysis
         self.sunDamageAnalysis = sunDamageAnalysis
         self.scanQuality = scanQuality
+        self.glowAnalysis = glowAnalysis
     }
 
     /// Get metrics for specific ROI
@@ -463,6 +549,8 @@ public struct Face3DMetrics: Codable, Sendable {
         case vertexCount, triangleCount, textureWidth, textureHeight
         case timestamp, processingTime, textureQuality, lowConfidenceROIs, isHighQuality
         case elasticityAnalysis, volumeAnalysis, regionalAnalysis, skinTypeAnalysis
+        case wrinkleAnalysis, poreAnalysis, acneAnalysis, rednessAnalysis
+        case topologyAnalysis, sunDamageAnalysis, scanQuality, glowAnalysis
     }
 
     public init(from decoder: Decoder) throws {
@@ -496,6 +584,14 @@ public struct Face3DMetrics: Codable, Sendable {
         volumeAnalysis = try container.decode(Optional<VolumeAnalysis>.self, forKey: .volumeAnalysis)
         regionalAnalysis = try container.decode(Optional<RegionalAnalysis>.self, forKey: .regionalAnalysis)
         skinTypeAnalysis = try container.decode(Optional<SkinTypeAnalysis>.self, forKey: .skinTypeAnalysis)
+        wrinkleAnalysis = try container.decode(Optional<WrinkleAnalysis>.self, forKey: .wrinkleAnalysis)
+        poreAnalysis = try container.decode(Optional<PoreAnalysis>.self, forKey: .poreAnalysis)
+        acneAnalysis = try container.decode(Optional<AcneAnalysis>.self, forKey: .acneAnalysis)
+        rednessAnalysis = try container.decode(Optional<RednessAnalysis>.self, forKey: .rednessAnalysis)
+        topologyAnalysis = try container.decode(Optional<TopologyAnalysis>.self, forKey: .topologyAnalysis)
+        sunDamageAnalysis = try container.decode(Optional<SunDamageAnalysis>.self, forKey: .sunDamageAnalysis)
+        scanQuality = try container.decode(Optional<ScanQuality>.self, forKey: .scanQuality)
+        glowAnalysis = try container.decodeIfPresent(GlowAnalysis.self, forKey: .glowAnalysis)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -526,6 +622,14 @@ public struct Face3DMetrics: Codable, Sendable {
         try container.encode(volumeAnalysis, forKey: .volumeAnalysis)
         try container.encode(regionalAnalysis, forKey: .regionalAnalysis)
         try container.encode(skinTypeAnalysis, forKey: .skinTypeAnalysis)
+        try container.encode(wrinkleAnalysis, forKey: .wrinkleAnalysis)
+        try container.encode(poreAnalysis, forKey: .poreAnalysis)
+        try container.encode(acneAnalysis, forKey: .acneAnalysis)
+        try container.encode(rednessAnalysis, forKey: .rednessAnalysis)
+        try container.encode(topologyAnalysis, forKey: .topologyAnalysis)
+        try container.encode(sunDamageAnalysis, forKey: .sunDamageAnalysis)
+        try container.encode(scanQuality, forKey: .scanQuality)
+        try container.encode(glowAnalysis, forKey: .glowAnalysis)
     }
 }
 

@@ -99,7 +99,9 @@ public class DeviceCalibrator {
         metrics: inout Face3DMetrics,
         device: DeviceInfo
     ) {
-        let profile = device.calibrationProfile
+        // Note: Device calibration adjustments are commented out
+        // Uncomment when implementing device-specific metric adjustments
+        // let profile = device.calibrationProfile
 
         // Adjust wrinkle depth based on device accuracy
         // (Newer devices have better accuracy)
@@ -192,6 +194,8 @@ public class DeviceCalibrator {
             return .v1
         case .unknown:
             return .none
+        default:
+            return .none
         }
     }
 
@@ -202,10 +206,8 @@ public class DeviceCalibrator {
             features.insert(.faceTracking)
         }
 
-        // Check for other features
-        let config = ARFaceTrackingConfiguration()
-
-        if config.isAutoFocusEnabled {
+        // High resolution texture is available on all TrueDepth devices
+        if ARFaceTrackingConfiguration.isSupported {
             features.insert(.highResolutionTexture)
         }
 

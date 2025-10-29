@@ -171,10 +171,14 @@ public struct CelebratoryResultsView: View {
                     Text("Skin Health Index")
                         .font(.headline)
                         .foregroundStyle(.secondary)
+
+                    Text("Overall health score")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Your skin health index is \(emotionalMetrics.glowScore) out of 100")
+            .accessibilityLabel("Your overall skin health index is \(emotionalMetrics.glowScore) out of 100")
 
             // Personalized message
             Text(emotionalMetrics.personalizedMessage)

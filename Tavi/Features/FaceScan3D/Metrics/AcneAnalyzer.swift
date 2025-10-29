@@ -200,7 +200,7 @@ public class AcneAnalyzer {
                     )
 
                     if size >= minBlemishSize && size <= maxBlemishSize {
-                        darkSpots.append((x, y, Float(centerValue), size))
+                        darkSpots.append((x, y, darkness, size))
                     }
                 }
             }
@@ -299,7 +299,7 @@ public class AcneAnalyzer {
         var elevationMap: [SIMD2<Int>: Float] = [:]
 
         let vertices = geometry.vertices
-        let normals = geometry.normals
+        _ = geometry.normals  // normals (available but not needed for elevation detection)
 
         // Build adjacency for local elevation comparison
         let adjacency = buildAdjacency(geometry: geometry)

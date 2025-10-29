@@ -178,8 +178,8 @@ public struct HeatmapView: View {
         let width = faceImage.width
         let height = faceImage.height
 
-        // Calculate metric value (0-1) for color mapping
-        let metricValue = getMetricValue(for: metric)
+        // Calculate metric value (0-1) for color mapping (available but ROI-based scores are used instead)
+        _ = getMetricValue(for: metric)
 
         // Generate heatmap overlay using thermal color scheme
         var pixelData = [UInt8](repeating: 0, count: width * height * 4)

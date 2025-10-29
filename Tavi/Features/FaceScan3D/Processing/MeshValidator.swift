@@ -9,7 +9,7 @@
 import simd
 
 /// Mesh validation result
-struct ValidationResult {
+struct MeshValidationResult {
     // Topology checks
     let isManifold: Bool
     let nonManifoldEdges: Int
@@ -65,7 +65,7 @@ class MeshValidator {
     // MARK: - Public API
 
     /// Validate mesh quality
-    func validate(geometry: FaceMeshGeometry) -> ValidationResult {
+    func validate(geometry: FaceMeshGeometry) -> MeshValidationResult {
         print("🔍 Validating mesh quality...")
 
         var issues: [String] = []
@@ -104,7 +104,7 @@ class MeshValidator {
 
         let isValid = qualityScore >= minQualityScore && isManifold
 
-        let result = ValidationResult(
+        let result = MeshValidationResult(
             isManifold: isManifold,
             nonManifoldEdges: nonManifoldEdges,
             nonManifoldVertices: nonManifoldVertices,
@@ -358,7 +358,7 @@ private struct Edge: Hashable {
 
 extension FaceMeshGeometry {
     /// Validate mesh quality
-    func validated() -> ValidationResult {
+    func validated() -> MeshValidationResult {
         let validator = MeshValidator()
         return validator.validate(geometry: self)
     }

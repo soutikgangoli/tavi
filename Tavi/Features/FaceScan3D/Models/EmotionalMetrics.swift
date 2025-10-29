@@ -221,7 +221,12 @@ public class EmotionalMetricsGenerator {
     // MARK: - Calculators
 
     private static func calculateGlowScore(from metrics: Face3DMetrics) -> Int {
-        // Weighted combination of factors that contribute to skin health
+        // Use GlowAnalyzer results if available (preferred method)
+        if let glowAnalysis = metrics.glowAnalysis {
+            return Int(glowAnalysis.glowScore.rounded())
+        }
+
+        // Fallback: Calculate manually if glowAnalysis not available (legacy data)
         let smoothness = metrics.globalRoughnessScore
         let evenness = metrics.globalPigmentationScore
         let discoloration = metrics.globalDiscolorationScore
@@ -234,7 +239,13 @@ public class EmotionalMetricsGenerator {
     }
 
     private static func calculateRadiance(from metrics: Face3DMetrics) -> Int {
-        // Radiance = evenness of tone + healthy shine
+        // Use GlowAnalyzer results if available (physics-based radiance)
+        if let glowAnalysis = metrics.glowAnalysis {
+            return Int(glowAnalysis.radianceScore.rounded())
+        }
+
+        // Fallback: Calculate manually if glowAnalysis not available (legacy data)
+        // Note: This is the old formula and NOT physics-based
         let evenness = metrics.globalPigmentationScore
         let shine = metrics.globalSpecularScore ?? 50.0
         return Int((evenness * 0.6 + shine * 0.4).rounded())

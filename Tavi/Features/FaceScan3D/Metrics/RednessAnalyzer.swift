@@ -15,7 +15,7 @@ public struct RednessAnalysis: Codable, Sendable {
     let rednessLevel: RednessLevel
     let globalRedness: Float  // 0-1, average redness index
     let regionalRedness: [String: Float]  // Per-region redness (0-1)
-    let inflam​medAreas: [InflammedRegion]
+    let inflamedAreas: [InflammedRegion]
 }
 
 /// Individual inflamed region

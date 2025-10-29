@@ -122,8 +122,8 @@ class CrashReporter {
                 if let stringValue = value as? String, stringValue.count < 200 {
                     scope.setTag(value: stringValue, key: key)
                 } else {
-                    // Convert Any to a Sentry-compatible value
-                    scope.setExtra(value: String(describing: value) as NSString, key: key)
+                    // Convert Any to a Sentry-compatible value (must be NSObject for Objective-C bridge)
+                    scope.setExtra(value: self.toNSObject(value), key: key)
                 }
             }
 
@@ -178,8 +178,8 @@ class CrashReporter {
             event.message = SentryMessage(formatted: message)
 
             for (key, value) in metadata {
-                // Convert Any to a compatible value
-                event.extra?[key] = String(describing: value) as NSString
+                // Convert Any to a compatible value (must be NSObject for Objective-C bridge)
+                event.extra?[key] = self.toNSObject(value)
             }
 
             SentrySDK.capture(event: event)
@@ -220,8 +220,8 @@ class CrashReporter {
         #if canImport(Sentry)
         let user = User(userId: userID)
         for (key, value) in metadata {
-            // Convert Any to a compatible value
-            user.data?[key] = String(describing: value) as NSString
+            // Convert Any to a compatible value (must be NSObject for Objective-C bridge)
+            user.data?[key] = self.toNSObject(value)
         }
         SentrySDK.setUser(user)
         #endif
@@ -249,7 +249,7 @@ class CrashReporter {
     func setCustomKey(_ key: String, value: Any) {
         guard isEnabled else { return }
 
-        logger.debug("🔑 Custom key: \(key) = \(value)")
+        logger.debug("🔑 Custom key: \(key) = \(String(describing: value))")
 
         // Set as Sentry tag or context
         #if canImport(Sentry)
@@ -257,8 +257,9 @@ class CrashReporter {
             if let stringValue = value as? String, stringValue.count < 200 {
                 scope.setTag(value: stringValue, key: key)
             } else {
-                // Convert Any to a compatible dictionary value
-                scope.setContext(value: [key: String(describing: value) as NSString], key: "custom_keys")
+                // Convert Any to a compatible dictionary value (must be NSObject for Objective-C bridge)
+                let contextDict: [String: Any] = [key: self.toNSObject(value)]
+                scope.setContext(value: contextDict, key: "custom_keys")
             }
         }
         #endif
@@ -319,6 +320,21 @@ class CrashReporter {
         }
 
         return parts.joined(separator: " ")
+    }
+
+    // MARK: - Helper Methods
+
+    /// Convert Any value to NSObject for Sentry SDK
+    private func toNSObject(_ value: Any) -> NSObject {
+        if let str = value as? String {
+            return str as NSString
+        } else if let num = value as? NSNumber {
+            return num
+        } else if let bool = value as? Bool {
+            return NSNumber(value: bool)
+        } else {
+            return String(describing: value) as NSString
+        }
     }
 
     // MARK: - Types

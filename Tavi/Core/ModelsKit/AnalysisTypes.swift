@@ -356,6 +356,58 @@ public struct FaceROISet: Codable {
         self.interPupilDistance = interPupilDistance
     }
 
+    /// Convenience initializer for creating FaceROISet from CGRect regions
+    public init(
+        forehead: CGRect,
+        leftCheek: CGRect,
+        rightCheek: CGRect,
+        nose: CGRect,
+        chin: CGRect,
+        interPupilDistance: Double = 100.0
+    ) {
+        // Convert CGRect to ROIData (simplified bounds)
+        var roiDict: [Face3DROI: ROIData] = [:]
+
+        if forehead != .zero {
+            roiDict[.forehead] = ROIData(
+                roi: .forehead,
+                bounds: UVBounds(minU: Float(forehead.minX), maxU: Float(forehead.maxX), minV: Float(forehead.minY), maxV: Float(forehead.maxY)),
+                pixelCount: Int(forehead.width * forehead.height * 1000)
+            )
+        }
+        if leftCheek != .zero {
+            roiDict[.leftCheek] = ROIData(
+                roi: .leftCheek,
+                bounds: UVBounds(minU: Float(leftCheek.minX), maxU: Float(leftCheek.maxX), minV: Float(leftCheek.minY), maxV: Float(leftCheek.maxY)),
+                pixelCount: Int(leftCheek.width * leftCheek.height * 1000)
+            )
+        }
+        if rightCheek != .zero {
+            roiDict[.rightCheek] = ROIData(
+                roi: .rightCheek,
+                bounds: UVBounds(minU: Float(rightCheek.minX), maxU: Float(rightCheek.maxX), minV: Float(rightCheek.minY), maxV: Float(rightCheek.maxY)),
+                pixelCount: Int(rightCheek.width * rightCheek.height * 1000)
+            )
+        }
+        if nose != .zero {
+            roiDict[.noseBridge] = ROIData(
+                roi: .noseBridge,
+                bounds: UVBounds(minU: Float(nose.minX), maxU: Float(nose.maxX), minV: Float(nose.minY), maxV: Float(nose.maxY)),
+                pixelCount: Int(nose.width * nose.height * 1000)
+            )
+        }
+        if chin != .zero {
+            roiDict[.chin] = ROIData(
+                roi: .chin,
+                bounds: UVBounds(minU: Float(chin.minX), maxU: Float(chin.maxX), minV: Float(chin.minY), maxV: Float(chin.maxY)),
+                pixelCount: Int(chin.width * chin.height * 1000)
+            )
+        }
+
+        self.rois = roiDict
+        self.interPupilDistance = interPupilDistance
+    }
+
     /// Get all ROIs as ROIDisplayInfo array (for UI overlay)
     public var allROIs: [ROIDisplayInfo] {
         return rois.map { (type, data) in
@@ -490,8 +542,9 @@ public class FaceDetector {
 
                 // Create FaceDetectionResult from Vision observation
                 let faceResult = FaceDetectionResult(
+                    faceFound: true,
                     boundingBox: boundingBox,
-                    confidence: Double(confidence),
+                    confidence: Float(confidence),
                     landmarks: nil  // Vision can provide landmarks if needed
                 )
                 detectedFaces.append(faceResult)
@@ -538,6 +591,7 @@ public class FaceDetector {
         )
 
         return FaceDetectionResult(
+            faceFound: true,
             boundingBox: normalizedRect,
             confidence: 1.0,  // ARKit tracking is high confidence
             landmarks: nil

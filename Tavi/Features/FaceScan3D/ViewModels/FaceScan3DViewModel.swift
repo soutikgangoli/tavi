@@ -829,11 +829,8 @@ public class FaceScan3DViewModel: ObservableObject {
             AppLogger.faceScan.debug("Haptic feedback: Pose validated")
         }
 
-        // Capture the current guidance step to avoid race conditions
-        let guidanceStep = self.currentGuidanceStep
-
         // Create timer and explicitly add to main RunLoop to ensure it fires
-        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self, faceAnchor, yaw, pitch, roll, guidanceStep] timer in
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self, faceAnchor, yaw, pitch, roll] timer in
             // Capture weak self again inside the Task to prevent race condition
             Task { @MainActor [weak self] in
                 guard let self = self else {
