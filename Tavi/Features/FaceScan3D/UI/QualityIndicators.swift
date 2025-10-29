@@ -8,8 +8,8 @@
 
 import SwiftUI
 
-/// Scan quality assessment
-public struct ScanQuality {
+/// Scan quality assessment (UI-focused)
+public struct UIScanQuality {
     public let overallScore: Float  // 0-100
     public let rating: QualityRating
     public let lightingQuality: Float
@@ -49,7 +49,7 @@ public enum QualityRating: String {
 
 /// Quality indicators view
 struct QualityIndicatorsView: View {
-    let quality: ScanQuality
+    let quality: UIScanQuality
 
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -164,11 +164,11 @@ struct QualityBar: View {
 class QualityCalculator {
 
     func calculateQuality(
-        lightingQuality: LightingQuality,
+        lightingQuality: ProcessingLightingQuality,
         validationResult: ValidationResult,
         frameCount: Int,
         coverage: Float
-    ) -> ScanQuality {
+    ) -> UIScanQuality {
 
         let lightingScore = lightingQuality.overallScore * 100
         let trackingScore = Float(frameCount) / 15.0 * 100  // 15 frames target
@@ -201,7 +201,7 @@ class QualityCalculator {
 
         let isReliable = overallScore >= 60 && issues.count < 3
 
-        return ScanQuality(
+        return UIScanQuality(
             overallScore: overallScore,
             rating: rating,
             lightingQuality: lightingScore,

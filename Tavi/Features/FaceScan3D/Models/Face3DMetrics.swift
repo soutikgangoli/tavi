@@ -15,7 +15,7 @@ import simd
 
 /// Face region of interest for 3D scanning (UV-based)
 /// Note: Renamed from Face3DROI to Face3DROI to avoid conflict with 2D Face3DROI struct
-public enum Face3DROI: String, CaseIterable, Codable {
+public enum Face3DROI: String, CaseIterable, Codable, Sendable {
     case forehead = "Forehead"
     case leftCheek = "LeftCheek"
     case rightCheek = "RightCheek"
@@ -51,7 +51,7 @@ public enum Face3DROI: String, CaseIterable, Codable {
 }
 
 /// UV coordinate bounds for ROI
-public struct UVBounds: Codable {
+public struct UVBounds: Codable, Sendable {
     public let minU: Float
     public let maxU: Float
     public let minV: Float
@@ -158,7 +158,7 @@ public struct ROITextureSample {
 // MARK: - Moisture Proxy
 
 /// Moisture estimation from surface properties
-public struct MoistureProxy: Codable {
+public struct MoistureProxy: Codable, Sendable {
     /// Overall moisture index (0-1, higher = more moisture)
     public let moistureIndex: Double
 
@@ -178,7 +178,7 @@ public struct MoistureProxy: Codable {
 // MARK: - ROI Metrics
 
 /// Computed metrics for a single ROI
-public struct ROI3DMetrics: Codable {
+public struct ROI3DMetrics: Codable, Sendable {
     /// ROI identifier
     public let roi: Face3DROI
 
@@ -288,7 +288,7 @@ public struct ROI3DMetrics: Codable {
 // MARK: - Face 3D Metrics
 
 /// Complete 3D face metrics computed from mesh and texture
-public struct Face3DMetrics: Codable {
+public struct Face3DMetrics: Codable, Sendable {
     /// Metrics per ROI
     public let roiMetrics: [Face3DROI: ROI3DMetrics]
 
@@ -556,7 +556,7 @@ public struct MetricVisualization {
 // MARK: - Scan Quality
 
 /// Comprehensive scan quality assessment
-public struct ScanQuality: Codable {
+public struct ScanQuality: Codable, Sendable {
     /// Overall quality score (0-100)
     public let overallQuality: Float
 
@@ -610,7 +610,7 @@ public struct ScanQuality: Codable {
 }
 
 /// Quality level classification
-public enum QualityLevel: String, Codable {
+public enum QualityLevel: String, Codable, Sendable {
     case excellent = "Excellent"
     case good = "Good"
     case acceptable = "Acceptable"
@@ -631,7 +631,7 @@ public enum QualityLevel: String, Codable {
 }
 
 /// Scan issues that may affect quality
-public enum ScanIssue: String, Codable {
+public enum ScanIssue: String, Codable, Sendable {
     case poorLighting = "Poor lighting conditions"
     case lowCoverage = "Incomplete face coverage"
     case lowResolution = "Low mesh resolution"

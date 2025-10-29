@@ -10,7 +10,7 @@ import UIKit
 import Accelerate
 
 /// Pore analysis result
-public struct PoreAnalysis {
+public struct PoreAnalysis: Codable, Sendable {
     public let visibility: Float  // 0-100, lower is better
     public let density: Float     // pores per cm²
     public let averageSize: Float // in pixels
@@ -37,7 +37,7 @@ class PoreAnalyzer {
 
         guard let cgImage = texture.cgImage else {
             print("⚠️ Could not extract CGImage from texture")
-            return PoreAnalysis(visibility: 0, density: 0, averageSize: 0, regionalScores: [:])
+            return PoreAnalysis(visibility: 0, density: 0, averageSize: 0, regionalScores: [:], confidence: 0)
         }
 
         // High-frequency texture energy correlates with visible pores

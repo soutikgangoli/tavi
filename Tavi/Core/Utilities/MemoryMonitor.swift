@@ -97,6 +97,9 @@ class MemoryMonitor {
     }
 
     deinit {
-        stopMonitoring()
+        // Remove observer directly without calling stopMonitoring() to avoid actor isolation issue
+        if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 }

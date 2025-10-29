@@ -9,7 +9,7 @@
 import simd
 
 /// Wrinkle analysis result
-public struct WrinkleAnalysis {
+public struct WrinkleAnalysis: Codable, Sendable {
     public let overallScore: Float  // 0-100, lower is better (fewer/shallower wrinkles)
     public let wrinkleDepth: WrinkleDepth
     public let wrinkleCount: Int
@@ -30,7 +30,7 @@ public struct WrinkleAnalysis {
 /// Wrinkle depth classification (categorical - no mm values shown to user)
 /// User sees: Fine, Moderate, or Deep
 /// Internal thresholds based on curvature analysis
-public enum WrinkleDepth: String {
+public enum WrinkleDepth: String, Codable, Sendable {
     case fine = "Fine Lines"        // Minimal to shallow wrinkles (<0.7mm internally)
     case moderate = "Moderate"      // Moderate wrinkles (0.7-1.2mm internally)
     case deep = "Deep Wrinkles"     // Deep wrinkles (>1.2mm internally)
@@ -56,7 +56,7 @@ public enum WrinkleDepth: String {
 }
 
 /// Individual wrinkle region
-public struct WrinkleRegion {
+public struct WrinkleRegion: Codable, Sendable {
     public let location: String  // "forehead", "eyes", "mouth", etc.
     public let depth: Float      // in meters
     public let length: Float     // in meters
@@ -70,7 +70,7 @@ public struct WrinkleRegion {
     }
 }
 
-public enum WrinkleSeverity: String {
+public enum WrinkleSeverity: String, Codable, Sendable {
     case fine
     case moderate
     case deep

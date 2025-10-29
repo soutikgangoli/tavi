@@ -340,16 +340,16 @@ class MeshValidator {
 // MARK: - Edge
 
 private struct Edge: Hashable {
-    let a: Int
-    let b: Int
+    let v0: Int
+    let v1: Int
 
     init(_ a: Int, _ b: Int) {
         if a < b {
-            self.a = a
-            self.b = b
+            self.v0 = a
+            self.v1 = b
         } else {
-            self.a = b
-            self.b = a
+            self.v0 = b
+            self.v1 = a
         }
     }
 }

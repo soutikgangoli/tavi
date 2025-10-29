@@ -10,11 +10,9 @@
 import SwiftUI
 import AVFoundation
 
-/// Lighting quality levels
-public enum LightingQuality {
-    case tooD
-
-ark         // < 25% - BLOCK
+/// Lighting quality levels (UI version)
+public enum UILightingQuality {
+    case tooDark         // < 25% - BLOCK
     case suboptimalDark  // 25-40% - WARN
     case optimal         // 40-70% - GOOD
     case suboptimalBright // 70-90% - WARN
@@ -142,7 +140,7 @@ public struct LightingCalibrationView: View {
 /// Brightness meter visual component
 struct BrightnessMeterView: View {
     let brightness: Float
-    let quality: LightingQuality
+    let quality: UILightingQuality
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -247,7 +245,7 @@ struct CameraPreviewView: UIViewRepresentable {
 /// View model for lighting calibration
 public class LightingCalibrationViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     @Published public var currentBrightness: Float = 0.5
-    @Published public var lightingQuality: LightingQuality = .optimal
+    @Published public var lightingQuality: UILightingQuality = .optimal
 
     public let captureSession = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
@@ -354,7 +352,7 @@ public class LightingCalibrationViewModel: NSObject, ObservableObject, AVCapture
         return sampleCount > 0 ? totalBrightness / Float(sampleCount) : 0.5
     }
 
-    private func determineLightingQuality(brightness: Float) -> LightingQuality {
+    private func determineLightingQuality(brightness: Float) -> UILightingQuality {
         if brightness < 0.25 {
             return .tooDark  // BLOCK
         } else if brightness < 0.40 {

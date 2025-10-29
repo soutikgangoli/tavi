@@ -916,7 +916,8 @@ struct ActionStepCard: View {
                 smoothness: 88,
                 evenness: 82,
                 youthfulness: 90,
-                freshness: 86
+                freshness: 86,
+                sunProtection: 78
             )
         )
     }

@@ -10,7 +10,7 @@ import Foundation
 import simd
 
 /// Volume-based aging analysis
-public struct VolumeAnalysis: Codable {
+public struct VolumeAnalysis: Codable, Sendable {
     let overallScore: Float  // 0-100
     let cheekHollowing: CheekHollowingAnalysis
     let underEyeBags: UnderEyeBagAnalysis
@@ -19,7 +19,7 @@ public struct VolumeAnalysis: Codable {
 }
 
 /// Cheek hollowing (volume loss) analysis
-public struct CheekHollowingAnalysis: Codable {
+public struct CheekHollowingAnalysis: Codable, Sendable {
     let score: Float  // 0-100, lower = more hollowing
     let severity: HollowingSeverity
     let leftCheekVolume: Float
@@ -27,7 +27,7 @@ public struct CheekHollowingAnalysis: Codable {
     let volumeLoss: Float  // % compared to ideal
 }
 
-public enum HollowingSeverity: String, Codable {
+public enum HollowingSeverity: String, Codable, Sendable {
     case none = "None"
     case mild = "Mild"
     case moderate = "Moderate"
@@ -35,7 +35,7 @@ public enum HollowingSeverity: String, Codable {
 }
 
 /// Under-eye bags analysis
-public struct UnderEyeBagAnalysis: Codable {
+public struct UnderEyeBagAnalysis: Codable, Sendable {
     let score: Float  // 0-100, higher = less prominent bags
     let severity: BagSeverity
     let leftEyeVolume: Float
@@ -43,7 +43,7 @@ public struct UnderEyeBagAnalysis: Codable {
     let protrusion: Float  // mm of protrusion
 }
 
-public enum BagSeverity: String, Codable {
+public enum BagSeverity: String, Codable, Sendable {
     case none = "None"
     case mild = "Mild"
     case moderate = "Moderate"
@@ -51,21 +51,21 @@ public enum BagSeverity: String, Codable {
 }
 
 /// Facial symmetry analysis
-public struct SymmetryAnalysis: Codable {
+public struct SymmetryAnalysis: Codable, Sendable {
     let score: Float  // 0-100, higher = more symmetric
     let leftRightDeviation: Float  // Average distance deviation
     let asymmetricRegions: [FaceRegion]
 }
 
 /// Volume changes over time
-public struct VolumeChanges: Codable {
+public struct VolumeChanges: Codable, Sendable {
     let cheekVolumeChange: Float  // % change
     let eyeVolumeChange: Float
     let overallVolumeChange: Float
     let trend: VolumeTrend
 }
 
-public enum VolumeTrend: String, Codable {
+public enum VolumeTrend: String, Codable, Sendable {
     case increasing = "Increasing"
     case stable = "Stable"
     case decreasing = "Decreasing"

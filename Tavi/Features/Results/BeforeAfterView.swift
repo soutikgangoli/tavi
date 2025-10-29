@@ -496,7 +496,8 @@ struct ChangeCard: View {
                 smoothness: 70,
                 evenness: 75,
                 youthfulness: 78,
-                freshness: 73
+                freshness: 73,
+                sunProtection: 70
             ),
             afterMetrics: EmotionalMetrics(
                 glowScore: 87,
@@ -519,7 +520,8 @@ struct ChangeCard: View {
                 smoothness: 88,
                 evenness: 82,
                 youthfulness: 90,
-                freshness: 86
+                freshness: 86,
+                sunProtection: 85
             ),
             beforeDate: Date().addingTimeInterval(-14 * 24 * 60 * 60),
             afterDate: Date()

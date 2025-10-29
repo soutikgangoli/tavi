@@ -10,34 +10,34 @@
 import UIKit
 import simd
 
+/// Detected skin tone category (simplified Fitzpatrick scale)
+public enum SkinToneCategory: Codable, Sendable {
+    case veryLight      // Fitzpatrick I
+    case light          // Fitzpatrick II
+    case medium         // Fitzpatrick III
+    case mediumDark     // Fitzpatrick IV
+    case dark           // Fitzpatrick V
+    case veryDark       // Fitzpatrick VI
+
+    var referenceL: Float {
+        // Reference L* values in LAB space for each skin tone
+        switch self {
+        case .veryLight: return 85.0      // Very light skin
+        case .light: return 75.0          // Light skin
+        case .medium: return 65.0         // Medium skin
+        case .mediumDark: return 55.0     // Medium-dark skin
+        case .dark: return 45.0           // Dark skin
+        case .veryDark: return 35.0       // Very dark skin
+        }
+    }
+
+    // REMOVED: pigmentationScaleFactor
+    // Old approach reduced scores for dark skin (unfair - could hide real issues)
+    // New approach: Detect RELATIVE changes from baseline (fair for all skin tones)
+}
+
 /// Normalizes pigmentation and color metrics for diverse skin tones
 public class SkinToneNormalizer {
-
-    // MARK: - Skin Tone Detection
-
-    /// Detected skin tone category (simplified Fitzpatrick scale)
-    public enum SkinToneCategory {
-        case veryLight      // Fitzpatrick I-II
-        case light          // Fitzpatrick III
-        case medium         // Fitzpatrick IV
-        case mediumDark     // Fitzpatrick V
-        case dark           // Fitzpatrick VI
-
-        var referenceL: Float {
-            // Reference L* values in LAB space for each skin tone
-            switch self {
-            case .veryLight: return 85.0      // Very light skin
-            case .light: return 75.0          // Light skin
-            case .medium: return 65.0         // Medium skin
-            case .mediumDark: return 55.0     // Medium-dark skin
-            case .dark: return 45.0           // Dark skin
-            }
-        }
-
-        // REMOVED: pigmentationScaleFactor
-        // Old approach reduced scores for dark skin (unfair - could hide real issues)
-        // New approach: Detect RELATIVE changes from baseline (fair for all skin tones)
-    }
 
     // MARK: - Public API
 
@@ -57,8 +57,10 @@ public class SkinToneNormalizer {
             return .medium
         } else if L > 50 {
             return .mediumDark
-        } else {
+        } else if L > 40 {
             return .dark
+        } else {
+            return .veryDark
         }
     }
 

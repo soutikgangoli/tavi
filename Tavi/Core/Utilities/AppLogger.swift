@@ -51,32 +51,32 @@ public struct AppLogger {
     // MARK: - Convenience Methods
 
     /// Log debug message
-    public static func debug(_ message: String, category: Logger = .app) {
+    public static func debug(_ message: String, category: Logger = AppLogger.app) {
         category.debug("\(message)")
     }
 
     /// Log info message
-    public static func info(_ message: String, category: Logger = .app) {
+    public static func info(_ message: String, category: Logger = AppLogger.app) {
         category.info("\(message)")
     }
 
     /// Log warning message
-    public static func warning(_ message: String, category: Logger = .app) {
+    public static func warning(_ message: String, category: Logger = AppLogger.app) {
         category.warning("\(message)")
     }
 
     /// Log error message
-    public static func error(_ message: String, category: Logger = .app) {
+    public static func error(_ message: String, category: Logger = AppLogger.app) {
         category.error("\(message)")
     }
 
     /// Log critical error message
-    public static func critical(_ message: String, category: Logger = .app) {
+    public static func critical(_ message: String, category: Logger = AppLogger.app) {
         category.critical("\(message)")
     }
 
     /// Log with fault level (for unexpected errors)
-    public static func fault(_ message: String, category: Logger = .app) {
+    public static func fault(_ message: String, category: Logger = AppLogger.app) {
         category.fault("\(message)")
     }
 }

@@ -10,7 +10,7 @@ import Foundation
 import UIKit
 
 /// Skin type classification result
-public struct SkinTypeAnalysis: Codable {
+public struct SkinTypeAnalysis: Codable, Sendable {
     let skinType: SkinType
     let confidence: Float  // 0-1
     let oilinessScore: Float  // 0-100

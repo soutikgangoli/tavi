@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// Centralized configuration for face scan quality thresholds
 public struct ScanConfiguration {

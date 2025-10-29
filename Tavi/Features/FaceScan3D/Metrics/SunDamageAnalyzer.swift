@@ -20,7 +20,7 @@ import Foundation
 import UIKit
 
 /// Sun damage analysis result
-public struct SunDamageAnalysis: Codable {
+public struct SunDamageAnalysis: Codable, Sendable {
     /// Overall sun protection score (0-100, higher = better protected)
     public let protectionScore: Float
 
@@ -89,7 +89,7 @@ public struct SunDamageAnalysis: Codable {
 }
 
 /// Sun damage severity levels
-public enum SunDamageLevel: String, Codable {
+public enum SunDamageLevel: String, Codable, Sendable {
     case excellent = "Excellent Protection"     // 85-100
     case good = "Good Protection"                // 70-84
     case moderate = "Moderate Protection"        // 55-69
@@ -336,7 +336,7 @@ public class SunDamageAnalyzer {
         }
 
         // Skin-tone-specific sun protection advice
-        if skinTone == .fair || skinTone == .light {
+        if skinTone == .veryLight || skinTone == .light {
             recommendations.append("Light skin is more vulnerable to UV - reapply SPF every 2 hours")
         } else if skinTone == .dark || skinTone == .veryDark {
             recommendations.append("Dark skin has more natural protection but still needs SPF - don't skip it!")

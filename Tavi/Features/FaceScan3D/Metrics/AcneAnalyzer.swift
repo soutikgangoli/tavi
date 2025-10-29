@@ -17,7 +17,7 @@ import UIKit
 import simd
 
 /// Acne analysis result
-public struct AcneAnalysis: Codable {
+public struct AcneAnalysis: Codable, Sendable {
     let overallScore: Float  // 0-100, higher is better (less acne)
     let blemishCount: Int
     let severity: AcneSeverity
@@ -27,7 +27,7 @@ public struct AcneAnalysis: Codable {
 }
 
 /// Individual blemish detection
-public struct Blemish: Codable {
+public struct Blemish: Codable, Sendable {
     let location: String  // "forehead", "cheeks", "chin", etc.
     let type: BlemishType
     let severity: Float  // 0-1
@@ -37,7 +37,7 @@ public struct Blemish: Codable {
     let normalizedY: Float
 }
 
-public enum BlemishType: String, Codable {
+public enum BlemishType: String, Codable, Sendable {
     case blackhead       // Flat dark spot, no elevation
     case postInflammatory // Flat dark spot (PIH - post-inflammatory hyperpigmentation)
     case papule          // Small bump (< 1mm elevation)
@@ -45,7 +45,7 @@ public enum BlemishType: String, Codable {
     case cyst            // Large bump (> 2mm elevation)
 }
 
-public enum AcneSeverity: String, Codable {
+public enum AcneSeverity: String, Codable, Sendable {
     case clear           // 0-5 blemishes
     case mild            // 6-20 blemishes
     case moderate        // 21-50 blemishes

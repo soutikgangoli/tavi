@@ -8,7 +8,7 @@
 import Foundation
 
 /// Errors that can occur during the face scanning and processing pipeline
-enum ScanError: LocalizedError, Identifiable {
+enum ScanError: Error, LocalizedError, Identifiable {
     // MARK: - Capture Errors
 
     /// Failed to initialize ARKit face tracking session

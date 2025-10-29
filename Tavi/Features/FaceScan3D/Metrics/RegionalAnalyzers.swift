@@ -11,7 +11,7 @@ import UIKit
 import simd
 
 /// Complete regional analysis result
-public struct RegionalAnalysis: Codable {
+public struct RegionalAnalysis: Codable, Sendable {
     let underEyeDarkness: UnderEyeDarknessAnalysis
     let lipAnalysis: LipAnalysis
     let nosePores: NosePoreAnalysis
@@ -20,7 +20,7 @@ public struct RegionalAnalysis: Codable {
 
 // MARK: - Under-Eye Darkness
 
-public struct UnderEyeDarknessAnalysis: Codable {
+public struct UnderEyeDarknessAnalysis: Codable, Sendable {
     let score: Float  // 0-100, higher = less darkness
     let severity: DarknessSeverity
     let leftEyeDarkness: Float
@@ -28,7 +28,7 @@ public struct UnderEyeDarknessAnalysis: Codable {
     let colorDeviation: Float  // From surrounding skin
 }
 
-public enum DarknessSeverity: String, Codable {
+public enum DarknessSeverity: String, Codable, Sendable {
     case none = "None"
     case mild = "Mild"
     case moderate = "Moderate"
@@ -37,7 +37,7 @@ public enum DarknessSeverity: String, Codable {
 
 // MARK: - Lip Analysis
 
-public struct LipAnalysis: Codable {
+public struct LipAnalysis: Codable, Sendable {
     let textureScore: Float  // 0-100
     let volumeScore: Float   // 0-100, fullness
     let symmetryScore: Float // 0-100
@@ -46,7 +46,7 @@ public struct LipAnalysis: Codable {
     let lowerLipVolume: Float
 }
 
-public enum LipHydrationLevel: String, Codable {
+public enum LipHydrationLevel: String, Codable, Sendable {
     case wellHydrated = "Well Hydrated"
     case normal = "Normal"
     case dry = "Dry"
@@ -55,7 +55,7 @@ public enum LipHydrationLevel: String, Codable {
 
 // MARK: - Nose Pore Analysis
 
-public struct NosePoreAnalysis: Codable {
+public struct NosePoreAnalysis: Codable, Sendable {
     let density: Float  // Pores per cm²
     let averageSize: Float  // mm
     let score: Float  // 0-100, lower = better
@@ -64,7 +64,7 @@ public struct NosePoreAnalysis: Codable {
 
 // MARK: - Jawline Definition
 
-public struct JawlineAnalysis: Codable {
+public struct JawlineAnalysis: Codable, Sendable {
     let definition: Float  // 0-100, higher = more defined
     let angle: Float  // Jawline angle in degrees
     let symmetry: Float  // 0-100

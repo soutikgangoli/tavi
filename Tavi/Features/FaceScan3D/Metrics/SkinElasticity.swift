@@ -10,14 +10,14 @@ import Foundation
 import simd
 
 /// Skin elasticity analysis result
-public struct ElasticityAnalysis: Codable {
+public struct ElasticityAnalysis: Codable, Sendable {
     let overallScore: Float  // 0-100, higher = better elasticity
     let elasticityLevel: ElasticityLevel
     let recoveryRate: Float  // How fast wrinkles recover (0-1)
     let regionalElasticity: [FaceRegion: Float]
 }
 
-public enum ElasticityLevel: String, Codable {
+public enum ElasticityLevel: String, Codable, Sendable {
     case excellent = "Excellent"
     case good = "Good"
     case moderate = "Moderate"
@@ -138,7 +138,7 @@ public struct HistoricalScan {
 }
 
 /// Face regions for analysis
-public enum FaceRegion: String, CaseIterable, Codable {
+public enum FaceRegion: String, CaseIterable, Codable, Sendable {
     case forehead = "Forehead"
     case eyes = "Eye Area"
     case cheeks = "Cheeks"

@@ -10,7 +10,7 @@ import UIKit
 import Accelerate
 
 /// Redness analysis result
-public struct RednessAnalysis: Codable {
+public struct RednessAnalysis: Codable, Sendable {
     let overallScore: Float  // 0-100, higher is better (less red)
     let rednessLevel: RednessLevel
     let globalRedness: Float  // 0-1, average redness index
@@ -19,13 +19,13 @@ public struct RednessAnalysis: Codable {
 }
 
 /// Individual inflamed region
-public struct InflammedRegion: Codable {
+public struct InflammedRegion: Codable, Sendable {
     let location: String
     let severity: Float  // 0-1
     let area: Float      // in pixels
 }
 
-public enum RednessLevel: String, Codable {
+public enum RednessLevel: String, Codable, Sendable {
     case minimal         // Very little redness
     case mild            // Some redness, normal
     case moderate        // Noticeable redness

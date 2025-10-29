@@ -17,6 +17,7 @@
 		13174DC92ED4F3300D06FA03 /* MemoryMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283E5D7077BF98AC26B11669 /* MemoryMonitor.swift */; };
 		17388094A164327CCE9E3468 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6428AB82056616FCD8F66757 /* HomeView.swift */; };
 		180A7114A9A0822AD4886BCB /* TextureBaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 769DEC065AB684F60423A855 /* TextureBaker.swift */; };
+		19885F9DD5B764CC25998076 /* AsyncTimeout.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB7DF9F43C4254874B81D73 /* AsyncTimeout.swift */; };
 		19ABA77EDBB3D69AEDDEF6EF /* Face3DSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 881B39AB8A40B40A2CB2A4EF /* Face3DSummary.swift */; };
 		1A9946CDD0DD65FD0423A968 /* ROIMaskGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65EAF585A58875A0FAAC094 /* ROIMaskGenerator.swift */; };
 		1AA45A1DB6C3D936A57049E1 /* MeshMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E9DFA914896C448DF486B8 /* MeshMerger.swift */; };
@@ -34,6 +35,7 @@
 		37A8338D9CC6C8E1DBF379D5 /* TextureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520FFC6A738EBE98F722868B /* TextureModels.swift */; };
 		38C9FE4255C3DF886CA62AFC /* DiscolorationAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F6E07AE05E9703275EAB2EA /* DiscolorationAnalyzer.swift */; };
 		3A48B0D4F028DB0628588E5B /* HydrationEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 703B66B295797703C86C1742 /* HydrationEstimator.swift */; };
+		3BAF4B137E998AC39FC93914 /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C440DF51BA6E61B8C86EC6 /* AppLogger.swift */; };
 		41B169F722956B9A5C721643 /* SessionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = A209CEF37FE13726C21987A3 /* SessionResult.swift */; };
 		43F42B3D2C3B9F48A8194A6E /* WrinkleAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66E57E306EBBC57412EE495B /* WrinkleAnalyzer.swift */; };
 		440E51B611C9C0BDA747B8B8 /* MeshTextureExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E090007A7AD1D87C747C7F1D /* MeshTextureExporter.swift */; };
@@ -41,10 +43,12 @@
 		4624B68F2182CD73ADD90301 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DE046EBD6EF428A854805AA /* StorageManager.swift */; };
 		4671C84C8262F6A25E024572 /* RegionalAnalyzers.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC393D853D09878A720EDC0B /* RegionalAnalyzers.swift */; };
 		47B1B42D879AFD827E88E646 /* EdgeCaseDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C66C5FA618F040217B6B2E /* EdgeCaseDetector.swift */; };
+		489DBDA633246E233189FD6C /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92EB6F79C8265098BBE6835D /* CrashReporter.swift */; };
 		49D2383ADB286273BC81D16B /* Face3DViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F995B81CBE850BD902F156 /* Face3DViewer.swift */; };
 		4E7A0C98D932730B8EFB2042 /* LightingNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCDB2F0660A14AE433BD6CBF /* LightingNormalizer.swift */; };
 		5012D310EF9708A97A3BE195 /* FaceScan3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7495B578098FB4F168D44B9 /* FaceScan3DView.swift */; };
 		512168C37838858B858CFFA0 /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813438A5368386EB29168975 /* CardView.swift */; };
+		52851F25F9B735F16EA9DC5F /* CelebratoryResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 854903E710F1ED91B665BCB5 /* CelebratoryResultsView.swift */; };
 		52CBF97778DAC7AC0373DF5C /* QualityIndicators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E5BE7D51331241134292914 /* QualityIndicators.swift */; };
 		53F5A66106A6B454335AAA9E /* CalibrationOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72DEDCA89960B01DCBF49627 /* CalibrationOverlay.swift */; };
 		573A6F63B728A5AAAF53AF50 /* DeviceCalibration.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE640788A1B559B14438FB09 /* DeviceCalibration.swift */; };
@@ -74,6 +78,7 @@
 		950DEFDE84BC32059DB81F4F /* AlbedoEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8749084C99272D44C6B23230 /* AlbedoEstimator.swift */; };
 		9BDEF23C95B23B8F3CB96098 /* ColorTemperatureNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98CFAE6E1ACD147FCD17FF69 /* ColorTemperatureNormalizer.swift */; };
 		9E47A5E348E3F07CE6C3666E /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058616E444A18736A88D60C2 /* PrimaryButton.swift */; };
+		9F9180BC48FD44EDB8A5EC14 /* StreamingMeshMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D50E5227FC5623C8E7600E1 /* StreamingMeshMerger.swift */; };
 		A19EAEDAEF7F731CE50142FF /* TextureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D022F426A297217275C6E6F /* TextureExtractor.swift */; };
 		A33DCEF17DACB170BA92523B /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F004FB0FB5D0FF29C951E78 /* LoadingView.swift */; };
 		A7B1FF885E4B85CE1B3CBE9C /* FancyLoadingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D02CD1F895E305C70B9EB943 /* FancyLoadingScreen.swift */; };
@@ -83,6 +88,7 @@
 		B065FA9C2379E1F331B8C8F4 /* TextureQualityValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73F52B580C07D92F4FA43575 /* TextureQualityValidator.swift */; };
 		B5B30E07DEB6E4F6900357E2 /* CelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6892E328A3BE31AD1F119545 /* CelebrationView.swift */; };
 		B5C6DD54747F64D7A64A5E31 /* FaceIDStyleGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 517033E2F35AECB6551F9E72 /* FaceIDStyleGuide.swift */; };
+		B8EF9B902EAD30F82174B114 /* ScanConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FB79DBCE421C2B6DC922852 /* ScanConfiguration.swift */; };
 		BCC55497EA93283E5D895ACD /* AnalysisTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C46BA6FB2B70D75BB69A2ED /* AnalysisTypes.swift */; };
 		BFAAC29196A1D6F4AAAE45B9 /* TexturedMeshPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CFD47E8633F12AEA6407300 /* TexturedMeshPreviewView.swift */; };
 		C0630FC460D7CF61167C3BAE /* PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF92FAB265314F82481D94A /* PDFReportGenerator.swift */; };
@@ -94,6 +100,7 @@
 		C6C26F6742C9A43882C42A6A /* PigmentationAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08F59CDE8E00DC3053590F61 /* PigmentationAnalyzer.swift */; };
 		C7E920FD7CB84FDF07E00D08 /* ImageQualityAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD69287B6E469916F702CE25 /* ImageQualityAnalyzer.swift */; };
 		C85C32222AD607BE72E01D95 /* FaceGuidanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB705E9E7DC1403D34B3D22B /* FaceGuidanceView.swift */; };
+		CA96CDA4235E7CF53A3F4616 /* SocialSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BE7572AD186CB93CA75F9B /* SocialSharingView.swift */; };
 		CBF5F05A80EB7AF1C661A286 /* HoleFiller.swift in Sources */ = {isa = PBXBuildFile; fileRef = B242FF021916A4AC9DC29F69 /* HoleFiller.swift */; };
 		CDFE2B93AF08350BD6387FAC /* Face3DMetricsAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0158E26324A3B9235271F6 /* Face3DMetricsAnalyzer.swift */; };
 		CE9F91521BBCC4A033C4FA83 /* TemporalTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC31E88D5F06C27300AF247D /* TemporalTracker.swift */; };
@@ -107,6 +114,7 @@
 		DF5EAB7606C6673E27B58D32 /* HistogramView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D18EF36E74E3DA3C369530 /* HistogramView.swift */; };
 		E085DD9DDE26F344F10D5437 /* CaptureProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41ACBF8F0D22AE8491CD86B1 /* CaptureProgressView.swift */; };
 		E2EACC48B68F7FB563E125AE /* HeatmapOverlayGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96164BAB8E255D0A3B59983E /* HeatmapOverlayGenerator.swift */; };
+		E8698A1E30266EAAD58FD9D1 /* SunDamageAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D592CCA57900933846ADBA0C /* SunDamageAnalyzer.swift */; };
 		EAF188C49DD72EF8D60AB41E /* SkinTypeClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47C210707F9500DD3822B85F /* SkinTypeClassifier.swift */; };
 		EB8008B42C4D050E94453DA0 /* FaceLandmarksOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376B8489BCC59A99FCCE4EE2 /* FaceLandmarksOverlay.swift */; };
 		EC194364848D2FCE947511D0 /* MetricExplanations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6468EC87DE7FC8447CE54ACD /* MetricExplanations.swift */; };
@@ -125,8 +133,10 @@
 		04D06A6C52C4438A958C7367 /* RednessAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RednessAnalyzer.swift; path = Tavi/Features/FaceScan3D/Metrics/RednessAnalyzer.swift; sourceTree = SOURCE_ROOT; };
 		058616E444A18736A88D60C2 /* PrimaryButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PrimaryButton.swift; path = Shared/UI/PrimaryButton.swift; sourceTree = "<group>"; };
 		068C72346597C2B3DDBCC141 /* ICPAligner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ICPAligner.swift; path = Features/FaceScan3D/Processing/ICPAligner.swift; sourceTree = "<group>"; };
+		06BE7572AD186CB93CA75F9B /* SocialSharingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SocialSharingView.swift; path = Features/Social/SocialSharingView.swift; sourceTree = "<group>"; };
 		08F59CDE8E00DC3053590F61 /* PigmentationAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PigmentationAnalyzer.swift; path = Features/FaceScan3D/Utilities/PigmentationAnalyzer.swift; sourceTree = "<group>"; };
 		0C54C3CB15446896CBA37B46 /* BeforeAfterView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BeforeAfterView.swift; path = Tavi/Features/Results/BeforeAfterView.swift; sourceTree = SOURCE_ROOT; };
+		0D50E5227FC5623C8E7600E1 /* StreamingMeshMerger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StreamingMeshMerger.swift; path = Features/FaceScan3D/Utilities/StreamingMeshMerger.swift; sourceTree = "<group>"; };
 		13EAB1F6FDFDFC2C89790FDC /* CaptureSequence.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CaptureSequence.swift; path = Features/FaceScan3D/Models/CaptureSequence.swift; sourceTree = "<group>"; };
 		1551229E2CDA456D6F037D2E /* DataModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DataModels.swift; path = Core/ModelsKit/DataModels.swift; sourceTree = "<group>"; };
 		18283E89227A381F1415E891 /* UserProfile.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = UserProfile.swift; path = Features/User/UserProfile.swift; sourceTree = "<group>"; };
@@ -137,6 +147,7 @@
 		2D196059EDCE0D5AFE9351DB /* CalibrationHUD.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CalibrationHUD.swift; path = Shared/UI/CalibrationHUD.swift; sourceTree = "<group>"; };
 		2DE046EBD6EF428A854805AA /* StorageManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StorageManager.swift; path = Core/StorageKit/StorageManager.swift; sourceTree = "<group>"; };
 		2E2C9B4E236ABF9500D8DB58 /* MeshSmoother.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeshSmoother.swift; path = Features/FaceScan3D/Processing/MeshSmoother.swift; sourceTree = "<group>"; };
+		2FB79DBCE421C2B6DC922852 /* ScanConfiguration.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScanConfiguration.swift; sourceTree = "<group>"; };
 		34E23E94BACF2D603EBF4CF4 /* Scoring3D.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Scoring3D.swift; path = Features/FaceScan3D/Utilities/Scoring3D.swift; sourceTree = "<group>"; };
 		36D70EBF50FADCC9D77E8318 /* FaceScan3DViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceScan3DViewModel.swift; path = Features/FaceScan3D/ViewModels/FaceScan3DViewModel.swift; sourceTree = "<group>"; };
 		3724B80EA63F4F3C9154B32A /* ResultsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ResultsViewModel.swift; path = Features/Results/ResultsViewModel.swift; sourceTree = "<group>"; };
@@ -180,10 +191,12 @@
 		7B0FA72460DB37D8AF2330DD /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		813438A5368386EB29168975 /* CardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CardView.swift; path = Shared/UI/CardView.swift; sourceTree = "<group>"; };
 		81B89469AF3B091F761E94DD /* OnboardingModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OnboardingModels.swift; path = Features/Onboarding/OnboardingModels.swift; sourceTree = "<group>"; };
+		854903E710F1ED91B665BCB5 /* CelebratoryResultsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CelebratoryResultsView.swift; path = Features/Results/CelebratoryResultsView.swift; sourceTree = "<group>"; };
 		8749084C99272D44C6B23230 /* AlbedoEstimator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AlbedoEstimator.swift; path = Features/FaceScan3D/Utilities/AlbedoEstimator.swift; sourceTree = "<group>"; };
 		881B39AB8A40B40A2CB2A4EF /* Face3DSummary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Face3DSummary.swift; path = Features/FaceScan3D/Models/Face3DSummary.swift; sourceTree = "<group>"; };
 		8AEC0C7B210A9F44595645E5 /* PersistenceController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PersistenceController.swift; path = Core/StorageKit/PersistenceController.swift; sourceTree = "<group>"; };
 		8E5BE7D51331241134292914 /* QualityIndicators.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = QualityIndicators.swift; path = Features/FaceScan3D/UI/QualityIndicators.swift; sourceTree = "<group>"; };
+		92EB6F79C8265098BBE6835D /* CrashReporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		96164BAB8E255D0A3B59983E /* HeatmapOverlayGenerator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeatmapOverlayGenerator.swift; path = Features/FaceScan3D/Utilities/HeatmapOverlayGenerator.swift; sourceTree = "<group>"; };
 		98CFAE6E1ACD147FCD17FF69 /* ColorTemperatureNormalizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ColorTemperatureNormalizer.swift; path = Tavi/Features/FaceScan3D/Utilities/ColorTemperatureNormalizer.swift; sourceTree = SOURCE_ROOT; };
 		9961FDFCCC78E696A1B9D803 /* SpecularAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SpecularAnalyzer.swift; path = Features/FaceScan3D/Utilities/SpecularAnalyzer.swift; sourceTree = "<group>"; };
@@ -216,8 +229,11 @@
 		D39CED2746B5AABEFB50801A /* MeshTopologyAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeshTopologyAnalyzer.swift; path = Tavi/Features/FaceScan3D/Metrics/MeshTopologyAnalyzer.swift; sourceTree = SOURCE_ROOT; };
 		D5396817D3682E5DACAF2CD4 /* GamificationSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GamificationSystem.swift; path = Tavi/Features/Gamification/GamificationSystem.swift; sourceTree = SOURCE_ROOT; };
 		D57D023CCA82215EDFE4BAE6 /* HeatmapView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeatmapView.swift; path = Shared/UI/HeatmapView.swift; sourceTree = "<group>"; };
+		D592CCA57900933846ADBA0C /* SunDamageAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SunDamageAnalyzer.swift; path = Tavi/Features/FaceScan3D/Metrics/SunDamageAnalyzer.swift; sourceTree = SOURCE_ROOT; };
+		D5C440DF51BA6E61B8C86EC6 /* AppLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
 		D994B50896F0253A7AC45F71 /* OnboardingFlow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OnboardingFlow.swift; path = Features/Onboarding/OnboardingFlow.swift; sourceTree = "<group>"; };
 		DB705E9E7DC1403D34B3D22B /* FaceGuidanceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceGuidanceView.swift; path = Shared/UI/FaceGuidanceView.swift; sourceTree = "<group>"; };
+		DEB7DF9F43C4254874B81D73 /* AsyncTimeout.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AsyncTimeout.swift; sourceTree = "<group>"; };
 		E090007A7AD1D87C747C7F1D /* MeshTextureExporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeshTextureExporter.swift; path = Features/FaceScan3D/Utilities/MeshTextureExporter.swift; sourceTree = "<group>"; };
 		E156067DDCF90ADE5634A3E1 /* DebugOverlayView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DebugOverlayView.swift; path = Features/Debug/DebugOverlayView.swift; sourceTree = "<group>"; };
 		E15EC623A8C87285A2A33338 /* PoreAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PoreAnalyzer.swift; path = Features/FaceScan3D/Metrics/PoreAnalyzer.swift; sourceTree = "<group>"; };
@@ -304,6 +320,7 @@
 				B604BFC89DE914D082466007 /* ResultsHistoryView.swift */,
 				3724B80EA63F4F3C9154B32A /* ResultsViewModel.swift */,
 				0C54C3CB15446896CBA37B46 /* BeforeAfterView.swift */,
+				854903E710F1ED91B665BCB5 /* CelebratoryResultsView.swift */,
 			);
 			name = Results;
 			sourceTree = "<group>";
@@ -374,6 +391,14 @@
 				6DF92FAB265314F82481D94A /* PDFReportGenerator.swift */,
 			);
 			name = Export;
+			sourceTree = "<group>";
+		};
+		3022E0007F0B93F5F1A83C35 /* Social */ = {
+			isa = PBXGroup;
+			children = (
+				06BE7572AD186CB93CA75F9B /* SocialSharingView.swift */,
+			);
+			name = Social;
 			sourceTree = "<group>";
 		};
 		3446562336AE20C18AA4E92F /* UI */ = {
@@ -464,6 +489,7 @@
 				FE640788A1B559B14438FB09 /* DeviceCalibration.swift */,
 				E46190D0CE9141D1FEE2B8B0 /* SkinToneNormalizer.swift */,
 				98CFAE6E1ACD147FCD17FF69 /* ColorTemperatureNormalizer.swift */,
+				0D50E5227FC5623C8E7600E1 /* StreamingMeshMerger.swift */,
 			);
 			name = Utilities;
 			sourceTree = "<group>";
@@ -472,9 +498,13 @@
 			isa = PBXGroup;
 			children = (
 				283E5D7077BF98AC26B11669 /* MemoryMonitor.swift */,
+				D5C440DF51BA6E61B8C86EC6 /* AppLogger.swift */,
+				92EB6F79C8265098BBE6835D /* CrashReporter.swift */,
+				2FB79DBCE421C2B6DC922852 /* ScanConfiguration.swift */,
+				DEB7DF9F43C4254874B81D73 /* AsyncTimeout.swift */,
 			);
 			name = Utilities;
-			path = Tavi/Core/Utilities;
+			path = Core/Utilities;
 			sourceTree = "<group>";
 		};
 		89490901A88C6611DD8FBA80 /* User */ = {
@@ -542,6 +572,7 @@
 				2F0D23D64A70DA497B637451 /* Export */,
 				08D157B49444C902EC648300 /* Home */,
 				3C866E0330499C30BC70979E /* Gamification */,
+				3022E0007F0B93F5F1A83C35 /* Social */,
 			);
 			name = Features;
 			sourceTree = "<group>";
@@ -567,6 +598,7 @@
 				EC393D853D09878A720EDC0B /* RegionalAnalyzers.swift */,
 				47C210707F9500DD3822B85F /* SkinTypeClassifier.swift */,
 				2395F842D49ABD9ADA6BC372 /* AcneAnalyzer.swift */,
+				D592CCA57900933846ADBA0C /* SunDamageAnalyzer.swift */,
 				04D06A6C52C4438A958C7367 /* RednessAnalyzer.swift */,
 				D39CED2746B5AABEFB50801A /* MeshTopologyAnalyzer.swift */,
 			);
@@ -822,6 +854,7 @@
 				8D8BAF1F2A90624B6839DED4 /* EnvironmentalAdapter.swift in Sources */,
 				573A6F63B728A5AAAF53AF50 /* DeviceCalibration.swift in Sources */,
 				DB9FAA12E3BBDE338EBC34F9 /* AcneAnalyzer.swift in Sources */,
+				E8698A1E30266EAAD58FD9D1 /* SunDamageAnalyzer.swift in Sources */,
 				F1CB69BD4D2CCA67027E7FD3 /* RednessAnalyzer.swift in Sources */,
 				ECA039220CF197F5DA10E8EF /* MeshTopologyAnalyzer.swift in Sources */,
 				742D526D1F4B3597173AA61B /* SkinToneNormalizer.swift in Sources */,
@@ -835,6 +868,13 @@
 				C4DD0672AD64A6B5809E3001 /* ScanError.swift in Sources */,
 				13174DC92ED4F3300D06FA03 /* MemoryMonitor.swift in Sources */,
 				A7B1FF885E4B85CE1B3CBE9C /* FancyLoadingScreen.swift in Sources */,
+				9F9180BC48FD44EDB8A5EC14 /* StreamingMeshMerger.swift in Sources */,
+				3BAF4B137E998AC39FC93914 /* AppLogger.swift in Sources */,
+				489DBDA633246E233189FD6C /* CrashReporter.swift in Sources */,
+				B8EF9B902EAD30F82174B114 /* ScanConfiguration.swift in Sources */,
+				52851F25F9B735F16EA9DC5F /* CelebratoryResultsView.swift in Sources */,
+				CA96CDA4235E7CF53A3F4616 /* SocialSharingView.swift in Sources */,
+				19885F9DD5B764CC25998076 /* AsyncTimeout.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

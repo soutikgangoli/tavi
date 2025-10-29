@@ -10,7 +10,7 @@ import Foundation
 import simd
 
 /// Mesh topology quality analysis results
-public struct TopologyAnalysis {
+public struct TopologyAnalysis: Codable, Sendable {
     /// Overall topology quality score (0-100)
     public let overallScore: Float
 
@@ -60,7 +60,7 @@ public struct TopologyAnalysis {
 }
 
 /// Topology quality levels
-public enum TopologyQuality: String {
+public enum TopologyQuality: String, Codable {
     case excellent = "Excellent"
     case good = "Good"
     case acceptable = "Acceptable"
@@ -71,7 +71,7 @@ public enum TopologyQuality: String {
 }
 
 /// Vertex valence statistics (number of edges per vertex)
-public struct ValenceStatistics {
+public struct ValenceStatistics: Codable, Sendable {
     /// Average valence (ideal: ~6 for regular triangulation)
     public let averageValence: Float
 
@@ -89,7 +89,7 @@ public struct ValenceStatistics {
 }
 
 /// Triangle quality metrics
-public struct TriangleQualityMetrics {
+public struct TriangleQualityMetrics: Codable, Sendable {
     /// Average aspect ratio (ideal: 1.0 for equilateral)
     public let averageAspectRatio: Float
 

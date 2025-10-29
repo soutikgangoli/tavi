@@ -163,8 +163,8 @@ extension SessionResult {
     private func extractROIScore(for region: Face3DROI, from metrics: Face3DMetrics) -> Double {
         // Get ROI metrics for this region
         guard let roiMetrics = metrics.roiMetrics[region] else {
-            // Fallback to global score if ROI not found
-            return Double(metrics.globalScore ?? 75.0)
+            // Fallback to overall score if ROI not found
+            return Double(metrics.overallScore)
         }
 
         // Compute composite score from multiple factors

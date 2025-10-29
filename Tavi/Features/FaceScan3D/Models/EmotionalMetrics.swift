@@ -10,7 +10,7 @@ import Foundation
 import SwiftUI
 
 /// Emotional metrics that consumers actually understand and care about
-public struct EmotionalMetrics: Codable {
+public struct EmotionalMetrics: Codable, Sendable {
     let glowScore: Int                    // 0-100 unified "how good does my skin look" score (Skin Health Index)
     let primaryInsight: String            // Main message: "Your skin looks AMAZING! ✨"
     let celebration: String               // Emoji-rich celebration message
@@ -27,10 +27,69 @@ public struct EmotionalMetrics: Codable {
     let youthfulness: Int                 // 0-100: "Do I look young?"
     let freshness: Int                    // 0-100: "Do I look fresh and awake?"
     let sunProtection: Int                // 0-100: "Am I protected from sun damage?"
+
+    // Memberwise initializer for direct instantiation
+    public init(
+        glowScore: Int,
+        primaryInsight: String,
+        celebration: String,
+        improvements: [EmotionalImprovement],
+        concerns: [EmotionalConcern],
+        personalizedMessage: String,
+        nextSteps: [ActionableStep],
+        timeEstimate: String,
+        radiance: Int,
+        smoothness: Int,
+        evenness: Int,
+        youthfulness: Int,
+        freshness: Int,
+        sunProtection: Int
+    ) {
+        self.glowScore = glowScore
+        self.primaryInsight = primaryInsight
+        self.celebration = celebration
+        self.improvements = improvements
+        self.concerns = concerns
+        self.personalizedMessage = personalizedMessage
+        self.nextSteps = nextSteps
+        self.timeEstimate = timeEstimate
+        self.radiance = radiance
+        self.smoothness = smoothness
+        self.evenness = evenness
+        self.youthfulness = youthfulness
+        self.freshness = freshness
+        self.sunProtection = sunProtection
+    }
+
+    // Custom decoder to handle backward compatibility with old saved data
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        glowScore = try container.decode(Int.self, forKey: .glowScore)
+        primaryInsight = try container.decode(String.self, forKey: .primaryInsight)
+        celebration = try container.decode(String.self, forKey: .celebration)
+        improvements = try container.decode([EmotionalImprovement].self, forKey: .improvements)
+        concerns = try container.decode([EmotionalConcern].self, forKey: .concerns)
+        personalizedMessage = try container.decode(String.self, forKey: .personalizedMessage)
+        nextSteps = try container.decode([ActionableStep].self, forKey: .nextSteps)
+        timeEstimate = try container.decode(String.self, forKey: .timeEstimate)
+        radiance = try container.decode(Int.self, forKey: .radiance)
+        smoothness = try container.decode(Int.self, forKey: .smoothness)
+        evenness = try container.decode(Int.self, forKey: .evenness)
+        youthfulness = try container.decode(Int.self, forKey: .youthfulness)
+        freshness = try container.decode(Int.self, forKey: .freshness)
+        // Default to 75 for old data that doesn't have sunProtection
+        sunProtection = try container.decodeIfPresent(Int.self, forKey: .sunProtection) ?? 75
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case glowScore, primaryInsight, celebration, improvements, concerns
+        case personalizedMessage, nextSteps, timeEstimate, radiance, smoothness
+        case evenness, youthfulness, freshness, sunProtection
+    }
 }
 
 /// Something positive to celebrate
-public struct EmotionalImprovement: Codable, Identifiable {
+public struct EmotionalImprovement: Codable, Identifiable, Sendable {
     public let id = UUID()
     let title: String                     // "Your skin texture improved!"
     let emoji: String                     // "✨"
@@ -44,7 +103,7 @@ public struct EmotionalImprovement: Codable, Identifiable {
 }
 
 /// Area that needs attention (framed positively)
-public struct EmotionalConcern: Codable, Identifiable {
+public struct EmotionalConcern: Codable, Identifiable, Sendable {
     public let id = UUID()
     let title: String                     // "Fine lines around eyes"
     let emoji: String                     // "👁️"
@@ -58,14 +117,14 @@ public struct EmotionalConcern: Codable, Identifiable {
     }
 }
 
-public enum ConcernLevel: String, Codable {
+public enum ConcernLevel: String, Codable, Sendable {
     case mild = "Minor"
     case moderate = "Moderate"
     case none = "Looking great!"
 }
 
 /// Clear, actionable step
-public struct ActionableStep: Codable, Identifiable {
+public struct ActionableStep: Codable, Identifiable, Sendable {
     public let id = UUID()
     let action: String                    // "Apply retinol serum"
     let frequency: String                 // "3 times this week"
@@ -79,7 +138,7 @@ public struct ActionableStep: Codable, Identifiable {
     }
 }
 
-public enum StepPriority: String, Codable {
+public enum StepPriority: String, Codable, Sendable {
     case critical = "Do this first!"
     case important = "Important"
     case optional = "Nice to have"

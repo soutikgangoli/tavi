@@ -102,6 +102,9 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Current ARFrame (needed for texture capture)
     private var currentFrame: ARFrame?
 
+    /// Current ARFaceAnchor (needed for edge case detection)
+    private var currentFaceAnchor: ARFaceAnchor?
+
     // MARK: - 3D Metrics Properties
 
     /// Computed 3D face metrics
@@ -111,7 +114,7 @@ public class FaceScan3DViewModel: ObservableObject {
     @Published public var isComputingMetrics: Bool = false
 
     /// Metric visualizations
-    @Published public var metricVisualizations: [MetricType: MetricVisualization] = [:]
+    @Published public var metricVisualizations: [VisualizerMetricType: MetricVisualization] = [:]
 
     // MARK: - Private Properties
 
@@ -181,6 +184,9 @@ public class FaceScan3DViewModel: ObservableObject {
     public func updateGeometry(faceAnchor: ARFaceAnchor, frame: ARFrame) {
         // Store current frame for texture capture
         self.currentFrame = frame
+
+        // Store current face anchor for edge case detection
+        self.currentFaceAnchor = faceAnchor
 
         // Update geometry
         self.currentGeometry = FaceMeshGeometry(faceAnchor: faceAnchor)
@@ -310,12 +316,13 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Returns false if blocking issues detected
     private func performPreflightChecks() -> Bool {
         // Edge case detection
-        guard let geometry = currentGeometry,
-              let frame = currentFrame,
-              let pixelBuffer = frame.capturedImage as? CVPixelBuffer else {
+        guard let faceAnchor = currentFaceAnchor,
+              let frame = currentFrame else {
             errorMessage = "Unable to access camera data"
             return false
         }
+
+        let pixelBuffer = frame.capturedImage
 
         // Convert pixel buffer to UIImage for edge case detection
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
@@ -331,7 +338,6 @@ public class FaceScan3DViewModel: ObservableObject {
 
         // Run edge case detection with strictness level
         let edgeCaseDetector = EdgeCaseDetector()
-        let faceAnchor = ARFaceAnchor(transform: geometry.transform)
         let edgeCases = edgeCaseDetector.detectEdgeCases(
             texture: texture,
             faceAnchor: faceAnchor,
@@ -370,7 +376,7 @@ public class FaceScan3DViewModel: ObservableObject {
 
         // Create capture
         let capture = MeshCapture(
-            step: currentGuidanceStep,
+            step: self.currentGuidanceStep,
             geometry: geometry,
             yaw: yaw,
             pitch: pitch,
@@ -388,31 +394,32 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Finalize capture and merge all partial meshes into single face mesh
     /// Now includes complete clinical-grade processing pipeline
     public func finalizeCapture() async -> MergedFaceMesh? {
-        guard var sequence = currentSequence else {
-            errorMessage = "No capture sequence to finalize"
+        guard var sequence = self.currentSequence else {
+            self.errorMessage = "No capture sequence to finalize"
             return nil
         }
 
         guard !sequence.captures.isEmpty else {
-            errorMessage = "No captures in sequence"
+            self.errorMessage = "No captures in sequence"
             return nil
         }
 
-        isMerging = true
+        self.isMerging = true
 
         // Calculate total vertices to decide on merger strategy
         let totalVertices = sequence.captures.reduce(0) { $0 + $1.vertices.count }
-        let useStreaming = totalVertices > streamingThreshold
+        let threshold = self.streamingThreshold
+        let useStreaming = totalVertices > threshold
 
         if useStreaming {
-            AppLogger.mesh.info("🌊 Using streaming merger for \(totalVertices) vertices (threshold: \(streamingThreshold))")
+            AppLogger.mesh.info("🌊 Using streaming merger for \(totalVertices) vertices (threshold: \(threshold))")
         } else {
             AppLogger.mesh.info("⚡️ Using standard merger for \(totalVertices) vertices")
         }
 
         // Process on background thread with full clinical-grade pipeline
-        let merger = meshMerger
-        let streamMerger = streamingMerger
+        let merger = self.meshMerger
+        let streamMerger = self.streamingMerger
         let captures = sequence.captures
 
         let merged: MergedFaceMesh?
@@ -434,13 +441,13 @@ public class FaceScan3DViewModel: ObservableObject {
                         "capture_count": captures.count
                     ]
                 )
-                isMerging = false
-                errorMessage = "Failed to merge face scans. Please try again."
+                self.isMerging = false
+                self.errorMessage = "Failed to merge face scans. Please try again."
                 return nil
             }
         } else {
             // Use standard merger for smaller meshes
-            merged = await Task.detached(priority: .userInitiated) {
+            merged = await Task.detached(priority: .userInitiated) { () -> MergedFaceMesh? in
                 // Note: Advanced mesh processing (outlier filtering, smoothing, hole filling)
                 // requires additional FaceMeshGeometry conversions. For now, use basic merging.
                 //
@@ -466,17 +473,17 @@ public class FaceScan3DViewModel: ObservableObject {
 
         guard merged != nil else {
             AppLogger.mesh.error("Mesh merging failed")
-            isMerging = false
+            self.isMerging = false
             return nil
         }
 
         // Update sequence
         sequence.complete()
-        currentSequence = sequence
+        self.currentSequence = sequence
 
         // Store merged result
-        mergedMesh = merged
-        isMerging = false
+        self.mergedMesh = merged
+        self.isMerging = false
 
         return merged
     }
@@ -578,7 +585,7 @@ public class FaceScan3DViewModel: ObservableObject {
 
     private func checkGuidancePoseAndCapture(faceAnchor: ARFaceAnchor) {
         // Skip if already captured this step
-        if capturedPoses[currentGuidanceStep] != nil {
+        if capturedPoses[self.currentGuidanceStep] != nil {
             guidanceFeedback = nil
             qualityWarning = nil
             return
@@ -590,14 +597,14 @@ public class FaceScan3DViewModel: ObservableObject {
         let roll = faceAnchor.transform.eulerAngles.z * 180 / .pi
 
         // Check if pose matches current step
-        let isPoseValid = currentGuidanceStep.isPoseValid(yaw: yaw, pitch: pitch, roll: roll)
+        let isPoseValid = self.currentGuidanceStep.isPoseValid(yaw: yaw, pitch: pitch, roll: roll)
 
         // Get real-time guidance feedback
-        guidanceFeedback = currentGuidanceStep.getGuidanceFeedback(yaw: yaw, pitch: pitch, roll: roll)
+        guidanceFeedback = self.currentGuidanceStep.getGuidanceFeedback(yaw: yaw, pitch: pitch, roll: roll)
 
         // Check image quality if pose is valid
         var qualityGood = true
-        if isPoseValid && calibrationState.isCalibrated {
+        if isPoseValid && self.calibrationState.isCalibrated {
             qualityGood = checkImageQuality()
         } else {
             qualityWarning = nil
@@ -605,8 +612,8 @@ public class FaceScan3DViewModel: ObservableObject {
 
         // Debug: Log every 30 frames (~once per second at 30fps)
         if frameCount % 30 == 0 {
-            AppLogger.faceScan.debug("Pose check - Step: \(currentGuidanceStep.shortName), Yaw: \(String(format: "%.1f", yaw))°, Pitch: \(String(format: "%.1f", pitch))°, Roll: \(String(format: "%.1f", roll))°")
-            AppLogger.faceScan.debug("Valid: \(isPoseValid), Calibrated: \(calibrationState.isCalibrated), Quality: \(qualityGood), Busy: \(isCaptureInProgress)")
+            AppLogger.faceScan.debug("Pose check - Step: \(self.currentGuidanceStep.shortName), Yaw: \(String(format: "%.1f", yaw))°, Pitch: \(String(format: "%.1f", pitch))°, Roll: \(String(format: "%.1f", roll))°")
+            AppLogger.faceScan.debug("Valid: \(isPoseValid), Calibrated: \(self.calibrationState.isCalibrated), Quality: \(qualityGood), Busy: \(self.isCaptureInProgress)")
             if let feedback = guidanceFeedback {
                 AppLogger.faceScan.debug("Feedback: \(feedback)")
             }
@@ -615,7 +622,7 @@ public class FaceScan3DViewModel: ObservableObject {
             }
         }
 
-        if isPoseValid && calibrationState.isCalibrated && qualityGood && !isCaptureInProgress {
+        if isPoseValid && self.calibrationState.isCalibrated && qualityGood && !self.isCaptureInProgress {
             // Start countdown if not already counting
             if countdownTimer == 0 && holdStableTimer == nil {
                 startCaptureCountdown(faceAnchor: faceAnchor, yaw: yaw, pitch: pitch, roll: roll)
@@ -650,9 +657,8 @@ public class FaceScan3DViewModel: ObservableObject {
                 let texture = UIImage(cgImage: cgImage)
 
                 // Check lighting for this specific pose
-                if let geometry = currentGeometry {
+                if let faceAnchor = currentFaceAnchor {
                     let edgeCaseDetector = EdgeCaseDetector()
-                    let faceAnchor = ARFaceAnchor(transform: geometry.transform)
                     let edgeCases = edgeCaseDetector.detectEdgeCases(
                         texture: texture,
                         faceAnchor: faceAnchor,
@@ -699,66 +705,66 @@ public class FaceScan3DViewModel: ObservableObject {
         if let blendShapes = blendShapes {
             // Detect smiling
             let smileAmount = (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2.0
-            if smileAmount > ScanConfiguration.maxSmileThreshold {
+            if Double(smileAmount) > ScanConfiguration.maxSmileThreshold {
                 qualityWarning = "Please keep a neutral expression (no smiling)"
                 return false
             }
 
             // Detect frowning
             let frownAmount = (blendShapes.mouthFrownLeft + blendShapes.mouthFrownRight) / 2.0
-            if frownAmount > ScanConfiguration.maxSmileThreshold {
+            if Double(frownAmount) > ScanConfiguration.maxSmileThreshold {
                 qualityWarning = "Please relax your expression (no frowning)"
                 return false
             }
 
             // Detect jaw movement (talking, frowning)
-            if blendShapes.jawOpen > ScanConfiguration.maxJawOpenThreshold {
+            if Double(blendShapes.jawOpen) > ScanConfiguration.maxJawOpenThreshold {
                 qualityWarning = "Please keep your mouth closed"
                 return false
             }
 
             // Detect lip puckering (duck face)
-            if blendShapes.mouthPucker > ScanConfiguration.maxMouthPuckerThreshold {
+            if Double(blendShapes.mouthPucker) > ScanConfiguration.maxMouthPuckerThreshold {
                 qualityWarning = "Please relax your lips"
                 return false
             }
 
             // Detect cheek puffing
-            if blendShapes.cheekPuff > ScanConfiguration.maxCheekPuffThreshold {
+            if Double(blendShapes.cheekPuff) > ScanConfiguration.maxCheekPuffThreshold {
                 qualityWarning = "Please relax your cheeks"
                 return false
             }
 
             // Detect eye blinking
             let blinkAmount = max(blendShapes.eyeBlinkLeft, blendShapes.eyeBlinkRight)
-            if blinkAmount > ScanConfiguration.blinkDetectionThreshold {
+            if Double(blinkAmount) > ScanConfiguration.blinkDetectionThreshold {
                 qualityWarning = "Please keep your eyes open"
                 return false
             }
 
             // Detect eyes wide open (surprised expression)
             let eyeWideAmount = max(blendShapes.eyeWideLeft, blendShapes.eyeWideRight)
-            if eyeWideAmount > ScanConfiguration.maxEyeWideThreshold {
+            if Double(eyeWideAmount) > ScanConfiguration.maxEyeWideThreshold {
                 qualityWarning = "Please relax your eyes"
                 return false
             }
 
             // Detect eye squinting
             let squintAmount = max(blendShapes.eyeSquintLeft, blendShapes.eyeSquintRight)
-            if squintAmount > ScanConfiguration.maxSquintThreshold {
+            if Double(squintAmount) > ScanConfiguration.maxSquintThreshold {
                 qualityWarning = "Please don't squint"
                 return false
             }
 
             // Detect raised eyebrows (surprised/worried expression)
-            if blendShapes.browInnerUp > ScanConfiguration.maxBrowMovementThreshold {
+            if Double(blendShapes.browInnerUp) > ScanConfiguration.maxBrowMovementThreshold {
                 qualityWarning = "Please relax your eyebrows"
                 return false
             }
 
             // Detect furrowed brows (angry/concentrating expression)
             let browDownAmount = max(blendShapes.browDownLeft, blendShapes.browDownRight)
-            if browDownAmount > ScanConfiguration.maxBrowMovementThreshold {
+            if Double(browDownAmount) > ScanConfiguration.maxBrowMovementThreshold {
                 qualityWarning = "Please relax your forehead"
                 return false
             }
@@ -823,8 +829,11 @@ public class FaceScan3DViewModel: ObservableObject {
             AppLogger.faceScan.debug("Haptic feedback: Pose validated")
         }
 
+        // Capture the current guidance step to avoid race conditions
+        let guidanceStep = self.currentGuidanceStep
+
         // Create timer and explicitly add to main RunLoop to ensure it fires
-        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] timer in
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self, faceAnchor, yaw, pitch, roll, guidanceStep] timer in
             // Capture weak self again inside the Task to prevent race condition
             Task { @MainActor [weak self] in
                 guard let self = self else {
@@ -862,18 +871,18 @@ public class FaceScan3DViewModel: ObservableObject {
     private func capturePose(faceAnchor: ARFaceAnchor, yaw: Float, pitch: Float, roll: Float) {
         guard let geometry = currentGeometry else { return }
 
-        isCaptureInProgress = true
+        self.isCaptureInProgress = true
 
         // Create captured pose data
         let poseData = CapturedPoseData(
-            step: currentGuidanceStep,
+            step: self.currentGuidanceStep,
             geometry: geometry,
             yaw: yaw,
             pitch: pitch,
             roll: roll
         )
 
-        capturedPoses[currentGuidanceStep] = poseData
+        capturedPoses[self.currentGuidanceStep] = poseData
 
         // Add to capture sequence
         if captureStep() {
@@ -886,7 +895,8 @@ public class FaceScan3DViewModel: ObservableObject {
         }
 
         // Move to next step or finish
-        if let nextStepIndex = GuidanceStep.allCases.firstIndex(of: currentGuidanceStep).map({ $0 + 1 }),
+        let currentStep = self.currentGuidanceStep
+        if let nextStepIndex = GuidanceStep.allCases.firstIndex(of: currentStep).map({ $0 + 1 }),
            nextStepIndex < GuidanceStep.allCases.count {
             // Move to next step
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -902,11 +912,11 @@ public class FaceScan3DViewModel: ObservableObject {
 
                 _ = await self.finalizeCapture()
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.isGuidanceActive = false
-                    self.isCaptureInProgress = false
-                    self.guidanceFeedback = nil
-                    self.qualityWarning = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.isGuidanceActive = false
+                    self?.isCaptureInProgress = false
+                    self?.guidanceFeedback = nil
+                    self?.qualityWarning = nil
                 }
             }
         }
@@ -965,14 +975,14 @@ public class FaceScan3DViewModel: ObservableObject {
 
         // Capture texture sample
         if let sample = textureCapture.captureSample(
-            step: currentGuidanceStep.shortName,
+            step: self.currentGuidanceStep.shortName,
             faceAnchor: faceAnchor,
             frame: frame,
             lightEstimation: lightEstimation
         ) {
             sequence.addTextureSample(sample)
             currentSequence = sequence
-            AppLogger.faceScan.info("Captured texture sample for step: \(currentGuidanceStep.shortName)")
+            AppLogger.faceScan.info("Captured texture sample for step: \(self.currentGuidanceStep.shortName)")
         } else {
             AppLogger.faceScan.warning("Failed to capture texture sample (quality check failed)")
         }
@@ -1138,9 +1148,9 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Generate visualizations for metrics
     private func generateVisualizations(for metrics: Face3DMetrics) async {
-        var visualizations: [MetricType: MetricVisualization] = [:]
+        var visualizations: [VisualizerMetricType: MetricVisualization] = [:]
 
-        for metricType in [MetricType.roughness, .pigmentation, .luminance, .specular] {
+        for metricType in [VisualizerMetricType.roughness, .pigmentation, .luminance, .specular] {
             let viz = metricsVisualizer.generateVisualization(
                 for: metrics,
                 type: metricType
@@ -1152,7 +1162,7 @@ public class FaceScan3DViewModel: ObservableObject {
     }
 
     /// Get visualization for specific metric type
-    public func getVisualization(for type: MetricType) -> MetricVisualization? {
+    public func getVisualization(for type: VisualizerMetricType) -> MetricVisualization? {
         return metricVisualizations[type]
     }
 

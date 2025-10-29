@@ -20,6 +20,7 @@ public struct EmotionalScan3DFlowView: View {
     @State private var processingProgress: String = ""
     @State private var emotionalMetrics: EmotionalMetrics?
     @State private var clinicalMetrics: Face3DMetrics?
+    @State private var previousMetrics: EmotionalMetrics?
     @State private var showShareSheet = false
     @State private var showAchievementUnlock = false
     @State private var newAchievements: [Achievement] = []
@@ -52,7 +53,7 @@ public struct EmotionalScan3DFlowView: View {
                     CelebratoryResultsView(
                         emotionalMetrics: metrics,
                         clinicalMetrics: clinicalMetrics,
-                        previousMetrics: loadPreviousMetrics(),
+                        previousMetrics: previousMetrics,
                         onStartChallenge: {
                             startChallenge()
                         },
@@ -363,7 +364,7 @@ public struct EmotionalScan3DFlowView: View {
                     operation: "Mesh Merge"
                 ) {
                     guard let result = await viewModel.finalizeCapture() else {
-                        throw ScanError.mergeFailed
+                        throw ScanError.mergeFailed(reason: nil)
                     }
                     return result
                 }
@@ -379,7 +380,7 @@ public struct EmotionalScan3DFlowView: View {
                     operation: "Texture Baking"
                 ) {
                     guard let result = await viewModel.bakeTextureFromSequence() else {
-                        throw ScanError.bakeFailed
+                        throw ScanError.bakeFailed(reason: nil)
                     }
                     return result
                 }
@@ -395,7 +396,7 @@ public struct EmotionalScan3DFlowView: View {
                     operation: "Metrics Computation"
                 ) {
                     guard let result = await viewModel.compute3DMetrics() else {
-                        throw ScanError.metricsFailed
+                        throw ScanError.metricsFailed(analyzer: nil, reason: nil)
                     }
                     return result
                 }
@@ -408,6 +409,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 let userProfile = UserProfileManager.shared.loadProfile()
                 let previousClinicalMetrics = await loadPreviousClinicalMetrics()
+                let loadedPreviousMetrics = await loadPreviousMetrics()
 
                 let emotional = EmotionalMetricsGenerator.generate(
                     from: computedClinicalMetrics,
@@ -417,6 +419,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 // Store both metrics for results view
                 self.clinicalMetrics = computedClinicalMetrics
+                self.previousMetrics = loadedPreviousMetrics
 
                 // Step 5: Update gamification
                 processingProgress = "Updating your progress... 🎉"
@@ -424,7 +427,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 let updatedStreak = GamificationManager.shared.recordScan()
 
-                var challenge = GamificationManager.shared.getCurrentChallenge()
+                let challenge = GamificationManager.shared.getCurrentChallenge()
                 // Update challenge if active (would need to implement proper update method)
 
                 let glowImprovement = previousClinicalMetrics != nil
@@ -449,7 +452,7 @@ public struct EmotionalScan3DFlowView: View {
                 ) {
                     await saveToCoreData(
                         emotionalMetrics: emotional,
-                        clinicalMetrics: clinicalMetrics
+                        clinicalMetrics: computedClinicalMetrics
                     )
                 }
 
@@ -503,6 +506,28 @@ public struct EmotionalScan3DFlowView: View {
                         flowState = .error("Scan was cancelled.")
                     case .processingError(let message):
                         flowState = .error("Processing error: \(message)")
+                    case .trueDepthUnsupported:
+                        flowState = .error("This device doesn't support TrueDepth scanning. Face ID compatible iPhone required.")
+                    case .faceNotDetected:
+                        flowState = .error("No face detected. Please position your face in the frame.")
+                    case .multipleFacesDetected:
+                        flowState = .error("Multiple faces detected. Please scan one person at a time.")
+                    case .lightingTooLow(let current, let required):
+                        flowState = .error("Lighting too low (\(Int(current*100))%). Move to brighter area (need \(Int(required*100))%).")
+                    case .lightingTooHigh(let current, let max):
+                        flowState = .error("Too bright (\(Int(current*100))%). Reduce lighting (max \(Int(max*100))%).")
+                    case .blurryImage:
+                        flowState = .error("Image is blurry. Hold device steady.")
+                    case .occludedFace:
+                        flowState = .error("Face partially covered. Remove hands/hair from face.")
+                    case .invalidExpression:
+                        flowState = .error("Invalid expression. Please maintain neutral expression.")
+                    case .coreDataSaveFailed(let error):
+                        flowState = .error("Failed to save scan: \(error.localizedDescription)")
+                    case .insufficientStorage:
+                        flowState = .error("Insufficient storage. Please free up space and try again.")
+                    case .corruptedData:
+                        flowState = .error("Data corrupted. Please try scanning again.")
                     }
                 }
             } catch let timeoutError as TimeoutError {
@@ -550,7 +575,7 @@ public struct EmotionalScan3DFlowView: View {
                 return nil
             }
 
-            print("✅ Loaded previous clinical metrics from \(lastSession.date ?? Date())")
+            print("✅ Loaded previous clinical metrics from \(lastSession.date)")
             return metrics
         }
     }
@@ -571,7 +596,7 @@ public struct EmotionalScan3DFlowView: View {
                 return nil
             }
 
-            print("✅ Loaded previous emotional metrics from \(lastSession.date ?? Date())")
+            print("✅ Loaded previous emotional metrics from \(lastSession.date)")
             return metrics
         }
     }
@@ -615,7 +640,7 @@ public struct EmotionalScan3DFlowView: View {
 
     private func startChallenge() {
         if let metrics = emotionalMetrics {
-            let challenge = GamificationManager.shared.startNewChallenge(baselineGlowScore: metrics.glowScore)
+            _ = GamificationManager.shared.startNewChallenge(baselineGlowScore: metrics.glowScore)
         }
     }
 }

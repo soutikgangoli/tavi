@@ -122,7 +122,8 @@ class CrashReporter {
                 if let stringValue = value as? String, stringValue.count < 200 {
                     scope.setTag(value: stringValue, key: key)
                 } else {
-                    scope.setExtra(value: value, key: key)
+                    // Convert Any to a Sentry-compatible value
+                    scope.setExtra(value: String(describing: value) as NSString, key: key)
                 }
             }
 
@@ -177,7 +178,8 @@ class CrashReporter {
             event.message = SentryMessage(formatted: message)
 
             for (key, value) in metadata {
-                event.extra?[key] = value
+                // Convert Any to a compatible value
+                event.extra?[key] = String(describing: value) as NSString
             }
 
             SentrySDK.capture(event: event)
@@ -218,7 +220,8 @@ class CrashReporter {
         #if canImport(Sentry)
         let user = User(userId: userID)
         for (key, value) in metadata {
-            user.data?[key] = value
+            // Convert Any to a compatible value
+            user.data?[key] = String(describing: value) as NSString
         }
         SentrySDK.setUser(user)
         #endif
@@ -254,7 +257,8 @@ class CrashReporter {
             if let stringValue = value as? String, stringValue.count < 200 {
                 scope.setTag(value: stringValue, key: key)
             } else {
-                scope.setContext(value: [key: value], key: "custom_keys")
+                // Convert Any to a compatible dictionary value
+                scope.setContext(value: [key: String(describing: value) as NSString], key: "custom_keys")
             }
         }
         #endif

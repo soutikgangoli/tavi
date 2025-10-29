@@ -74,7 +74,7 @@ public enum SkinTone: String, Codable, CaseIterable {
     }
 }
 
-public enum SkinType: String, Codable, CaseIterable {
+public enum SkinType: String, Codable, CaseIterable, Sendable {
     case dry = "Dry"
     case oily = "Oily"
     case combination = "Combination"

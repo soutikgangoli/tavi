@@ -10,22 +10,38 @@ import UIKit
 import ARKit
 import CoreImage
 
-/// Lighting quality assessment
-struct LightingQuality {
-    let overallScore: Float  // 0-1
-    let brightness: Float
-    let uniformity: Float
-    let shadowPresence: Float
-    let isAcceptable: Bool
-    let issues: [String]
+/// Lighting quality assessment (Processing version)
+public struct ProcessingLightingQuality {
+    public let overallScore: Float  // 0-1
+    public let brightness: Float
+    public let uniformity: Float
+    public let shadowPresence: Float
+    public let isAcceptable: Bool
+    public let issues: [String]
+
+    public init(overallScore: Float, brightness: Float, uniformity: Float, shadowPresence: Float, isAcceptable: Bool, issues: [String]) {
+        self.overallScore = overallScore
+        self.brightness = brightness
+        self.uniformity = uniformity
+        self.shadowPresence = shadowPresence
+        self.isAcceptable = isAcceptable
+        self.issues = issues
+    }
 }
 
 /// Normalized texture result
 struct NormalizedTexture {
     let normalizedImage: UIImage
-    let lightingQuality: LightingQuality
+    let lightingQuality: ProcessingLightingQuality
     let whiteBalanceCorrected: Bool
     let exposureAdjusted: Bool
+
+    init(normalizedImage: UIImage, lightingQuality: ProcessingLightingQuality, whiteBalanceCorrected: Bool, exposureAdjusted: Bool) {
+        self.normalizedImage = normalizedImage
+        self.lightingQuality = lightingQuality
+        self.whiteBalanceCorrected = whiteBalanceCorrected
+        self.exposureAdjusted = exposureAdjusted
+    }
 }
 
 /// Lighting normalization and quality control
@@ -42,9 +58,9 @@ class LightingNormalizer {
     // MARK: - Public API
 
     /// Assess lighting quality
-    func assessLightingQuality(image: UIImage) -> LightingQuality {
+    func assessLightingQuality(image: UIImage) -> ProcessingLightingQuality {
         guard let ciImage = CIImage(image: image) else {
-            return LightingQuality(
+            return ProcessingLightingQuality(
                 overallScore: 0,
                 brightness: 0,
                 uniformity: 0,
@@ -84,7 +100,7 @@ class LightingNormalizer {
         let overallScore = (brightnessScore * 0.4 + uniformityScore * 0.4 + shadowScore * 0.2)
         let isAcceptable = overallScore >= minAcceptableScore
 
-        return LightingQuality(
+        return ProcessingLightingQuality(
             overallScore: overallScore,
             brightness: brightness,
             uniformity: uniformity,
