@@ -38,11 +38,11 @@ public struct EdgeCaseAnalysis {
 
 /// Lighting quality assessment
 public enum LightingQuality {
-    case tooDark         // < 0.25 - BLOCK
-    case suboptimalDark  // 0.25-0.40 - WARN
-    case optimal         // 0.40-0.70 - GOOD
-    case suboptimalBright // 0.70-0.90 - WARN
-    case tooBright       // > 0.90 - BLOCK
+    case tooDark         // < 0.45 brightness OR poor dynamic range - BLOCK
+    case suboptimalDark  // 0.45-0.55 brightness OR low contrast - WARN
+    case optimal         // 0.55-0.75 brightness with good contrast - GOOD
+    case suboptimalBright // 0.75-0.85 brightness OR slight overexposure - WARN
+    case tooBright       // > 0.85 brightness OR >10% overexposed - BLOCK
 
     var shouldBlock: Bool {
         self == .tooDark || self == .tooBright
@@ -101,6 +101,16 @@ public class EdgeCaseDetector {
         var warnings: [String] = []
         var recommendations: [String] = []
 
+        // Load user preferences for edge case detection
+        let detectGlasses = UserDefaults.standard.object(forKey: "detectGlasses") as? Bool ?? true
+        let detectHands = UserDefaults.standard.object(forKey: "detectHands") as? Bool ?? true
+        let detectHat = UserDefaults.standard.object(forKey: "detectHat") as? Bool ?? true
+        let detectMakeup = UserDefaults.standard.object(forKey: "detectMakeup") as? Bool ?? true
+        let detectHairCoverage = UserDefaults.standard.object(forKey: "detectHairCoverage") as? Bool ?? true
+        let detectSunburn = UserDefaults.standard.object(forKey: "detectSunburn") as? Bool ?? true
+        let detectEarrings = UserDefaults.standard.object(forKey: "detectEarrings") as? Bool ?? true
+        let detectFacialHair = UserDefaults.standard.object(forKey: "detectFacialHair") as? Bool ?? true
+
         // LIGHTING DETECTION (First priority - blocks everything else if too dark/bright)
         let (brightness, lightingQuality) = detectLightingConditions(texture: texture, strictness: strictness)
 
@@ -119,15 +129,15 @@ public class EdgeCaseDetector {
         }
 
         // Facial hair detection
-        let (facialHairDetected, facialHairSeverity) = detectFacialHair(texture: texture)
-        if facialHairDetected {
+        let (facialHairDetected, facialHairSeverity) = detectFacialHair ? self.detectFacialHair(texture: texture) : (false, .none)
+        if detectFacialHair && facialHairDetected {
             warnings.append(facialHairSeverity == .severe ? "Heavy facial hair detected" : "Facial hair detected")
             recommendations.append("Facial hair may reduce texture analysis accuracy")
         }
 
         // Makeup detection
-        let (makeupDetected, makeupType) = detectMakeup(texture: texture)
-        if makeupDetected {
+        let (makeupDetected, makeupType) = detectMakeup ? self.detectMakeup(texture: texture) : (false, nil)
+        if detectMakeup && makeupDetected {
             warnings.append("Makeup detected")
             if makeupType == .heavyFoundation {
                 recommendations.append("Heavy makeup may affect texture and pigmentation metrics. Consider scanning without makeup.")
@@ -137,50 +147,51 @@ public class EdgeCaseDetector {
         }
 
         // Glasses detection
-        let glassesDetected = detectGlasses(faceAnchor: faceAnchor, texture: texture)
-        if glassesDetected {
+        let glassesDetected = detectGlasses ? self.detectGlasses(faceAnchor: faceAnchor, texture: texture) : false
+        if detectGlasses && glassesDetected {
             warnings.append("Glasses detected")
             recommendations.append("Please remove glasses for accurate scan")
         }
 
         // Hand occlusion detection
-        let handOcclusionDetected = detectHandOcclusion(faceAnchor: faceAnchor, texture: texture)
-        if handOcclusionDetected {
+        let handOcclusionDetected = detectHands ? self.detectHandOcclusion(faceAnchor: faceAnchor, texture: texture) : false
+        if detectHands && handOcclusionDetected {
             warnings.append("Hand near/on face detected")
             recommendations.append("Please remove hands from face")
         }
 
         // Hair coverage detection
-        let hairCoverageDetected = detectHairCoverage(texture: texture, faceAnchor: faceAnchor)
-        if hairCoverageDetected {
+        let hairCoverageDetected = detectHairCoverage ? self.detectHairCoverage(texture: texture, faceAnchor: faceAnchor) : false
+        if detectHairCoverage && hairCoverageDetected {
             warnings.append("Hair covering face/forehead detected")
             recommendations.append("Please move hair away from face for better results")
         }
 
         // Sunburn detection
-        let sunburnDetected = detectSunburn(texture: texture)
-        if sunburnDetected {
+        let sunburnDetected = detectSunburn ? self.detectSunburn(texture: texture) : false
+        if detectSunburn && sunburnDetected {
             warnings.append("Possible sunburn detected")
             recommendations.append("Wait 48 hours after sunburn for accurate results")
         }
 
         // Hat/headband detection
-        let hatDetected = detectHat(texture: texture, faceAnchor: faceAnchor)
-        if hatDetected {
+        let hatDetected = detectHat ? self.detectHat(texture: texture, faceAnchor: faceAnchor) : false
+        if detectHat && hatDetected {
             warnings.append("Hat or headband detected")
             recommendations.append("Please remove hat/headband for complete forehead analysis")
         }
 
         // Earring detection
-        let earringsDetected = detectEarrings(texture: texture, faceAnchor: faceAnchor)
-        if earringsDetected {
+        let earringsDetected = detectEarrings ? self.detectEarrings(texture: texture, faceAnchor: faceAnchor) : false
+        if detectEarrings && earringsDetected {
             warnings.append("Large earrings detected")
             recommendations.append("Large earrings may affect cheek/jawline analysis")
         }
 
-        // BLOCKING LOGIC
-        // Block critical issues: glasses, hands on face, hat, heavy makeup, bad lighting
-        let criticalIssues = glassesDetected || handOcclusionDetected || hatDetected || makeupType == .heavyFoundation
+        // BLOCKING LOGIC - CONSERVATIVE APPROACH
+        // ONLY block for truly critical issues that prevent accurate scanning
+        // Hat, glasses, and hand detection are too unreliable - make them warnings only
+        let criticalIssues = detectMakeup && makeupType == .heavyFoundation  // Only block heavy makeup if detection enabled
         let badLighting = lightingQuality.shouldBlock
 
         let shouldProceed = !criticalIssues && !badLighting
@@ -192,15 +203,20 @@ public class EdgeCaseDetector {
                 blockReason = lightingQuality == .tooDark ?
                     "Lighting too dark - move to brighter area" :
                     "Lighting too bright - reduce glare"
-            } else if glassesDetected {
-                blockReason = "Please remove glasses"
-            } else if handOcclusionDetected {
-                blockReason = "Please remove hands from face"
-            } else if hatDetected {
-                blockReason = "Please remove hat or headband"
-            } else if makeupType == .heavyFoundation {
+            } else if detectMakeup && makeupType == .heavyFoundation {
                 blockReason = "Heavy makeup detected - scan without makeup for accurate results"
             }
+        }
+
+        // Add warnings for non-blocking issues (only if detection is enabled)
+        if detectGlasses && glassesDetected {
+            warnings.insert("Glasses may affect accuracy - remove if possible", at: 0)
+        }
+        if detectHands && handOcclusionDetected {
+            warnings.insert("Hands near face detected - keep hands away for best results", at: 0)
+        }
+        if detectHat && hatDetected {
+            warnings.insert("Hat/headband detected - remove for complete forehead analysis", at: 0)
         }
 
         return EdgeCaseAnalysis(
@@ -226,6 +242,7 @@ public class EdgeCaseDetector {
     // MARK: - Lighting Detection
 
     /// Detect lighting conditions from texture
+    /// IMPROVED: Skin-tone aware lighting detection using contrast and dynamic range
     private func detectLightingConditions(texture: UIImage, strictness: LightingStrictnessLevel) -> (brightness: Float, quality: LightingQuality) {
         guard let cgImage = texture.cgImage else { return (0.5, .optimal) }
 
@@ -243,7 +260,12 @@ public class EdgeCaseDetector {
         }
 
         var totalBrightness: Float = 0
+        var minBrightness: Float = 1.0
+        var maxBrightness: Float = 0.0
+        var overexposedPixels = 0
+        var underexposedPixels = 0
         var sampleCount = 0
+        var brightnessValues: [Float] = []
 
         // Sample 100 pixels from center region
         for y in stride(from: centerY - sampleRadius, to: centerY + sampleRadius, by: sampleRadius / 5) {
@@ -261,31 +283,89 @@ public class EdgeCaseDetector {
                 let luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
 
                 totalBrightness += luminance
+                brightnessValues.append(luminance)
+                minBrightness = min(minBrightness, luminance)
+                maxBrightness = max(maxBrightness, luminance)
+
+                // Count overexposed/underexposed pixels
+                if luminance > 0.95 {
+                    overexposedPixels += 1
+                } else if luminance < 0.05 {
+                    underexposedPixels += 1
+                }
+
                 sampleCount += 1
             }
         }
 
         let averageBrightness = sampleCount > 0 ? totalBrightness / Float(sampleCount) : 0.5
 
-        // Get thresholds from strictness level
-        let minBrightness = strictness.minBrightness
-        let maxBrightness = strictness.maxBrightness
+        // IMPROVED: Calculate contrast and dynamic range (works for all skin tones)
+        let dynamicRange = maxBrightness - minBrightness
+        let overexposedRatio = Float(overexposedPixels) / Float(max(sampleCount, 1))
+        let underexposedRatio = Float(underexposedPixels) / Float(max(sampleCount, 1))
 
-        // Classify lighting quality based on strictness
+        // Calculate standard deviation for contrast assessment
+        let variance = brightnessValues.map { pow($0 - averageBrightness, 2) }.reduce(0, +) / Float(max(brightnessValues.count, 1))
+        let contrast = sqrt(variance)
+
+        // SKIN-TONE AWARE QUALITY ASSESSMENT
+        // Instead of absolute brightness thresholds, we check:
+        // 1. Dynamic range (can we see facial features?)
+        // 2. Overexposure (blown out highlights?)
+        // 3. Underexposure (too many black pixels?)
+        // 4. Contrast (enough detail visible?)
+
         let quality: LightingQuality
-        if averageBrightness < minBrightness {
-            quality = .tooDark  // BLOCK
-        } else if averageBrightness < 0.40 {
-            quality = .suboptimalDark  // WARN
-        } else if averageBrightness <= 0.70 {
-            quality = .optimal  // GOOD (40-70%)
-        } else if averageBrightness < maxBrightness {
-            quality = .suboptimalBright  // WARN
-        } else {
-            quality = .tooBright  // BLOCK
+
+        // STRICT THRESHOLDS FOR CLINICAL SKIN ANALYSIS
+        // Need accurate color capture for pigmentation, redness, sun damage, glow, etc.
+        // SKIN-TONE INDEPENDENT: Prioritize dynamic range and contrast over absolute brightness
+
+        // CRITICAL: Overexposure (blown highlights) - BLOCK
+        // Strict: 10% max (was 30%) - can't analyze washed out skin
+        if overexposedRatio > 0.10 {
+            quality = .tooBright
+        }
+        // CRITICAL: Too bright for accurate color - BLOCK
+        // Strict: Max 85% brightness (was 90%) to avoid color washout
+        else if averageBrightness > 0.85 {
+            quality = .tooBright
+        }
+        // CRITICAL: Poor dynamic range - BLOCK (skin-tone independent)
+        // Strict: Need 30% dynamic range (was 10%) to see facial features
+        // This works for ALL skin tones - it's about contrast, not absolute brightness
+        else if dynamicRange < 0.30 {
+            quality = .tooDark
+        }
+        // CRITICAL: Too many underexposed pixels - BLOCK
+        // More than 20% pure black pixels = too dark regardless of skin tone
+        else if underexposedRatio > 0.20 {
+            quality = .tooDark
+        }
+        // SECONDARY: Very low brightness (but allow darker skin tones)
+        // Relaxed from 45% to 30% to accommodate darker skin tones
+        // Only block if BOTH brightness is low AND contrast is poor
+        else if averageBrightness < 0.30 && contrast < 0.12 {
+            quality = .tooDark
+        }
+        // WARNING: Borderline overexposure
+        else if overexposedRatio > 0.05 || averageBrightness > 0.75 {
+            quality = .suboptimalBright
+        }
+        // WARNING: Low contrast/detail (skin-tone independent)
+        // Strict: Need 15% contrast (was 8%) to see texture and pigmentation
+        else if contrast < 0.15 || dynamicRange < 0.40 {
+            quality = .suboptimalDark
+        }
+        // OPTIMAL: Good lighting for clinical skin analysis
+        else {
+            quality = .optimal
         }
 
-        print("💡 Lighting detected: \(quality.description) (\(String(format: "%.0f", averageBrightness * 100))%)")
+        print("💡 Lighting detected: \(quality.description)")
+        print("   Brightness: \(String(format: "%.0f", averageBrightness * 100))%, Range: \(String(format: "%.2f", dynamicRange)), Contrast: \(String(format: "%.2f", contrast))")
+        print("   Overexposed: \(String(format: "%.1f", overexposedRatio * 100))%, Underexposed: \(String(format: "%.1f", underexposedRatio * 100))%")
 
         return (averageBrightness, quality)
     }
@@ -428,12 +508,20 @@ public class EdgeCaseDetector {
 
         let glassesScore = reflectionScore * 2.0 + edgeScore * 1.5 + Float(trackingIssues) * 3.0
 
-        // Threshold: If score > 5, likely wearing glasses
-        let glassesDetected = glassesScore > 5.0
+        // IMPROVED: Require multiple indicators to reduce false positives
+        // Single reflections can be from lighting, not glasses
+        // Glasses typically show: reflections + edges OR reflections + tracking issues
+        let hasMultipleIndicators = (reflectionScore > 0 && edgeScore > 0) ||
+                                   (reflectionScore > 0 && trackingIssues > 0) ||
+                                   (edgeScore > 0 && trackingIssues > 0)
 
-        if glassesDetected {
-            print("🕶️ Glasses detected (score: \(String(format: "%.1f", glassesScore)))")
-            print("   Reflections: \(reflectionScore), Edges: \(edgeScore), Tracking issues: \(trackingIssues)")
+        // Higher threshold + require multiple indicators to avoid false positives from lighting
+        let glassesDetected = glassesScore > 8.0 && hasMultipleIndicators
+
+        if glassesScore > 3.0 {
+            print("🕶️ Glasses check (score: \(String(format: "%.1f", glassesScore)), detected: \(glassesDetected))")
+            print("   Reflections: \(String(format: "%.1f", reflectionScore)), Edges: \(String(format: "%.1f", edgeScore)), Tracking issues: \(trackingIssues)")
+            print("   Multiple indicators: \(hasMultipleIndicators)")
         }
 
         return glassesDetected
@@ -442,8 +530,8 @@ public class EdgeCaseDetector {
     // MARK: - Hand Occlusion Detection
 
     private func detectHandOcclusion(faceAnchor: ARFaceAnchor, texture: UIImage) -> Bool {
-        // Strategy 1: Check for abnormal geometry gaps/discontinuities in cheek/chin regions
-        // Hands near face create occlusions that cause tracking gaps
+        // Strategy: Only check for severe geometry occlusions
+        // Color variance is too unreliable across different skin tones and lighting
 
         let geometry = faceAnchor.geometry
         let vertices = geometry.vertices
@@ -458,7 +546,7 @@ public class EdgeCaseDetector {
             // Check if vertex is in lower face region (y < 0, near chin/cheeks)
             if vertex.y < 0 && vertex.y > -0.08 {
                 // Check if vertex has abnormal z-depth (too far forward = occlusion)
-                if abs(vertex.z) < 0.02 {  // Too close to camera plane = likely hand
+                if abs(vertex.z) < 0.015 {  // Very close to camera plane = likely hand
                     suspiciousVertices += 1
                 }
             }
@@ -466,42 +554,12 @@ public class EdgeCaseDetector {
 
         let occlusionRatio = Float(suspiciousVertices) / Float(max(vertexCount, 1))
 
-        // Strategy 2: Check for non-skin-tone colors in cheek regions (hand skin might differ)
-        guard let cgImage = texture.cgImage else { return false }
+        // CONSERVATIVE: Only detect hands if there's severe geometry occlusion
+        // This prevents false positives from lighting, shadows, or skin tone variations
+        let handDetected = occlusionRatio > 0.25  // 25% of lower face vertices abnormally close
 
-        let imageWidth = CGFloat(cgImage.width)
-        let imageHeight = CGFloat(cgImage.height)
-
-        let leftCheekRegion = cgImage.cropping(to: CGRect(
-            x: imageWidth / 6,
-            y: imageHeight / 2,
-            width: imageWidth / 8,
-            height: imageHeight / 6
-        ))
-
-        let rightCheekX = imageWidth * 2 / 3
-        let rightCheekRegion = cgImage.cropping(to: CGRect(
-            x: rightCheekX,
-            y: imageHeight / 2,
-            width: imageWidth / 8,
-            height: imageHeight / 6
-        ))
-
-        guard let leftCheek = leftCheekRegion, let rightCheek = rightCheekRegion else {
-            return occlusionRatio > 0.15
-        }
-
-        // Check for sudden color discontinuities (hand vs face skin tone)
-        let leftColorVariance = calculateVariance(pixels: extractPixels(from: leftCheek))
-        let rightColorVariance = calculateVariance(pixels: extractPixels(from: rightCheek))
-
-        // High variance + high occlusion ratio = likely hand
-        let hasHighVariance = leftColorVariance > 800 || rightColorVariance > 800
-
-        let handDetected = occlusionRatio > 0.15 || hasHighVariance
-
-        if handDetected {
-            print("✋ Hand occlusion detected (ratio: \(String(format: "%.2f", occlusionRatio)), variance: L=\(leftColorVariance), R=\(rightColorVariance))")
+        if occlusionRatio > 0.10 {
+            print("✋ Hand check (occlusion ratio: \(String(format: "%.2f", occlusionRatio)), detected: \(handDetected))")
         }
 
         return handDetected

@@ -116,6 +116,11 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Metric visualizations
     @Published public var metricVisualizations: [VisualizerMetricType: MetricVisualization] = [:]
 
+    // MARK: - Edge Case Override
+
+    /// User chose to continue anyway despite warnings
+    @Published public var continueAnywayOverride: Bool = false
+
     // MARK: - Private Properties
 
     private var lastFrameTime: TimeInterval = 0
@@ -126,6 +131,17 @@ public class FaceScan3DViewModel: ObservableObject {
     private var holdStableTimer: Timer?
     private let meshMerger = MeshMerger()
     private let streamingMerger = StreamingMeshMerger()
+
+    // Quality check throttling to prevent FPS drops
+    private var qualityCheckFrameCounter: Int = 0
+    private let qualityCheckInterval: Int = 15  // Only check every 15 frames (4 times/sec at 60fps) - INCREASED for smoother performance
+    private var lastQualityCheckResult: Bool = true
+
+    // Reusable CIContext to avoid expensive allocations
+    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+
+    // Reusable EdgeCaseDetector to avoid repeated instantiation
+    private let edgeCaseDetector = EdgeCaseDetector()
 
     // Memory threshold for using streaming merger (in vertices)
     private let streamingThreshold = 50_000
@@ -274,19 +290,19 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Start a new capture sequence - resets storage and starts guided sequence
     public func startCaptureSequence() {
-        guard calibrationState.isCalibrated else {
-            errorMessage = "Please calibrate first"
-            return
-        }
+        AppLogger.faceScan.info("📋 startCaptureSequence() called. Calibrated: \(self.calibrationState.isCalibrated)")
 
-        // Pre-flight checks: Edge cases and lighting validation (based on strictness)
-        let strictness = getLightingStrictness()
-        if strictness != .off && !performPreflightChecks() {
-            // Preflight check failed, error message already set
-            return
-        }
+        // CRITICAL FIX: Reset calibration state for fresh scan
+        // This ensures distance/lighting warnings show properly on subsequent scans
+        calibrationState = CalibrationState()
+        continueAnywayOverride = false
+        errorMessage = nil
 
-        // Initialize new sequence
+        AppLogger.faceScan.info("✅ Calibration state reset for new scan")
+
+        AppLogger.faceScan.info("✅ Creating new CaptureSequence...")
+        // ALWAYS initialize sequence first (critical - prevents "no sequence" error)
+        // Don't require calibration - let it happen during guidance
         currentSequence = CaptureSequence()
         mergedMesh = nil
 
@@ -299,6 +315,15 @@ public class FaceScan3DViewModel: ObservableObject {
         currentGuidanceStep = .lookStraight
         capturedPoses = [:]
         countdownTimer = 0
+
+        AppLogger.faceScan.info("✅ Sequence initialized! Active: \(self.isGuidanceActive), Step: \(self.currentGuidanceStep.shortName)")
+
+        // Pre-flight checks: Edge cases and lighting validation (based on strictness)
+        // NON-BLOCKING: Only warn, don't prevent capture (user can still proceed)
+        let strictness = getLightingStrictness()
+        if strictness != .off {
+            _ = performPreflightChecks() // Check but don't block
+        }
     }
 
     /// Get lighting strictness from settings
@@ -336,16 +361,15 @@ public class FaceScan3DViewModel: ObservableObject {
         // Get lighting strictness from settings
         let strictness = getLightingStrictness()
 
-        // Run edge case detection with strictness level
-        let edgeCaseDetector = EdgeCaseDetector()
+        // Run edge case detection with strictness level (use reusable instance)
         let edgeCases = edgeCaseDetector.detectEdgeCases(
             texture: texture,
             faceAnchor: faceAnchor,
             strictness: strictness
         )
 
-        // Check for blocking issues
-        if !edgeCases.shouldProceed {
+        // Check for blocking issues (unless user overrode)
+        if !edgeCases.shouldProceed && !continueAnywayOverride {
             errorMessage = edgeCases.blockReason ?? "Scan blocked - please check conditions"
             return false
         }
@@ -353,6 +377,11 @@ public class FaceScan3DViewModel: ObservableObject {
         // Check for warning issues (don't block, but inform user)
         if !edgeCases.warnings.isEmpty {
             qualityWarning = edgeCases.warnings.first
+        }
+
+        // If user overrode, clear error message
+        if continueAnywayOverride {
+            errorMessage = nil
         }
 
         return true
@@ -395,12 +424,32 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Now includes complete clinical-grade processing pipeline
     public func finalizeCapture() async -> MergedFaceMesh? {
         guard var sequence = self.currentSequence else {
-            self.errorMessage = "No capture sequence to finalize"
+            let msg = "No capture sequence found! Guidance Active: \(self.isGuidanceActive). This is a bug - sequence should have been created when guidance started."
+            AppLogger.mesh.error("❌ MERGE FAILED: \(msg)")
+            await MainActor.run {
+                self.errorMessage = msg
+            }
             return nil
         }
 
+        let captureCount = sequence.captures.count
         guard !sequence.captures.isEmpty else {
-            self.errorMessage = "No captures in sequence"
+            let msg = "No captures in sequence"
+            AppLogger.mesh.error("❌ MERGE FAILED: \(msg)")
+            self.errorMessage = msg
+            return nil
+        }
+
+        AppLogger.mesh.info("🔄 Starting mesh merge with \(captureCount) captures")
+        AppLogger.mesh.info("   Captured poses: \(sequence.captures.map { $0.step }.joined(separator: ", "))")
+
+        // Validate captures have geometry
+        let emptyCaptures = sequence.captures.filter { $0.vertices.isEmpty }
+        if !emptyCaptures.isEmpty {
+            AppLogger.mesh.error("❌ Found \(emptyCaptures.count) captures with 0 vertices!")
+            await MainActor.run {
+                self.errorMessage = "Invalid captures detected: \(emptyCaptures.count) poses have no geometry. This is a bug - please report."
+            }
             return nil
         }
 
@@ -432,7 +481,10 @@ public class FaceScan3DViewModel: ObservableObject {
                     }
                 }
             } catch {
-                AppLogger.mesh.error("Streaming merge failed: \(error.localizedDescription)")
+                AppLogger.mesh.error("❌ Streaming merge failed: \(error.localizedDescription)")
+                AppLogger.mesh.error("   Captures: \(captures.count), Total vertices: \(totalVertices)")
+                AppLogger.mesh.error("   Pose coverage: \(captures.map { $0.step }.joined(separator: ", "))")
+
                 CrashReporter.shared.logError(
                     error,
                     context: [
@@ -441,8 +493,10 @@ public class FaceScan3DViewModel: ObservableObject {
                         "capture_count": captures.count
                     ]
                 )
-                self.isMerging = false
-                self.errorMessage = "Failed to merge face scans. Please try again."
+                await MainActor.run {
+                    self.isMerging = false
+                    self.errorMessage = "Merge failed (\(captures.count) poses): \(error.localizedDescription). Try scanning again with steady poses."
+                }
                 return nil
             }
         } else {
@@ -460,26 +514,49 @@ public class FaceScan3DViewModel: ObservableObject {
                 // Adding helper methods would add complexity without significant benefit
 
                 // STEP 1: Merge meshes with ICP alignment
+                AppLogger.mesh.info("🔧 Calling standard merger.merge() with \(captures.count) captures")
                 let merged = merger.merge(captures: captures)
 
-                guard let finalMesh = merged else { return nil }
+                guard let finalMesh = merged else {
+                    let totalVertices = captures.reduce(0) { $0 + $1.vertices.count }
+                    let totalTriangles = captures.reduce(0) { $0 + $1.triangleIndices.count / 3 }
+                    AppLogger.mesh.error("❌ Standard merger returned nil!")
+                    AppLogger.mesh.error("   Captures: \(captures.count), Vertices: \(totalVertices), Triangles: \(totalTriangles)")
+                    AppLogger.mesh.error("   Pose coverage: \(captures.map { $0.step }.joined(separator: ", "))")
+
+                    // Set detailed error for user
+                    await MainActor.run {
+                        self.errorMessage = "Merge failed: \(captures.count) poses captured but alignment unsuccessful. Try scanning again with better lighting and steady poses."
+                    }
+                    return nil
+                }
 
                 // STEP 2: Validate basic mesh properties
-                AppLogger.mesh.info("Merged mesh: \(finalMesh.vertices.count) vertices, \(finalMesh.triangleIndices.count/3) triangles")
+                AppLogger.mesh.info("✅ Merged mesh: \(finalMesh.vertices.count) vertices, \(finalMesh.triangleIndices.count/3) triangles")
 
                 return finalMesh
             }.value
         }
 
-        guard merged != nil else {
-            AppLogger.mesh.error("Mesh merging failed")
-            self.isMerging = false
+        guard let merged = merged else {
+            AppLogger.mesh.error("❌ MERGE FAILED: Final merged mesh is nil")
+            AppLogger.mesh.error("   This usually indicates alignment failure or insufficient overlap between poses")
+            await MainActor.run {
+                self.errorMessage = "Merge failed: Unable to align face meshes. Ensure good lighting and follow pose instructions carefully."
+                self.isMerging = false
+            }
             return nil
         }
 
         // Update sequence
         sequence.complete()
         self.currentSequence = sequence
+
+        // Deactivate guidance now that finalize is complete
+        await MainActor.run {
+            self.isGuidanceActive = false
+            AppLogger.faceScan.info("✅ Finalize complete - guidance deactivated")
+        }
 
         // Store merged result
         self.mergedMesh = merged
@@ -514,7 +591,9 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Start guidance mode
     public func startGuidance() {
+        AppLogger.faceScan.info("🎯 startGuidance() called")
         startCaptureSequence()
+        AppLogger.faceScan.info("✅ startCaptureSequence() completed. Sequence exists: \(self.currentSequence != nil)")
     }
 
     /// Stop guidance mode
@@ -531,7 +610,15 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Reset calibration
     public func resetCalibration() {
         calibrationState = CalibrationState()
+        continueAnywayOverride = false  // Reset override when starting new session
+        errorMessage = nil
         stopGuidance()
+
+        // Clear sequence and mesh data for fresh start
+        currentSequence = nil
+        mergedMesh = nil
+
+        AppLogger.faceScan.info("✅ Calibration and scan data reset")
     }
 
     // MARK: - Private Methods
@@ -591,6 +678,22 @@ public class FaceScan3DViewModel: ObservableObject {
             return
         }
 
+        // CONTINUOUS CALIBRATION: Update distance and lighting during capture
+        // Update distance
+        self.calibrationState.updateDistance(from: faceAnchor.transform)
+
+        // Update lighting
+        self.calibrationState.updateLighting(from: self.lightEstimation)
+
+        // Check for distance/lighting issues and show warnings
+        if !self.calibrationState.distance.isValid {
+            self.qualityWarning = self.calibrationState.distance.message
+        } else if !self.calibrationState.lighting.isValid {
+            self.qualityWarning = self.calibrationState.lighting.message
+        } else {
+            self.qualityWarning = nil
+        }
+
         // Extract rotation angles
         let yaw = faceAnchor.transform.eulerAngles.y * 180 / .pi
         let pitch = faceAnchor.transform.eulerAngles.x * 180 / .pi
@@ -600,41 +703,37 @@ public class FaceScan3DViewModel: ObservableObject {
         let isPoseValid = self.currentGuidanceStep.isPoseValid(yaw: yaw, pitch: pitch, roll: roll)
 
         // Get real-time guidance feedback
-        guidanceFeedback = self.currentGuidanceStep.getGuidanceFeedback(yaw: yaw, pitch: pitch, roll: roll)
+        self.guidanceFeedback = self.currentGuidanceStep.getGuidanceFeedback(yaw: yaw, pitch: pitch, roll: roll)
 
         // Check image quality if pose is valid
         var qualityGood = true
         if isPoseValid && self.calibrationState.isCalibrated {
-            qualityGood = checkImageQuality()
-        } else {
-            qualityWarning = nil
+            qualityGood = self.checkImageQuality()
+        } else if !self.calibrationState.isCalibrated {
+            // If calibration is invalid, don't proceed
+            qualityGood = false
         }
 
         // Debug: Log every 30 frames (~once per second at 30fps)
         if frameCount % 30 == 0 {
-            AppLogger.faceScan.debug("Pose check - Step: \(self.currentGuidanceStep.shortName), Yaw: \(String(format: "%.1f", yaw))°, Pitch: \(String(format: "%.1f", pitch))°, Roll: \(String(format: "%.1f", roll))°")
-            AppLogger.faceScan.debug("Valid: \(isPoseValid), Calibrated: \(self.calibrationState.isCalibrated), Quality: \(qualityGood), Busy: \(self.isCaptureInProgress)")
-            if let feedback = guidanceFeedback {
+            let distance = abs(faceAnchor.transform.columns.3.z)
+            AppLogger.faceScan.debug("Pose check - Step: \(self.currentGuidanceStep.shortName), Yaw: \(String(format: "%.1f", yaw))°, Pitch: \(String(format: "%.1f", pitch))°, Roll: \(String(format: "%.1f", roll))°, Distance: \(String(format: "%.2f", distance))m")
+            AppLogger.faceScan.debug("Valid: \(isPoseValid), Calibrated: \(self.calibrationState.isCalibrated) (Distance: \(self.calibrationState.distance.rawValue)), Quality: \(qualityGood), Busy: \(self.isCaptureInProgress)")
+            if let feedback = self.guidanceFeedback {
                 AppLogger.faceScan.debug("Feedback: \(feedback)")
             }
-            if let warning = qualityWarning {
+            if let warning = self.qualityWarning {
                 AppLogger.faceScan.warning("Quality Warning: \(warning)")
             }
         }
 
         if isPoseValid && self.calibrationState.isCalibrated && qualityGood && !self.isCaptureInProgress {
             // Start countdown if not already counting
-            if countdownTimer == 0 && holdStableTimer == nil {
+            if self.countdownTimer == 0 && self.holdStableTimer == nil {
                 startCaptureCountdown(faceAnchor: faceAnchor, yaw: yaw, pitch: pitch, roll: roll)
             }
-        } else {
-            // Reset countdown if pose, calibration, or quality invalid
-            if holdStableTimer != nil {
-                AppLogger.faceScan.info("Countdown cancelled - pose, calibration, or quality lost")
-                holdStableTimer?.invalidate()
-                holdStableTimer = nil
-                countdownTimer = 0
-            }
+            // Once countdown starts, let it complete without cancellation
+            // User already passed all validations to start the countdown
         }
     }
 
@@ -645,20 +744,28 @@ public class FaceScan3DViewModel: ObservableObject {
             return true
         }
 
+        // PERFORMANCE OPTIMIZATION: Throttle quality checks to prevent FPS drops
+        // Only run expensive image processing every N frames instead of every frame (60fps → 6fps checks)
+        qualityCheckFrameCounter += 1
+        if qualityCheckFrameCounter < qualityCheckInterval {
+            // Return cached result from last check
+            return lastQualityCheckResult
+        }
+        qualityCheckFrameCounter = 0  // Reset counter
+
         // 0. STRICT MODE: Validate lighting for EACH POSE
         let strictness = getLightingStrictness()
         if strictness == .strict {
             // Convert frame to UIImage for lighting check
+            // OPTIMIZATION: Reuse CIContext instead of creating new one each frame
             let pixelBuffer = frame.capturedImage
             let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-            let context = CIContext()
 
-            if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
+            if let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) {
                 let texture = UIImage(cgImage: cgImage)
 
                 // Check lighting for this specific pose
                 if let faceAnchor = currentFaceAnchor {
-                    let edgeCaseDetector = EdgeCaseDetector()
                     let edgeCases = edgeCaseDetector.detectEdgeCases(
                         texture: texture,
                         faceAnchor: faceAnchor,
@@ -667,7 +774,9 @@ public class FaceScan3DViewModel: ObservableObject {
 
                     // If lighting is bad for this pose, show warning and block countdown
                     if edgeCases.lightingQuality.shouldBlock {
+                        AppLogger.faceScan.warning("❌ Quality check failed: Lighting blocked (\(edgeCases.lightingQuality.description))")
                         qualityWarning = "Adjust lighting for this angle (\(edgeCases.lightingQuality.description))"
+                        lastQualityCheckResult = false
                         return false
                     } else if edgeCases.lightingQuality != .optimal {
                         qualityWarning = "Lighting could be better (\(edgeCases.lightingQuality.description))"
@@ -682,7 +791,9 @@ public class FaceScan3DViewModel: ObservableObject {
            let current = lightEstimation?.ambientIntensity {
             let lightingChange = abs(current - baseline) / baseline
             if !ScanConfiguration.isLightingChangeAcceptable(lightingChange) {
+                AppLogger.faceScan.warning("❌ Quality check failed: Lighting consistency (\(Int(lightingChange * 100))% change)")
                 qualityWarning = "Lighting changed - please maintain consistent lighting"
+                lastQualityCheckResult = false
                 return false
             }
 
@@ -691,7 +802,9 @@ public class FaceScan3DViewModel: ObservableObject {
                let currentTemp = lightEstimation?.ambientColorTemperature {
                 let tempChange = abs(currentTemp - baselineTemp) / baselineTemp
                 if !ScanConfiguration.isColorTempChangeAcceptable(tempChange) {
+                    AppLogger.faceScan.warning("❌ Quality check failed: Color temperature consistency (\(Int(tempChange * 100))% change)")
                     qualityWarning = "Light color changed - please stay in same lighting"
+                    lastQualityCheckResult = false
                     return false
                 }
             }
@@ -699,6 +812,7 @@ public class FaceScan3DViewModel: ObservableObject {
             // Set baseline from first successful capture
             baselineLighting = current
             baselineColorTemperature = lightEstimation?.ambientColorTemperature
+            AppLogger.faceScan.info("✅ Baseline lighting set: \(Int(current)) lux")
         }
 
         // 2. Check for neutral expression (comprehensive blend shape validation)
@@ -706,102 +820,129 @@ public class FaceScan3DViewModel: ObservableObject {
             // Detect smiling
             let smileAmount = (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2.0
             if Double(smileAmount) > ScanConfiguration.maxSmileThreshold {
+                AppLogger.faceScan.warning("❌ Quality check failed: Smiling detected (\(String(format: "%.2f", smileAmount)))")
                 qualityWarning = "Please keep a neutral expression (no smiling)"
+                lastQualityCheckResult = false
                 return false
             }
 
             // Detect frowning
             let frownAmount = (blendShapes.mouthFrownLeft + blendShapes.mouthFrownRight) / 2.0
             if Double(frownAmount) > ScanConfiguration.maxSmileThreshold {
+                AppLogger.faceScan.warning("❌ Quality check failed: Frowning detected (\(String(format: "%.2f", frownAmount)))")
                 qualityWarning = "Please relax your expression (no frowning)"
+                lastQualityCheckResult = false
                 return false
             }
 
             // Detect jaw movement (talking, frowning)
             if Double(blendShapes.jawOpen) > ScanConfiguration.maxJawOpenThreshold {
+                AppLogger.faceScan.warning("❌ Quality check failed: Jaw open (\(String(format: "%.2f", blendShapes.jawOpen)))")
                 qualityWarning = "Please keep your mouth closed"
+                lastQualityCheckResult = false
                 return false
             }
 
             // Detect lip puckering (duck face)
             if Double(blendShapes.mouthPucker) > ScanConfiguration.maxMouthPuckerThreshold {
+                AppLogger.faceScan.warning("❌ Quality check failed: Mouth pucker (\(String(format: "%.2f", blendShapes.mouthPucker)))")
                 qualityWarning = "Please relax your lips"
+                lastQualityCheckResult = false
                 return false
             }
 
             // Detect cheek puffing
             if Double(blendShapes.cheekPuff) > ScanConfiguration.maxCheekPuffThreshold {
+                AppLogger.faceScan.warning("❌ Quality check failed: Cheek puff (\(String(format: "%.2f", blendShapes.cheekPuff)))")
                 qualityWarning = "Please relax your cheeks"
+                lastQualityCheckResult = false
                 return false
             }
 
             // Detect eye blinking
             let blinkAmount = max(blendShapes.eyeBlinkLeft, blendShapes.eyeBlinkRight)
             if Double(blinkAmount) > ScanConfiguration.blinkDetectionThreshold {
+                AppLogger.faceScan.warning("❌ Quality check failed: Eye blink (\(String(format: "%.2f", blinkAmount)))")
                 qualityWarning = "Please keep your eyes open"
+                lastQualityCheckResult = false
                 return false
             }
 
             // Detect eyes wide open (surprised expression)
             let eyeWideAmount = max(blendShapes.eyeWideLeft, blendShapes.eyeWideRight)
             if Double(eyeWideAmount) > ScanConfiguration.maxEyeWideThreshold {
+                AppLogger.faceScan.warning("❌ Quality check failed: Eyes wide (\(String(format: "%.2f", eyeWideAmount)))")
                 qualityWarning = "Please relax your eyes"
+                lastQualityCheckResult = false
                 return false
             }
 
             // Detect eye squinting
             let squintAmount = max(blendShapes.eyeSquintLeft, blendShapes.eyeSquintRight)
             if Double(squintAmount) > ScanConfiguration.maxSquintThreshold {
+                AppLogger.faceScan.warning("❌ Quality check failed: Eye squint (\(String(format: "%.2f", squintAmount)))")
                 qualityWarning = "Please don't squint"
+                lastQualityCheckResult = false
                 return false
             }
 
             // Detect raised eyebrows (surprised/worried expression)
             if Double(blendShapes.browInnerUp) > ScanConfiguration.maxBrowMovementThreshold {
+                AppLogger.faceScan.warning("❌ Quality check failed: Brows raised (\(String(format: "%.2f", blendShapes.browInnerUp)))")
                 qualityWarning = "Please relax your eyebrows"
+                lastQualityCheckResult = false
                 return false
             }
 
             // Detect furrowed brows (angry/concentrating expression)
             let browDownAmount = max(blendShapes.browDownLeft, blendShapes.browDownRight)
             if Double(browDownAmount) > ScanConfiguration.maxBrowMovementThreshold {
+                AppLogger.faceScan.warning("❌ Quality check failed: Brows furrowed (\(String(format: "%.2f", browDownAmount)))")
                 qualityWarning = "Please relax your forehead"
+                lastQualityCheckResult = false
                 return false
             }
         }
 
-        // 3. Convert ARFrame to UIImage for image quality analysis
+        // 3. Convert ARFrame to UIImage for exposure analysis only
+        // PERFORMANCE: Skip expensive sharpness checks during continuous validation
+        // ARKit's tracking quality already handles motion blur detection
         let pixelBuffer = frame.capturedImage
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let context = CIContext()
 
-        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+        guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
             qualityWarning = nil
+            lastQualityCheckResult = true
             return true
         }
 
         let image = UIImage(cgImage: cgImage)
-        let metrics = imageQualityAnalyzer.analyzeQuality(image: image)
 
-        // 4. Check sharpness (blur detection)
-        if !metrics.isSharp {
-            qualityWarning = "Image is blurry - hold still and steady"
-            return false
-        }
+        // OPTIMIZATION: Only check exposure, not sharpness (sharpness is very expensive)
+        // ARKit already detects poor tracking from motion blur
+        let exposure = imageQualityAnalyzer.calculateExposure(image: image)
 
-        // 5. Check exposure
-        if metrics.exposure < ScanConfiguration.underexposureThreshold {
+        // 4. Check exposure
+        if exposure < ScanConfiguration.underexposureThreshold {
+            AppLogger.faceScan.warning("❌ Quality check failed: Underexposed (\(String(format: "%.2f", exposure)))")
             qualityWarning = "Too dark - move to better lighting"
+            lastQualityCheckResult = false
             return false
         }
 
-        if metrics.exposure > ScanConfiguration.overexposureThreshold {
+        if exposure > ScanConfiguration.overexposureThreshold {
+            AppLogger.faceScan.warning("❌ Quality check failed: Overexposed (\(String(format: "%.2f", exposure)))")
             qualityWarning = "Too bright - reduce lighting or move away from bright light"
+            lastQualityCheckResult = false
             return false
         }
 
-        if !metrics.isWellExposed {
+        // Check if exposure is within acceptable range (0.5 ± 0.3)
+        let exposureDeviation = abs(exposure - 0.5)
+        if exposureDeviation > 0.3 {
+            AppLogger.faceScan.warning("❌ Quality check failed: Poor exposure (\(String(format: "%.2f", exposure)))")
             qualityWarning = "Adjust lighting for better exposure"
+            lastQualityCheckResult = false
             return false
         }
 
@@ -810,12 +951,16 @@ public class FaceScan3DViewModel: ObservableObject {
         // ARKit automatically reduces tracking quality if face is occluded
         if calibrationState.faceDetected && !calibrationState.isCalibrated {
             // Face detected but calibration failing = likely occlusion
+            AppLogger.faceScan.warning("❌ Quality check failed: Possible occlusion (face detected but not calibrated)")
             qualityWarning = "Face partially covered - please remove hands/hair from face"
+            lastQualityCheckResult = false
             return false
         }
 
         // All quality checks passed
+        AppLogger.faceScan.debug("✅ All quality checks passed")
         qualityWarning = nil
+        lastQualityCheckResult = true
         return true
     }
 
@@ -830,7 +975,7 @@ public class FaceScan3DViewModel: ObservableObject {
         }
 
         // Create timer and explicitly add to main RunLoop to ensure it fires
-        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self, faceAnchor, yaw, pitch, roll] timer in
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] timer in
             // Capture weak self again inside the Task to prevent race condition
             Task { @MainActor [weak self] in
                 guard let self = self else {
@@ -838,13 +983,46 @@ public class FaceScan3DViewModel: ObservableObject {
                     return
                 }
 
-                AppLogger.faceScan.debug("Countdown: \(self.countdownTimer)")
+                AppLogger.faceScan.info("🔔 Timer fired! Current countdown: \(self.countdownTimer), holdStableTimer exists: \(self.holdStableTimer != nil)")
+
+                // Check if countdown was cancelled externally
+                if self.holdStableTimer == nil {
+                    AppLogger.faceScan.warning("⚠️ Countdown was cancelled externally - stopping timer")
+                    timer.invalidate()
+                    return
+                }
+
+                // CHECK POSE VALIDITY - cancel countdown if pose changed
+                guard let currentAnchor = self.currentFaceAnchor else {
+                    AppLogger.faceScan.warning("⚠️ No face anchor - cancelling countdown")
+                    timer.invalidate()
+                    self.holdStableTimer = nil
+                    self.countdownTimer = 0
+                    self.guidanceFeedback = "Face lost - please reposition"
+                    return
+                }
+
+                let currentYaw = currentAnchor.transform.eulerAngles.y * 180 / .pi
+                let currentPitch = currentAnchor.transform.eulerAngles.x * 180 / .pi
+                let currentRoll = currentAnchor.transform.eulerAngles.z * 180 / .pi
+
+                // Verify pose is still valid for current step
+                if !self.currentGuidanceStep.isPoseValid(yaw: currentYaw, pitch: currentPitch, roll: currentRoll) {
+                    AppLogger.faceScan.warning("⚠️ Pose changed - cancelling countdown and restarting")
+                    timer.invalidate()
+                    self.holdStableTimer = nil
+                    self.countdownTimer = 0
+                    self.guidanceFeedback = self.currentGuidanceStep.getGuidanceFeedback(yaw: currentYaw, pitch: currentPitch, roll: currentRoll)
+                    return
+                }
 
                 if self.countdownTimer > 1 {
                     self.countdownTimer -= 1
+                    self.guidanceFeedback = "Hold still! \(self.countdownTimer)..."
+                    AppLogger.faceScan.info("⏱️ Countdown: \(self.countdownTimer)")
                 } else {
                     // Capture!
-                    AppLogger.faceScan.info("Capturing pose")
+                    AppLogger.faceScan.info("📸 Countdown reached 1 - CAPTURING POSE NOW!")
                     timer.invalidate()
                     self.holdStableTimer = nil
                     self.countdownTimer = 0
@@ -855,7 +1033,7 @@ public class FaceScan3DViewModel: ObservableObject {
                         AppLogger.faceScan.debug("Haptic feedback: Pose captured")
                     }
 
-                    self.capturePose(faceAnchor: faceAnchor, yaw: yaw, pitch: pitch, roll: roll)
+                    self.capturePose(faceAnchor: currentAnchor, yaw: currentYaw, pitch: currentPitch, roll: currentRoll)
                 }
             }
         }
@@ -881,14 +1059,27 @@ public class FaceScan3DViewModel: ObservableObject {
 
         capturedPoses[self.currentGuidanceStep] = poseData
 
-        // Add to capture sequence
-        if captureStep() {
+        // Capture multiple frames per pose for better quality and merge success
+        // Capture 3 frames immediately to get stable data
+        var captureSuccess = 0
+        for i in 0..<3 {
+            if captureStep() {
+                captureSuccess += 1
+                AppLogger.faceScan.debug("✅ Multi-frame capture \(i+1)/3 succeeded")
+            }
+        }
+
+        if captureSuccess > 0 {
             // Also capture texture sample if we have current frame
             captureTextureSample(faceAnchor: faceAnchor)
 
             // Haptic feedback
             let generator = UIImpactFeedbackGenerator(style: .medium)
             generator.impactOccurred()
+
+            AppLogger.faceScan.info("📸 Captured \(captureSuccess)/3 frames for pose \(self.currentGuidanceStep.shortName)")
+        } else {
+            AppLogger.faceScan.error("❌ Failed to capture any frames for pose")
         }
 
         // Move to next step or finish
@@ -903,19 +1094,11 @@ public class FaceScan3DViewModel: ObservableObject {
                 self?.qualityWarning = nil
             }
         } else {
-            // All steps captured - finalize automatically
-            Task { [weak self] in
-                guard let self = self else { return }
-
-                _ = await self.finalizeCapture()
-
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    self?.isGuidanceActive = false
-                    self?.isCaptureInProgress = false
-                    self?.guidanceFeedback = nil
-                    self?.qualityWarning = nil
-                }
-            }
+            // All steps captured - keep guidance active until View calls finalizeCapture()
+            // Don't deactivate guidance here - let the View handle finalization
+            AppLogger.faceScan.info("✅ All 7 poses captured! Waiting for View to call finalizeCapture()")
+            self.isCaptureInProgress = false
+            self.guidanceFeedback = "All poses captured!"
         }
     }
 
@@ -1201,10 +1384,12 @@ public class FaceScan3DViewModel: ObservableObject {
             mergedMesh = nil
         }
 
-        // Clear capture sequence
-        if currentSequence != nil {
+        // Clear capture sequence (BUT NOT if actively capturing!)
+        if currentSequence != nil && !isGuidanceActive {
             AppLogger.faceScan.info("Clearing currentSequence (~100MB)")
             currentSequence = nil
+        } else if currentSequence != nil && isGuidanceActive {
+            AppLogger.faceScan.warning("⚠️ Not clearing currentSequence - guidance is active!")
         }
 
         // Clear visualizations

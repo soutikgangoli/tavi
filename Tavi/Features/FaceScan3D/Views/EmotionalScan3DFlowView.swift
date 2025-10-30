@@ -286,6 +286,8 @@ public struct EmotionalScan3DFlowView: View {
                 let nextCount = currentCount - 1
                 if nextCount > 0 {
                     flowState = .preparing(countdown: nextCount)
+                    // CRITICAL: Recursively call startCountdown to continue the countdown
+                    startCountdown()
                 } else {
                     flowState = .capturing
                     viewModel.startGuidance()
@@ -364,7 +366,9 @@ public struct EmotionalScan3DFlowView: View {
                     operation: "Mesh Merge"
                 ) {
                     guard let result = await viewModel.finalizeCapture() else {
-                        throw ScanError.mergeFailed(reason: nil)
+                        // Use the detailed error message from ViewModel
+                        let errorReason = await viewModel.errorMessage ?? "Unknown merge failure"
+                        throw ScanError.mergeFailed(reason: errorReason)
                     }
                     return result
                 }
@@ -496,8 +500,10 @@ public struct EmotionalScan3DFlowView: View {
                 // Handle specific scan errors with tailored recovery suggestions
                 await MainActor.run {
                     switch scanError {
-                    case .mergeFailed:
-                        flowState = .error("Failed to merge 3D face meshes. Please try scanning again with better lighting.")
+                    case .mergeFailed(let reason):
+                        // Use detailed reason if provided, otherwise fallback to generic message
+                        let message = reason ?? "Failed to merge 3D face meshes. Please try scanning again with better lighting."
+                        flowState = .error(message)
                     case .bakeFailed:
                         flowState = .error("Failed to generate skin texture. Please ensure good, even lighting and try again.")
                     case .metricsFailed:

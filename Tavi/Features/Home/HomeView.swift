@@ -12,12 +12,22 @@ import SwiftUI
 public struct HomeView: View {
 
     private let capabilities = DeviceCapabilities.current
-    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+    @State private var showOnboarding: Bool
     @State private var currentChallenge: GlowChallenge?
+
+    public init() {
+        // Check if onboarding has been completed
+        let hasCompleted = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        _showOnboarding = State(initialValue: !hasCompleted)
+
+        // Debug logging
+        print("🎯 Onboarding check: hasCompletedOnboarding = \(hasCompleted), showOnboarding = \(!hasCompleted)")
+    }
     @State private var streak: GlowStreak = GamificationManager.shared.getStreak()
     @State private var recentAchievements: [Achievement] = []
     @State private var showScanFlow = false
     @State private var showShareSheet = false
+    @State private var showSettings = false
     @State private var lastEmotionalMetrics: EmotionalMetrics?
 
     @FetchRequest(
@@ -96,6 +106,25 @@ public struct HomeView: View {
             await loadLatestData()
         }
         .navigationTitle("Tavi")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Tavi")
+                    .font(.headline)
+                    .fontWeight(.bold)
+            }
+
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 20))
+                }
+                .accessibilityLabel("Settings")
+                .accessibilityHint("Open app settings")
+            }
+        }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingFlowView()
         }
@@ -103,6 +132,9 @@ public struct HomeView: View {
             NavigationStack {
                 EmotionalScan3DFlowView()
             }
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
         }
         .onAppear {
             loadGamificationData()

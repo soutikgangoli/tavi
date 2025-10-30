@@ -18,7 +18,9 @@ public class ImageQualityAnalyzer {
 
     public struct Configuration {
         /// Minimum Laplacian variance for acceptable sharpness
-        public var minSharpnessThreshold: Float = 100.0
+        /// RELAXED: Lowered from 100 to 50 to account for TrueDepth camera characteristics
+        /// and real-world conditions. Face scanning doesn't require perfect sharpness.
+        public var minSharpnessThreshold: Float = 50.0
 
         /// Ideal exposure score (0.5 = middle gray)
         public var idealExposure: Float = 0.5

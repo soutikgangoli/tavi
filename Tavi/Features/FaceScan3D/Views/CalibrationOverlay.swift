@@ -171,61 +171,83 @@ struct GuidanceView: View {
 
             Spacer()
 
-            // Countdown timer
-            if countdownTimer > 0 {
-                Text("\(countdownTimer)")
+            // Countdown timer - FIXED FRAME to prevent bouncing
+            ZStack {
+                // Always reserve space for countdown (prevents layout shifts)
+                Text("0")
                     .font(.system(size: 100, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.3), radius: 8)
-            }
+                    .foregroundStyle(.clear)
 
-            // Instruction message
+                if countdownTimer > 0 {
+                    Text("\(countdownTimer)")
+                        .font(.system(size: 100, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.3), radius: 8)
+                        .transition(.opacity.combined(with: .scale))
+                }
+            }
+            .frame(height: 120)  // Fixed height
+
+            // Instruction message - FIXED HEIGHT to prevent expanding/contracting
             VStack(spacing: 8) {
                 Text(currentStep.instruction)
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                // Warnings and feedback
-                if !calibrationState.isCalibrated {
-                    // Calibration warnings (lighting, distance, stability)
-                    if let message = calibrationState.primaryMessage {
-                        Text(message)
-                            .font(.subheadline)
-                            .foregroundStyle(.yellow)
-                            .padding(.top, 4)
-                    }
-                } else if let warning = qualityWarning {
-                    // Image quality warnings (blur, exposure)
-                    Text(warning)
+                // Warnings and feedback - FIXED HEIGHT container
+                ZStack {
+                    // Reserve space for 2 lines of text to prevent layout shifts
+                    Text("\n")
                         .font(.subheadline)
-                        .foregroundStyle(.orange)
-                        .padding(.top, 4)
-                        .transition(.opacity)
-                } else if countdownTimer == 0 {
-                    // Show real-time guidance feedback when not counting down
-                    if let feedback = guidanceFeedback {
-                        Text(feedback)
-                            .font(.subheadline)
-                            .foregroundStyle(.cyan)
-                            .padding(.top, 4)
-                            .transition(.opacity)
-                    } else {
-                        Text("Hold this position")
-                            .font(.subheadline)
-                            .foregroundStyle(.green)
-                            .padding(.top, 4)
+                        .opacity(0)
+
+                    // Actual feedback content
+                    Group {
+                        if !calibrationState.isCalibrated {
+                            // Calibration warnings (lighting, distance, stability)
+                            if let message = calibrationState.primaryMessage {
+                                Text(message)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.yellow)
+                                    .multilineTextAlignment(.center)
+                            }
+                        } else if let warning = qualityWarning {
+                            // Image quality warnings (blur, exposure)
+                            Text(warning)
+                                .font(.subheadline)
+                                .foregroundStyle(.orange)
+                                .multilineTextAlignment(.center)
+                        } else if countdownTimer == 0 {
+                            // Show real-time guidance feedback when not counting down
+                            if let feedback = guidanceFeedback {
+                                Text(feedback)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.cyan)
+                                    .multilineTextAlignment(.center)
+                            } else {
+                                Text("Hold this position")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.green)
+                            }
+                        }
                     }
+                    .transition(.opacity)
                 }
+                .frame(minHeight: 40)  // Fixed minimum height
+                .padding(.top, 4)
             }
             .padding(.horizontal, 32)
             .padding(.vertical, 20)
+            .frame(minHeight: 140)  // Fixed minimum height for entire instruction box
             .background(.ultraThinMaterial)
             .cornerRadius(16)
             .padding(.bottom, 120)
-            .animation(.easeInOut(duration: 0.3), value: guidanceFeedback)
-            .animation(.easeInOut(duration: 0.3), value: qualityWarning)
+            .animation(.easeInOut(duration: 0.2), value: guidanceFeedback)
+            .animation(.easeInOut(duration: 0.2), value: qualityWarning)
+            .animation(.easeInOut(duration: 0.2), value: countdownTimer)
         }
     }
 }

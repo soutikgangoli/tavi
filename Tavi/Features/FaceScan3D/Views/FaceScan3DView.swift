@@ -88,17 +88,34 @@ public struct FaceScan3DView: View {
                 }
             }
 
-            // Error message
+            // Error message with Continue Anyway option
             if let errorMessage = viewModel.errorMessage {
                 VStack {
                     Spacer()
-                    Text(errorMessage)
-                        .font(.subheadline)
-                        .foregroundStyle(.white)
-                        .padding()
-                        .background(.red.opacity(0.8))
-                        .cornerRadius(12)
-                        .padding()
+                    VStack(spacing: 12) {
+                        Text(errorMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+
+                        Button {
+                            viewModel.continueAnywayOverride = true
+                        } label: {
+                            Text("Continue Anyway")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 8)
+                                .background(Color.orange)
+                                .cornerRadius(8)
+                        }
+                        .accessibilityLabel("Continue scan anyway despite warning")
+                    }
+                    .padding()
+                    .background(.red.opacity(0.8))
+                    .cornerRadius(12)
+                    .padding()
                 }
             }
         }

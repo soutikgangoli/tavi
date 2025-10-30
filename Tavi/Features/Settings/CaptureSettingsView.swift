@@ -57,6 +57,16 @@ struct CaptureSettingsView: View {
     @AppStorage("lightingStrictness") private var lightingStrictnessRaw = LightingStrictness.strict.rawValue
     @AppStorage("enableSunDamageAnalysis") private var enableSunDamageAnalysis = false
 
+    // Edge Case Detection Settings
+    @AppStorage("detectGlasses") private var detectGlasses: Bool = true
+    @AppStorage("detectHands") private var detectHands: Bool = true
+    @AppStorage("detectHat") private var detectHat: Bool = true
+    @AppStorage("detectMakeup") private var detectMakeup: Bool = true
+    @AppStorage("detectHairCoverage") private var detectHairCoverage: Bool = true
+    @AppStorage("detectSunburn") private var detectSunburn: Bool = true
+    @AppStorage("detectEarrings") private var detectEarrings: Bool = true
+    @AppStorage("detectFacialHair") private var detectFacialHair: Bool = true
+
     private var lightingStrictness: Binding<LightingStrictness> {
         Binding(
             get: { LightingStrictness(rawValue: lightingStrictnessRaw) ?? .strict },
@@ -86,6 +96,9 @@ struct CaptureSettingsView: View {
 
             // Sun Damage Analysis (all devices)
             sunDamageAnalysisSection
+
+            // Edge Case Detection (all devices)
+            edgeCaseDetectionSection
 
             // Real-time Processing (A16+ devices only)
             if capabilities.supportsNeuralEngineA16Plus {
@@ -255,6 +268,39 @@ struct CaptureSettingsView: View {
             }
         } footer: {
             Text("Analyzes 5 indicators (pigmentation, photoaging, texture, redness, pores) to assess sun damage. Normalized for all skin tones. Disable if you prefer not to track UV damage.")
+                .font(DesignSystem.Typography.caption)
+        }
+    }
+
+    // MARK: - Edge Case Detection Section
+
+    private var edgeCaseDetectionSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Edge Case Detection")
+                    .font(DesignSystem.Typography.body)
+                    .fontWeight(.semibold)
+
+                Toggle("Detect Glasses", isOn: $detectGlasses)
+                    .tint(DesignSystem.Colors.accent)
+                Toggle("Detect Hands on Face", isOn: $detectHands)
+                    .tint(DesignSystem.Colors.accent)
+                Toggle("Detect Hat/Headband", isOn: $detectHat)
+                    .tint(DesignSystem.Colors.accent)
+                Toggle("Detect Heavy Makeup", isOn: $detectMakeup)
+                    .tint(DesignSystem.Colors.accent)
+                Toggle("Detect Hair Coverage", isOn: $detectHairCoverage)
+                    .tint(DesignSystem.Colors.accent)
+                Toggle("Detect Sunburn", isOn: $detectSunburn)
+                    .tint(DesignSystem.Colors.accent)
+                Toggle("Detect Earrings", isOn: $detectEarrings)
+                    .tint(DesignSystem.Colors.accent)
+                Toggle("Detect Facial Hair", isOn: $detectFacialHair)
+                    .tint(DesignSystem.Colors.accent)
+            }
+            .padding(.vertical, 4)
+        } footer: {
+            Text("Disable detections that cause false positives for your face. All are enabled by default for maximum accuracy. Warning: Disabling these may affect scan quality.")
                 .font(DesignSystem.Typography.caption)
         }
     }
