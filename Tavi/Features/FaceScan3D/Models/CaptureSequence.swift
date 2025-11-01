@@ -221,7 +221,10 @@ public struct MeshCapture: Codable {
 }
 
 /// Complete capture sequence with all poses
-public struct CaptureSequence: Codable {
+// CRITICAL FIX: Changed from struct to class to fix mutation issues
+// Structs have value semantics which were causing captures to be lost
+// Classes have reference semantics so mutations work directly
+public class CaptureSequence: Codable {
     /// Unique identifier for this sequence
     public let id: UUID
 
@@ -254,7 +257,7 @@ public struct CaptureSequence: Codable {
     }
 
     /// Add a capture to the sequence
-    public mutating func addCapture(_ capture: MeshCapture) {
+    public func addCapture(_ capture: MeshCapture) {
         captures.append(capture)
 
         // Update metadata
@@ -266,12 +269,12 @@ public struct CaptureSequence: Codable {
     }
 
     /// Add a texture sample to the sequence
-    public mutating func addTextureSample(_ sample: PoseSample) {
+    public func addTextureSample(_ sample: PoseSample) {
         textureSamples.append(sample)
     }
 
     /// Mark sequence as complete
-    public mutating func complete() {
+    public func complete() {
         completionTime = Date().timeIntervalSince1970
     }
 

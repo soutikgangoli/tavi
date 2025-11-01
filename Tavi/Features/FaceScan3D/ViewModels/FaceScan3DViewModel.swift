@@ -68,11 +68,17 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Whether capture is in progress
     @Published public var isCaptureInProgress: Bool = false
 
+    /// Tolerance counter for brief validation failures during countdown
+    private var countdownToleranceFrames: Int = 0
+
     /// Real-time guidance feedback for current pose
     @Published public var guidanceFeedback: String?
 
     /// Quality warning message
     @Published public var qualityWarning: String?
+
+    /// Whether current pose matches target direction
+    @Published public var isPoseCorrect: Bool = false
 
     /// Baseline lighting for consistency checks
     private var baselineLighting: CGFloat?
@@ -292,17 +298,11 @@ public class FaceScan3DViewModel: ObservableObject {
     public func startCaptureSequence() {
         AppLogger.faceScan.info("📋 startCaptureSequence() called. Calibrated: \(self.calibrationState.isCalibrated)")
 
-        // CRITICAL FIX: Reset calibration state for fresh scan
-        // This ensures distance/lighting warnings show properly on subsequent scans
-        calibrationState = CalibrationState()
-        continueAnywayOverride = false
+        // Clear error messages from previous scans
         errorMessage = nil
-
-        AppLogger.faceScan.info("✅ Calibration state reset for new scan")
 
         AppLogger.faceScan.info("✅ Creating new CaptureSequence...")
         // ALWAYS initialize sequence first (critical - prevents "no sequence" error)
-        // Don't require calibration - let it happen during guidance
         currentSequence = CaptureSequence()
         mergedMesh = nil
 
@@ -316,7 +316,7 @@ public class FaceScan3DViewModel: ObservableObject {
         capturedPoses = [:]
         countdownTimer = 0
 
-        AppLogger.faceScan.info("✅ Sequence initialized! Active: \(self.isGuidanceActive), Step: \(self.currentGuidanceStep.shortName)")
+        AppLogger.faceScan.info("✅ Sequence initialized! Active: \(self.isGuidanceActive), Step: \(self.currentGuidanceStep.shortName), Calibrated: \(self.calibrationState.isCalibrated)")
 
         // Pre-flight checks: Edge cases and lighting validation (based on strictness)
         // NON-BLOCKING: Only warn, don't prevent capture (user can still proceed)
@@ -389,13 +389,22 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Capture current frame mesh if calibration is OK
     public func captureStep() -> Bool {
-        guard calibrationState.isCalibrated,
-              let geometry = currentGeometry,
-              let lightEstimation = lightEstimation,
-              var sequence = currentSequence else {
-            errorMessage = "Cannot capture - calibration or data missing"
+        AppLogger.faceScan.info("🔍 captureStep() ENTRY - checking preconditions...")
+        AppLogger.faceScan.info("🔍 currentGeometry exists: \(self.currentGeometry != nil)")
+        AppLogger.faceScan.info("🔍 lightEstimation exists: \(self.lightEstimation != nil)")
+        AppLogger.faceScan.info("🔍 currentSequence exists: \(self.currentSequence != nil)")
+
+        // RELAXED: Don't check calibration here - we already validated during countdown
+        // Brief calibration loss during capture shouldn't block it
+        guard let geometry = self.currentGeometry,
+              let lightEstimation = self.lightEstimation,
+              self.currentSequence != nil else {
+            self.errorMessage = "Cannot capture - geometry or data missing"
+            AppLogger.faceScan.error("❌ captureStep GUARD FAILED - hasGeometry: \(self.currentGeometry != nil), hasLight: \(self.lightEstimation != nil), hasSequence: \(self.currentSequence != nil)")
             return false
         }
+
+        AppLogger.faceScan.info("✅ captureStep() guard passed - proceeding with capture...")
 
         // Extract rotation angles
         let transform = geometry.transform
@@ -413,9 +422,15 @@ public class FaceScan3DViewModel: ObservableObject {
             lightEstimation: lightEstimation
         )
 
-        // Add to sequence
-        sequence.addCapture(capture)
-        currentSequence = sequence
+        // CRITICAL FIX v4: Now that CaptureSequence is a class (reference type),
+        // mutations work directly without extract-modify-reassign
+        AppLogger.faceScan.info("🔍 About to call addCapture() on sequence...")
+        self.currentSequence!.addCapture(capture)
+        AppLogger.faceScan.info("🔍 addCapture() call completed!")
+
+        let captureCount = self.currentSequence!.captures.count
+        AppLogger.faceScan.info("✅ Added capture to sequence. Total captures now: \(captureCount)")
+        AppLogger.faceScan.info("📊 Sequence update - Step: \(self.currentGuidanceStep.shortName), Total captures: \(captureCount), Vertices: \(capture.vertices.count)")
 
         return true
     }
@@ -423,7 +438,13 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Finalize capture and merge all partial meshes into single face mesh
     /// Now includes complete clinical-grade processing pipeline
     public func finalizeCapture() async -> MergedFaceMesh? {
-        guard var sequence = self.currentSequence else {
+        // DEBUG: Log sequence state before accessing
+        AppLogger.mesh.info("🔍 DEBUG: finalizeCapture called. Current sequence exists: \(self.currentSequence != nil)")
+        if let seq = self.currentSequence {
+            AppLogger.mesh.info("🔍 DEBUG: Sequence has \(seq.captures.count) captures")
+        }
+
+        guard let sequence = self.currentSequence else {
             let msg = "No capture sequence found! Guidance Active: \(self.isGuidanceActive). This is a bug - sequence should have been created when guidance started."
             AppLogger.mesh.error("❌ MERGE FAILED: \(msg)")
             await MainActor.run {
@@ -433,9 +454,12 @@ public class FaceScan3DViewModel: ObservableObject {
         }
 
         let captureCount = sequence.captures.count
+        AppLogger.mesh.info("🔍 DEBUG: After guard, sequence has \(captureCount) captures")
+
         guard !sequence.captures.isEmpty else {
-            let msg = "No captures in sequence"
+            let msg = "No captures in sequence (count: \(captureCount))"
             AppLogger.mesh.error("❌ MERGE FAILED: \(msg)")
+            AppLogger.mesh.error("🔍 DEBUG: capturedPoses dict has \(self.capturedPoses.count) entries")
             self.errorMessage = msg
             return nil
         }
@@ -702,16 +726,17 @@ public class FaceScan3DViewModel: ObservableObject {
         // Check if pose matches current step
         let isPoseValid = self.currentGuidanceStep.isPoseValid(yaw: yaw, pitch: pitch, roll: roll)
 
+        // Update published pose correctness for UI
+        self.isPoseCorrect = isPoseValid
+
         // Get real-time guidance feedback
         self.guidanceFeedback = self.currentGuidanceStep.getGuidanceFeedback(yaw: yaw, pitch: pitch, roll: roll)
 
         // Check image quality if pose is valid
         var qualityGood = true
-        if isPoseValid && self.calibrationState.isCalibrated {
+        if isPoseValid {
+            // Always check quality when pose is valid, regardless of calibration
             qualityGood = self.checkImageQuality()
-        } else if !self.calibrationState.isCalibrated {
-            // If calibration is invalid, don't proceed
-            qualityGood = false
         }
 
         // Debug: Log every 30 frames (~once per second at 30fps)
@@ -732,8 +757,62 @@ public class FaceScan3DViewModel: ObservableObject {
             if self.countdownTimer == 0 && self.holdStableTimer == nil {
                 startCaptureCountdown(faceAnchor: faceAnchor, yaw: yaw, pitch: pitch, roll: roll)
             }
-            // Once countdown starts, let it complete without cancellation
-            // User already passed all validations to start the countdown
+
+            // Reset tolerance counter when conditions are good
+            self.countdownToleranceFrames = 0
+        } else {
+            // Log WHY countdown isn't starting (every 60 frames = ~2 seconds)
+            if frameCount % 60 == 0 && self.countdownTimer == 0 {
+                var reasons: [String] = []
+                if !isPoseValid { reasons.append("Pose invalid") }
+                if !self.calibrationState.isCalibrated {
+                    var issues: [String] = []
+                    if !self.calibrationState.lighting.isValid { issues.append("L=\(self.calibrationState.lighting.rawValue)") }
+                    if !self.calibrationState.distance.isValid { issues.append("D=\(self.calibrationState.distance.rawValue)") }
+                    if !self.calibrationState.stability.isValid { issues.append("S=\(self.calibrationState.stability == .moving ? "moving" : "stable")") }
+                    reasons.append("Not calibrated: \(issues.joined(separator: " "))")
+                }
+                if !qualityGood { reasons.append("Quality poor") }
+                if self.isCaptureInProgress { reasons.append("Capture busy") }
+                if !reasons.isEmpty {
+                    AppLogger.faceScan.info("⏸️ Countdown blocked: \(reasons.joined(separator: ", "))")
+                }
+            }
+
+            // Allow brief deviations during countdown (tolerance)
+            if self.holdStableTimer != nil {
+                // TOLERANCE: Allow ~10 frames (~0.33 seconds) of deviation during countdown
+                // This prevents countdown from being too sensitive to brief movements
+                self.countdownToleranceFrames += 1
+
+                if self.countdownToleranceFrames < 10 {
+                    // Still within tolerance - don't cancel countdown
+                    AppLogger.faceScan.debug("⚠️ Brief validation failure during countdown (tolerance: \(self.countdownToleranceFrames)/10)")
+                    return
+                }
+
+                // Exceeded tolerance - cancel countdown
+                if !isPoseValid {
+                    AppLogger.faceScan.warning("🚫 COUNTDOWN CANCELLED at \(self.countdownTimer) (after \(self.countdownToleranceFrames) frames) - Pose changed")
+                } else if !self.calibrationState.isCalibrated {
+                    AppLogger.faceScan.warning("🚫 COUNTDOWN CANCELLED at \(self.countdownTimer) (after \(self.countdownToleranceFrames) frames) - Lost calibration")
+                } else if !qualityGood {
+                    AppLogger.faceScan.warning("🚫 COUNTDOWN CANCELLED at \(self.countdownTimer) (after \(self.countdownToleranceFrames) frames) - Quality check failed")
+                }
+
+                self.holdStableTimer?.invalidate()
+                self.holdStableTimer = nil
+                self.countdownTimer = 0
+                self.countdownToleranceFrames = 0
+
+                // CRITICAL FIX: Clear guidanceFeedback to allow fresh start
+                // Without this, old feedback persists and confuses restart logic
+                self.guidanceFeedback = nil
+
+                // CRITICAL FIX: After cancellation, DON'T return early
+                // Allow the next frame to immediately try starting a new countdown
+                // (removed the return that was preventing restart)
+            }
         }
     }
 
@@ -817,13 +896,15 @@ public class FaceScan3DViewModel: ObservableObject {
 
         // 2. Check for neutral expression (comprehensive blend shape validation)
         if let blendShapes = blendShapes {
-            // Detect smiling
-            let smileAmount = (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2.0
-            if Double(smileAmount) > ScanConfiguration.maxSmileThreshold {
-                AppLogger.faceScan.warning("❌ Quality check failed: Smiling detected (\(String(format: "%.2f", smileAmount)))")
-                qualityWarning = "Please keep a neutral expression (no smiling)"
-                lastQualityCheckResult = false
-                return false
+            // Detect smiling - SKIP for lookDown (false positives from facial geometry changes)
+            if self.currentGuidanceStep != .lookDown {
+                let smileAmount = (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2.0
+                if Double(smileAmount) > ScanConfiguration.maxSmileThreshold {
+                    AppLogger.faceScan.warning("❌ Quality check failed: Smiling detected (\(String(format: "%.2f", smileAmount)))")
+                    qualityWarning = "Please keep a neutral expression (no smiling)"
+                    lastQualityCheckResult = false
+                    return false
+                }
             }
 
             // Detect frowning
@@ -877,13 +958,15 @@ public class FaceScan3DViewModel: ObservableObject {
                 return false
             }
 
-            // Detect eye squinting
-            let squintAmount = max(blendShapes.eyeSquintLeft, blendShapes.eyeSquintRight)
-            if Double(squintAmount) > ScanConfiguration.maxSquintThreshold {
-                AppLogger.faceScan.warning("❌ Quality check failed: Eye squint (\(String(format: "%.2f", squintAmount)))")
-                qualityWarning = "Please don't squint"
-                lastQualityCheckResult = false
-                return false
+            // Detect eye squinting - SKIP for lookDown (eyes naturally appear more closed)
+            if self.currentGuidanceStep != .lookDown {
+                let squintAmount = max(blendShapes.eyeSquintLeft, blendShapes.eyeSquintRight)
+                if Double(squintAmount) > ScanConfiguration.maxSquintThreshold {
+                    AppLogger.faceScan.warning("❌ Quality check failed: Eye squint (\(String(format: "%.2f", squintAmount)))")
+                    qualityWarning = "Please don't squint"
+                    lastQualityCheckResult = false
+                    return false
+                }
             }
 
             // Detect raised eyebrows (surprised/worried expression)
@@ -1009,6 +1092,8 @@ public class FaceScan3DViewModel: ObservableObject {
                 // Verify pose is still valid for current step
                 if !self.currentGuidanceStep.isPoseValid(yaw: currentYaw, pitch: currentPitch, roll: currentRoll) {
                     AppLogger.faceScan.warning("⚠️ Pose changed - cancelling countdown and restarting")
+                    AppLogger.faceScan.warning("⚠️ Current pose: yaw=\(currentYaw)°, pitch=\(currentPitch)°, roll=\(currentRoll)°")
+                    AppLogger.faceScan.warning("⚠️ Step: \(self.currentGuidanceStep.shortName) requires specific pose - user moved")
                     timer.invalidate()
                     self.holdStableTimer = nil
                     self.countdownTimer = 0
@@ -1044,7 +1129,13 @@ public class FaceScan3DViewModel: ObservableObject {
     }
 
     private func capturePose(faceAnchor: ARFaceAnchor, yaw: Float, pitch: Float, roll: Float) {
-        guard let geometry = currentGeometry else { return }
+        AppLogger.faceScan.info("🎯 capturePose() CALLED for step: \(self.currentGuidanceStep.shortName)")
+        AppLogger.faceScan.info("🎯 Current sequence exists: \(self.currentSequence != nil), Geometry exists: \(self.currentGeometry != nil)")
+
+        guard let geometry = self.currentGeometry else {
+            AppLogger.faceScan.error("❌ capturePose ABORTED: No geometry!")
+            return
+        }
 
         self.isCaptureInProgress = true
 
@@ -1063,9 +1154,14 @@ public class FaceScan3DViewModel: ObservableObject {
         // Capture 3 frames immediately to get stable data
         var captureSuccess = 0
         for i in 0..<3 {
-            if captureStep() {
+            AppLogger.faceScan.info("🎯 Calling captureStep() attempt \(i+1)/3...")
+            let success = captureStep()
+            AppLogger.faceScan.info("🎯 captureStep() attempt \(i+1)/3 returned: \(success)")
+            if success {
                 captureSuccess += 1
-                AppLogger.faceScan.debug("✅ Multi-frame capture \(i+1)/3 succeeded")
+                AppLogger.faceScan.info("✅ Multi-frame capture \(i+1)/3 succeeded")
+            } else {
+                AppLogger.faceScan.error("❌ Multi-frame capture \(i+1)/3 FAILED")
             }
         }
 
@@ -1082,6 +1178,20 @@ public class FaceScan3DViewModel: ObservableObject {
             AppLogger.faceScan.error("❌ Failed to capture any frames for pose")
         }
 
+        // TESTING MODE: Complete after first capture only
+        // TODO: Remove this before production - this is for testing skin analysis
+        AppLogger.faceScan.info("🧪 TESTING MODE: Completing scan after first capture")
+        AppLogger.faceScan.info("🧪 Current sequence has \(self.currentSequence?.captures.count ?? 0) captures")
+
+        // Small delay to let UI update
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.isCaptureInProgress = false
+            self?.guidanceFeedback = "Testing mode - scan complete!"
+            AppLogger.faceScan.info("🧪 Capture complete flag set. Sequence has \(self?.currentSequence?.captures.count ?? 0) captures")
+        }
+
+        // Original production code (commented out for testing):
+        /*
         // Move to next step or finish
         let currentStep = self.currentGuidanceStep
         if let nextStepIndex = GuidanceStep.allCases.firstIndex(of: currentStep).map({ $0 + 1 }),
@@ -1100,6 +1210,7 @@ public class FaceScan3DViewModel: ObservableObject {
             self.isCaptureInProgress = false
             self.guidanceFeedback = "All poses captured!"
         }
+        */
     }
 
     // MARK: - Geometry Export
@@ -1148,21 +1259,24 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Capture texture sample from current frame
     private func captureTextureSample(faceAnchor: ARFaceAnchor) {
-        guard let frame = currentFrame,
-              var sequence = currentSequence else {
+        guard let frame = self.currentFrame,
+              self.currentSequence != nil else {
             return
         }
 
         // Capture texture sample
-        if let sample = textureCapture.captureSample(
+        if let sample = self.textureCapture.captureSample(
             step: self.currentGuidanceStep.shortName,
             faceAnchor: faceAnchor,
             frame: frame,
-            lightEstimation: lightEstimation
+            lightEstimation: self.lightEstimation
         ) {
-            sequence.addTextureSample(sample)
-            currentSequence = sequence
-            AppLogger.faceScan.info("Captured texture sample for step: \(self.currentGuidanceStep.shortName)")
+            // CRITICAL FIX v4: Now that CaptureSequence is a class (reference type),
+            // mutations work directly without extract-modify-reassign
+            self.currentSequence!.addTextureSample(sample)
+
+            AppLogger.faceScan.info("✅ Added texture sample to sequence. Total samples now: \(self.currentSequence!.textureSamples.count)")
+            AppLogger.faceScan.info("📊 Texture update - Step: \(self.currentGuidanceStep.shortName), Total samples: \(self.currentSequence!.textureSamples.count)")
         } else {
             AppLogger.faceScan.warning("Failed to capture texture sample (quality check failed)")
         }
@@ -1310,10 +1424,34 @@ public class FaceScan3DViewModel: ObservableObject {
 
         isComputingMetrics = true
 
-        let metrics = await metricsAnalyzer.computeMetrics(
-            unifiedMesh: result.unifiedMesh,
-            unifiedTexture: result.albedoTexture
-        )
+        AppLogger.faceScan.info("🔬 Starting metrics computation with timeout...")
+
+        // Wrap in timeout to prevent hanging
+        // Note: computeMetrics returns Face3DMetrics?, withTimeoutOptional wraps it in another optional
+        // So we get Face3DMetrics?? and need to flatten it
+        let metricsDoubleOptional = await withTimeoutOptional(
+            seconds: 60.0,  // Increased to match full analysis pipeline time (~50s typical)
+            operation: "Metrics Computation"
+        ) {
+            await self.metricsAnalyzer.computeMetrics(
+                unifiedMesh: result.unifiedMesh,
+                unifiedTexture: result.albedoTexture
+            )
+        }
+
+        // Flatten double optional Face3DMetrics?? -> Face3DMetrics?
+        // metricsDoubleOptional is Face3DMetrics?? (optional of optional)
+        // We need to flatten it: if outer is nil (timeout), result is nil
+        // If outer is non-nil, unwrap to get the inner Face3DMetrics?
+        let metrics: Face3DMetrics?
+        if let outerOptional = metricsDoubleOptional {
+            // Outer is non-nil, so we got a result (could still be nil if analyzer returned nil)
+            metrics = outerOptional
+        } else {
+            // Outer is nil, meaning timeout occurred
+            metrics = nil
+            AppLogger.faceScan.warning("⚠️ Metrics computation timed out or failed")
+        }
 
         face3DMetrics = metrics
         isComputingMetrics = false

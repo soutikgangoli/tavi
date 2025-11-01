@@ -11,7 +11,7 @@ import ARKit
 
 /// SwiftUI view that displays real-time 3D face mesh using ARKit
 public struct FaceScan3DView: View {
-    @StateObject private var viewModel = FaceScan3DViewModel()
+    @ObservedObject var viewModel: FaceScan3DViewModel
 
     /// Whether to show debug information
     public var showDebug: Bool = false
@@ -37,6 +37,7 @@ public struct FaceScan3DView: View {
     @AppStorage("enableFaceMesh") private var enableFaceMesh: Bool = true
 
     public init(
+        viewModel: FaceScan3DViewModel,
         showDebug: Bool = false,
         showMesh: Bool = true,
         meshColor: Color = .white,
@@ -45,6 +46,7 @@ public struct FaceScan3DView: View {
         onGeometryUpdate: ((FaceMeshGeometry) -> Void)? = nil,
         onCaptureComplete: (([GuidanceStep: CapturedPoseData]) -> Void)? = nil
     ) {
+        self.viewModel = viewModel
         self.showDebug = showDebug
         self.showMesh = showMesh
         self.meshColor = meshColor
@@ -125,8 +127,9 @@ public struct FaceScan3DView: View {
             }
         }
         .onChange(of: viewModel.capturedPoses.count) { newCount in
-            // Check if capture is complete (all poses captured)
-            if newCount == GuidanceStep.allCases.count {
+            // TESTING MODE: Complete after 1 capture instead of all 7
+            // TODO: Change back to == GuidanceStep.allCases.count for production
+            if newCount >= 1 {
                 onCaptureComplete?(viewModel.capturedPoses)
             }
         }
@@ -230,5 +233,5 @@ private struct DebugInfoView: View {
 // MARK: - Preview
 
 #Preview {
-    FaceScan3DView(showDebug: true)
+    FaceScan3DView(viewModel: FaceScan3DViewModel(), showDebug: true)
 }

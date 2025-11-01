@@ -108,6 +108,7 @@ public struct EmotionalScan3DFlowView: View {
 
     private var capturingView: some View {
         FaceScan3DView(
+            viewModel: viewModel,
             showDebug: false,
             showMesh: true,
             meshColor: .white,
@@ -118,7 +119,6 @@ public struct EmotionalScan3DFlowView: View {
                 processCapture()
             }
         )
-        .environmentObject(viewModel)
     }
 
     // MARK: - Processing View
@@ -403,6 +403,9 @@ public struct EmotionalScan3DFlowView: View {
                 processingProgress = "Analyzing your skin... 🔬"
                 CrashReporter.shared.setCustomKey("processing_step", value: "metrics_analysis")
 
+                // Attempt metrics computation with timeout protection
+                AppLogger.faceScan.info("🔬 Starting metrics computation with timeout...")
+
                 let computedClinicalMetrics = try await withTimeout(
                     seconds: ScanConfiguration.metricsComputationTimeout,
                     operation: "Metrics Computation"
@@ -458,14 +461,20 @@ public struct EmotionalScan3DFlowView: View {
                 processingProgress = "Saving your results... 💾"
                 CrashReporter.shared.setCustomKey("processing_step", value: "core_data_save")
 
-                try await withTimeout(
-                    seconds: ScanConfiguration.coreDataSaveTimeout,
-                    operation: "CoreData Save"
-                ) {
-                    await saveToCoreData(
-                        emotionalMetrics: emotional,
-                        clinicalMetrics: computedClinicalMetrics
-                    )
+                // Try to save, but don't block if Core Data isn't available
+                do {
+                    try await withTimeout(
+                        seconds: ScanConfiguration.coreDataSaveTimeout,
+                        operation: "CoreData Save"
+                    ) {
+                        await saveToCoreData(
+                            emotionalMetrics: emotional,
+                            clinicalMetrics: computedClinicalMetrics
+                        )
+                    }
+                } catch {
+                    // Log but continue - Core Data save failure shouldn't block results
+                    AppLogger.faceScan.warning("⚠️ Core Data save failed: \(error.localizedDescription) - continuing anyway")
                 }
 
                 try await Task.sleep(nanoseconds: 300_000_000)
@@ -574,14 +583,20 @@ public struct EmotionalScan3DFlowView: View {
     // MARK: - Data Helpers
 
     private func loadPreviousClinicalMetrics() async -> Face3DMetrics? {
+        // Check if Core Data is available - capture context early to avoid Environment access warnings
+        let context = viewContext
+        guard context.persistentStoreCoordinator != nil else {
+            return nil  // Silently skip if Core Data not available
+        }
+
         // Use perform to safely access CoreData from any thread
-        return await viewContext.perform {
+        return await context.perform {
             // Fetch most recent session from Core Data
             let request = SessionResult.fetchRequest()
             request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
             request.fetchLimit = 1  // Get most recent session
 
-            guard let sessions = try? self.viewContext.fetch(request),
+            guard let sessions = try? context.fetch(request),
                   let lastSession = sessions.first,
                   let data = lastSession.clinicalMetricsData,
                   let metrics = try? JSONDecoder().decode(Face3DMetrics.self, from: data) else {
@@ -595,14 +610,20 @@ public struct EmotionalScan3DFlowView: View {
     }
 
     private func loadPreviousMetrics() async -> EmotionalMetrics? {
+        // Check if Core Data is available - capture context early to avoid Environment access warnings
+        let context = viewContext
+        guard context.persistentStoreCoordinator != nil else {
+            return nil  // Silently skip if Core Data not available
+        }
+
         // Use perform to safely access CoreData from any thread
-        return await viewContext.perform {
+        return await context.perform {
             // Fetch most recent session from Core Data
             let request = SessionResult.fetchRequest()
             request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
             request.fetchLimit = 1  // Get most recent session
 
-            guard let sessions = try? self.viewContext.fetch(request),
+            guard let sessions = try? context.fetch(request),
                   let lastSession = sessions.first,
                   let data = lastSession.emotionalMetricsData,
                   let metrics = try? JSONDecoder().decode(EmotionalMetrics.self, from: data) else {
@@ -616,9 +637,15 @@ public struct EmotionalScan3DFlowView: View {
     }
 
     private func saveToCoreData(emotionalMetrics: EmotionalMetrics, clinicalMetrics: Face3DMetrics) async {
+        // Check if context has a persistent store coordinator - capture context early to avoid Environment access warnings
+        let context = viewContext
+        guard context.persistentStoreCoordinator != nil else {
+            return  // Silently skip if Core Data not available
+        }
+
         // Use perform to safely access CoreData from any thread
-        await viewContext.perform {
-            let session = SessionResult(context: self.viewContext)
+        await context.perform {
+            let session = SessionResult(context: context)
             session.id = UUID()
             session.date = Date()
             session.deviceModel = UIDevice.current.model
@@ -644,10 +671,10 @@ public struct EmotionalScan3DFlowView: View {
 
             // Save to Core Data
             do {
-                try self.viewContext.save()
-                print("✅ Session saved successfully!")
+                try context.save()
+                AppLogger.faceScan.info("✅ Session saved successfully to Core Data!")
             } catch {
-                print("❌ Failed to save session: \(error)")
+                AppLogger.faceScan.error("❌ Failed to save session: \(error.localizedDescription)")
             }
         }
     }

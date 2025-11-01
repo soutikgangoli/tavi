@@ -238,8 +238,8 @@ class LightingNormalizer {
     private func applyWhiteBalance(_ image: CIImage) -> CIImage {
         guard let filter = CIFilter(name: "CIWhitePointAdjust") else { return image }
 
-        // Estimate white point (simplified)
-        let avgColor = CIVector(x: 0.95, y: 0.95, z: 0.95)
+        // Estimate white point (simplified) - use CIColor instead of CIVector
+        let avgColor = CIColor(red: 0.95, green: 0.95, blue: 0.95)
 
         filter.setValue(image, forKey: kCIInputImageKey)
         filter.setValue(avgColor, forKey: "inputColor")

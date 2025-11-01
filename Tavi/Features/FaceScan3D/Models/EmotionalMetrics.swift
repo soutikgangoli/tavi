@@ -150,10 +150,15 @@ public class EmotionalMetricsGenerator {
 
     /// Convert clinical Face3DMetrics to emotional, consumer-friendly metrics
     public static func generate(
-        from clinicalMetrics: Face3DMetrics,
+        from clinicalMetrics: Face3DMetrics?,
         previousMetrics: Face3DMetrics? = nil,
         userProfile: UserProfile? = nil
     ) -> EmotionalMetrics {
+
+        // TEMPORARY: Handle nil metrics (when analyzer is disabled for testing)
+        guard let clinicalMetrics = clinicalMetrics else {
+            return generateDefaultMetrics(userProfile: userProfile)
+        }
 
         // 1. Calculate Skin Health Index (unified 0-100)
         let glowScore = calculateGlowScore(from: clinicalMetrics)
@@ -215,6 +220,47 @@ public class EmotionalMetricsGenerator {
             youthfulness: youthfulness,
             freshness: freshness,
             sunProtection: Int(clinicalMetrics.sunDamageAnalysis?.protectionScore ?? 75.0)
+        )
+    }
+
+    /// TEMPORARY: Generate default metrics when analyzer is unavailable
+    /// This provides reasonable fallback values for UI testing
+    private static func generateDefaultMetrics(userProfile: UserProfile?) -> EmotionalMetrics {
+        let name = userProfile?.name ?? "there"
+
+        return EmotionalMetrics(
+            glowScore: 70,
+            primaryInsight: "Scan complete! We're analyzing your results... ✨",
+            celebration: "Your 3D face scan was successful! 🎉",
+            improvements: [],
+            concerns: [
+                EmotionalConcern(
+                    title: "Analysis in progress",
+                    emoji: "🔬",
+                    severity: .none,
+                    message: "We're still processing your detailed metrics",
+                    solution: "Check back soon for complete analysis",
+                    encouragement: "Your scan data has been saved!"
+                )
+            ],
+            personalizedMessage: "Hey \(name)! Your scan was successful. Detailed analysis coming soon! 💙",
+            nextSteps: [
+                ActionableStep(
+                    action: "Apply SPF 30+ sunscreen",
+                    frequency: "Every morning",
+                    timing: "After moisturizer",
+                    expectedResult: "Prevent new damage, maintain current glow",
+                    priority: .critical,
+                    icon: "sun.max.fill"
+                )
+            ],
+            timeEstimate: "Complete analysis available soon",
+            radiance: 70,
+            smoothness: 70,
+            evenness: 70,
+            youthfulness: 70,
+            freshness: 70,
+            sunProtection: 75
         )
     }
 

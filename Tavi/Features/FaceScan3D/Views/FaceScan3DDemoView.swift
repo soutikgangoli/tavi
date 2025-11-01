@@ -10,6 +10,7 @@ import SwiftUI
 
 /// Demo view showing how to use FaceScan3DView with calibration
 struct FaceScan3DDemoView: View {
+    @StateObject private var viewModel = FaceScan3DViewModel()
     @State private var showDebug = false
     @State private var showMesh = true
     @State private var wireframeMode = false
@@ -24,6 +25,7 @@ struct FaceScan3DDemoView: View {
             ZStack {
                 // 3D Face Scan View with Calibration
                 FaceScan3DView(
+                    viewModel: viewModel,
                     showDebug: showDebug,
                     showMesh: showMesh,
                     meshColor: meshColor,

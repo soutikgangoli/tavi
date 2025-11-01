@@ -522,9 +522,9 @@ public class RegionalAnalyzers {
         let pixels = extractPixels(from: region)
 
         // Calculate variance (smooth lips = low variance)
-        let avg = pixels.map { Float($0.0 + $0.1 + $0.2) / 3.0 }.reduce(0, +) / Float(pixels.count)
+        let avg = pixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(pixels.count)
         let variance = pixels.map { pixel in
-            let val = Float(pixel.0 + pixel.1 + pixel.2) / 3.0
+            let val = (Float(pixel.0) + Float(pixel.1) + Float(pixel.2)) / 3.0
             return pow(val - avg, 2)
         }.reduce(0, +) / Float(pixels.count)
 
@@ -565,7 +565,7 @@ public class RegionalAnalyzers {
 
         // Simplified pore detection (look for small dark spots)
         for (index, pixel) in pixels.enumerated() {
-            let brightness = Float(pixel.0 + pixel.1 + pixel.2) / 3.0
+            let brightness = (Float(pixel.0) + Float(pixel.1) + Float(pixel.2)) / 3.0
 
             if brightness < 100 {  // Dark spot
                 let x = index % region.width

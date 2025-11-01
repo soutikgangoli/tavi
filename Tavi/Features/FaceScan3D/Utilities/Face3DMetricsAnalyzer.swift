@@ -155,14 +155,21 @@ public class Face3DMetricsAnalyzer {
         }
 
         // Step 3: Compute metrics for each ROI
+        // NOTE: roiSamples contains FULL RESOLUTION data
+        // Only RoughnessAnalyzer downsamples internally for performance
+        // Pore/wrinkle/acne analyzers use full resolution
         var roiMetrics: [Face3DROI: ROI3DMetrics] = [:]
 
+        print("   Computing metrics for \(roiSamples.count) ROIs...")
         for (roi, sample) in roiSamples {
+            print("   - Processing \(roi.displayName)...")
             let confidence = roiConfidences[roi]
+            // sample is FULL RESOLUTION - only roughness will downsample internally
             let metrics = await computeROI3DMetrics(sample, rawSample: nil, confidence: confidence)
             roiMetrics[roi] = metrics
-            print("   \(roi.displayName): roughness=\(metrics.roughnessProxy), pigmentation=\(metrics.pigmentationIndex), confidence=\(metrics.confidenceLevel)")
+            print("   ✓ \(roi.displayName): roughness=\(metrics.roughnessProxy), pigmentation=\(metrics.pigmentationIndex), confidence=\(metrics.confidenceLevel)")
         }
+        print("   ✅ All ROI metrics computed")
 
         // Step 4: Compute global metrics and scores
         let globalResults = computeGlobalMetrics(
@@ -246,6 +253,7 @@ public class Face3DMetricsAnalyzer {
         // Run all independent analyzers concurrently
         // Note: Using nonisolated(unsafe) to suppress Sendable warnings
         // The analyzers don't mutate state and are safe for concurrent access
+        print("   🚀 Starting parallel analysis tasks...")
         let (volumeAnalysis, regionalAnalysis, skinTypeAnalysis, poreAnalysis, acneAnalysis, rednessAnalysis, topologyAnalysis) = await withTaskGroup(
             of: AnalysisResult.self,
             returning: (VolumeAnalysis?, RegionalAnalysis?, SkinTypeAnalysis?, PoreAnalysis?, AcneAnalysis?, RednessAnalysis?, TopologyAnalysis?).self
@@ -314,18 +322,25 @@ public class Face3DMetricsAnalyzer {
             for await result in group {
                 switch result {
                 case .volume(let analysis):
+                    print("      ✓ Volume analysis complete")
                     volume = analysis
                 case .regional(let analysis):
+                    print("      ✓ Regional analysis complete")
                     regional = analysis
                 case .skinType(let analysis):
+                    print("      ✓ Skin type analysis complete")
                     skinType = analysis
                 case .pore(let analysis):
+                    print("      ✓ Pore analysis complete")
                     pore = analysis
                 case .acne(let analysis):
+                    print("      ✓ Acne analysis complete")
                     acne = analysis
                 case .redness(let analysis):
+                    print("      ✓ Redness analysis complete")
                     redness = analysis
                 case .topology(let analysis):
+                    print("      ✓ Topology analysis complete")
                     topology = analysis
                 }
             }
@@ -497,24 +512,35 @@ public class Face3DMetricsAnalyzer {
     // MARK: - ROI Metrics Computation
 
     private func computeROI3DMetrics(_ sample: ROITextureSample, rawSample: ROITextureSample?, confidence: ROIConfidence?) async -> ROI3DMetrics {
+        print("      → Computing roughness...")
         // Compute roughness proxy
         let roughness = roughnessAnalyzer.computeRoughnessProxy(sample)
+        print("      ✓ Roughness: \(roughness)")
 
+        print("      → Computing pigmentation...")
         // Compute pigmentation index
         let pigmentation = pigmentationAnalyzer.computePigmentationIndex(sample)
+        print("      ✓ Pigmentation: \(pigmentation)")
 
         // Compute specular proxy (if raw frames available)
-        let specular: Float? = if configuration.computeSpecular, let rawSample = rawSample {
-            specularAnalyzer.computeSpecularProxy(rawSample)
+        let specular: Float?
+        if configuration.computeSpecular, let rawSample = rawSample {
+            print("      → Computing specular...")
+            specular = specularAnalyzer.computeSpecularProxy(rawSample)
+            print("      ✓ Specular: \(specular ?? 0)")
         } else {
-            nil
+            specular = nil
         }
 
+        print("      → Computing luminance...")
         // Compute average luminance
         let luminance = computeAverageLuminance(sample.pixels)
+        print("      ✓ Luminance: \(luminance)")
 
+        print("      → Computing CIELAB values...")
         // Compute average CIELAB values
         let labMean = discolorationAnalyzer.computeLABMean(sample)
+        print("      ✓ LAB mean computed")
 
         // Compute scores
         let roughnessScore = scoring.mapRoughnessScore(roughness)
@@ -671,6 +697,13 @@ public class Face3DMetricsAnalyzer {
             transform: transform,
             timestamp: Date().timeIntervalSince1970
         )
+    }
+
+    /// TEMPORARY: Return nil to skip metrics - EmotionalMetricsGenerator will handle it
+    /// This bypasses the hanging parallel analyzers for testing
+    public func computeBasicMetrics(unifiedTexture: CGImage) async -> Face3DMetrics? {
+        print("⚠️ SKIPPING METRICS COMPUTATION ENTIRELY - will use fallback values")
+        return nil
     }
 }
 

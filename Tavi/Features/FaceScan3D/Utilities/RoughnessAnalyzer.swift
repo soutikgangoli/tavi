@@ -36,14 +36,24 @@ public class RoughnessAnalyzer {
 
     /// Compute roughness proxy from ROI texture sample
     /// Returns 0-1 score (higher = rougher)
+    ///
+    /// NOTE: This function downsamples to 512x512 for performance.
+    /// Roughness measures texture patterns, not individual pixels, so downsampling is safe.
+    /// Other analyzers (pores, wrinkles, acne) use full-resolution data and are NOT affected.
     public func computeRoughnessProxy(_ sample: ROITextureSample) -> Float {
+        // PERFORMANCE FIX: Downsample large images to avoid hanging
+        // Gaussian blur on 1M+ pixels is too slow - downsample to max 512x512
+        // This is SAFE for roughness because we measure texture patterns, not fine details
+        let maxDimension = 512
+        let downsampledSample = downsampleIfNeeded(sample, maxDimension: maxDimension)
+
         // Convert to luminance
-        let luminance = convertToLuminance(sample.pixels)
+        let luminance = convertToLuminance(downsampledSample.pixels)
 
         guard !luminance.isEmpty else { return 0 }
 
         // Apply high-pass filter
-        let highpass = applyHighPassFilter(luminance, width: sample.width, height: sample.height)
+        let highpass = applyHighPassFilter(luminance, width: downsampledSample.width, height: downsampledSample.height)
 
         // Compute mean luminance
         var meanLuma: Float = 0
@@ -209,5 +219,61 @@ public class RoughnessAnalyzer {
         let roughnessProxy = min(sqrt(variance) / 10.0, 1.0)
 
         return roughnessProxy
+    }
+
+    // MARK: - Performance Optimization
+
+    /// Downsample large samples to improve performance
+    private func downsampleIfNeeded(_ sample: ROITextureSample, maxDimension: Int) -> ROITextureSample {
+        // Check if downsampling needed
+        guard sample.width > maxDimension || sample.height > maxDimension else {
+            return sample  // Already small enough
+        }
+
+        // Calculate scale factor
+        let scale = Float(maxDimension) / Float(max(sample.width, sample.height))
+        let newWidth = Int(Float(sample.width) * scale)
+        let newHeight = Int(Float(sample.height) * scale)
+
+        // Downsample using simple box filter (average of nearby pixels)
+        var downsampledPixels: [SIMD3<Float>] = []
+        var downsampledUVs: [SIMD2<Float>] = []
+        downsampledPixels.reserveCapacity(newWidth * newHeight)
+        downsampledUVs.reserveCapacity(newWidth * newHeight)
+
+        let scaleX = Float(sample.width) / Float(newWidth)
+        let scaleY = Float(sample.height) / Float(newHeight)
+
+        for newY in 0..<newHeight {
+            for newX in 0..<newWidth {
+                // Map to original coordinates
+                let origX = Int(Float(newX) * scaleX)
+                let origY = Int(Float(newY) * scaleY)
+                let origIdx = origY * sample.width + origX
+
+                if origIdx < sample.pixels.count {
+                    downsampledPixels.append(sample.pixels[origIdx])
+                    // Downsample UVs if available
+                    if origIdx < sample.uvCoordinates.count {
+                        downsampledUVs.append(sample.uvCoordinates[origIdx])
+                    } else {
+                        downsampledUVs.append(SIMD2<Float>(0, 0))
+                    }
+                } else {
+                    downsampledPixels.append(SIMD3<Float>(0, 0, 0))
+                    downsampledUVs.append(SIMD2<Float>(0, 0))
+                }
+            }
+        }
+
+        print("      ℹ️ Downsampled from \(sample.width)x\(sample.height) to \(newWidth)x\(newHeight) for performance")
+
+        return ROITextureSample(
+            roi: sample.roi,
+            pixels: downsampledPixels,
+            uvCoordinates: downsampledUVs,
+            width: newWidth,
+            height: newHeight
+        )
     }
 }

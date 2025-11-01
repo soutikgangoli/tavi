@@ -10,7 +10,7 @@ import SwiftUI
 @main
 struct TaviApp: App {
     let persistenceController = PersistenceController.shared
-    @State private var showLoadingScreen = true
+    @State private var showLoadingScreen = false  // Disabled for development
 
     init() {
         // Configure crash reporting (production monitoring)

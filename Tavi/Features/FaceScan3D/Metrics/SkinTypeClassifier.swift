@@ -140,7 +140,7 @@ public class SkinTypeClassifier {
 
         // Calculate brightness (shiny skin = bright)
         let pixels = extractPixels(from: region)
-        let avgBrightness = pixels.map { Float($0.0 + $0.1 + $0.2) / 3.0 }.reduce(0, +) / Float(max(pixels.count, 1))
+        let avgBrightness = pixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(pixels.count, 1))
 
         // Normalize to 0-100
         return min(100, avgBrightness / 255 * 100)
@@ -150,9 +150,9 @@ public class SkinTypeClassifier {
         // High variance = rough/dry texture
         let pixels = extractPixels(from: image)
 
-        let avg = pixels.map { Float($0.0 + $0.1 + $0.2) / 3.0 }.reduce(0, +) / Float(pixels.count)
+        let avg = pixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(pixels.count)
         let variance = pixels.map { pixel in
-            let val = Float(pixel.0 + pixel.1 + pixel.2) / 3.0
+            let val = (Float(pixel.0) + Float(pixel.1) + Float(pixel.2)) / 3.0
             return pow(val - avg, 2)
         }.reduce(0, +) / Float(pixels.count)
 
@@ -174,9 +174,9 @@ public class SkinTypeClassifier {
         // Analyze texture variance (dry skin = high variance)
         let pixels = extractPixels(from: region)
 
-        let avg = pixels.map { Float($0.0 + $0.1 + $0.2) / 3.0 }.reduce(0, +) / Float(max(pixels.count, 1))
+        let avg = pixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(max(pixels.count, 1))
         let variance = pixels.map { pixel in
-            let val = Float(pixel.0 + pixel.1 + pixel.2) / 3.0
+            let val = (Float(pixel.0) + Float(pixel.1) + Float(pixel.2)) / 3.0
             return pow(val - avg, 2)
         }.reduce(0, +) / Float(max(pixels.count, 1))
 

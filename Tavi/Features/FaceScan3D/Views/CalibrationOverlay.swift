@@ -27,7 +27,8 @@ public struct CalibrationOverlay: View {
                     countdownTimer: viewModel.countdownTimer,
                     calibrationState: viewModel.calibrationState,
                     guidanceFeedback: viewModel.guidanceFeedback,
-                    qualityWarning: viewModel.qualityWarning
+                    qualityWarning: viewModel.qualityWarning,
+                    isPoseCorrect: viewModel.isPoseCorrect
                 )
             }
 
@@ -55,7 +56,9 @@ public struct CalibrationOverlay: View {
             }
 
             // Completion message
-            if !viewModel.isGuidanceActive && viewModel.capturedPoses.count == GuidanceStep.allCases.count && viewModel.capturedPoses.count > 0 {
+            // TESTING MODE: Show completion after 1 capture instead of all 7
+            // TODO: Change back to == GuidanceStep.allCases.count for production
+            if !viewModel.isGuidanceActive && viewModel.capturedPoses.count >= 1 && viewModel.capturedPoses.count > 0 {
                 VStack {
                     Spacer()
 
@@ -153,9 +156,44 @@ struct GuidanceView: View {
     let calibrationState: CalibrationState
     let guidanceFeedback: String?
     let qualityWarning: String?
+    let isPoseCorrect: Bool
 
     var body: some View {
         VStack {
+            // Calibration status badges - ALWAYS visible during guidance
+            HStack(spacing: 16) {
+                // Direction/Pose indicator - FIRST for visibility
+                // Green = correct, Yellow = close (has feedback), Red = wrong
+                StatusBadge(
+                    icon: "arrow.triangle.turn.up.right.diamond.fill",
+                    status: isPoseCorrect ? .good : (guidanceFeedback != nil ? .warning : .error),
+                    label: "Direction"
+                )
+
+                // Lighting indicator
+                StatusBadge(
+                    icon: "sun.max.fill",
+                    status: calibrationState.lighting.isValid ? .good : (calibrationState.lighting == .tooDark ? .warning : .error),
+                    label: "Light"
+                )
+
+                // Distance indicator
+                StatusBadge(
+                    icon: "arrow.left.and.right",
+                    status: calibrationState.distance.isValid ? .good : .warning,
+                    label: "Distance"
+                )
+
+                // Stability indicator
+                StatusBadge(
+                    icon: "hand.raised.fill",
+                    status: calibrationState.stability.isValid ? .good : .warning,
+                    label: "Stable"
+                )
+            }
+            .padding(.top, 20)
+            .padding(.horizontal)
+
             // Progress indicators
             HStack(spacing: 12) {
                 ForEach(GuidanceStep.allCases, id: \.rawValue) { step in
@@ -166,7 +204,7 @@ struct GuidanceView: View {
                     )
                 }
             }
-            .padding(.top, 60)
+            .padding(.top, 12)
             .padding(.horizontal)
 
             Spacer()
@@ -188,63 +226,98 @@ struct GuidanceView: View {
             }
             .frame(height: 120)  // Fixed height
 
-            // Instruction message - FIXED HEIGHT to prevent expanding/contracting
-            VStack(spacing: 8) {
-                Text(currentStep.instruction)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+            // Bottom instruction box - COMPACT and positioned lower
+            VStack {
+                Spacer()
 
-                // Warnings and feedback - FIXED HEIGHT container
-                ZStack {
-                    // Reserve space for 2 lines of text to prevent layout shifts
-                    Text("\n")
-                        .font(.subheadline)
-                        .opacity(0)
+                VStack(spacing: 8) {
+                    // Instruction title - SMALLER font
+                    Text(currentStep.instruction)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
 
-                    // Actual feedback content
-                    Group {
-                        if !calibrationState.isCalibrated {
-                            // Calibration warnings (lighting, distance, stability)
-                            if let message = calibrationState.primaryMessage {
-                                Text(message)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.yellow)
+                    // DEBUG: Show why countdown not starting when everything appears green
+                    if countdownTimer == 0 && isPoseCorrect && calibrationState.isCalibrated {
+                        Text("⚠️ DEBUG: All conditions green but no countdown - check quality/busy state")
+                            .font(.caption2)
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 4)
+                    }
+
+                    // Warnings and feedback - FIXED HEIGHT container
+                    ZStack {
+                        // Reserve space for feedback to prevent layout shifts
+                        Text("\n")
+                            .font(.caption)
+                            .opacity(0)
+
+                        // Actual feedback content
+                        Group {
+                            if !calibrationState.isCalibrated {
+                                // Calibration warnings (lighting, distance, stability)
+                                // Show specific issue preventing countdown
+                                if let message = calibrationState.primaryMessage {
+                                    VStack(spacing: 2) {
+                                        Text(message)
+                                            .font(.caption)
+                                            .foregroundStyle(.yellow)
+                                            .multilineTextAlignment(.center)
+                                        Text("(Countdown will start when ready)")
+                                            .font(.caption2)
+                                            .foregroundStyle(.yellow.opacity(0.8))
+                                    }
+                                }
+                            } else if let warning = qualityWarning {
+                                // Image quality warnings (blur, exposure)
+                                Text(warning)
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
                                     .multilineTextAlignment(.center)
-                            }
-                        } else if let warning = qualityWarning {
-                            // Image quality warnings (blur, exposure)
-                            Text(warning)
-                                .font(.subheadline)
-                                .foregroundStyle(.orange)
-                                .multilineTextAlignment(.center)
-                        } else if countdownTimer == 0 {
-                            // Show real-time guidance feedback when not counting down
-                            if let feedback = guidanceFeedback {
-                                Text(feedback)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.cyan)
-                                    .multilineTextAlignment(.center)
-                            } else {
-                                Text("Hold this position")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.green)
+                            } else if countdownTimer == 0 {
+                                // Show real-time guidance feedback when not counting down
+                                if let feedback = guidanceFeedback {
+                                    Text(feedback)
+                                        .font(.caption)
+                                        .foregroundStyle(.cyan)
+                                        .multilineTextAlignment(.center)
+                                } else if !isPoseCorrect {
+                                    // Pose incorrect but no specific feedback (might be in dead zone)
+                                    Text("Adjust pose to match target direction")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                        .multilineTextAlignment(.center)
+                                } else if calibrationState.distance.isValid && !calibrationState.distance.isOptimal {
+                                    // Subtle hint for non-optimal distance
+                                    VStack(spacing: 2) {
+                                        Text("Hold this position")
+                                            .font(.caption)
+                                            .foregroundStyle(.green)
+                                        Text(calibrationState.distance.message)
+                                            .font(.caption2)
+                                            .foregroundStyle(.yellow.opacity(0.7))
+                                    }
+                                } else {
+                                    Text("Hold this position")
+                                        .font(.caption)
+                                        .foregroundStyle(.green)
+                                }
                             }
                         }
+                        .transition(.opacity)
                     }
-                    .transition(.opacity)
+                    .frame(minHeight: 32)  // Reduced from 44
                 }
-                .frame(minHeight: 40)  // Fixed minimum height
-                .padding(.top, 4)
+                .padding(.horizontal, 20)  // Reduced from 32
+                .padding(.vertical, 12)  // Reduced from 20
+                .frame(maxWidth: 320)  // Limited width instead of full width
+                .background(.ultraThinMaterial)
+                .cornerRadius(16)  // Slightly smaller radius
+                .shadow(color: .black.opacity(0.2), radius: 10, y: -5)
+                .padding(.bottom, 30)  // Lower position (was 40, now 30)
             }
-            .padding(.horizontal, 32)
-            .padding(.vertical, 20)
-            .frame(minHeight: 140)  // Fixed minimum height for entire instruction box
-            .background(.ultraThinMaterial)
-            .cornerRadius(16)
-            .padding(.bottom, 120)
             .animation(.easeInOut(duration: 0.2), value: guidanceFeedback)
             .animation(.easeInOut(duration: 0.2), value: qualityWarning)
             .animation(.easeInOut(duration: 0.2), value: countdownTimer)

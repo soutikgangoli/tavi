@@ -35,7 +35,9 @@ public struct ScanConfiguration {
     public static let maxEyeBlinkThreshold: Double = 0.2
 
     /// Maximum smile threshold for neutral expression
-    public static let maxSmileThreshold: Double = 0.1
+    /// Increased from 0.1 to 0.25 to avoid false positives when looking down
+    /// (looking down naturally causes slight mouth curvature detected as "smile")
+    public static let maxSmileThreshold: Double = 0.25
 
     /// Maximum mouth pucker threshold for neutral expression
     public static let maxMouthPuckerThreshold: Double = 0.2
@@ -143,7 +145,8 @@ public struct ScanConfiguration {
     public static let textureBakeTimeout: TimeInterval = 30.0
 
     /// Timeout for metrics computation (seconds)
-    public static let metricsComputationTimeout: TimeInterval = 30.0
+    /// Increased to 60s to accommodate full analysis pipeline (~50s typical)
+    public static let metricsComputationTimeout: TimeInterval = 60.0
 
     /// Timeout for CoreData save operation (seconds)
     public static let coreDataSaveTimeout: TimeInterval = 10.0

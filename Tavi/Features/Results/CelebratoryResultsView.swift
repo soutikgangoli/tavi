@@ -4,6 +4,7 @@
 //
 //  Beautiful, emotional results view that users will LOVE
 //  Created on 2025-10-28.
+//  All build errors fixed - 2025-10-31
 //
 
 import SwiftUI
@@ -23,6 +24,7 @@ public struct CelebratoryResultsView: View {
     @State private var showImprovements = false
     @State private var showNextSteps = false
     @State private var showScanDetails = false
+    @State private var showDebugCalculations = false
 
     public init(
         emotionalMetrics: EmotionalMetrics,
@@ -92,6 +94,11 @@ public struct CelebratoryResultsView: View {
                         emotionalMetrics: emotionalMetrics,
                         clinicalMetrics: clinicalMetrics
                     )
+                }
+
+                // DEBUG: Calculation Breakdown (for debugging score differences)
+                if let clinicalMetrics = clinicalMetrics {
+                    debugCalculationSection(clinicalMetrics: clinicalMetrics)
                 }
 
                 // Scan Metadata (for transparency)
@@ -429,6 +436,198 @@ public struct CelebratoryResultsView: View {
         }
         .accessibilityLabel("Share my progress")
         .accessibilityHint("Share your skin health results with others")
+    }
+
+    private func debugCalculationSection(clinicalMetrics: Face3DMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Collapsible header
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    showDebugCalculations.toggle()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "hammer.fill")
+                        .foregroundColor(.orange)
+                    Text("Debug: Score Calculations")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.orange)
+
+                    Spacer()
+
+                    Image(systemName: showDebugCalculations ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // Expandable debug content
+            if showDebugCalculations {
+                debugCalculationContent(clinicalMetrics: clinicalMetrics)
+                    .padding([.horizontal, .bottom])
+                    .padding(.top, 4)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(uiColor: .tertiarySystemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 2)
+        )
+    }
+
+    private func debugCalculationContent(clinicalMetrics: Face3DMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("This shows exactly how your scores were calculated. Use this to understand why results differ between scans.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 4)
+
+            Divider()
+
+            // Skin Health Index Calculation
+            debugGlowScoreSection(clinicalMetrics: clinicalMetrics)
+
+            Divider()
+
+            // Radiance Calculation
+            debugRadianceSection(clinicalMetrics: clinicalMetrics)
+
+            Divider()
+
+            // Other Sub-Scores
+            debugSubScoresSection(clinicalMetrics: clinicalMetrics)
+
+            Divider()
+
+            // Clinical Raw Data
+            debugRawDataSection(clinicalMetrics: clinicalMetrics)
+        }
+    }
+
+    private func debugGlowScoreSection(clinicalMetrics: Face3DMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Skin Health Index (Overall Score)")
+                .font(.headline)
+                .foregroundColor(.orange)
+
+            if let glowAnalysis = clinicalMetrics.glowAnalysis {
+                Text("✓ Using GlowAnalyzer (Physics-based)")
+                    .font(.caption)
+                    .foregroundColor(.green)
+
+                DebugFormulaRow(
+                    label: "Glow Score",
+                    formula: "From GlowAnalyzer.glowScore",
+                    value: "\(Int(glowAnalysis.glowScore.rounded()))",
+                    rawValue: String(format: "%.2f", glowAnalysis.glowScore)
+                )
+            } else {
+                LegacyGlowScoreView(clinicalMetrics: clinicalMetrics)
+            }
+        }
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground))
+        .cornerRadius(12)
+    }
+
+    private func debugRadianceSection(clinicalMetrics: Face3DMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Radiance Score")
+                .font(.headline)
+                .foregroundColor(.yellow)
+
+            if let glowAnalysis = clinicalMetrics.glowAnalysis {
+                    Text("✓ Using GlowAnalyzer (Physics-based)")
+                        .font(.caption)
+                        .foregroundColor(.green)
+
+                    DebugFormulaRow(
+                        label: "Radiance",
+                        formula: "From GlowAnalyzer.radianceScore",
+                        value: "\(Int(glowAnalysis.radianceScore.rounded()))",
+                        rawValue: String(format: "%.2f", glowAnalysis.radianceScore)
+                    )
+                } else {
+                LegacyRadianceScoreView(clinicalMetrics: clinicalMetrics)
+            }
+        }
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground))
+        .cornerRadius(12)
+    }
+
+    private func debugSubScoresSection(clinicalMetrics: Face3DMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Other Sub-Scores (Direct Mappings)")
+                .font(.headline)
+
+            DebugFormulaRow(
+                label: "Smoothness",
+                formula: "= globalRoughnessScore",
+                value: "\(emotionalMetrics.smoothness)",
+                rawValue: String(format: "%.2f", clinicalMetrics.globalRoughnessScore)
+            )
+
+            DebugFormulaRow(
+                label: "Evenness",
+                formula: "= globalPigmentationScore",
+                value: "\(emotionalMetrics.evenness)",
+                rawValue: String(format: "%.2f", clinicalMetrics.globalPigmentationScore)
+            )
+
+            DebugFormulaRow(
+                label: "Youthfulness",
+                formula: "= globalRoughnessScore (smoothness indicator)",
+                value: "\(emotionalMetrics.youthfulness)",
+                rawValue: String(format: "%.2f", clinicalMetrics.globalRoughnessScore)
+            )
+
+            DebugFormulaRow(
+                label: "Freshness",
+                formula: "(evenness × 0.5) + (smoothness × 0.5)",
+                value: "\(emotionalMetrics.freshness)",
+                rawValue: String(format: "%.2f", (clinicalMetrics.globalPigmentationScore * 0.5 + clinicalMetrics.globalRoughnessScore * 0.5))
+            )
+
+            if let sunDamage = clinicalMetrics.sunDamageAnalysis {
+                DebugFormulaRow(
+                    label: "Sun Protection",
+                    formula: "= sunDamageAnalysis.protectionScore",
+                    value: "\(emotionalMetrics.sunProtection)",
+                    rawValue: String(format: "%.2f", sunDamage.protectionScore)
+                )
+            }
+        }
+        .padding()
+        .background(Color.blue.opacity(0.1))
+        .cornerRadius(8)
+    }
+
+    private func debugRawDataSection(clinicalMetrics: Face3DMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Raw Clinical Data")
+                .font(.headline)
+
+            DebugDataRow(label: "Global Roughness", value: String(format: "%.2f", clinicalMetrics.globalRoughnessScore))
+            DebugDataRow(label: "Global Pigmentation", value: String(format: "%.2f", clinicalMetrics.globalPigmentationScore))
+            DebugDataRow(label: "Global Discoloration", value: String(format: "%.2f", clinicalMetrics.globalDiscolorationScore))
+            if let specular = clinicalMetrics.globalSpecularScore {
+                DebugDataRow(label: "Global Specular", value: String(format: "%.2f", specular))
+            }
+            DebugDataRow(label: "Total Vertices", value: "\(clinicalMetrics.vertexCount)")
+            DebugDataRow(label: "Total Faces", value: "\(clinicalMetrics.triangleCount)")
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(8)
     }
 
     private var scanMetadataSection: some View {
@@ -875,6 +1074,184 @@ struct ActionStepCard: View {
     }
 }
 
+// MARK: - Debug Helper Views
+
+struct DebugFormulaRow: View {
+    let label: String
+    let formula: String
+    let value: String
+    let rawValue: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(label)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(value)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    Text("raw: \(rawValue)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            Text(formula)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .italic()
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct DebugDataRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+// MARK: - Legacy Score Views
+
+struct LegacyGlowScoreView: View {
+    let clinicalMetrics: Face3DMetrics
+
+    var body: some View {
+        let smoothness = clinicalMetrics.globalRoughnessScore
+        let evenness = clinicalMetrics.globalPigmentationScore
+        let discoloration = clinicalMetrics.globalDiscolorationScore
+        let specular = clinicalMetrics.globalSpecularScore ?? 50.0
+        let score = (smoothness * 0.4) + (evenness * 0.3) + (discoloration * 0.2) + (specular * 0.1)
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text("⚠ Using Legacy Fallback Formula")
+                .font(.caption)
+                .foregroundColor(.orange)
+
+            Text("Formula: (smoothness × 0.4) + (evenness × 0.3) + (discoloration × 0.2) + (specular × 0.1)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.vertical, 4)
+
+            DebugFormulaRow(
+                label: "Smoothness",
+                formula: "40% weight",
+                value: String(format: "%.2f", smoothness * 0.4),
+                rawValue: String(format: "%.2f", smoothness)
+            )
+
+            DebugFormulaRow(
+                label: "Evenness",
+                formula: "30% weight",
+                value: String(format: "%.2f", evenness * 0.3),
+                rawValue: String(format: "%.2f", evenness)
+            )
+
+            DebugFormulaRow(
+                label: "Discoloration",
+                formula: "20% weight",
+                value: String(format: "%.2f", discoloration * 0.2),
+                rawValue: String(format: "%.2f", discoloration)
+            )
+
+            DebugFormulaRow(
+                label: "Specular",
+                formula: "10% weight",
+                value: String(format: "%.2f", specular * 0.1),
+                rawValue: String(format: "%.2f", specular)
+            )
+
+            Divider()
+
+            HStack {
+                Text("Total Score:")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                Spacer()
+                Text("\(Int(score.rounded()))")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.orange)
+                Text("(raw: \(String(format: "%.2f", score)))")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(12)
+            .background(Color.orange.opacity(0.1))
+            .cornerRadius(8)
+        }
+    }
+}
+
+struct LegacyRadianceScoreView: View {
+    let clinicalMetrics: Face3DMetrics
+
+    var body: some View {
+        let evenness = clinicalMetrics.globalPigmentationScore
+        let shine = clinicalMetrics.globalSpecularScore ?? 50.0
+        let radiance = (evenness * 0.6 + shine * 0.4)
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text("⚠ Using Legacy Fallback Formula")
+                .font(.caption)
+                .foregroundColor(.orange)
+
+            Text("Formula: (evenness × 0.6) + (shine × 0.4)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.vertical, 4)
+
+            DebugFormulaRow(
+                label: "Evenness",
+                formula: "60% weight",
+                value: String(format: "%.2f", evenness * 0.6),
+                rawValue: String(format: "%.2f", evenness)
+            )
+
+            DebugFormulaRow(
+                label: "Shine",
+                formula: "40% weight",
+                value: String(format: "%.2f", shine * 0.4),
+                rawValue: String(format: "%.2f", shine)
+            )
+
+            Divider()
+
+            HStack {
+                Text("Radiance:")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                Spacer()
+                Text("\(Int(radiance.rounded()))")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.yellow)
+                Text("(raw: \(String(format: "%.2f", radiance)))")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(12)
+            .background(Color.yellow.opacity(0.1))
+            .cornerRadius(8)
+        }
+    }
+}
 
 // MARK: - Preview
 

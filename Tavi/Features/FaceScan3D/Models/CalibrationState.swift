@@ -35,20 +35,29 @@ public enum LightingCondition: String {
 public enum DistanceCondition: String {
     case tooClose = "tooClose"
     case tooFar = "tooFar"
-    case good = "good"
+    case acceptable = "acceptable"  // Works but not optimal
+    case good = "good"              // Optimal quality range
 
     var message: String {
         switch self {
         case .tooClose:
             return "Please move back a bit"
         case .tooFar:
-            return "Please move closer"
+            return "Too far - move closer for skin detail"
+        case .acceptable:
+            return "Move closer for best skin analysis quality"
         case .good:
             return "Distance is perfect"
         }
     }
 
     var isValid: Bool {
+        // STRICT: Only optimal distance allowed for quality skin analysis
+        // "acceptable" is too far - blocks countdown to encourage proper positioning
+        return self == .good
+    }
+
+    var isOptimal: Bool {
         return self == .good
     }
 }
@@ -61,7 +70,7 @@ public enum StabilityCondition {
     var message: String {
         switch self {
         case .moving:
-            return "Please hold still"
+            return "Keep your head steady to start countdown"
         case .stable:
             return "Holding steady"
         }
@@ -125,11 +134,13 @@ public enum GuidanceStep: Int, CaseIterable {
     func isPoseValid(yaw: Float, pitch: Float, roll: Float) -> Bool {
         switch self {
         case .lookStraight:
-            // Face looking at camera - BALANCED
+            // Face looking at camera - BALANCED with clear boundaries
             // Primary: yaw must be centered (most important for front view)
-            // Secondary: pitch has more tolerance (phone angle varies)
+            // Secondary: pitch has tolerance but STRICTLY limited on downward side
+            // CRITICAL FIX: pitch must be > -8° to avoid overlap with lookDown (requires < -12°)
+            // This creates a 4° gap: straight accepts -7.9° to +15°, down requires < -12°
             // Tertiary: roll should be level
-            return abs(yaw) < 12 && abs(pitch) < 15 && abs(roll) < 12
+            return abs(yaw) < 12 && pitch > -8 && pitch < 15 && abs(roll) < 12
 
         case .turnLeft:
             // Face turned left - BALANCED
@@ -149,10 +160,14 @@ public enum GuidanceStep: Int, CaseIterable {
             return pitch > 10 && pitch < 25 && abs(yaw) < 15 && abs(roll) < 12
 
         case .lookDown:
-            // Face tilted down - STRICTER
-            // Primary: pitch must be downward (-12° to -25° for clear downward tilt)
-            // Secondary: must be facing forward (tighter yaw/roll tolerance)
-            return pitch < -12 && pitch > -25 && abs(yaw) < 10 && abs(roll) < 10
+            // Face tilted down - STRONGER requirement for clear distinction
+            // Primary: pitch must be downward (-12° to -35° for clear downward tilt)
+            // CRITICAL FIX: Require at least 12° down (matching lookUp's 10° up)
+            // lookStraight accepts: pitch > -8°
+            // lookDown requires: pitch < -12°
+            // This creates a 4° gap (-12° to -8°) preventing overlap/confusion
+            // Secondary: more forgiving yaw/roll tolerance (natural head movement)
+            return pitch < -12 && pitch > -35 && abs(yaw) < 15 && abs(roll) < 12
 
         case .tiltLeft:
             // Head tilted left (ear toward shoulder) - BALANCED
@@ -185,6 +200,13 @@ public enum GuidanceStep: Int, CaseIterable {
             }
             if abs(yaw) > 12 {
                 return yaw > 0 ? "Almost straight, turn slightly right" : "Almost straight, turn slightly left"
+            }
+            // Check if pitch is too far down (would match lookDown)
+            if pitch < -10 {
+                return "Tilt your head up - too far down"
+            }
+            if pitch < -8 {
+                return "Almost there, tilt slightly up"
             }
             if abs(pitch) > 18 {
                 return pitch > 0 ? "Tilt head down to face camera" : "Tilt head up to face camera"
@@ -249,19 +271,21 @@ public enum GuidanceStep: Int, CaseIterable {
             return "Almost there, hold that position"
 
         case .lookDown:
-            // Need pitch < -12 (stricter guidance)
+            // Need pitch < -12 (STRONGER: clear distinction from straight)
             if pitch > -8 {
                 return "Tilt your head down more"
+            } else if pitch > -10 {
+                return "Keep tilting down - need clear downward angle"
             } else if pitch > -12 {
-                return "Almost there, tilt down just a bit more"
-            } else if pitch < -25 {
+                return "Almost there, tilt down a bit more"
+            } else if pitch < -35 {
                 return "Too far, tilt up slightly"
-            } else if pitch < -23 {
+            } else if pitch < -32 {
                 return "Almost too far, ease up a bit"
-            } else if abs(yaw) > 10 {
+            } else if abs(yaw) > 15 {
                 return yaw > 0 ? "Good angle, but face more forward" : "Good angle, but face more forward"
             }
-            return "Almost there, hold that position"
+            return nil  // Valid pose, no feedback needed
 
         case .tiltLeft:
             // Need roll < -10 (FIXED: negative = tilt left)
@@ -361,20 +385,39 @@ public struct CalibrationState {
         // Extract Z distance from camera (negative Z in ARKit camera space)
         let distance = abs(transform.columns.3.z)
 
-        // Optimal distance: 30-60cm for face scanning
-        if distance < 0.25 {
+        // Three-tier distance system FOR SKIN QUALITY:
+        // - OPTIMAL (30-50cm): Best quality, sufficient detail for skin analysis
+        // - ACCEPTABLE (25-30cm, 50-60cm): Works but reduced detail
+        // - TOO CLOSE/FAR: Blocks countdown OR shows strong warning
+
+        if distance < 0.20 {
+            // Too close - risk of distortion and cutoff
             self.distance = .tooClose
-        } else if distance > 0.70 {
-            self.distance = .tooFar
-        } else {
+        } else if distance < 0.25 {
+            // Close but acceptable - may have slight distortion
+            self.distance = .acceptable
+        } else if distance < 0.30 {
+            // Entering optimal zone
             self.distance = .good
+        } else if distance <= 0.50 {
+            // Optimal zone - best quality (30-50cm)
+            self.distance = .good
+        } else if distance <= 0.60 {
+            // Still acceptable but REDUCED detail (50-60cm)
+            // Skin analysis quality degrades significantly beyond 50cm
+            self.distance = .acceptable
+        } else {
+            // Too far - insufficient detail for quality skin analysis
+            // Beyond 60cm, wrinkle/texture detail is too low
+            self.distance = .tooFar
         }
     }
 
     /// Update stability by comparing transforms over time
     public mutating func updateStability(movement: Float) {
-        // Movement threshold in meters
-        let stabilityThreshold: Float = 0.01
+        // Movement threshold in meters (increased from 0.01 to 0.02 for more tolerance)
+        // 2cm movement allowance instead of 1cm - more realistic for handheld device
+        let stabilityThreshold: Float = 0.02
 
         if movement < stabilityThreshold {
             stability = .stable
