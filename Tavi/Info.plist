@@ -53,11 +53,18 @@
 	<array>
 		<string>processing</string>
 	</array>
-	<!-- Sentry Configuration (Optional - Enable after adding Sentry SDK) -->
-	<!-- Uncomment the lines below and add your DSN from https://sentry.io -->
+	<!-- Sentry Configuration -->
 	<!--
-	<key>SENTRY_DSN</key>
-	<string>https://YOUR_DSN_HERE@sentry.io/YOUR_PROJECT_ID</string>
+	     IMPORTANT: Replace this placeholder DSN with your actual Sentry DSN
+	     1. Sign up at https://sentry.io (free tier available)
+	     2. Create an iOS project
+	     3. Copy your DSN (looks like: https://abc123@o123456.ingest.sentry.io/123456)
+	     4. Replace the value below with your actual DSN
+	     5. Rebuild the app
+
+	     Without a real DSN, crash reporting will be disabled (not an error).
 	-->
+	<key>SENTRY_DSN</key>
+	<string>https://REPLACE_WITH_YOUR_ACTUAL_DSN@o000000.ingest.sentry.io/0000000</string>
 </dict>
 </plist>

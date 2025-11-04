@@ -31,6 +31,7 @@ public class SessionResult: NSManagedObject, Identifiable {
 
     // Images (stored as JPEG data with 0.8 quality for efficient storage)
     @NSManaged public var thumbnail: Data?
+    @NSManaged public var faceImage: Data?  // Full resolution face image (for comparisons and heatmap generation)
     @NSManaged public var heatmapComposite: Data?
     @NSManaged public var heatmapSharpness: Data?
     @NSManaged public var heatmapTexture: Data?
@@ -202,6 +203,15 @@ extension SessionResult {
     public var thumbnailImage: UIImage? {
         guard let data = thumbnail else { return nil }
         return UIImage(data: data)
+    }
+
+    public var faceUIImage: UIImage? {
+        guard let data = faceImage else { return nil }
+        return UIImage(data: data)
+    }
+
+    public var faceCGImage: CGImage? {
+        faceUIImage?.cgImage
     }
 
     public var grade: ScoreGrade {

@@ -34,7 +34,7 @@ public struct HeatmapView: View {
     }
 
     public var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // Image display
                 GeometryReader { geometry in

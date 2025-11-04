@@ -69,6 +69,17 @@ final class PersistenceController {
 
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+        } else {
+            // Enable automatic lightweight migration for production
+            // This allows Core Data to automatically migrate data when the model changes
+            if let storeDescription = container.persistentStoreDescriptions.first {
+                storeDescription.shouldMigrateStoreAutomatically = true
+                storeDescription.shouldInferMappingModelAutomatically = true
+
+                AppLogger.storage.info("✅ Core Data automatic migration enabled")
+                AppLogger.storage.info("   - shouldMigrateStoreAutomatically: true")
+                AppLogger.storage.info("   - shouldInferMappingModelAutomatically: true")
+            }
         }
 
         container.loadPersistentStores { description, error in
@@ -82,6 +93,9 @@ final class PersistenceController {
                 // This means data won't persist, but the app can still function
                 // Note: This recovery is done inside the completion handler to avoid unsafe container modification
                 print("⚠️ Using in-memory storage as fallback. Scan results will be lost when app closes.")
+            } else {
+                AppLogger.storage.info("✅ Core Data persistent store loaded successfully")
+                AppLogger.storage.info("   Store URL: \(description.url?.absoluteString ?? "unknown")")
             }
         }
 
@@ -112,6 +126,37 @@ final class PersistenceController {
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         return context
+    }
+
+    // MARK: - Migration Info
+
+    /// Get the current Core Data model version
+    func getCurrentModelVersion() -> String? {
+        guard let modelURL = container.managedObjectModel.versionIdentifiers.first as? String else {
+            return nil
+        }
+        return modelURL
+    }
+
+    /// Check if migration is needed
+    func isMigrationNeeded(at storeURL: URL) -> Bool {
+        do {
+            let metadata = try NSPersistentStoreCoordinator.metadataForPersistentStore(
+                ofType: NSSQLiteStoreType,
+                at: storeURL,
+                options: nil
+            )
+
+            let isCompatible = container.managedObjectModel.isConfiguration(
+                withName: nil,
+                compatibleWithStoreMetadata: metadata
+            )
+
+            return !isCompatible
+        } catch {
+            AppLogger.storage.warning("⚠️ Could not check if migration is needed: \(error.localizedDescription)")
+            return false
+        }
     }
 
     // MARK: - Session Management

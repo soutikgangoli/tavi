@@ -29,7 +29,7 @@ public struct ScoreSummaryView: View {
     }
 
     public var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
                     // Heatmap button (if image and ROI available)

@@ -258,7 +258,7 @@ public struct Face3DViewer: View {
 #if DEBUG
 struct Face3DViewer_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView {
+        NavigationStack {
             Face3DViewer(viewModel: FaceScan3DViewModel())
         }
     }

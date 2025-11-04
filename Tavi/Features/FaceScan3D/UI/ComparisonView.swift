@@ -8,38 +8,42 @@
 
 import SwiftUI
 import SceneKit
+import CoreData
 
 /// Side-by-side 3D comparison view
 public struct Comparison3DView: View {
-    let beforeScan: Face3DMetrics
-    let afterScan: Face3DMetrics
-    let beforeDate: Date
-    let afterDate: Date
+    let beforeSession: SessionResult
+    let afterSession: SessionResult
 
     @State private var rotationAngle: Float = 0
     @State private var showHeatmap: Bool = false
     @State private var selectedMetric: ComparisonMetric = .overall
 
+    public init(beforeSession: SessionResult, afterSession: SessionResult) {
+        self.beforeSession = beforeSession
+        self.afterSession = afterSession
+    }
+
     public var body: some View {
         VStack(spacing: 0) {
             // Header
             ComparisonHeaderView(
-                beforeDate: beforeDate,
-                afterDate: afterDate,
+                beforeDate: beforeSession.date,
+                afterDate: afterSession.date,
                 daysBetween: daysBetween
             )
 
-            // Side-by-side 3D models
+            // Side-by-side images
             GeometryReader { geometry in
                 HStack(spacing: 0) {
-                    // Before model
+                    // Before image
                     VStack {
                         Text("Before")
                             .font(.caption)
                             .foregroundColor(.gray)
 
                         Scene3DContainerView(
-                            metrics: beforeScan,
+                            sessionResult: beforeSession,
                             showHeatmap: showHeatmap,
                             metric: selectedMetric,
                             rotationAngle: $rotationAngle
@@ -49,14 +53,14 @@ public struct Comparison3DView: View {
 
                     Divider()
 
-                    // After model
+                    // After image
                     VStack {
                         Text("After")
                             .font(.caption)
                             .foregroundColor(.gray)
 
                         Scene3DContainerView(
-                            metrics: afterScan,
+                            sessionResult: afterSession,
                             showHeatmap: showHeatmap,
                             metric: selectedMetric,
                             rotationAngle: $rotationAngle
@@ -75,15 +79,23 @@ public struct Comparison3DView: View {
             )
 
             // Metric comparisons
-            MetricComparisonList(
-                beforeScan: beforeScan,
-                afterScan: afterScan
-            )
+            if let beforeMetrics = decodeMetrics(from: beforeSession),
+               let afterMetrics = decodeMetrics(from: afterSession) {
+                MetricComparisonList(
+                    beforeScan: beforeMetrics,
+                    afterScan: afterMetrics
+                )
+            }
         }
     }
 
     private var daysBetween: Int {
-        Calendar.current.dateComponents([.day], from: beforeDate, to: afterDate).day ?? 0
+        Calendar.current.dateComponents([.day], from: beforeSession.date, to: afterSession.date).day ?? 0
+    }
+
+    private func decodeMetrics(from session: SessionResult) -> Face3DMetrics? {
+        guard let data = session.clinicalMetricsData else { return nil }
+        return try? JSONDecoder().decode(Face3DMetrics.self, from: data)
     }
 }
 
@@ -117,28 +129,32 @@ struct ComparisonHeaderView: View {
     }
 }
 
-/// 3D scene container
+/// 3D scene container - displays actual scan images
 struct Scene3DContainerView: View {
-    let metrics: Face3DMetrics
+    let sessionResult: SessionResult
     let showHeatmap: Bool
     let metric: ComparisonMetric
     @Binding var rotationAngle: Float
 
     var body: some View {
-        // Would use SceneKit/RealityKit here
-        // For now, placeholder
         ZStack {
             Rectangle()
                 .fill(Color.gray.opacity(0.1))
 
-            VStack {
-                Image(systemName: "face.smiling")
-                    .font(.system(size: 60))
-                    .foregroundColor(.blue)
+            if let imageData = showHeatmap ? getHeatmapData() : sessionResult.thumbnail,
+               let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
                     .rotationEffect(.degrees(Double(rotationAngle)))
-
-                if showHeatmap {
-                    Text("\(metric.rawValue) Heatmap")
+                    .padding(8)
+            } else {
+                // Fallback if no image available
+                VStack {
+                    Image(systemName: "photo")
+                        .font(.system(size: 40))
+                        .foregroundColor(.gray)
+                    Text("No image available")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
@@ -146,6 +162,21 @@ struct Scene3DContainerView: View {
         }
         .cornerRadius(10)
         .padding()
+    }
+
+    private func getHeatmapData() -> Data? {
+        switch metric {
+        case .overall:
+            return sessionResult.heatmapComposite
+        case .texture:
+            return sessionResult.heatmapTexture
+        case .pigmentation:
+            return sessionResult.heatmapPigmentation
+        case .moisture:
+            return sessionResult.heatmapMoisture
+        case .sharpness:
+            return sessionResult.heatmapSharpness
+        }
     }
 }
 
@@ -312,9 +343,8 @@ struct MetricComparisonRow: View {
 /// Metrics available for comparison
 public enum ComparisonMetric: String, CaseIterable {
     case overall = "Overall"
-    case roughness = "Texture"
-    case wrinkles = "Wrinkles"
-    case hydration = "Hydration"
-    case pores = "Pores"
+    case texture = "Texture"
     case pigmentation = "Pigmentation"
+    case moisture = "Moisture"
+    case sharpness = "Sharpness"
 }

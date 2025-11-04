@@ -5,6 +5,28 @@
 //  Crash reporting and error tracking utility
 //  Created on 2025-10-29.
 //
+//  🔧 SETUP INSTRUCTIONS:
+//  =====================
+//
+//  Before releasing to production, configure Sentry crash reporting:
+//
+//  1. Sign up at https://sentry.io (free tier available)
+//  2. Create a new iOS project in Sentry dashboard
+//  3. Copy your DSN (looks like: https://abc123@o123456.ingest.sentry.io/123456)
+//  4. Add to Info.plist:
+//     - Key: SENTRY_DSN
+//     - Type: String
+//     - Value: <your DSN from step 3>
+//
+//  OR for development testing, add to Xcode scheme environment variables:
+//     - Name: SENTRY_DSN
+//     - Value: <your DSN>
+//
+//  5. Build and test - check Xcode console for "📊 CrashReporter: Production mode - Sentry enabled"
+//  6. Verify in Sentry dashboard that events are received
+//
+//  Without configuration, crash reporting will be disabled (logged in console).
+//
 
 import Foundation
 #if canImport(Sentry)
@@ -16,13 +38,13 @@ import Sentry
 /// Uses Sentry for crash and error tracking:
 /// - Automatic crash detection
 /// - Non-fatal error logging
-/// - Performance monitoring
+/// - Performance monitoring (20% sample rate)
 /// - Release tracking
 /// - User context and breadcrumbs
+/// - Session tracking
 ///
-/// To configure:
-/// 1. Add Sentry DSN to Info.plist or environment
-/// 2. Call configure() in TaviApp.init()
+/// Configuration is done via Info.plist (SENTRY_DSN key) or environment variable.
+/// See file header for detailed setup instructions.
 class CrashReporter {
     static let shared = CrashReporter()
 
@@ -46,13 +68,27 @@ class CrashReporter {
 
     #if canImport(Sentry)
     private func configureSentry() {
+        // Get Sentry DSN from environment variable or Info.plist
+        let dsn = getSentryDSN()
+
         #if DEBUG
         print("📊 CrashReporter: Development mode - crashes logged locally")
+
+        if dsn.isEmpty {
+            print("⚠️ Sentry DSN not configured. Crash reporting disabled in DEBUG mode.")
+            print("   To enable:")
+            print("   1. Sign up at https://sentry.io")
+            print("   2. Create a new iOS project")
+            print("   3. Add SENTRY_DSN to environment variables or Info.plist")
+            isEnabled = false
+            return
+        }
+
         isEnabled = true
 
         // Initialize Sentry in debug mode (only for testing)
         SentrySDK.start { options in
-            options.dsn = ProcessInfo.processInfo.environment["SENTRY_DSN"] ?? ""
+            options.dsn = dsn
             options.environment = "development"
             options.debug = true
             options.enableAutoSessionTracking = true
@@ -62,13 +98,23 @@ class CrashReporter {
             options.enabled = ProcessInfo.processInfo.environment["SENTRY_ENABLED"] == "true"
         }
         #else
+        // PRODUCTION BUILD
+
+        if dsn.isEmpty {
+            print("❌ CRITICAL: Sentry DSN not configured in PRODUCTION build!")
+            print("   Crash reporting is DISABLED. This should not happen in production.")
+            print("   Add SENTRY_DSN to Info.plist before releasing to App Store.")
+            isEnabled = false
+            return
+        }
+
         print("📊 CrashReporter: Production mode - Sentry enabled")
+        print("   DSN: \(dsn.prefix(20))...")
         isEnabled = true
 
         // Initialize Sentry for production
         SentrySDK.start { options in
-            // TODO: Replace with your Sentry DSN from https://sentry.io
-            options.dsn = ProcessInfo.processInfo.environment["SENTRY_DSN"] ?? ""
+            options.dsn = dsn
             options.environment = "production"
             options.debug = false
 
@@ -99,6 +145,23 @@ class CrashReporter {
             }
         }
         #endif
+    }
+
+    /// Get Sentry DSN from environment or Info.plist
+    /// Priority: Environment variable > Info.plist > Empty string
+    private func getSentryDSN() -> String {
+        // 1. Try environment variable (for development/testing)
+        if let envDSN = ProcessInfo.processInfo.environment["SENTRY_DSN"], !envDSN.isEmpty {
+            return envDSN
+        }
+
+        // 2. Try Info.plist (for production builds)
+        if let plistDSN = Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN") as? String, !plistDSN.isEmpty {
+            return plistDSN
+        }
+
+        // 3. No DSN configured
+        return ""
     }
     #endif
 

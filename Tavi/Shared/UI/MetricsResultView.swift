@@ -32,7 +32,7 @@ public struct MetricsResultView: View {
     }
 
     public var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
                     // Scores button (if available)

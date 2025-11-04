@@ -46,15 +46,24 @@ public struct GlowChallenge: Codable, Identifiable {
         ChallengeMilestone.allMilestones.first { daysCompleted < $0.days }
     }
 
-    public init(id: UUID = UUID(), startDate: Date = Date(), goalDays: Int = 30, baselineGlowScore: Int) {
+    public init(
+        id: UUID = UUID(),
+        startDate: Date = Date(),
+        goalDays: Int = 30,
+        checkIns: [Date] = [],
+        baselineGlowScore: Int,
+        currentGlowScore: Int? = nil,
+        isActive: Bool = true,
+        completedDate: Date? = nil
+    ) {
         self.id = id
         self.startDate = startDate
         self.goalDays = goalDays
-        self.checkIns = []
+        self.checkIns = checkIns
         self.baselineGlowScore = baselineGlowScore
-        self.currentGlowScore = baselineGlowScore
-        self.isActive = true
-        self.completedDate = nil
+        self.currentGlowScore = currentGlowScore ?? baselineGlowScore
+        self.isActive = isActive
+        self.completedDate = completedDate
     }
 }
 
@@ -309,15 +318,28 @@ public class GamificationManager {
     public func recordChallengeCheckIn(glowScore: Int) {
         guard let challenge = getCurrentChallenge() else { return }
 
-        // Note: GlowChallenge is immutable - updating requires Core Data or mutable storage
-        // For now, just save the existing challenge
-        // TODO: Implement proper challenge update mechanism
-        _ = challenge  // challenge (read-only access)
-        _ = glowScore  // glowScore (not yet implemented in update)
+        // Create updated challenge with new check-in
+        var newCheckIns = challenge.checkIns
+        let today = Calendar.current.startOfDay(for: Date())
 
-        // Placeholder: In a real implementation, we'd update checkIns array
-        // and save the modified challenge
-        saveChallenge(challenge)
+        // Only add check-in if not already recorded today
+        if !newCheckIns.contains(where: { Calendar.current.isDate($0, inSameDayAs: today) }) {
+            newCheckIns.append(today)
+        }
+
+        // Create new challenge with updated values
+        let updatedChallenge = GlowChallenge(
+            id: challenge.id,
+            startDate: challenge.startDate,
+            goalDays: challenge.goalDays,
+            checkIns: newCheckIns,
+            baselineGlowScore: challenge.baselineGlowScore,
+            currentGlowScore: glowScore,
+            isActive: challenge.isActive,
+            completedDate: newCheckIns.count >= challenge.goalDays ? Date() : challenge.completedDate
+        )
+
+        saveChallenge(updatedChallenge)
     }
 
     private func saveChallenge(_ challenge: GlowChallenge) {

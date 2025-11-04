@@ -479,6 +479,30 @@ struct ResultsDetailView: View {
 
     private var actionsSection: some View {
         VStack(spacing: 12) {
+            // Compare with latest button (if this isn't the latest scan)
+            if !isLatestScan {
+                NavigationLink {
+                    if let latestSession = fetchLatestSession() {
+                        Comparison3DView(
+                            beforeSession: session,
+                            afterSession: latestSession
+                        )
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.left.arrow.right")
+                            .font(.headline)
+                        Text("Compare with Latest Scan")
+                            .font(.headline)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(Color.blue)
+                    .cornerRadius(12)
+                }
+            }
+
             PrimaryButton(title: "Share Results") {
                 shareResults()
             }
@@ -493,6 +517,28 @@ struct ResultsDetailView: View {
                     .frame(height: 50)
             }
         }
+    }
+
+    // Helper to check if this is the latest scan
+    private var isLatestScan: Bool {
+        let request = SessionResult.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)]
+        request.fetchLimit = 1
+
+        guard let latestSession = try? viewContext.fetch(request).first else {
+            return false
+        }
+
+        return latestSession.id == session.id
+    }
+
+    // Helper to fetch the latest session
+    private func fetchLatestSession() -> SessionResult? {
+        let request = SessionResult.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)]
+        request.fetchLimit = 1
+
+        return try? viewContext.fetch(request).first
     }
 
     // MARK: - Actions

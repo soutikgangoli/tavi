@@ -361,27 +361,49 @@ public struct CelebratoryResultsView: View {
     }
 
     private var shareButton: some View {
-        Button {
-            onShareResults()
-        } label: {
-            HStack(spacing: HeadspaceDesign.Spacing.md) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 18, weight: .semibold))
+        VStack(spacing: HeadspaceDesign.Spacing.md) {
+            // Primary: Share results
+            Button {
+                onShareResults()
+            } label: {
+                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 18, weight: .semibold))
 
-                Text("Share results")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    Text("Share results")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(HeadspaceDesign.Colors.primary)
+                .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+                .shadow(
+                    color: HeadspaceDesign.Shadows.button.color,
+                    radius: HeadspaceDesign.Shadows.button.radius,
+                    x: HeadspaceDesign.Shadows.button.x,
+                    y: HeadspaceDesign.Shadows.button.y
+                )
             }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
-            .background(HeadspaceDesign.Colors.primary)
-            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
-            .shadow(
-                color: HeadspaceDesign.Shadows.button.color,
-                radius: HeadspaceDesign.Shadows.button.radius,
-                x: HeadspaceDesign.Shadows.button.x,
-                y: HeadspaceDesign.Shadows.button.y
-            )
+
+            // Secondary: Scan again
+            Button {
+                onClose()
+                // User will return to home and can tap "Scan Now" again
+            } label: {
+                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 16, weight: .semibold))
+
+                    Text("Scan again")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                }
+                .foregroundColor(HeadspaceDesign.Colors.primary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(HeadspaceDesign.Colors.primary.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+            }
         }
     }
 
