@@ -15,10 +15,14 @@ public struct CelebratoryResultsView: View {
     let onShareResults: () -> Void
     let onClose: () -> Void
     let saveStatus: SaveStatus?
+    let comparisonWarning: String?
 
     @State private var showScore = false
     @State private var showMetrics = false
     @State private var showActions = false
+    @State private var selectedMetricForHelp: MetricType? = nil
+    @State private var showFirstTimeBanner = false
+    @AppStorage("hasViewedMetricHelp") private var hasViewedMetricHelp = false
 
     public enum SaveStatus {
         case saving
@@ -32,12 +36,14 @@ public struct CelebratoryResultsView: View {
         emotionalMetrics: EmotionalMetrics,
         clinicalMetrics: Face3DMetrics? = nil,
         saveStatus: SaveStatus? = nil,
+        comparisonWarning: String? = nil,
         onShareResults: @escaping () -> Void = {},
         onClose: @escaping () -> Void = {}
     ) {
         self.emotionalMetrics = emotionalMetrics
         self.clinicalMetrics = clinicalMetrics
         self.saveStatus = saveStatus
+        self.comparisonWarning = comparisonWarning
         self.onShareResults = onShareResults
         self.onClose = onClose
     }
@@ -59,6 +65,13 @@ public struct CelebratoryResultsView: View {
                             .offset(y: showScore ? 0 : -10)
                     }
 
+                    // Comparison warning banner (if version mismatch)
+                    if let warning = comparisonWarning {
+                        comparisonWarningBanner(warning: warning)
+                            .opacity(showScore ? 1 : 0)
+                            .offset(y: showScore ? 0 : -10)
+                    }
+
                     // Main score card
                     mainScoreCard
                         .opacity(showScore ? 1 : 0)
@@ -68,6 +81,13 @@ public struct CelebratoryResultsView: View {
                     metricsSection
                         .opacity(showMetrics ? 1 : 0)
                         .offset(y: showMetrics ? 0 : 10)
+
+                    // First-time user banner
+                    if showFirstTimeBanner {
+                        firstTimeBanner
+                            .opacity(showFirstTimeBanner ? 1 : 0)
+                            .offset(y: showFirstTimeBanner ? 0 : 10)
+                    }
 
                     // Action plan
                     actionPlanSection
@@ -103,6 +123,9 @@ public struct CelebratoryResultsView: View {
         }
         .onAppear {
             animateEntrance()
+        }
+        .sheet(item: $selectedMetricForHelp) { metricType in
+            MetricExplanationView(metric: metricType)
         }
     }
 
@@ -188,35 +211,40 @@ public struct CelebratoryResultsView: View {
                     title: "Radiance",
                     icon: "sparkles",
                     score: emotionalMetrics.radiance,
-                    description: "Light reflection quality"
+                    description: "Light reflection quality",
+                    metricType: .brightness
                 )
 
                 metricCard(
                     title: "Smoothness",
                     icon: "waveform.path",
                     score: emotionalMetrics.smoothness,
-                    description: "Surface texture quality"
+                    description: "Surface texture quality",
+                    metricType: .roughness
                 )
 
                 metricCard(
                     title: "Evenness",
                     icon: "circle.hexagongrid.fill",
                     score: emotionalMetrics.evenness,
-                    description: "Tone uniformity"
+                    description: "Tone uniformity",
+                    metricType: .pigmentation
                 )
 
                 metricCard(
                     title: "Firmness",
                     icon: "arrow.up.circle.fill",
                     score: emotionalMetrics.youthfulness,
-                    description: "Skin elasticity"
+                    description: "Skin elasticity",
+                    metricType: .wrinkles
                 )
 
                 metricCard(
                     title: "Clarity",
                     icon: "drop.fill",
                     score: emotionalMetrics.freshness,
-                    description: "Overall vitality"
+                    description: "Overall vitality",
+                    metricType: .hydration
                 )
 
                 if emotionalMetrics.sunProtection > 0 {
@@ -224,14 +252,41 @@ public struct CelebratoryResultsView: View {
                         title: "Sun Protection",
                         icon: "sun.max.fill",
                         score: emotionalMetrics.sunProtection,
-                        description: "UV damage assessment"
+                        description: "UV damage assessment",
+                        metricType: .discoloration
                     )
                 }
             }
         }
     }
 
-    private func metricCard(title: String, icon: String, score: Int, description: String) -> some View {
+    private var firstTimeBanner: some View {
+        HStack(spacing: HeadspaceDesign.Spacing.md) {
+            Image(systemName: "lightbulb")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+            Text("New to skin metrics? Tap ? next to any metric to learn more")
+                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                withAnimation {
+                    showFirstTimeBanner = false
+                }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            }
+        }
+        .padding(HeadspaceDesign.Spacing.lg)
+        .background(Color.blue.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+    }
+
+    private func metricCard(title: String, icon: String, score: Int, description: String, metricType: MetricType? = nil) -> some View {
         HStack(spacing: HeadspaceDesign.Spacing.lg) {
             // Icon
             ZStack {
@@ -250,6 +305,18 @@ public struct CelebratoryResultsView: View {
                     Text(title)
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                    // Help button (if metricType is provided)
+                    if let metricType = metricType {
+                        Button {
+                            selectedMetricForHelp = metricType
+                            hasViewedMetricHelp = true
+                        } label: {
+                            Image(systemName: "questionmark.circle")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        }
+                    }
 
                     Spacer()
 
@@ -480,6 +547,13 @@ public struct CelebratoryResultsView: View {
         withAnimation(HeadspaceDesign.Animations.gentle.delay(0.5)) {
             showActions = true
         }
+
+        // Show first-time banner after animations complete
+        if !hasViewedMetricHelp {
+            withAnimation(HeadspaceDesign.Animations.gentle.delay(0.8)) {
+                showFirstTimeBanner = true
+            }
+        }
     }
 
     // MARK: - Save Status Banner
@@ -581,5 +655,39 @@ public struct CelebratoryResultsView: View {
         case .saved:
             return .clear
         }
+    }
+
+    // MARK: - Comparison Warning Banner
+
+    @ViewBuilder
+    private func comparisonWarningBanner(warning: String) -> some View {
+        HStack(spacing: 12) {
+            // Warning icon
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.orange)
+                .frame(width: 20, height: 20)
+
+            // Warning message
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Comparison Unavailable")
+                    .font(HeadspaceDesign.Typography.bodyMedium)
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                Text(warning)
+                    .font(HeadspaceDesign.Typography.caption)
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            }
+
+            Spacer()
+        }
+        .padding(HeadspaceDesign.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: HeadspaceDesign.CornerRadius.medium)
+                .fill(Color.orange.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: HeadspaceDesign.CornerRadius.medium)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
     }
 }

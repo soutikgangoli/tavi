@@ -113,6 +113,7 @@ public struct EmotionalScan3DFlowView: View {
                         emotionalMetrics: metrics,
                         clinicalMetrics: clinicalMetrics,
                         saveStatus: computedSaveStatus,
+                        comparisonWarning: comparisonUnavailableReason,
                         onShareResults: {
                             showShareSheet = true
                         },
@@ -903,13 +904,37 @@ public struct EmotionalScan3DFlowView: View {
                     return nil
                 }
 
-                let metrics = try JSONDecoder().decode(Face3DMetrics.self, from: data)
-                AppLogger.faceScan.info("✅ Loaded previous clinical metrics from \(lastSession.date)")
-                return metrics
-            } catch let error as DecodingError {
-                AppLogger.faceScan.error("Failed to decode clinical metrics: \(error)")
-                CrashReporter.shared.logError(error, context: ["operation": "json_decode_clinical"])
-                return nil
+                // Use versioned loader with migration support
+                let result = VersionedMetricsLoader.loadFace3DMetrics(from: data)
+
+                switch result {
+                case .success(let metrics, let version):
+                    AppLogger.faceScan.info("✅ Loaded previous clinical metrics from \(lastSession.date) (v\(version.versionString))")
+                    return metrics
+
+                case .migrated(let metrics, let from, let to):
+                    AppLogger.faceScan.info("🔄 Migrated clinical metrics from v\(from.versionString) to v\(to.versionString)")
+                    return metrics
+
+                case .incompatible(let version, let reason):
+                    AppLogger.faceScan.warning("⚠️ Incompatible clinical metrics version v\(version.versionString): \(reason)")
+                    Task { @MainActor in
+                        self.comparisonUnavailableReason = "Previous scan (v\(version.versionString)) is incompatible: \(reason)"
+                    }
+                    return nil
+
+                case .corrupted(let error):
+                    AppLogger.faceScan.error("❌ Corrupted clinical metrics data: \(error.localizedDescription)")
+                    CrashReporter.shared.logError(error, context: ["operation": "json_decode_clinical_versioned"])
+                    Task { @MainActor in
+                        self.comparisonUnavailableReason = "Previous scan data is corrupted"
+                    }
+                    return nil
+
+                case .notFound:
+                    AppLogger.faceScan.info("ℹ️ No previous clinical metrics found")
+                    return nil
+                }
             } catch {
                 AppLogger.faceScan.error("Failed to fetch previous clinical metrics: \(error)")
                 CrashReporter.shared.logError(error, context: ["operation": "fetch_clinical_metrics"])
@@ -940,13 +965,37 @@ public struct EmotionalScan3DFlowView: View {
                     return nil
                 }
 
-                let metrics = try JSONDecoder().decode(EmotionalMetrics.self, from: data)
-                AppLogger.faceScan.info("✅ Loaded previous emotional metrics from \(lastSession.date)")
-                return metrics
-            } catch let error as DecodingError {
-                AppLogger.faceScan.error("Failed to decode emotional metrics: \(error)")
-                CrashReporter.shared.logError(error, context: ["operation": "json_decode_emotional_previous"])
-                return nil
+                // Use versioned loader with migration support
+                let result = VersionedMetricsLoader.loadEmotionalMetrics(from: data)
+
+                switch result {
+                case .success(let metrics, let version):
+                    AppLogger.faceScan.info("✅ Loaded previous emotional metrics from \(lastSession.date) (v\(version.versionString))")
+                    return metrics
+
+                case .migrated(let metrics, let from, let to):
+                    AppLogger.faceScan.info("🔄 Migrated emotional metrics from v\(from.versionString) to v\(to.versionString)")
+                    return metrics
+
+                case .incompatible(let version, let reason):
+                    AppLogger.faceScan.warning("⚠️ Incompatible emotional metrics version v\(version.versionString): \(reason)")
+                    Task { @MainActor in
+                        self.comparisonUnavailableReason = "Previous scan (v\(version.versionString)) is incompatible: \(reason)"
+                    }
+                    return nil
+
+                case .corrupted(let error):
+                    AppLogger.faceScan.error("❌ Corrupted emotional metrics data: \(error.localizedDescription)")
+                    CrashReporter.shared.logError(error, context: ["operation": "json_decode_emotional_versioned"])
+                    Task { @MainActor in
+                        self.comparisonUnavailableReason = "Previous scan data is corrupted"
+                    }
+                    return nil
+
+                case .notFound:
+                    AppLogger.faceScan.info("ℹ️ No previous emotional metrics found")
+                    return nil
+                }
             } catch {
                 AppLogger.faceScan.error("Failed to fetch previous emotional metrics: \(error)")
                 CrashReporter.shared.logError(error, context: ["operation": "fetch_emotional_metrics"])
@@ -1002,18 +1051,26 @@ public struct EmotionalScan3DFlowView: View {
             session.moistureSpecular = Double(emotionalMetrics.radiance)
             session.moistureSmoothness = Double(emotionalMetrics.freshness)
 
-            // Store full emotional metrics as JSON
+            // Store full emotional metrics as versioned JSON
             do {
-                session.emotionalMetricsData = try JSONEncoder().encode(emotionalMetrics)
+                let versionedWrapper = try VersionedEmotionalMetrics(metrics: emotionalMetrics)
+                let encoder = JSONEncoder()
+                encoder.dateEncodingStrategy = .iso8601
+                session.emotionalMetricsData = try encoder.encode(versionedWrapper)
+                AppLogger.faceScan.info("💾 Saved emotional metrics with version \(MetricsVersion.current.versionString)")
             } catch {
                 AppLogger.faceScan.error("Failed to encode emotional metrics: \(error)")
                 CrashReporter.shared.logError(error, context: ["operation": "json_encode_emotional"])
                 return false
             }
 
-            // Store full clinical metrics as JSON (for comparisons)
+            // Store full clinical metrics as versioned JSON (for comparisons)
             do {
-                session.clinicalMetricsData = try JSONEncoder().encode(clinicalMetrics)
+                let versionedWrapper = try VersionedFace3DMetrics(metrics: clinicalMetrics)
+                let encoder = JSONEncoder()
+                encoder.dateEncodingStrategy = .iso8601
+                session.clinicalMetricsData = try encoder.encode(versionedWrapper)
+                AppLogger.faceScan.info("💾 Saved clinical metrics with version \(MetricsVersion.current.versionString)")
             } catch {
                 AppLogger.faceScan.error("Failed to encode clinical metrics: \(error)")
                 CrashReporter.shared.logError(error, context: ["operation": "json_encode_clinical"])
