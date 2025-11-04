@@ -200,9 +200,9 @@ public class ScanStateManager: ObservableObject {
             return "Tilt your head up slightly"
         case .lookDown:
             return "Tilt your head down slightly"
-        case .lookLeft:
+        case .turnLeft:
             return "Turn your head to the left"
-        case .lookRight:
+        case .turnRight:
             return "Turn your head to the right"
         }
     }

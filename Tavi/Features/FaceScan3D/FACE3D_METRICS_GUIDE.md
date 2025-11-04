@@ -694,23 +694,25 @@ let interpretation = scoring.interpretScore(overallScore)
 // Returns: "Excellent", "Very Good", "Good", "Fair", "Poor", "Very Poor"
 ```
 
-### Default Thresholds
+### Default Thresholds (Recalibrated for Real-World Conditions)
 
-| Metric | Low Threshold → Score | High Threshold → Score |
-|--------|----------------------|------------------------|
-| Roughness | 0.10 → 2.0/10 | 0.35 → 9.0/10 |
-| Pigmentation | 0.03 → 2.0/10 | 0.15 → 9.0/10 |
-| Discoloration | 0.01 → 2.0/10 | 0.06 → 9.0/10 |
-| Specular | 0.02 → 2.0/10 | 0.12 → 9.0/10 |
+| Metric | Low Threshold → Score | High Threshold → Score | Notes |
+|--------|----------------------|------------------------|-------|
+| Roughness | 0.08 → 100/100 | 0.50 → 0/100 | Relaxed by 43% for realistic lighting |
+| Pigmentation | 0.02 → 100/100 | 0.25 → 0/100 | Relaxed by 67% for lighting variance |
+| Discoloration | 0.01 → 100/100 | 0.12 → 0/100 | Doubled range for realistic assessment |
+| Specular | 0.02 → 100/100 | 0.18 → 0/100 | Relaxed by 50% |
+
+**Scale:** All scores now use the full 0-100 range (previously compressed to 20-90).
 
 ### Linear Interpolation
 
 Values between thresholds are linearly interpolated:
 
 ```
-If value <= lowThreshold:   score = 10.0 (best)
-If value >= highThreshold:  score = 2.0 (worst)
-Otherwise:                  score = linear interpolation
+If value <= lowThreshold:   score = 100.0 (best)
+If value >= highThreshold:  score = 0.0 (worst)
+Otherwise:                  score = linear interpolation (inverted)
 ```
 
 ### Composite Score Weights
@@ -728,15 +730,15 @@ Overall Score =
 ```swift
 var config = Scoring3D.Configuration()
 
-// Customize roughness thresholds
-config.roughnessLowThreshold = 0.08   // More sensitive
-config.roughnessHighThreshold = 0.40  // Less strict
+// Customize roughness thresholds (defaults shown)
+config.roughnessLowThreshold = 0.08   // Excellent skin → 100%
+config.roughnessHighThreshold = 0.50  // Poor skin → 0%
 
-// Customize score range
+// Customize score range (full 0-100 scale by default)
 config.minimumScore = 0.0
-config.maximumScore = 10.0
-config.lowScoreValue = 1.0   // Worst score
-config.highScoreValue = 10.0 // Best score
+config.maximumScore = 100.0
+config.lowScoreValue = 0.0    // Worst score
+config.highScoreValue = 100.0 // Best score
 
 let scoring = Scoring3D(configuration: config)
 ```

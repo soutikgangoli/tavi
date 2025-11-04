@@ -201,7 +201,7 @@ public class Face3DMetricsAnalyzer {
         AppLogger.metrics.info("   🌡️ Normalizing color temperature...")
         let detectedColorTemp = colorTempNormalizer.estimateColorTemperature(from: textureImage)
         let lightingType = colorTempNormalizer.detectLightingType(ambientColorTemperature: detectedColorTemp)
-        AppLogger.metrics.info("      Detected: \(String(format: "%.0f", detectedColorTemp))K (\(lightingType))")
+        AppLogger.metrics.info("      Detected: \(String(format: "%.0f", detectedColorTemp))K (\(lightingType.rawValue))")
 
         // Normalize to standard daylight (6000K) for consistent analysis
         let targetColorTemp: CGFloat = 6000
@@ -222,7 +222,7 @@ public class Face3DMetricsAnalyzer {
 
         // Step 5: Detect skin tone for normalization
         let skinTone = skinToneNormalizer.detectSkinTone(texture: textureImage)
-        AppLogger.metrics.info("   📊 Detected skin tone: \(skinTone) (reference L*: \(skinTone.referenceL))")
+        AppLogger.metrics.info("   📊 Detected skin tone: \(skinTone.rawValue) (reference L*: \(skinTone.referenceL))")
 
         // Step 5a: Compute wrinkle analysis FIRST (needed for elasticity calculation)
         AppLogger.metrics.info("   🔍 Running WrinkleAnalyzer...")
@@ -365,7 +365,7 @@ public class Face3DMetricsAnalyzer {
 
         AppLogger.metrics.info("   Advanced metrics computed:")
         if let elasticity = elasticityAnalysis {
-            AppLogger.metrics.info("   - Elasticity: \(elasticity.overallScore)/100 (\(elasticity.elasticityLevel))")
+            AppLogger.metrics.info("   - Elasticity: \(elasticity.overallScore)/100 (\(elasticity.elasticityLevel.rawValue))")
         }
         if let volume = volumeAnalysis {
             AppLogger.metrics.info("   - Volume: \(volume.overallScore)/100")
@@ -374,22 +374,22 @@ public class Face3DMetricsAnalyzer {
             AppLogger.metrics.info("   - Regional: Under-eye \(regional.underEyeDarkness.score)/100, Jawline \(regional.jawlineDefinition.definition)/100")
         }
         if let skinType = skinTypeAnalysis {
-            AppLogger.metrics.info("   - Skin Type: \(skinType.skinType) (confidence: \(skinType.confidence))")
+            AppLogger.metrics.info("   - Skin Type: \(skinType.skinType.rawValue) (confidence: \(skinType.confidence))")
         }
         if let wrinkles = wrinkleAnalysis {
-            AppLogger.metrics.info("   - Wrinkles: \(wrinkles.overallScore)/100 (\(wrinkles.wrinkleDepth), count: \(wrinkles.wrinkleCount))")
+            AppLogger.metrics.info("   - Wrinkles: \(wrinkles.overallScore)/100 (\(wrinkles.wrinkleDepth.rawValue), count: \(wrinkles.wrinkleCount))")
         }
         if let pores = poreAnalysis {
             AppLogger.metrics.info("   - Pores: visibility \(pores.visibility)/100")
         }
         if let acne = acneAnalysis {
-            AppLogger.metrics.info("   - Acne: \(acne.overallScore)/100 (\(acne.severity), count: \(acne.blemishCount))")
+            AppLogger.metrics.info("   - Acne: \(acne.overallScore)/100 (\(acne.severity.rawValue), count: \(acne.blemishCount))")
         }
         if let redness = rednessAnalysis {
-            AppLogger.metrics.info("   - Redness: \(redness.overallScore)/100 (\(redness.rednessLevel))")
+            AppLogger.metrics.info("   - Redness: \(redness.overallScore)/100 (\(redness.rednessLevel.rawValue))")
         }
         if let topology = topologyAnalysis {
-            AppLogger.metrics.info("   - Topology: \(String(format: "%.1f", topology.overallScore))/100 (\(topology.qualityLevel)) - Manifold: \(topology.isManifold), Watertight: \(topology.isWatertight)")
+            AppLogger.metrics.info("   - Topology: \(String(format: "%.1f", topology.overallScore))/100 (\(topology.qualityLevel.rawValue)) - Manifold: \(topology.isManifold), Watertight: \(topology.isWatertight)")
         }
 
         // Step 6: Apply skin tone normalization to pigmentation and discoloration scores
@@ -463,7 +463,7 @@ public class Face3DMetricsAnalyzer {
             if let sunDamage = sunDamageAnalysis {
                 AppLogger.metrics.info("   - Sun Protection: \(String(format: "%.1f", sunDamage.protectionScore))/100 (\(sunDamage.damageLevel.rawValue))")
                 AppLogger.metrics.info("      Components: Pigmentation \(String(format: "%.0f", sunDamage.pigmentationHealth))%, Photoaging \(String(format: "%.0f", sunDamage.photoagingResistance))%, Texture \(String(format: "%.0f", sunDamage.textureHealth))%")
-                AppLogger.metrics.info("      Normalized for \(skinTone): ✅")
+                AppLogger.metrics.info("      Normalized for \(skinTone.rawValue): ✅")
             }
         } else {
             AppLogger.metrics.info("   ⏭️  Skipping SunDamageAnalyzer (disabled in settings)")

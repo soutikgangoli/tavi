@@ -73,7 +73,7 @@ public class ValidationManager: ObservableObject {
         return isValid
     }
 
-    /// Validates face position and orientation
+    /// Validates face position and orientation (5 poses)
     public func validateFacePosition(transform: simd_float4x4, targetStep: GuidanceStep) -> Bool {
         let angles = extractEulerAngles(from: transform)
 
@@ -85,15 +85,15 @@ public class ValidationManager: ObservableObject {
             return abs(pitchDegrees) < 10 && abs(yawDegrees) < 10
 
         case .lookUp:
-            return pitchDegrees > 10 && pitchDegrees < 30 && abs(yawDegrees) < 10
+            return pitchDegrees > 10 && pitchDegrees < 22 && abs(yawDegrees) < 10
 
         case .lookDown:
-            return pitchDegrees < -10 && pitchDegrees > -30 && abs(yawDegrees) < 10
+            return pitchDegrees < -10 && pitchDegrees > -25 && abs(yawDegrees) < 10
 
-        case .lookLeft:
+        case .turnLeft:
             return yawDegrees > 20 && yawDegrees < 45 && abs(pitchDegrees) < 10
 
-        case .lookRight:
+        case .turnRight:
             return yawDegrees < -20 && yawDegrees > -45 && abs(pitchDegrees) < 10
         }
     }

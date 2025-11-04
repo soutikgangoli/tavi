@@ -97,13 +97,13 @@ public enum Face3DMetricsLoadResult {
     public var userMessage: String {
         switch self {
         case .success:
-            return "Previous scan loaded successfully"
-        case .migrated(_, let from, let to):
-            return "Previous scan updated from v\(from.versionString) to v\(to.versionString)"
-        case .incompatible(let version, let reason):
-            return "Previous scan (v\(version.versionString)) is incompatible: \(reason)"
-        case .corrupted(let error):
-            return "Previous scan data is corrupted: \(error.localizedDescription)"
+            return "Previous scan loaded"
+        case .migrated:
+            return "Previous scan updated to work with this version"
+        case .incompatible:
+            return "This scan is from an older version and can't be opened"
+        case .corrupted:
+            return "This scan data appears to be damaged"
         case .notFound:
             return "No previous scan found"
         }
@@ -154,13 +154,13 @@ public enum EmotionalMetricsLoadResult {
     public var userMessage: String {
         switch self {
         case .success:
-            return "Previous scan loaded successfully"
-        case .migrated(_, let from, let to):
-            return "Previous scan updated from v\(from.versionString) to v\(to.versionString)"
-        case .incompatible(let version, let reason):
-            return "Previous scan (v\(version.versionString)) is incompatible: \(reason)"
-        case .corrupted(let error):
-            return "Previous scan data is corrupted: \(error.localizedDescription)"
+            return "Previous scan loaded"
+        case .migrated:
+            return "Previous scan updated to work with this version"
+        case .incompatible:
+            return "This scan is from an older version and can't be opened"
+        case .corrupted:
+            return "This scan data appears to be damaged"
         case .notFound:
             return "No previous scan found"
         }

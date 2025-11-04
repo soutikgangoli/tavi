@@ -23,6 +23,9 @@ public class RoughnessAnalyzer {
         /// Normalization factor for energy
         public var normalizationFactor: Float = 10.0
 
+        /// Enable regional consistency validation for higher confidence
+        public var enableRegionalValidation: Bool = true
+
         public init() {}
     }
 

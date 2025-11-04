@@ -82,15 +82,13 @@ public enum StabilityCondition {
     }
 }
 
-/// Guidance steps for capture
+/// Guidance steps for capture (5 poses)
 public enum GuidanceStep: Int, CaseIterable {
     case lookStraight = 0
     case turnLeft
     case turnRight
     case lookUp
     case lookDown
-    case tiltLeft
-    case tiltRight
 
     var instruction: String {
         switch self {
@@ -104,10 +102,6 @@ public enum GuidanceStep: Int, CaseIterable {
             return "Tilt your head up a bit"
         case .lookDown:
             return "Tilt your head down a bit"
-        case .tiltLeft:
-            return "Tilt head left - ear toward shoulder (don't turn, just tilt)"
-        case .tiltRight:
-            return "Tilt head right - ear toward shoulder (don't turn, just tilt)"
         }
     }
 
@@ -123,10 +117,6 @@ public enum GuidanceStep: Int, CaseIterable {
             return "Up"
         case .lookDown:
             return "Down"
-        case .tiltLeft:
-            return "Tilt Left"
-        case .tiltRight:
-            return "Tilt Right"
         }
     }
 
@@ -155,34 +145,20 @@ public enum GuidanceStep: Int, CaseIterable {
             return yaw < -13 && yaw > -38 && abs(pitch) < 15 && abs(roll) < 15
 
         case .lookUp:
-            // Face tilted up - BALANCED
-            // Primary: pitch must be upward (10-25° is comfortable and useful)
+            // Face tilted up - BALANCED (RELAXED: 10-22° easier to achieve)
+            // Primary: pitch must be upward (10-22° is comfortable and useful)
             // Secondary: yaw/roll have tolerance
-            return pitch > 10 && pitch < 25 && abs(yaw) < 15 && abs(roll) < 12
+            return pitch > 10 && pitch < 22 && abs(yaw) < 15 && abs(roll) < 12
 
         case .lookDown:
-            // Face tilted down - STRONGER requirement for clear distinction
-            // Primary: pitch must be downward (-12° to -35° for clear downward tilt)
+            // Face tilted down - STRONGER requirement for clear distinction (RELAXED: -25° easier)
+            // Primary: pitch must be downward (-12° to -25° for clear downward tilt)
             // CRITICAL FIX: Require at least 12° down (matching lookUp's 10° up)
             // lookStraight accepts: pitch > -8°
             // lookDown requires: pitch < -12°
             // This creates a 4° gap (-12° to -8°) preventing overlap/confusion
             // Secondary: more forgiving yaw/roll tolerance (natural head movement)
-            return pitch < -12 && pitch > -35 && abs(yaw) < 15 && abs(roll) < 12
-
-        case .tiltLeft:
-            // Head tilted left (ear toward shoulder) - BALANCED
-            // FIXED: ARKit roll is inverted - negative roll = tilt left
-            // Primary: roll must be negative (left tilt) in range -10 to -28°
-            // Secondary: yaw/pitch have MORE tolerance (people naturally turn when tilting)
-            return roll < -10 && roll > -28 && abs(yaw) < 20 && abs(pitch) < 15
-
-        case .tiltRight:
-            // Head tilted right (ear toward shoulder) - BALANCED
-            // FIXED: ARKit roll is inverted - positive roll = tilt right
-            // Primary: roll must be positive (right tilt) in range 10 to 28°
-            // Secondary: yaw/pitch have MORE tolerance
-            return roll > 10 && roll < 28 && abs(yaw) < 20 && abs(pitch) < 15
+            return pitch < -12 && pitch > -25 && abs(yaw) < 15 && abs(roll) < 12
         }
     }
 
@@ -257,14 +233,14 @@ public enum GuidanceStep: Int, CaseIterable {
             return "Almost there, hold that position"
 
         case .lookUp:
-            // Need pitch > 10 (balanced guidance)
+            // Need pitch > 10 (balanced guidance, relaxed upper limit 22°)
             if pitch < 5 {
                 return "Tilt your head up more"
             } else if pitch < 10 {
                 return "Almost there, tilt up just a bit more"
-            } else if pitch > 25 {
+            } else if pitch > 22 {
                 return "Too far, tilt down slightly"
-            } else if pitch > 23 {
+            } else if pitch > 20 {
                 return "Almost too far, ease down a bit"
             } else if abs(yaw) > 15 {
                 return yaw > 0 ? "Good angle, now straighten your head" : "Good angle, now straighten your head"
@@ -272,55 +248,21 @@ public enum GuidanceStep: Int, CaseIterable {
             return "Almost there, hold that position"
 
         case .lookDown:
-            // Need pitch < -12 (STRONGER: clear distinction from straight)
+            // Need pitch < -12 (STRONGER: clear distinction from straight, relaxed lower limit -25°)
             if pitch > -8 {
                 return "Tilt your head down more"
             } else if pitch > -10 {
                 return "Keep tilting down - need clear downward angle"
             } else if pitch > -12 {
                 return "Almost there, tilt down a bit more"
-            } else if pitch < -35 {
+            } else if pitch < -25 {
                 return "Too far, tilt up slightly"
-            } else if pitch < -32 {
+            } else if pitch < -23 {
                 return "Almost too far, ease up a bit"
             } else if abs(yaw) > 15 {
                 return yaw > 0 ? "Good angle, but face more forward" : "Good angle, but face more forward"
             }
             return nil  // Valid pose, no feedback needed
-
-        case .tiltLeft:
-            // Need roll < -10 (FIXED: negative = tilt left)
-            if roll > -5 {
-                return "Tilt your head sideways to the left - ear toward shoulder"
-            } else if roll > -10 {
-                return "Almost there, tilt a bit more to the left"
-            } else if roll < -28 {
-                return "Too much tilt, bring your head back a bit"
-            } else if roll < -26 {
-                return "Almost too much, ease back a bit"
-            } else if abs(yaw) > 20 {
-                return yaw > 0 ? "Good tilt, but straighten your face toward camera" : "Good tilt, but straighten your face toward camera"
-            } else if abs(pitch) > 15 {
-                return pitch > 0 ? "Good tilt, but keep your head level" : "Good tilt, but keep your head level"
-            }
-            return "Almost there, hold that position"
-
-        case .tiltRight:
-            // Need roll > 10 (FIXED: positive = tilt right)
-            if roll < 5 {
-                return "Tilt your head sideways to the right - ear toward shoulder"
-            } else if roll < 10 {
-                return "Almost there, tilt a bit more to the right"
-            } else if roll > 28 {
-                return "Too much tilt, bring your head back a bit"
-            } else if roll > 26 {
-                return "Almost too much, ease back a bit"
-            } else if abs(yaw) > 20 {
-                return yaw > 0 ? "Good tilt, but straighten your face toward camera" : "Good tilt, but straighten your face toward camera"
-            } else if abs(pitch) > 15 {
-                return pitch > 0 ? "Good tilt, but keep your head level" : "Good tilt, but keep your head level"
-            }
-            return "Almost there, hold that position"
         }
     }
 }

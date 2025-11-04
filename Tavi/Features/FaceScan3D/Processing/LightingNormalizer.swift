@@ -49,7 +49,7 @@ class LightingNormalizer {
 
     // MARK: - Configuration
 
-    private let minBrightness: Float = 0.3
+    private let minBrightness: Float = 0.15  // Was: 0.3 - only block if VERY dark
     private let maxBrightness: Float = 0.8
     private let minUniformity: Float = 0.5  // Relaxed from 0.7 - faces have natural variance
     private let maxShadowPresence: Float = 0.3
@@ -74,7 +74,15 @@ class LightingNormalizer {
 
         // Calculate brightness
         let brightness = calculateAverageBrightness(ciImage: ciImage)
-        if brightness < minBrightness {
+
+        // Calculate dynamic range (skin-tone independent metric)
+        let dynamicRange = calculateDynamicRange(ciImage: ciImage)
+
+        // SKIN-TONE AWARE: Check dynamic range first (works for all skin tones)
+        // Only flag as "too dark" if BOTH low brightness AND poor dynamic range
+        if dynamicRange < 0.30 {
+            issues.append("Too dark - increase lighting")
+        } else if brightness < minBrightness {  // 0.15 - only block if VERY dark
             issues.append("Too dark - increase lighting")
         } else if brightness > maxBrightness {
             issues.append("Too bright - reduce lighting")
@@ -235,6 +243,39 @@ class LightingNormalizer {
 
         // If overall brightness is low, likely shadows
         return brightness < darkThreshold ? 1.0 - brightness : 0.0
+    }
+
+    /// Calculate dynamic range (max - min brightness) as a 0-1 score
+    /// Skin-tone independent: works for all skin tones
+    private func calculateDynamicRange(ciImage: CIImage) -> Float {
+        let extent = ciImage.extent
+        let inputImage = ciImage.cropped(to: extent)
+
+        // Convert to grayscale
+        guard let grayFilter = CIFilter(name: "CIColorControls") else { return 0 }
+        grayFilter.setValue(inputImage, forKey: kCIInputImageKey)
+        grayFilter.setValue(0, forKey: kCIInputSaturationKey)
+
+        guard let grayImage = grayFilter.outputImage else { return 0 }
+
+        // Sample pixels to find min/max
+        let context = CIContext()
+        let width = Int(extent.width)
+        let height = Int(extent.height)
+        var pixelData = [UInt8](repeating: 0, count: width * height)
+
+        context.render(grayImage,
+                      toBitmap: &pixelData,
+                      rowBytes: width,
+                      bounds: CGRect(x: 0, y: 0, width: width, height: height),
+                      format: .R8,
+                      colorSpace: CGColorSpaceCreateDeviceGray())
+
+        let minVal = pixelData.min() ?? 0
+        let maxVal = pixelData.max() ?? 255
+
+        // Return dynamic range as 0-1 score
+        return Float(maxVal - minVal) / 255.0
     }
 
     /// Apply adaptive white balance correction using Gray World algorithm

@@ -89,6 +89,10 @@ public enum LightingStrictnessLevel {
 /// Edge case detector
 public class EdgeCaseDetector {
 
+    // MARK: - Properties
+
+    private let skinToneNormalizer = SkinToneNormalizer()
+
     // MARK: - Public API
 
     /// Detect all edge cases
@@ -344,9 +348,9 @@ public class EdgeCaseDetector {
             quality = .tooDark
         }
         // SECONDARY: Very low brightness (but allow darker skin tones)
-        // Relaxed from 45% to 30% to accommodate darker skin tones
-        // Only block if BOTH brightness is low AND contrast is poor
-        else if averageBrightness < 0.30 && contrast < 0.12 {
+        // Further relaxed from 30% to 20% for very dark skin (Fitzpatrick VI)
+        // Only block if BOTH brightness is very low AND contrast is poor
+        else if averageBrightness < 0.20 && contrast < 0.10 {  // Was: 0.30 && 0.12
             quality = .tooDark
         }
         // WARNING: Borderline overexposure
@@ -394,8 +398,22 @@ public class EdgeCaseDetector {
         // Calculate texture variance (hair has high variance)
         let variance = calculateVariance(pixels: pixels)
 
+        // SKIN-TONE AWARE: Use relative darkness threshold based on overall skin tone
+        // Detect skin tone from full texture first
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: texture)
+        let relativeDarknessThreshold: Float
+
+        switch skinTone {
+        case .veryLight, .light:
+            relativeDarknessThreshold = 80  // Normal threshold for light skin
+        case .medium, .mediumDark:
+            relativeDarknessThreshold = 60  // Lower for medium skin
+        case .dark, .veryDark:
+            relativeDarknessThreshold = 40  // Much lower for dark skin (Fitzpatrick IV-VI)
+        }
+
         // Heuristic: dark + high variance = facial hair
-        let isDark = avgBrightness < 100
+        let isDark = avgBrightness < relativeDarknessThreshold
         let hasHighVariance = variance > 500
 
         if isDark && hasHighVariance {

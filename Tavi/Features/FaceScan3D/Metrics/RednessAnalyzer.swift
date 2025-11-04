@@ -46,7 +46,7 @@ public class RednessAnalyzer {
 
     // MARK: - Configuration
 
-    private let rednessThreshold: Float = 0.12    // R - (G+B)/2 threshold
+    private let adaptiveMultiplier: Float = 1.5    // Multiplier for relative detection (skin-tone adaptive)
     private let moderateThreshold: Float = 0.20
     private let severeThreshold: Float = 0.30
 
@@ -120,8 +120,15 @@ public class RednessAnalyzer {
 
     // MARK: - Private Methods
 
-    /// Calculate global average redness
+    /// Calculate global average redness using skin-tone adaptive threshold
     private func calculateGlobalRedness(pixelData: [UInt8], width: Int, height: Int) -> Float {
+        // STEP 1: Calculate baseline skin tone (average RGB in center region)
+        let baselineRGB = calculateBaselineSkinTone(pixelData: pixelData, width: width, height: height)
+        let baselineRedness = baselineRGB.r - (baselineRGB.g + baselineRGB.b) / 2.0
+
+        // STEP 2: Use RELATIVE threshold (adaptive to skin tone)
+        let adaptiveThreshold = max(0.08, baselineRedness * adaptiveMultiplier)
+
         var totalRedness: Float = 0
         var pixelCount = 0
 
@@ -133,11 +140,13 @@ public class RednessAnalyzer {
                 let b = Float(pixelData[index + 2]) / 255.0
 
                 // Redness index = R - (G+B)/2
-                // Positive values indicate more red
                 let redness = r - (g + b) / 2.0
 
-                if redness > 0 {
-                    totalRedness += redness
+                // Relative redness: deviation from baseline
+                let relativeRedness = redness - baselineRedness
+
+                if relativeRedness > adaptiveThreshold {
+                    totalRedness += relativeRedness
                     pixelCount += 1
                 }
             }
@@ -277,9 +286,12 @@ public class RednessAnalyzer {
         }
     }
 
-    /// Classify redness level
+    /// Classify redness level (using relative thresholds)
     private func classifyRednessLevel(globalRedness: Float) -> RednessLevel {
-        if globalRedness < rednessThreshold {
+        // Adaptive thresholds based on relative redness
+        let minimalThreshold: Float = 0.05
+
+        if globalRedness < minimalThreshold {
             return .minimal
         } else if globalRedness < moderateThreshold {
             return .mild
@@ -299,5 +311,28 @@ public class RednessAnalyzer {
         let areaScore = max(0, 100 - Float(inflamedAreaCount) * 10)
 
         return (rednessScore * 0.7 + areaScore * 0.3)
+    }
+
+    /// Calculate baseline skin tone from center region (avoids edges, hair)
+    private func calculateBaselineSkinTone(pixelData: [UInt8], width: Int, height: Int) -> (r: Float, g: Float, b: Float) {
+        // Sample center region (avoid edges, hair)
+        let centerX = width / 2
+        let centerY = height / 2
+        let sampleRadius = min(width, height) / 4
+
+        var rSum: Float = 0, gSum: Float = 0, bSum: Float = 0
+        var count = 0
+
+        for y in max(0, centerY - sampleRadius)..<min(height, centerY + sampleRadius) {
+            for x in max(0, centerX - sampleRadius)..<min(width, centerX + sampleRadius) {
+                let index = (y * width + x) * 4
+                rSum += Float(pixelData[index]) / 255.0
+                gSum += Float(pixelData[index + 1]) / 255.0
+                bSum += Float(pixelData[index + 2]) / 255.0
+                count += 1
+            }
+        }
+
+        return count > 0 ? (rSum / Float(count), gSum / Float(count), bSum / Float(count)) : (0.5, 0.5, 0.5)
     }
 }

@@ -939,7 +939,7 @@ public struct EmotionalScan3DFlowView: View {
                 case .incompatible(let version, let reason):
                     AppLogger.faceScan.warning("⚠️ Incompatible clinical metrics version v\(version.versionString): \(reason)")
                     Task { @MainActor in
-                        self.comparisonUnavailableReason = "Previous scan (v\(version.versionString)) is incompatible: \(reason)"
+                        self.comparisonUnavailableReason = "Your previous scan is from an older app version and can't be compared"
                     }
                     return nil
 
@@ -947,7 +947,7 @@ public struct EmotionalScan3DFlowView: View {
                     AppLogger.faceScan.error("❌ Corrupted clinical metrics data: \(error.localizedDescription)")
                     CrashReporter.shared.logError(error, context: ["operation": "json_decode_clinical_versioned"])
                     Task { @MainActor in
-                        self.comparisonUnavailableReason = "Previous scan data is corrupted"
+                        self.comparisonUnavailableReason = "Your previous scan data appears to be damaged and can't be compared"
                     }
                     return nil
 
@@ -1000,7 +1000,7 @@ public struct EmotionalScan3DFlowView: View {
                 case .incompatible(let version, let reason):
                     AppLogger.faceScan.warning("⚠️ Incompatible emotional metrics version v\(version.versionString): \(reason)")
                     Task { @MainActor in
-                        self.comparisonUnavailableReason = "Previous scan (v\(version.versionString)) is incompatible: \(reason)"
+                        self.comparisonUnavailableReason = "Your previous scan is from an older app version and can't be compared"
                     }
                     return nil
 
@@ -1008,7 +1008,7 @@ public struct EmotionalScan3DFlowView: View {
                     AppLogger.faceScan.error("❌ Corrupted emotional metrics data: \(error.localizedDescription)")
                     CrashReporter.shared.logError(error, context: ["operation": "json_decode_emotional_versioned"])
                     Task { @MainActor in
-                        self.comparisonUnavailableReason = "Previous scan data is corrupted"
+                        self.comparisonUnavailableReason = "Your previous scan data appears to be damaged and can't be compared"
                     }
                     return nil
 

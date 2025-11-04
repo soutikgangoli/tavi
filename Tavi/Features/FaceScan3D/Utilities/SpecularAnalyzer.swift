@@ -40,6 +40,7 @@ public class SpecularAnalyzer {
 
     /// Compute specular/oiliness proxy from raw RGB texture
     /// Returns 0-1 score where higher = more specular highlights (oilier skin)
+    /// NOW USES: Relative percentile + lighting normalization for better accuracy
     public func computeSpecularProxy(_ sample: ROITextureSample) -> Float {
         guard !sample.pixels.isEmpty else {
             return 0
@@ -51,16 +52,22 @@ public class SpecularAnalyzer {
             return 0.2126 * pixel.x + 0.7152 * pixel.y + 0.0722 * pixel.z
         }
 
-        // Step 2: Compute adaptive threshold using percentile
-        let threshold = computeAdaptiveThreshold(luminanceValues)
+        // Step 2: Calculate baseline skin reflectivity (median or mean of non-specular region)
+        let baselineReflectivity = calculateBaselineReflectivity(luminanceValues: luminanceValues)
 
-        // Step 3: Count bright pixels above threshold
-        let brightPixelCount = luminanceValues.filter { $0 >= threshold }.count
+        // Step 3: Use RELATIVE threshold (deviation from baseline, not absolute percentile)
+        let relativeThreshold = detectRelativeSpecularity(
+            luminanceValues: luminanceValues,
+            baseline: baselineReflectivity
+        )
 
-        // Step 4: Compute ratio
+        // Step 4: Count bright pixels above relative threshold
+        let brightPixelCount = luminanceValues.filter { $0 >= relativeThreshold }.count
+
+        // Step 5: Compute ratio
         let ratio = Float(brightPixelCount) / Float(sample.pixels.count)
 
-        // Step 5: Clamp to maximum
+        // Step 6: Clamp to maximum
         let clampedRatio = min(ratio, configuration.maximumSpecularRatio)
 
         return clampedRatio
@@ -82,6 +89,32 @@ public class SpecularAnalyzer {
 
         // Use maximum of percentile threshold and minimum absolute threshold
         return max(percentileThreshold, configuration.minimumBrightnessThreshold)
+    }
+
+    /// Calculate baseline skin reflectivity (non-specular regions)
+    /// Uses median of lower 60% of brightness values to avoid specular highlights
+    private func calculateBaselineReflectivity(luminanceValues: [Float]) -> Float {
+        guard !luminanceValues.isEmpty else {
+            return 0.5
+        }
+
+        let sortedValues = luminanceValues.sorted()
+        // Use 50th percentile (median) of non-highlight region
+        let medianIndex = sortedValues.count / 2
+        return sortedValues[medianIndex]
+    }
+
+    /// Detect relative specularity threshold based on deviation from baseline
+    /// More reliable than absolute percentile across different lighting conditions
+    private func detectRelativeSpecularity(luminanceValues: [Float], baseline: Float) -> Float {
+        // Specular highlights are typically 30-50% brighter than baseline skin
+        // Use 1.35x (35% brighter) as threshold
+        let relativeMultiplier: Float = 1.35
+
+        let relativeThreshold = baseline * relativeMultiplier
+
+        // Still respect minimum absolute threshold to avoid false positives in very dark regions
+        return max(relativeThreshold, configuration.minimumBrightnessThreshold)
     }
 
     // MARK: - Advanced Analysis

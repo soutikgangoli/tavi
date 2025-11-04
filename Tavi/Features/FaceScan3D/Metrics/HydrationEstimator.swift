@@ -129,6 +129,7 @@ class HydrationEstimator {
 
     private func analyzeSpecularity(texture: UIImage) -> Float {
         // Detect bright specular highlights (hydrated skin reflects more)
+        // NOW USES: Skin-tone adaptive threshold for better accuracy across all skin tones
         guard let cgImage = texture.cgImage else { return 50 }
 
         let width = cgImage.width
@@ -140,8 +141,10 @@ class HydrationEstimator {
             return 50
         }
 
+        // STEP 1: Calculate adaptive threshold based on skin tone
+        let adaptiveThreshold = calculateAdaptiveSpecularThreshold(ptr: ptr, width: width, height: height)
+
         var brightPixels = 0
-        let brightnessThreshold: UInt8 = 200
         let totalPixels = width * height
 
         for y in 0..<height {
@@ -151,8 +154,8 @@ class HydrationEstimator {
                 let g = ptr[offset + 1]
                 let b = ptr[offset + 2]
 
-                // Bright pixels indicate specularity
-                if r > brightnessThreshold && g > brightnessThreshold && b > brightnessThreshold {
+                // Bright pixels indicate specularity (using adaptive threshold)
+                if r > adaptiveThreshold && g > adaptiveThreshold && b > adaptiveThreshold {
                     brightPixels += 1
                 }
             }
@@ -160,6 +163,40 @@ class HydrationEstimator {
 
         let specularRatio = Float(brightPixels) / Float(totalPixels)
         return min(100, specularRatio * 1000)  // Scale to 0-100
+    }
+
+    /// Calculate skin-tone adaptive specular threshold
+    /// Darker skin: lower absolute brightness, but same relative threshold
+    private func calculateAdaptiveSpecularThreshold(ptr: UnsafePointer<UInt8>, width: Int, height: Int) -> UInt8 {
+        // Calculate average skin brightness from center region
+        var rSum: Int = 0, gSum: Int = 0, bSum: Int = 0
+        var count = 0
+
+        let centerX = width / 2
+        let centerY = height / 2
+        let sampleRadius = min(width, height) / 4
+
+        for y in max(0, centerY - sampleRadius)..<min(height, centerY + sampleRadius) {
+            for x in max(0, centerX - sampleRadius)..<min(width, centerX + sampleRadius) {
+                let offset = (y * width + x) * 4
+                rSum += Int(ptr[offset])
+                gSum += Int(ptr[offset + 1])
+                bSum += Int(ptr[offset + 2])
+                count += 1
+            }
+        }
+
+        guard count > 0 else { return 200 }
+
+        let avgR = Float(rSum) / Float(count)
+        let avgG = Float(gSum) / Float(count)
+        let avgB = Float(bSum) / Float(count)
+        let avgBrightness = (avgR + avgG + avgB) / 3.0
+
+        // Adaptive threshold: 70% of max possible brightness for this skin tone
+        // Darker skin: lower absolute brightness, but same relative threshold
+        let maxPossible = min(255.0, avgBrightness * 1.5)
+        return UInt8(max(150, min(220, maxPossible * 0.7)))
     }
 
     /// Method 2: Analyze texture frequency (high-frequency = rough = dehydrated)

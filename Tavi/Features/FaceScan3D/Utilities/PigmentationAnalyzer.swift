@@ -39,7 +39,10 @@ public class PigmentationAnalyzer {
 
     /// Compute pigmentation index from ROI texture sample
     /// Returns 0-1 score (higher = more pigmentation variation)
-    public func computePigmentationIndex(_ sample: ROITextureSample) -> Float {
+    /// - Parameters:
+    ///   - sample: ROI texture sample with pixel colors
+    ///   - lightingQuality: Optional lighting quality score (0-1). If provided and < 0.7, applies correction for lighting artifacts
+    public func computePigmentationIndex(_ sample: ROITextureSample, lightingQuality: Float? = nil) -> Float {
         // Convert RGB to CIELAB
         let labColors = convertToLAB(sample.pixels)
 
@@ -54,8 +57,29 @@ public class PigmentationAnalyzer {
         let varianceB = computeVariance(bChannel)
 
         // Combine variances with weights
-        let combinedVariance = varianceA * configuration.aChannelWeight +
+        var combinedVariance = varianceA * configuration.aChannelWeight +
                               varianceB * configuration.bChannelWeight
+
+        // LIGHTING QUALITY CORRECTION:
+        // Poor lighting can artificially inflate color variance due to:
+        // 1. Uneven illumination creating false color gradients
+        // 2. Shadows introducing spurious color shifts
+        // 3. Color temperature variations across the face
+        // Apply correction factor to compensate for lighting-induced variance
+        if let quality = lightingQuality, quality < 0.7 {
+            // Calculate correction factor:
+            // - At quality = 0.7: correction = 1.0 (no adjustment)
+            // - At quality = 0.5: correction = 0.94 (reduce variance by 6%)
+            // - At quality = 0.3: correction = 0.88 (reduce variance by 12%)
+            // - At quality = 0.0: correction = 0.79 (reduce variance by 21%)
+            // Max 21% reduction to avoid over-correction
+            let qualityDeficit = 0.7 - quality  // 0 to 0.7
+            let correctionFactor = 1.0 - (qualityDeficit * 0.3)  // 1.0 to 0.79
+
+            combinedVariance *= correctionFactor
+
+            AppLogger.metrics.debug("🔦 Lighting quality correction applied: quality=\(String(format: "%.2f", quality)), correction=\(String(format: "%.3f", correctionFactor))")
+        }
 
         // Normalize to 0-1 range
         let pigmentationIndex = min(sqrt(combinedVariance) / configuration.varianceNormalization, 1.0)

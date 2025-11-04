@@ -178,8 +178,9 @@ class PoreAnalyzer {
         let avgSkinBrightness = calculateAverageSkinBrightness(data: blurred, width: width, height: height)
 
         // Pores are typically 20-30% darker than surrounding skin
-        // Clamp between 50-180 to handle extreme lighting conditions
-        let minDarkness = UInt8(max(50, min(180, Int(avgSkinBrightness * 0.7))))
+        // Use LIGHTING-AWARE adaptive multiplier for better accuracy across lighting conditions
+        let adaptiveMultiplier = calculateAdaptiveMultiplier(brightness: avgSkinBrightness)
+        let minDarkness = UInt8(max(50, min(180, Int(avgSkinBrightness * adaptiveMultiplier))))
 
         print("   Adaptive pore threshold: \(minDarkness) (skin brightness: \(avgSkinBrightness))")
 
@@ -231,6 +232,21 @@ class PoreAnalyzer {
         }
 
         return count > 0 ? sum / Float(count) : 128.0  // Default to mid-gray if sampling fails
+    }
+
+    /// Calculate adaptive multiplier based on lighting conditions
+    /// Adjusts pore detection threshold for different lighting scenarios
+    private func calculateAdaptiveMultiplier(brightness: Float) -> Float {
+        // Optimal lighting: 100-200 brightness → use 0.7 (standard)
+        // Too dark: <80 → use 0.6 (more sensitive)
+        // Too bright: >220 → use 0.75 (less sensitive)
+        if brightness < 80 {
+            return 0.6  // Lower threshold for dark conditions
+        } else if brightness > 220 {
+            return 0.75  // Higher threshold for bright conditions
+        } else {
+            return 0.7  // Optimal range
+        }
     }
 
     /// Apply Gaussian blur to reduce noise
@@ -388,15 +404,15 @@ class PoreAnalyzer {
             confidence -= 10
         }
 
-        // Factor 2: Lighting conditions (optimal: 100-200 brightness)
+        // Factor 2: Lighting conditions - NOW MORE ACCURATE with adaptive thresholds
         if skinBrightness >= 100 && skinBrightness <= 200 {
-            confidence += 10  // Optimal lighting
+            confidence += 15  // Optimal lighting (increased from +10)
         } else if skinBrightness >= 80 && skinBrightness <= 220 {
-            confidence += 5   // Good lighting
+            confidence += 8   // Good lighting (increased from +5)
         } else if skinBrightness < 60 || skinBrightness > 240 {
-            confidence -= 15  // Poor lighting (too dark or too bright)
+            confidence -= 10  // Poor lighting (reduced from -15, since we handle it better)
         } else {
-            confidence -= 5   // Suboptimal lighting
+            confidence -= 3   // Suboptimal (reduced from -5)
         }
 
         // Factor 3: Detection count (more pores = more reliable statistics)

@@ -67,22 +67,63 @@ public class Scoring3D {
 
     /// Map pigmentation index (0-1) to percentage score (0-100)
     /// Lower pigmentation variance = better score (higher percentage)
-    public func mapPigmentationScore(_ pigmentationIndex: Float) -> Float {
+    /// - Parameters:
+    ///   - pigmentationIndex: Variance-based index (0-1)
+    ///   - lightingQuality: Optional lighting quality (0-1). If < 0.7, relaxes thresholds to be more forgiving
+    public func mapPigmentationScore(_ pigmentationIndex: Float, lightingQuality: Float? = nil) -> Float {
+        // ADAPTIVE THRESHOLDS:
+        // Poor lighting quality can inflate variance even after correction.
+        // Make scoring more forgiving by expanding the acceptable range.
+        var effectiveLowThreshold = configuration.pigmentationLowThreshold
+        var effectiveHighThreshold = configuration.pigmentationHighThreshold
+
+        if let quality = lightingQuality, quality < 0.7 {
+            // Relax thresholds proportionally to lighting quality deficit
+            // - At quality = 0.7: no adjustment
+            // - At quality = 0.5: expand range by 14%
+            // - At quality = 0.3: expand range by 29%
+            // - At quality = 0.0: expand range by 50%
+            let qualityDeficit = 0.7 - quality  // 0 to 0.7
+            let expansionFactor = 1.0 + (qualityDeficit * 0.7)  // 1.0 to 1.49
+
+            effectiveHighThreshold *= expansionFactor
+
+            AppLogger.metrics.debug("🔦 Pigmentation scoring adjustment: quality=\(String(format: "%.2f", quality)), threshold expansion=\(String(format: "%.2f", expansionFactor))x")
+        }
+
         return mapMetricToScore(
             value: pigmentationIndex,
-            lowThreshold: configuration.pigmentationLowThreshold,
-            highThreshold: configuration.pigmentationHighThreshold,
+            lowThreshold: effectiveLowThreshold,
+            highThreshold: effectiveHighThreshold,
             inverted: true  // Lower is better
         )
     }
 
     /// Map discoloration index (0-1) to percentage score (0-100)
     /// Lower discoloration = better score (higher percentage)
-    public func mapDiscolorationScore(_ discolorationIndex: Float) -> Float {
+    /// - Parameters:
+    ///   - discolorationIndex: Cross-region variance index (0-1)
+    ///   - lightingQuality: Optional lighting quality (0-1). If < 0.7, relaxes thresholds to be more forgiving
+    public func mapDiscolorationScore(_ discolorationIndex: Float, lightingQuality: Float? = nil) -> Float {
+        // ADAPTIVE THRESHOLDS:
+        // Similar to pigmentation, poor lighting creates artificial cross-region variance
+        var effectiveLowThreshold = configuration.discolorationLowThreshold
+        var effectiveHighThreshold = configuration.discolorationHighThreshold
+
+        if let quality = lightingQuality, quality < 0.7 {
+            // Same expansion formula as pigmentation
+            let qualityDeficit = 0.7 - quality
+            let expansionFactor = 1.0 + (qualityDeficit * 0.7)
+
+            effectiveHighThreshold *= expansionFactor
+
+            AppLogger.metrics.debug("🔦 Discoloration scoring adjustment: quality=\(String(format: "%.2f", quality)), threshold expansion=\(String(format: "%.2f", expansionFactor))x")
+        }
+
         return mapMetricToScore(
             value: discolorationIndex,
-            lowThreshold: configuration.discolorationLowThreshold,
-            highThreshold: configuration.discolorationHighThreshold,
+            lowThreshold: effectiveLowThreshold,
+            highThreshold: effectiveHighThreshold,
             inverted: true  // Lower is better
         )
     }

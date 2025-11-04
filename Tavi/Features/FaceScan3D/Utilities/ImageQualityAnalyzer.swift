@@ -106,6 +106,7 @@ public class ImageQualityAnalyzer {
 
     /// Calculate exposure score (0-1, where 0.5 is ideal middle gray)
     /// Values near 0 = underexposed, near 1 = overexposed
+    /// SKIN-TONE AWARE: Accounts for darker skin tones having lower absolute brightness
     public func calculateExposure(image: UIImage) -> Float {
         guard let cgImage = image.cgImage else { return 0.5 }
 
@@ -135,8 +136,24 @@ public class ImageQualityAnalyzer {
 
         let avgBrightness = sum / Float(pixelData.count)
 
+        // Calculate dynamic range (skin-tone independent metric)
+        let minVal = pixelData.min() ?? 0
+        let maxVal = pixelData.max() ?? 255
+        let dynamicRange = Float(maxVal - minVal) / 255.0
+
         // Normalize to 0-1 range
-        return avgBrightness / 255.0
+        let rawExposure = avgBrightness / 255.0
+
+        // SKIN-TONE AWARE ADJUSTMENT:
+        // If good dynamic range (>30%) but low brightness (<40%), likely darker skin in good lighting
+        // Adjust exposure score to account for this (map 20-40% brightness → 45-55% exposure)
+        if dynamicRange > 0.30 && rawExposure < 0.40 {
+            // Scale: 0.20 brightness → 0.45 exposure, 0.40 brightness → 0.55 exposure
+            let adjustedExposure = 0.45 + (rawExposure - 0.20) * 0.5
+            return max(0.0, min(1.0, adjustedExposure))  // Clamp to valid range
+        }
+
+        return rawExposure
     }
 
     /// Check if image is acceptably exposed

@@ -145,7 +145,7 @@
 		068C72346597C2B3DDBCC141 /* ICPAligner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ICPAligner.swift; path = ICPAligner.swift; sourceTree = "<group>"; };
 		06BE7572AD186CB93CA75F9B /* SocialSharingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SocialSharingView.swift; path = SocialSharingView.swift; sourceTree = "<group>"; };
 		08F59CDE8E00DC3053590F61 /* PigmentationAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PigmentationAnalyzer.swift; path = PigmentationAnalyzer.swift; sourceTree = "<group>"; };
-		0D2FF3EF032AFC967799B42C /* InputValidator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = InputValidator.swift; path = Tavi/Core/Utilities/InputValidator.swift; sourceTree = "<group>"; };
+		0D2FF3EF032AFC967799B42C /* InputValidator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = InputValidator.swift; path = InputValidator.swift; sourceTree = "<group>"; };
 		0D50E5227FC5623C8E7600E1 /* StreamingMeshMerger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StreamingMeshMerger.swift; path = StreamingMeshMerger.swift; sourceTree = "<group>"; };
 		13EAB1F6FDFDFC2C89790FDC /* CaptureSequence.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CaptureSequence.swift; path = CaptureSequence.swift; sourceTree = "<group>"; };
 		1551229E2CDA456D6F037D2E /* DataModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DataModels.swift; path = DataModels.swift; sourceTree = "<group>"; };
@@ -188,7 +188,7 @@
 		5147729F326BDED33E7436F3 /* ProcessingTimeEstimator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProcessingTimeEstimator.swift; path = ProcessingTimeEstimator.swift; sourceTree = "<group>"; };
 		517033E2F35AECB6551F9E72 /* FaceIDStyleGuide.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceIDStyleGuide.swift; path = FaceIDStyleGuide.swift; sourceTree = "<group>"; };
 		520FFC6A738EBE98F722868B /* TextureModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TextureModels.swift; path = TextureModels.swift; sourceTree = "<group>"; };
-		557A369F460A0C610A99ED74 /* VersionedMetricsWrapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VersionedMetricsWrapper.swift; path = VersionedMetricsWrapper.swift; sourceTree = "<group>"; };
+		557A369F460A0C610A99ED74 /* VersionedMetricsWrapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VersionedMetricsWrapper.swift; path = Persistence/VersionedMetricsWrapper.swift; sourceTree = "<group>"; };
 		5CD7BC84D72050B8AAB1A979 /* MetalTextureProcessor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetalTextureProcessor.swift; sourceTree = "<group>"; };
 		5D0A7DC414DFE59D1D14763A /* MetricsVisualizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MetricsVisualizer.swift; path = MetricsVisualizer.swift; sourceTree = "<group>"; };
 		5F6E07AE05E9703275EAB2EA /* DiscolorationAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DiscolorationAnalyzer.swift; path = DiscolorationAnalyzer.swift; sourceTree = "<group>"; };
@@ -200,7 +200,7 @@
 		66E57E306EBBC57412EE495B /* WrinkleAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WrinkleAnalyzer.swift; path = WrinkleAnalyzer.swift; sourceTree = "<group>"; };
 		6892E328A3BE31AD1F119545 /* CelebrationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CelebrationView.swift; path = UI/CelebrationView.swift; sourceTree = "<group>"; };
 		6D022F426A297217275C6E6F /* TextureExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TextureExtractor.swift; path = TextureExtractor.swift; sourceTree = "<group>"; };
-		6DF92FAB265314F82481D94A /* PDFReportGenerator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PDFReportGenerator.swift; path = Export/PDFReportGenerator.swift; sourceTree = "<group>"; };
+		6DF92FAB265314F82481D94A /* PDFReportGenerator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PDFReportGenerator.swift; path = PDFReportGenerator.swift; sourceTree = "<group>"; };
 		703B66B295797703C86C1742 /* HydrationEstimator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HydrationEstimator.swift; path = HydrationEstimator.swift; sourceTree = "<group>"; };
 		72DEDCA89960B01DCBF49627 /* CalibrationOverlay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CalibrationOverlay.swift; path = CalibrationOverlay.swift; sourceTree = "<group>"; };
 		73F52B580C07D92F4FA43575 /* TextureQualityValidator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TextureQualityValidator.swift; path = TextureQualityValidator.swift; sourceTree = "<group>"; };
@@ -268,7 +268,7 @@
 		E63190FF015139C4222A0A5B /* HapticManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HapticManager.swift; path = HapticManager.swift; sourceTree = "<group>"; };
 		E68A7098A227441F6DA17342 /* LoadingOverlay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LoadingOverlay.swift; path = LoadingOverlay.swift; sourceTree = "<group>"; };
 		EC393D853D09878A720EDC0B /* RegionalAnalyzers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RegionalAnalyzers.swift; path = RegionalAnalyzers.swift; sourceTree = "<group>"; };
-		F6014A9E77BC5C727A3CE4A8 /* PersonalizedRecommendationEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PersonalizedRecommendationEngine.swift; path = Recommendations/PersonalizedRecommendationEngine.swift; sourceTree = "<group>"; };
+		F6014A9E77BC5C727A3CE4A8 /* PersonalizedRecommendationEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PersonalizedRecommendationEngine.swift; path = PersonalizedRecommendationEngine.swift; sourceTree = "<group>"; };
 		F7495B578098FB4F168D44B9 /* FaceScan3DView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FaceScan3DView.swift; path = FaceScan3DView.swift; sourceTree = "<group>"; };
 		F81DD74BE80324DB8C9C2DAC /* Face3DMetrics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Face3DMetrics.swift; path = Face3DMetrics.swift; sourceTree = "<group>"; };
 		FCDB2F0660A14AE433BD6CBF /* LightingNormalizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LightingNormalizer.swift; path = LightingNormalizer.swift; sourceTree = "<group>"; };
@@ -491,7 +491,7 @@
 				557A369F460A0C610A99ED74 /* VersionedMetricsWrapper.swift */,
 			);
 			name = Persistence;
-			path = Persistence;
+			path = Core/Persistence;
 			sourceTree = "<group>";
 		};
 		69337075386608C319CAD2D4 /* Settings */ = {

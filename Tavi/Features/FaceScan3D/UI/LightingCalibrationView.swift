@@ -353,9 +353,12 @@ public class LightingCalibrationViewModel: NSObject, ObservableObject, AVCapture
     }
 
     private func determineLightingQuality(brightness: Float) -> UILightingQuality {
-        if brightness < 0.25 {
+        // Skin-tone-aware thresholds
+        // Darker skin (Indian, Fitzpatrick IV-VI) naturally has 20-40% luminance in good lighting
+        // Light skin has 40-60% luminance in same lighting
+        if brightness < 0.15 {  // Was: 0.25 - only block if VERY dark
             return .tooDark  // BLOCK
-        } else if brightness < 0.40 {
+        } else if brightness < 0.30 {  // Was: 0.40 - more forgiving
             return .suboptimalDark  // WARN
         } else if brightness <= 0.70 {
             return .optimal  // GOOD

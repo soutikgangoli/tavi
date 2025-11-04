@@ -95,7 +95,7 @@ class WrinkleAnalyzer {
         let curvatures = calculateCurvatures(geometry: geometry)
 
         // 2. Identify wrinkle regions (high negative curvature)
-        let wrinkleVertices = identifyWrinkleVertices(curvatures: curvatures)
+        let wrinkleVertices = identifyWrinkleVertices(curvatures: curvatures, geometry: geometry)
 
         // 3. Measure wrinkle depths
         let (avgDepth, maxDepth, wrinkleRegions) = measureWrinkleDepths(
@@ -204,12 +204,29 @@ class WrinkleAnalyzer {
     }
 
     /// Identify vertices that are part of wrinkles
-    private func identifyWrinkleVertices(curvatures: [Float]) -> Set<Int> {
+    /// Stage 1: Use moderate threshold to catch potential wrinkles (including fine ones)
+    /// Stage 2: Validate with depth check to filter out noise
+    private func identifyWrinkleVertices(
+        curvatures: [Float],
+        geometry: FaceMeshGeometry
+    ) -> Set<Int> {
         var wrinkleVertices = Set<Int>()
 
+        // Stage 1: Initial detection with moderate threshold
+        // This catches potential wrinkles (including fine ones)
+        let initialThreshold: Float = 60.0  // Moderate, not too strict
+
         for (index, curvature) in curvatures.enumerated() {
-            if curvature > curvatureThreshold {
-                wrinkleVertices.insert(index)
+            // Only flag if curvature is high enough
+            if curvature > initialThreshold {
+                // Stage 2: Quick depth check using scaling factor
+                let estimatedDepth = curvature * 0.00002  // Convert to depth
+
+                // Only include if depth would be significant (≥ 0.3mm)
+                if estimatedDepth >= minWrinkleDepth {
+                    wrinkleVertices.insert(index)
+                }
+                // If depth < 0.3mm, it's likely noise → skip it
             }
         }
 
@@ -239,6 +256,12 @@ class WrinkleAnalyzer {
                 regionVertices: region,
                 curvatures: curvatures
             )
+
+            // VALIDATION: Only count if depth is significant
+            // Skip regions with depth < 0.3mm (likely noise)
+            guard depth >= minWrinkleDepth else {
+                continue
+            }
 
             let length = estimateRegionLength(
                 geometry: geometry,
@@ -305,7 +328,7 @@ class WrinkleAnalyzer {
                 }
             }
 
-            if region.count >= 3 {  // Minimum size
+            if region.count >= 10 {  // Minimum size - filters out noise and small artifacts
                 regions.append(region)
             }
         }
