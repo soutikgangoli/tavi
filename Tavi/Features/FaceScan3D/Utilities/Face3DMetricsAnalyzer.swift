@@ -154,22 +154,33 @@ public class Face3DMetricsAnalyzer {
             }
         }
 
-        // Step 3: Compute metrics for each ROI
+        // Step 3: Compute metrics for each ROI IN PARALLEL for performance
         // NOTE: roiSamples contains FULL RESOLUTION data
         // Only RoughnessAnalyzer downsamples internally for performance
         // Pore/wrinkle/acne analyzers use full resolution
         var roiMetrics: [Face3DROI: ROI3DMetrics] = [:]
 
-        print("   Computing metrics for \(roiSamples.count) ROIs...")
-        for (roi, sample) in roiSamples {
-            print("   - Processing \(roi.displayName)...")
-            let confidence = roiConfidences[roi]
-            // sample is FULL RESOLUTION - only roughness will downsample internally
-            let metrics = await computeROI3DMetrics(sample, rawSample: nil, confidence: confidence)
-            roiMetrics[roi] = metrics
-            print("   ✓ \(roi.displayName): roughness=\(metrics.roughnessProxy), pigmentation=\(metrics.pigmentationIndex), confidence=\(metrics.confidenceLevel)")
+        print("   Computing metrics for \(roiSamples.count) ROIs in parallel...")
+
+        // Parallel processing using Task Group for significant speedup
+        await withTaskGroup(of: (Face3DROI, ROI3DMetrics).self) { group in
+            for (roi, sample) in roiSamples {
+                let confidence = roiConfidences[roi]
+                group.addTask {
+                    print("   - Processing \(roi.displayName)...")
+                    // sample is FULL RESOLUTION - only roughness will downsample internally
+                    let metrics = await self.computeROI3DMetrics(sample, rawSample: nil, confidence: confidence)
+                    print("   ✓ \(roi.displayName): roughness=\(metrics.roughnessProxy), pigmentation=\(metrics.pigmentationIndex), confidence=\(metrics.confidenceLevel)")
+                    return (roi, metrics)
+                }
+            }
+
+            // Collect results as they complete
+            for await (roi, metrics) in group {
+                roiMetrics[roi] = metrics
+            }
         }
-        print("   ✅ All ROI metrics computed")
+        print("   ✅ All ROI metrics computed (parallel processing)")
 
         // Step 4: Compute global metrics and scores
         let globalResults = computeGlobalMetrics(
@@ -177,7 +188,8 @@ public class Face3DMetricsAnalyzer {
             roiSamples: roiSamples
         )
 
-        let processingTime = Date().timeIntervalSince1970 - startTime
+        // NOTE: Don't calculate processingTime here - it's calculated at the end after all analysis
+        // let processingTime = Date().timeIntervalSince1970 - startTime
 
         // Step 5: Convert UnifiedMesh to FaceMeshGeometry for advanced analyzers
         let faceMeshGeometry = convertToFaceMeshGeometry(unifiedMesh: unifiedMesh)
@@ -402,6 +414,9 @@ public class Face3DMetricsAnalyzer {
             specularScore: globalResults.specularScore
         )
 
+        // Calculate intermediate processing time (will be updated at the end with actual total)
+        let intermediateProcessingTime = Date().timeIntervalSince1970 - startTime
+
         let metrics = Face3DMetrics(
             roiMetrics: roiMetrics,
             globalRoughnessProxy: globalResults.roughness,
@@ -418,7 +433,7 @@ public class Face3DMetricsAnalyzer {
             vertexCount: unifiedMesh.vertexCount,
             triangleCount: unifiedMesh.triangleCount,
             textureResolution: CGSize(width: unifiedTexture.width, height: unifiedTexture.height),
-            processingTime: processingTime,
+            processingTime: intermediateProcessingTime,  // Temporary - will be updated at end
             textureQuality: textureQualityResult.qualityDescription,
             lowConfidenceROIs: lowConfidenceROIs,
             isHighQuality: textureQualityResult.isValid && globalValidity.isValid,
@@ -467,6 +482,9 @@ public class Face3DMetricsAnalyzer {
         print("   - Glow Score (Health): \(String(format: "%.1f", glowAnalysis.glowScore))/100")
         print("   - Radiance Score (Luminosity): \(String(format: "%.1f", glowAnalysis.radianceScore))/100")
 
+        // Calculate ACTUAL total processing time including all parallel analyzers
+        let actualProcessingTime = Date().timeIntervalSince1970 - startTime
+
         // Update metrics with sun damage analysis and glow analysis
         let finalMetrics = Face3DMetrics(
             roiMetrics: metrics.roiMetrics,
@@ -484,7 +502,7 @@ public class Face3DMetricsAnalyzer {
             vertexCount: metrics.vertexCount,
             triangleCount: metrics.triangleCount,
             textureResolution: metrics.textureResolution,
-            processingTime: metrics.processingTime,
+            processingTime: actualProcessingTime,  // Use actual total time
             textureQuality: metrics.textureQuality,
             lowConfidenceROIs: metrics.lowConfidenceROIs,
             isHighQuality: metrics.isHighQuality,
@@ -501,7 +519,7 @@ public class Face3DMetricsAnalyzer {
             glowAnalysis: glowAnalysis
         )
 
-        print("✅ Face3DMetricsAnalyzer: Complete in \(processingTime)s")
+        print("✅ Face3DMetricsAnalyzer: Complete in \(actualProcessingTime)s")
         print("   Overall Score: \(globalResults.overallScore)/10 (\(globalResults.scoreInterpretation))")
         if !lowConfidenceROIs.isEmpty {
             print("   ⚠️ Low confidence ROIs (excluded from global): \(lowConfidenceROIs.map { $0.displayName }.joined(separator: ", "))")

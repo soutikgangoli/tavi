@@ -43,28 +43,49 @@ public func withTimeout<T>(
     operation: String = "operation",
     _ work: @escaping @Sendable () async throws -> T
 ) async throws -> T {
-    try await withThrowingTaskGroup(of: T.self) { group in
+    let startTime = Date()
+    print("⏱️ withTimeout: Starting '\(operation)' with \(seconds)s timeout")
+
+    let result: T = try await withThrowingTaskGroup(of: T.self) { group in
         // Add the actual work task
         group.addTask {
-            try await work()
+            print("⏱️ withTimeout: Work task started for '\(operation)'")
+            let workResult = try await work()
+            let elapsed = Date().timeIntervalSince(startTime)
+            print("⏱️ withTimeout: Work task completed for '\(operation)' in \(elapsed)s")
+            return workResult
         }
 
         // Add the timeout task
         group.addTask {
+            print("⏱️ withTimeout: Timeout task started for '\(operation)'")
             try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            let elapsed = Date().timeIntervalSince(startTime)
+            print("⏱️ withTimeout: Timeout task firing for '\(operation)' at \(elapsed)s")
             throw TimeoutError.timedOut(operation: operation, duration: seconds)
         }
 
         // Wait for the first task to complete
+        print("⏱️ withTimeout: Waiting for first task to complete for '\(operation)'")
         guard let result = try await group.next() else {
+            let elapsed = Date().timeIntervalSince(startTime)
+            print("⏱️ withTimeout: No result from group.next() for '\(operation)' at \(elapsed)s")
             throw TimeoutError.timedOut(operation: operation, duration: seconds)
         }
 
+        let elapsed = Date().timeIntervalSince(startTime)
+        print("⏱️ withTimeout: Got result from first task for '\(operation)' at \(elapsed)s")
+
         // Cancel remaining tasks
         group.cancelAll()
+        print("⏱️ withTimeout: Cancelled remaining tasks for '\(operation)'")
 
         return result
     }
+
+    let totalElapsed = Date().timeIntervalSince(startTime)
+    print("⏱️ withTimeout: Returning result for '\(operation)' after \(totalElapsed)s")
+    return result
 }
 
 /// Execute an async operation with a timeout, returning nil on timeout instead of throwing

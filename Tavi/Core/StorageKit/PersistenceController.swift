@@ -123,9 +123,11 @@ final class PersistenceController {
         heatmaps: [HeatmapType: CGImage]?,
         clinicalMetrics: Face3DMetrics? = nil
     ) throws {
+        AppLogger.storage.info("💾 PersistenceController: Creating new SessionResult entity...")
+
         let context = container.viewContext
 
-        _ = SessionResult(
+        let session = SessionResult(
             context: context,
             scores: scores,
             faceImage: faceImage,
@@ -133,7 +135,18 @@ final class PersistenceController {
             clinicalMetrics: clinicalMetrics
         )
 
-        try context.save()
+        AppLogger.storage.info("💾 SessionResult created with ID: \(session.id?.uuidString ?? "nil")")
+        AppLogger.storage.info("💾 Overall score: \(session.overallScore)")
+        AppLogger.storage.info("💾 Attempting CoreData context.save()...")
+
+        do {
+            try context.save()
+            AppLogger.storage.info("✅ CoreData context saved successfully!")
+        } catch {
+            AppLogger.storage.error("❌ CoreData context.save() failed: \(error)")
+            AppLogger.storage.error("❌ Error details: \(error.localizedDescription)")
+            throw error
+        }
     }
 
     /// Fetch all sessions sorted by date (newest first)

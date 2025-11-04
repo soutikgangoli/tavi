@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tavi - Professional Headspace-Inspired Redesign</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', system-ui, sans-serif;
+            background: #f5f5f7;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e1e1e;
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 48px;
+        }
+
+        .screens {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 40px;
+        }
+
+        .phone {
+            background: #1d1d1f;
+            border-radius: 40px;
+            padding: 12px;
+            box-shadow: 0 24px 72px rgba(0,0,0,0.2);
+        }
+
+        .notch {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 28px;
+            background: #1d1d1f;
+            border-radius: 0 0 20px 20px;
+            z-index: 10;
+        }
+
+        .screen {
+            background: #ffffff;
+            border-radius: 32px;
+            overflow: hidden;
+            height: 750px;
+            position: relative;
+        }
+
+        .screen-title {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e1e1e;
+        }
+
+        /* Home Screen */
+        .home {
+            background: #ffffff;
+            padding: 60px 20px 24px;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        .greeting {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1e1e1e;
+            margin-bottom: 4px;
+        }
+
+        .subgreeting {
+            font-size: 17px;
+            font-weight: 400;
+            color: #666666;
+            margin-bottom: 24px;
+        }
+
+        .hero-card {
+            background: linear-gradient(135deg, #ffc75f 0%, #fc9954 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .gradient-section {
+            padding: 32px 20px;
+            text-align: center;
+        }
+
+        .score-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 6px solid rgba(255,255,255,0.25);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .score-circle::before {
+            content: '';
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 6px solid white;
+            border-left-color: transparent;
+            border-bottom-color: transparent;
+            transform: rotate(-45deg);
+        }
+
+        .score-label {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .white-footer {
+            background: white;
+            padding: 20px;
+        }
+
+        .footer-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: #666666;
+            margin-bottom: 4px;
+        }
+
+        .footer-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e1e1e;
+        }
+
+        .view-details {
+            color: #F2764A;
+            font-size: 15px;
+            font-weight: 600;
+            float: right;
+            margin-top: -20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .icon-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(252, 188, 78, 0.15);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #FCBC4E;
+            margin-bottom: 12px;
+        }
+
+        .tip-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666666;
+            margin-bottom: 4px;
+        }
+
+        .tip-text {
+            font-size: 15px;
+            font-weight: 500;
+            color: #1e1e1e;
+        }
+
+        .sticky-button {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #F2764A;
+            color: white;
+            padding: 18px 80px;
+            border-radius: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(242, 118, 74, 0.3);
+            border: none;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        /* Preparation Screen */
+        .prep {
+            background: linear-gradient(135deg, #8E9EFF 0%, #7687F0 100%);
+            padding: 80px 24px 40px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .breathing-circle {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: radial-gradient(circle, white 0%, rgba(255,255,255,0.8) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            font-weight: 700;
+            color: #5F6FE6;
+            position: relative;
+            animation: breathe 2.5s ease-in-out infinite;
+        }
+
+        .breathing-circle::before {
+            content: '';
+            position: absolute;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+            animation: breathe 2.5s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        .prep-title {
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin: 40px 0 8px;
+        }
+
+        .prep-subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 17px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .checklist {
+            width: 100%;
+            padding: 0 32px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .check-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            font-weight: 700;
+        }
+
+        .check-text {
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .start-button {
+            width: calc(100% - 40px);
+            background: white;
+            color: #5F6FE6;
+            padding: 18px;
+            border-radius: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Results Screen */
+        .results {
+            background: #ffffff;
+            padding: 80px 20px 40px;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            width: 32px;
+            height: 32px;
+            background: #f7f7f9;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #666666;
+            z-index: 10;
+        }
+
+        .hero-title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e1e1e;
+            margin-bottom: 40px;
+        }
+
+        .score-card {
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .score-gradient {
+            background: linear-gradient(135deg, #95DAAF 0%, #76C8A0 100%);
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .big-circle {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 8px solid rgba(255,255,255,0.25);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 56px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .big-circle::before {
+            content: '';
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 8px solid white;
+            border-left-color: transparent;
+            border-bottom-color: transparent;
+            transform: rotate(-45deg);
+        }
+
+        .score-description {
+            background: white;
+            padding: 20px;
+        }
+
+        .description-text {
+            font-size: 15px;
+            font-weight: 500;
+            color: #1e1e1e;
+            line-height: 1.5;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e1e1e;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(101, 188, 126, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: #65BC7E;
+            flex-shrink: 0;
+        }
+
+        .metric-content {
+            flex: 1;
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .metric-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e1e1e;
+        }
+
+        .metric-score {
+            font-size: 20px;
+            font-weight: 700;
+            color: #65BC7E;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: rgba(101, 188, 126, 0.15);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #65BC7E;
+            border-radius: 3px;
+            transition: width 0.6s ease;
+        }
+
+        .metric-desc {
+            font-size: 13px;
+            color: #666666;
+        }
+
+        .share-btn {
+            width: 100%;
+            background: #F2764A;
+            color: white;
+            padding: 18px;
+            border-radius: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            margin-top: 40px;
+            box-shadow: 0 4px 12px rgba(242, 118, 74, 0.3);
+        }
+
+        /* Scan list items */
+        .scan-list-item {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .score-circle {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tavi - Professional Redesign</h1>
+
+        <div class="screens">
+            <!-- Home Screen -->
+            <div>
+                <div class="phone">
+                    <div class="notch"></div>
+                    <div class="screen">
+                        <div class="home">
+                            <div class="greeting">Good morning, Sarah</div>
+                            <div class="subgreeting">Track your skin health</div>
+
+                            <div class="hero-card">
+                                <div class="gradient-section">
+                                    <div class="score-circle">87</div>
+                                    <div class="score-label">Your Skin Health Score</div>
+                                </div>
+                                <div class="white-footer">
+                                    <div class="footer-text">Last scanned</div>
+                                    <div class="footer-value">2 days ago</div>
+                                    <div class="view-details">View details →</div>
+                                </div>
+                            </div>
+
+                            <div class="section-title" style="margin-top: 24px;">Recent scans</div>
+
+                            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
+                                <div class="scan-list-item">
+                                    <div class="score-circle" style="background: rgba(101, 188, 126, 0.15);">
+                                        <span style="color: #65BC7E; font-size: 22px; font-weight: 700;">87</span>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 16px; font-weight: 600; color: #1e1e1e; margin-bottom: 2px;">2 days ago</div>
+                                        <div style="font-size: 14px; color: #666666;">Very good condition</div>
+                                    </div>
+                                    <div style="color: #999999; font-size: 14px;">›</div>
+                                </div>
+
+                                <div class="scan-list-item">
+                                    <div class="score-circle" style="background: rgba(101, 188, 126, 0.15);">
+                                        <span style="color: #65BC7E; font-size: 22px; font-weight: 700;">82</span>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 16px; font-weight: 600; color: #1e1e1e; margin-bottom: 2px;">1 week ago</div>
+                                        <div style="font-size: 14px; color: #666666;">Very good condition</div>
+                                    </div>
+                                    <div style="color: #999999; font-size: 14px;">›</div>
+                                </div>
+
+                                <div class="scan-list-item">
+                                    <div class="score-circle" style="background: rgba(149, 218, 176, 0.15);">
+                                        <span style="color: #95DAB0; font-size: 22px; font-weight: 700;">67</span>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 16px; font-weight: 600; color: #1e1e1e; margin-bottom: 2px;">2 weeks ago</div>
+                                        <div style="font-size: 14px; color: #666666;">Good condition</div>
+                                    </div>
+                                    <div style="color: #999999; font-size: 14px;">›</div>
+                                </div>
+
+                                <div class="scan-list-item">
+                                    <div class="score-circle" style="background: rgba(255, 204, 0, 0.15);">
+                                        <span style="color: #FFCC00; font-size: 22px; font-weight: 700;">45</span>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 16px; font-weight: 600; color: #1e1e1e; margin-bottom: 2px;">3 weeks ago</div>
+                                        <div style="font-size: 14px; color: #666666;">Needs improvement</div>
+                                    </div>
+                                    <div style="color: #999999; font-size: 14px;">›</div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="icon-circle">💡</div>
+                                <div class="tip-label">Tip</div>
+                                <div class="tip-text">Scan in bright, natural light for best results</div>
+                            </div>
+                        </div>
+
+                        <button class="sticky-button">Start scan</button>
+                    </div>
+                </div>
+                <div class="screen-title">Home Screen</div>
+            </div>
+
+            <!-- Preparation Screen -->
+            <div>
+                <div class="phone">
+                    <div class="notch"></div>
+                    <div class="screen">
+                        <div class="prep">
+                            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <div class="breathing-circle">3</div>
+                                <div class="prep-title">Preparing scan</div>
+                                <div class="prep-subtitle">Take a deep breath</div>
+                            </div>
+
+                            <div class="checklist">
+                                <div class="checklist-item">
+                                    <div class="check-icon">✓</div>
+                                    <div class="check-text">Find bright, natural lighting</div>
+                                </div>
+                                <div class="checklist-item">
+                                    <div class="check-icon">✓</div>
+                                    <div class="check-text">Remove glasses if wearing</div>
+                                </div>
+                                <div class="checklist-item">
+                                    <div class="check-icon" style="background: rgba(255,255,255,0.15);">📱</div>
+                                    <div class="check-text" style="opacity: 0.75;">Hold device at eye level</div>
+                                </div>
+                            </div>
+
+                            <button class="start-button">Start scan</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="screen-title">Preparation</div>
+            </div>
+
+            <!-- Results Screen -->
+            <div>
+                <div class="phone">
+                    <div class="notch"></div>
+                    <div class="screen">
+                        <div class="results">
+                            <div class="close-btn">✕</div>
+
+                            <div class="hero-title">Excellent progress</div>
+
+                            <div class="score-card">
+                                <div class="score-gradient">
+                                    <div class="big-circle">87</div>
+                                    <div class="score-label">Your Skin Health Score</div>
+                                </div>
+                                <div class="score-description">
+                                    <div class="description-text">Your skin health is in great shape. Continue your current routine for best results.</div>
+                                </div>
+                            </div>
+
+                            <div class="section-title">Your skin metrics</div>
+
+                            <div class="metric-card">
+                                <div class="metric-icon">✨</div>
+                                <div class="metric-content">
+                                    <div class="metric-header">
+                                        <div class="metric-name">Radiance</div>
+                                        <div class="metric-score">85</div>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 85%;"></div>
+                                    </div>
+                                    <div class="metric-desc">Light reflection quality</div>
+                                </div>
+                            </div>
+
+                            <div class="metric-card">
+                                <div class="metric-icon" style="background: rgba(95,111,230,0.12); color: #5F6FE6;">～</div>
+                                <div class="metric-content">
+                                    <div class="metric-header">
+                                        <div class="metric-name">Smoothness</div>
+                                        <div class="metric-score" style="color: #5F6FE6;">88</div>
+                                    </div>
+                                    <div class="progress-bar" style="background: rgba(95,111,230,0.15);">
+                                        <div class="progress-fill" style="width: 88%; background: #5F6FE6;"></div>
+                                    </div>
+                                    <div class="metric-desc">Surface texture quality</div>
+                                </div>
+                            </div>
+
+                            <button class="share-btn">Share results</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="screen-title">Results Screen</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -51,9 +51,9 @@ class LightingNormalizer {
 
     private let minBrightness: Float = 0.3
     private let maxBrightness: Float = 0.8
-    private let minUniformity: Float = 0.7
+    private let minUniformity: Float = 0.5  // Relaxed from 0.7 - faces have natural variance
     private let maxShadowPresence: Float = 0.3
-    private let minAcceptableScore: Float = 0.6
+    private let minAcceptableScore: Float = 0.5  // Relaxed from 0.6 for real-world lighting
 
     // MARK: - Public API
 
@@ -97,7 +97,8 @@ class LightingNormalizer {
         let uniformityScore = uniformity
         let shadowScore = 1.0 - shadowPresence
 
-        let overallScore = (brightnessScore * 0.4 + uniformityScore * 0.4 + shadowScore * 0.2)
+        // Adjusted weighting: brightness more important than uniformity (faces have natural variance)
+        let overallScore = (brightnessScore * 0.5 + uniformityScore * 0.3 + shadowScore * 0.2)
         let isAcceptable = overallScore >= minAcceptableScore
 
         return ProcessingLightingQuality(
@@ -210,7 +211,9 @@ class LightingNormalizer {
         let cv = stdDev / mean
 
         // Convert to uniformity score (0-1, higher is better)
-        return max(0, 1.0 - cv * 2.0)
+        // Fixed: Removed 2.0 multiplier - faces naturally have brightness variance due to geometry
+        // (nose, eye sockets, cheeks create shadows even in perfect lighting)
+        return max(0, 1.0 - cv)
     }
 
     /// Detect shadow presence
@@ -234,17 +237,61 @@ class LightingNormalizer {
         return brightness < darkThreshold ? 1.0 - brightness : 0.0
     }
 
-    /// Apply white balance correction
+    /// Apply adaptive white balance correction using Gray World algorithm
+    /// This adapts to different lighting conditions (tungsten, daylight, LED, etc.)
     private func applyWhiteBalance(_ image: CIImage) -> CIImage {
-        guard let filter = CIFilter(name: "CIWhitePointAdjust") else { return image }
+        let extent = image.extent
 
-        // Estimate white point (simplified) - use CIColor instead of CIVector
-        let avgColor = CIColor(red: 0.95, green: 0.95, blue: 0.95)
+        // Calculate average color of the image using Gray World assumption
+        guard let avgFilter = CIFilter(name: "CIAreaAverage") else { return image }
+        avgFilter.setValue(image, forKey: kCIInputImageKey)
+        avgFilter.setValue(CIVector(cgRect: extent), forKey: kCIInputExtentKey)
 
-        filter.setValue(image, forKey: kCIInputImageKey)
-        filter.setValue(avgColor, forKey: "inputColor")
+        guard let outputImage = avgFilter.outputImage else { return image }
 
-        return filter.outputImage ?? image
+        var bitmap = [UInt8](repeating: 0, count: 4)
+        let context = CIContext()
+        context.render(outputImage,
+                      toBitmap: &bitmap,
+                      rowBytes: 4,
+                      bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+                      format: .RGBA8,
+                      colorSpace: nil)
+
+        let avgR = Float(bitmap[0]) / 255.0
+        let avgG = Float(bitmap[1]) / 255.0
+        let avgB = Float(bitmap[2]) / 255.0
+
+        // Gray World: target neutral tones with slight warmth for skin
+        // Skin typically has warm tones, so we target slightly warm neutral
+        let targetR: Float = 0.55
+        let targetG: Float = 0.52
+        let targetB: Float = 0.48
+
+        // Calculate gain for each channel to normalize colors
+        let gainR = avgR > 0 ? targetR / avgR : 1.0
+        let gainG = avgG > 0 ? targetG / avgG : 1.0
+        let gainB = avgB > 0 ? targetB / avgB : 1.0
+
+        // Clamp gains to reasonable range to avoid over-correction
+        let clampedGainR = max(0.7, min(1.5, gainR))
+        let clampedGainG = max(0.7, min(1.5, gainG))
+        let clampedGainB = max(0.7, min(1.5, gainB))
+
+        // Apply color matrix to correct white balance
+        guard let colorMatrixFilter = CIFilter(name: "CIColorMatrix") else { return image }
+        colorMatrixFilter.setValue(image, forKey: kCIInputImageKey)
+
+        // R channel
+        colorMatrixFilter.setValue(CIVector(x: CGFloat(clampedGainR), y: 0, z: 0, w: 0), forKey: "inputRVector")
+        // G channel
+        colorMatrixFilter.setValue(CIVector(x: 0, y: CGFloat(clampedGainG), z: 0, w: 0), forKey: "inputGVector")
+        // B channel
+        colorMatrixFilter.setValue(CIVector(x: 0, y: 0, z: CGFloat(clampedGainB), w: 0), forKey: "inputBVector")
+        // A channel (unchanged)
+        colorMatrixFilter.setValue(CIVector(x: 0, y: 0, z: 0, w: 1), forKey: "inputAVector")
+
+        return colorMatrixFilter.outputImage ?? image
     }
 
     /// Normalize exposure

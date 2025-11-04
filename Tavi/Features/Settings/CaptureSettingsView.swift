@@ -276,26 +276,26 @@ struct CaptureSettingsView: View {
 
     private var edgeCaseDetectionSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 16) {
                 Text("Edge Case Detection")
                     .font(DesignSystem.Typography.body)
                     .fontWeight(.semibold)
 
-                Toggle("Detect Glasses", isOn: $detectGlasses)
+                Toggle("Glasses", isOn: $detectGlasses)
                     .tint(DesignSystem.Colors.accent)
-                Toggle("Detect Hands on Face", isOn: $detectHands)
+                Toggle("Hands on Face", isOn: $detectHands)
                     .tint(DesignSystem.Colors.accent)
-                Toggle("Detect Hat/Headband", isOn: $detectHat)
+                Toggle("Hat/Headband", isOn: $detectHat)
                     .tint(DesignSystem.Colors.accent)
-                Toggle("Detect Heavy Makeup", isOn: $detectMakeup)
+                Toggle("Heavy Makeup", isOn: $detectMakeup)
                     .tint(DesignSystem.Colors.accent)
-                Toggle("Detect Hair Coverage", isOn: $detectHairCoverage)
+                Toggle("Hair Coverage", isOn: $detectHairCoverage)
                     .tint(DesignSystem.Colors.accent)
-                Toggle("Detect Sunburn", isOn: $detectSunburn)
+                Toggle("Sunburn", isOn: $detectSunburn)
                     .tint(DesignSystem.Colors.accent)
-                Toggle("Detect Earrings", isOn: $detectEarrings)
+                Toggle("Earrings", isOn: $detectEarrings)
                     .tint(DesignSystem.Colors.accent)
-                Toggle("Detect Facial Hair", isOn: $detectFacialHair)
+                Toggle("Facial Hair", isOn: $detectFacialHair)
                     .tint(DesignSystem.Colors.accent)
             }
             .padding(.vertical, 4)

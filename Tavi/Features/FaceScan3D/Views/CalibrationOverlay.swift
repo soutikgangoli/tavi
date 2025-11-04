@@ -11,6 +11,7 @@ import SwiftUI
 /// Calibration overlay showing lighting, distance, and guidance
 public struct CalibrationOverlay: View {
     @ObservedObject var viewModel: FaceScan3DViewModel
+    @AppStorage("debugModeEnabled") private var debugModeEnabled: Bool = false
 
     public var body: some View {
         ZStack {
@@ -91,6 +92,14 @@ public struct CalibrationOverlay: View {
                     .padding()
 
                     Spacer()
+                }
+            }
+
+            // Debug info overlay - shows detailed scan information
+            if debugModeEnabled {
+                VStack {
+                    Spacer()
+                    CalibrationDebugInfoView(viewModel: viewModel)
                 }
             }
         }
@@ -397,6 +406,89 @@ struct StepIndicator: View {
                 .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(isCurrent ? .white : .gray)
         }
+    }
+}
+
+// MARK: - Calibration Debug Info View
+
+struct CalibrationDebugInfoView: View {
+    @ObservedObject var viewModel: FaceScan3DViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("DEBUG MODE")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundStyle(.yellow)
+
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Calibration")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white.opacity(0.7))
+                    Text("✓ Calibrated: \(viewModel.calibrationState.isCalibrated ? "Yes" : "No")")
+                        .font(.caption2)
+                        .foregroundStyle(viewModel.calibrationState.isCalibrated ? .green : .red)
+                    Text("✓ Pose Valid: \(viewModel.isPoseCorrect ? "Yes" : "No")")
+                        .font(.caption2)
+                        .foregroundStyle(viewModel.isPoseCorrect ? .green : .red)
+                }
+
+                Divider()
+                    .frame(height: 40)
+                    .background(.white.opacity(0.3))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Quality")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white.opacity(0.7))
+                    Text("Lighting: \(viewModel.calibrationState.lighting.rawValue)")
+                        .font(.caption2)
+                        .foregroundStyle(viewModel.calibrationState.lighting.isValid ? .green : .orange)
+                    Text("Distance: \(viewModel.calibrationState.distance.rawValue)")
+                        .font(.caption2)
+                        .foregroundStyle(viewModel.calibrationState.distance.isValid ? .green : .orange)
+                }
+
+                Divider()
+                    .frame(height: 40)
+                    .background(.white.opacity(0.3))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Scan State")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white.opacity(0.7))
+                    Text("Guidance: \(viewModel.isGuidanceActive ? "Active" : "Inactive")")
+                        .font(.caption2)
+                        .foregroundStyle(viewModel.isGuidanceActive ? .green : .gray)
+                    Text("Captured: \(viewModel.capturedPoses.count)/\(GuidanceStep.allCases.count)")
+                        .font(.caption2)
+                        .foregroundStyle(.cyan)
+                }
+            }
+
+            if let warning = viewModel.qualityWarning {
+                Divider()
+                    .background(.white.opacity(0.3))
+                Text("⚠️ Warning: \(warning)")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
+
+            if let feedback = viewModel.guidanceFeedback {
+                Text("💡 Feedback: \(feedback)")
+                    .font(.caption2)
+                    .foregroundStyle(.cyan)
+            }
+        }
+        .padding(12)
+        .background(.black.opacity(0.7))
+        .cornerRadius(12)
+        .padding(.horizontal)
+        .padding(.bottom, 8)
     }
 }
 

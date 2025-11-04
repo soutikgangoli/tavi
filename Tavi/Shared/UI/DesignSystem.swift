@@ -39,11 +39,38 @@ enum DesignSystem {
         static let cardBackground = Color(uiColor: .secondarySystemBackground) // Adapts to dark mode
         static let cardBorder = Color(uiColor: .separator) // Adapts to dark mode
 
-        /// Status colors
+        /// Status colors (professional, muted tones that work in both modes)
         static let success = Color(red: 0.0, green: 0.7, blue: 0.4) // Green
         static let warning = Color(red: 1.0, green: 0.6, blue: 0.0) // Orange
         static let error = Color(red: 0.9, green: 0.2, blue: 0.2) // Red
         static let info = Color(red: 0.2, green: 0.6, blue: 1.0) // Blue
+
+        /// Score-based colors (adaptive and professional)
+        /// These automatically adjust for dark mode via UIColor
+        static func scoreColor(for score: Int) -> Color {
+            switch score {
+            case 80...100: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+                ? UIColor(red: 0.2, green: 0.8, blue: 0.4, alpha: 1.0)  // Brighter green for dark
+                : UIColor(red: 0.0, green: 0.65, blue: 0.3, alpha: 1.0) // Darker green for light
+            })
+            case 60..<80: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+                ? UIColor(red: 0.5, green: 0.85, blue: 0.4, alpha: 1.0)  // Brighter lime for dark
+                : UIColor(red: 0.45, green: 0.75, blue: 0.2, alpha: 1.0) // Darker lime for light
+            })
+            case 40..<60: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+                ? UIColor(red: 1.0, green: 0.85, blue: 0.3, alpha: 1.0)  // Brighter yellow for dark
+                : UIColor(red: 0.85, green: 0.65, blue: 0.0, alpha: 1.0) // Darker yellow for light
+            })
+            case 20..<40: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+                ? UIColor(red: 1.0, green: 0.7, blue: 0.3, alpha: 1.0)   // Brighter orange for dark
+                : UIColor(red: 0.9, green: 0.5, blue: 0.0, alpha: 1.0)   // Darker orange for light
+            })
+            default: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+                ? UIColor(red: 1.0, green: 0.5, blue: 0.5, alpha: 1.0)   // Brighter red for dark
+                : UIColor(red: 0.85, green: 0.2, blue: 0.2, alpha: 1.0)  // Darker red for light
+            })
+            }
+        }
 
         /// Overlay colors (adaptive for light/dark mode)
         static let overlay = Color(uiColor: .label).opacity(0.5) // Adapts to dark mode

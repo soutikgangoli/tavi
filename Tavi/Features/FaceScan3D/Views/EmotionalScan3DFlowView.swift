@@ -25,12 +25,21 @@ public struct EmotionalScan3DFlowView: View {
     @State private var showAchievementUnlock = false
     @State private var newAchievements: [Achievement] = []
 
+    // Automatic retry state
+    @State private var retryCount: Int = 0
+    @State private var isAutoRetrying: Bool = false
+    @State private var lastError: ScanError?
+
+    // Analytics timing
+    @State private var scanStartTime: Date?
+
     enum FlowState: Equatable {
         case preparing(countdown: Int)  // Grace period with countdown
         case capturing
         case processing
         case complete
         case error(String)
+        case autoRetrying(attempt: Int, of: Int, reason: String)  // New state for auto-retry
     }
 
     public init() {}
@@ -48,20 +57,19 @@ public struct EmotionalScan3DFlowView: View {
             case .processing:
                 processingView
 
+            case .autoRetrying(let attempt, let total, let reason):
+                autoRetryView(attempt: attempt, total: total, reason: reason)
+
             case .complete:
                 if let metrics = emotionalMetrics {
                     CelebratoryResultsView(
                         emotionalMetrics: metrics,
                         clinicalMetrics: clinicalMetrics,
-                        previousMetrics: previousMetrics,
-                        onStartChallenge: {
-                            startChallenge()
-                        },
                         onShareResults: {
                             showShareSheet = true
                         },
-                        onViewProducts: {
-                            // Navigate to products (placeholder)
+                        onClose: {
+                            dismiss()
                         }
                     )
                 }
@@ -276,6 +284,11 @@ public struct EmotionalScan3DFlowView: View {
             // Countdown complete - start capturing
             flowState = .capturing
             viewModel.startGuidance()
+
+            // Track scan started
+            scanStartTime = Date()
+            AnalyticsManager.shared.trackScanStarted()
+
             return
         }
 
@@ -294,6 +307,51 @@ public struct EmotionalScan3DFlowView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Auto Retry View
+
+    private func autoRetryView(attempt: Int, total: Int, reason: String) -> some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            ProgressView()
+                .scaleEffect(1.5)
+                .tint(.blue)
+
+            VStack(spacing: 12) {
+                Text("Retrying...")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("Attempt \(attempt) of \(total)")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+
+                Text(reason)
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+
+            Button {
+                // Cancel auto-retry and show manual error
+                if let error = lastError {
+                    retryCount = total  // Force max retries to show error
+                    handleScanError(error)
+                }
+            } label: {
+                Text("Cancel Retry")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemBackground))
     }
 
     // MARK: - Error View
@@ -485,6 +543,14 @@ public struct EmotionalScan3DFlowView: View {
                     self.newAchievements = unlockedAchievements
                     flowState = .complete
 
+                    // Track scan completion
+                    let duration = scanStartTime.map { Date().timeIntervalSince($0) } ?? 0
+                    AnalyticsManager.shared.trackScanCompleted(
+                        duration: duration,
+                        poseCount: viewModel.capturedPoses.count,
+                        score: emotional.glowScore
+                    )
+
                     // Log success with metrics
                     CrashReporter.shared.logUserAction("scan_completed_successfully")
                     CrashReporter.shared.setCustomKey("glow_score", value: emotional.glowScore)
@@ -506,51 +572,16 @@ public struct EmotionalScan3DFlowView: View {
                     metrics: ["capture_count": viewModel.capturedPoses.count]
                 )
 
-                // Handle specific scan errors with tailored recovery suggestions
+                // Check if error is transient and should auto-retry
                 await MainActor.run {
-                    switch scanError {
-                    case .mergeFailed(let reason):
-                        // Use detailed reason if provided, otherwise fallback to generic message
-                        let message = reason ?? "Failed to merge 3D face meshes. Please try scanning again with better lighting."
-                        flowState = .error(message)
-                    case .bakeFailed:
-                        flowState = .error("Failed to generate skin texture. Please ensure good, even lighting and try again.")
-                    case .metricsFailed:
-                        flowState = .error("Failed to analyze skin metrics. Please rescan with a neutral expression.")
-                    case .invalidData:
-                        flowState = .error("Invalid scan data captured. Please hold still and maintain a neutral expression.")
-                    case .processingTimeout:
-                        flowState = .error("Processing took too long. Please close other apps and try again.")
-                    case .arSessionFailed:
-                        flowState = .error("Face tracking failed. Please restart the app and try again.")
-                    case .cameraUnavailable:
-                        flowState = .error("Camera unavailable. Please check camera permissions and try again.")
-                    case .cancelled:
-                        flowState = .error("Scan was cancelled.")
-                    case .processingError(let message):
-                        flowState = .error("Processing error: \(message)")
-                    case .trueDepthUnsupported:
-                        flowState = .error("This device doesn't support TrueDepth scanning. Face ID compatible iPhone required.")
-                    case .faceNotDetected:
-                        flowState = .error("No face detected. Please position your face in the frame.")
-                    case .multipleFacesDetected:
-                        flowState = .error("Multiple faces detected. Please scan one person at a time.")
-                    case .lightingTooLow(let current, let required):
-                        flowState = .error("Lighting too low (\(Int(current*100))%). Move to brighter area (need \(Int(required*100))%).")
-                    case .lightingTooHigh(let current, let max):
-                        flowState = .error("Too bright (\(Int(current*100))%). Reduce lighting (max \(Int(max*100))%).")
-                    case .blurryImage:
-                        flowState = .error("Image is blurry. Hold device steady.")
-                    case .occludedFace:
-                        flowState = .error("Face partially covered. Remove hands/hair from face.")
-                    case .invalidExpression:
-                        flowState = .error("Invalid expression. Please maintain neutral expression.")
-                    case .coreDataSaveFailed(let error):
-                        flowState = .error("Failed to save scan: \(error.localizedDescription)")
-                    case .insufficientStorage:
-                        flowState = .error("Insufficient storage. Please free up space and try again.")
-                    case .corruptedData:
-                        flowState = .error("Data corrupted. Please try scanning again.")
+                    lastError = scanError
+
+                    if scanError.isTransient && retryCount < ScanConfiguration.maxAutoRetryAttempts {
+                        // Automatic retry for transient errors
+                        handleAutoRetry(for: scanError)
+                    } else {
+                        // Show error to user (non-transient or max retries exceeded)
+                        handleScanError(scanError)
                     }
                 }
             } catch let timeoutError as TimeoutError {
@@ -759,6 +790,105 @@ struct AchievementUnlockOverlay: View {
             // Haptic feedback
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
+        }
+    }
+
+    // MARK: - Auto Retry Logic
+
+    private func handleAutoRetry(for error: ScanError) {
+        retryCount += 1
+        isAutoRetrying = true
+
+        // Calculate exponential backoff delay
+        let attemptDelay = min(
+            ScanConfiguration.retryBaseDelay * pow(2.0, Double(retryCount - 1)),
+            ScanConfiguration.maxRetryDelay
+        )
+
+        // Track retry
+        AnalyticsManager.shared.trackScanRetry(attempt: retryCount, reason: error.id)
+
+        AppLogger.faceScan.info("🔄 Auto-retrying scan (attempt \(retryCount)/\(ScanConfiguration.maxAutoRetryAttempts)) after \(attemptDelay)s for error: \(error.id)")
+
+        // Update UI to show retry status
+        if ScanConfiguration.showRetryProgress {
+            flowState = .autoRetrying(
+                attempt: retryCount,
+                of: ScanConfiguration.maxAutoRetryAttempts,
+                reason: error.errorDescription ?? "Unknown error"
+            )
+        }
+
+        // Schedule retry with exponential backoff
+        Task {
+            try? await Task.sleep(nanoseconds: UInt64(attemptDelay * 1_000_000_000))
+
+            await MainActor.run {
+                isAutoRetrying = false
+                // Reset to preparing state to restart scan
+                flowState = .preparing(countdown: 3)
+                AppLogger.faceScan.info("✅ Restarting scan after auto-retry")
+            }
+        }
+    }
+
+    private func handleScanError(_ error: ScanError) {
+        // Track scan failure
+        let duration = scanStartTime.map { Date().timeIntervalSince($0) } ?? 0
+        AnalyticsManager.shared.trackScanFailed(reason: error.id, duration: duration)
+
+        // Reset retry count for next scan
+        retryCount = 0
+        isAutoRetrying = false
+
+        // Log if max retries were exceeded
+        if error.isTransient {
+            AppLogger.faceScan.warning("⚠️ Max auto-retries (\(ScanConfiguration.maxAutoRetryAttempts)) exceeded for transient error: \(error.id)")
+        }
+
+        // Show error message to user
+        switch error {
+        case .mergeFailed(let reason):
+            let message = reason ?? "Failed to merge 3D face meshes. Please try scanning again with better lighting."
+            flowState = .error(message)
+        case .bakeFailed:
+            flowState = .error("Failed to generate skin texture. Please ensure good, even lighting and try again.")
+        case .metricsFailed:
+            flowState = .error("Failed to analyze skin metrics. Please rescan with a neutral expression.")
+        case .invalidData:
+            flowState = .error("Invalid scan data captured. Please hold still and maintain a neutral expression.")
+        case .processingTimeout:
+            flowState = .error("Processing took too long. Please close other apps and try again.")
+        case .arSessionFailed:
+            flowState = .error("Face tracking failed. Please restart the app and try again.")
+        case .cameraUnavailable:
+            flowState = .error("Camera unavailable. Please check camera permissions and try again.")
+        case .cancelled:
+            flowState = .error("Scan was cancelled.")
+        case .processingError(let message):
+            flowState = .error("Processing error: \(message)")
+        case .trueDepthUnsupported:
+            flowState = .error("This device doesn't support TrueDepth scanning. Face ID compatible iPhone required.")
+        case .faceNotDetected:
+            flowState = .error("No face detected. Please position your face in the frame.")
+        case .multipleFacesDetected:
+            flowState = .error("Multiple faces detected. Please scan one person at a time.")
+        case .lightingTooLow(let current, let required):
+            flowState = .error("Lighting too low (\(Int(current*100))%). Move to brighter area (need \(Int(required*100))%).")
+        case .lightingTooHigh(let current, let max):
+            flowState = .error("Too bright (\(Int(current*100))%). Reduce lighting (max \(Int(max*100))%).")
+        case .blurryImage:
+            flowState = .error("Image is blurry. Hold device steady.")
+        case .occludedFace:
+            flowState = .error("Face partially covered. Remove hands/hair from face.")
+        case .invalidExpression:
+            flowState = .error("Invalid expression. Please maintain neutral expression.")
+        case .coreDataSaveFailed(let error):
+            flowState = .error("Failed to save scan: \(error.localizedDescription)")
+        case .insufficientStorage:
+            flowState = .error("Insufficient storage. Please free up space and try again.")
+        case .corruptedData:
+            flowState = .error("Data corrupted. Please try scanning again.")
         }
     }
 }

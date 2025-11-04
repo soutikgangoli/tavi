@@ -183,6 +183,18 @@ extension SessionResult {
     }
 }
 
+// MARK: - Hashable Conformance
+
+extension SessionResult: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    public static func == (lhs: SessionResult, rhs: SessionResult) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
 // MARK: - Computed Properties
 
 extension SessionResult {

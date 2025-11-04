@@ -2,33 +2,24 @@
 //  HomeView.swift
 //  Tavi
 //
-//  Consumer-friendly home screen with emotional design
-//  Created on 2025-10-28.
+//  Professional Headspace-inspired home screen
+//  Created on 2025-01-03
 //
 
 import SwiftUI
 
-/// Main home screen with emotional design and gamification
+/// Professional home screen matching Headspace's clean design
 public struct HomeView: View {
 
     private let capabilities = DeviceCapabilities.current
     @State private var showOnboarding: Bool
-    @State private var currentChallenge: GlowChallenge?
+    @State private var showScanFlow = false
+    @State private var showSettings = false
 
     public init() {
-        // Check if onboarding has been completed
         let hasCompleted = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         _showOnboarding = State(initialValue: !hasCompleted)
-
-        // Debug logging
-        print("🎯 Onboarding check: hasCompletedOnboarding = \(hasCompleted), showOnboarding = \(!hasCompleted)")
     }
-    @State private var streak: GlowStreak = GamificationManager.shared.getStreak()
-    @State private var recentAchievements: [Achievement] = []
-    @State private var showScanFlow = false
-    @State private var showShareSheet = false
-    @State private var showSettings = false
-    @State private var lastEmotionalMetrics: EmotionalMetrics?
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)],
@@ -40,89 +31,62 @@ public struct HomeView: View {
         sessions.first
     }
 
-    private var previousSession: SessionResult? {
-        sessions.count > 1 ? sessions[1] : nil
+    private var hasScans: Bool {
+        sessions.count > 0
     }
 
     public var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Welcome header
-                welcomeHeader
+        NavigationStack {
+            ZStack(alignment: .bottom) {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: HeadspaceDesign.Spacing.xl) {
+                        // Greeting header
+                        greetingSection
+                            .padding(.top, HeadspaceDesign.Spacing.md)
 
-                // Streak card
-                streakCard
+                        // Main scan card
+                        if let latest = latestSession {
+                            latestScanCard(latest)
+                        } else {
+                            firstScanCard
+                        }
 
-                // Active challenge card (if any)
-                if let challenge = currentChallenge, !challenge.isCompleted {
-                    challengeProgressCard(challenge)
+                        // Recent scans
+                        if hasScans {
+                            recentScansSection
+                        }
+
+                        // Tips section
+                        tipsCard
+
+                        // Bottom padding for sticky button
+                        Spacer().frame(height: 100)
+                    }
+                    .padding(.horizontal, HeadspaceDesign.Spacing.lg)
                 }
+                .background(HeadspaceDesign.Colors.background)
 
-                // Quick action: Scan now
-                scanNowCard
-
-                // Recent achievements
-                if !recentAchievements.isEmpty {
-                    recentAchievementsSection
-                }
-
-                // Latest results summary
-                if let latest = latestSession {
-                    latestResultsCard(latest)
-                }
-
-                // Before/After comparison (if we have 2+ scans)
-                if sessions.count >= 2,
-                   let latest = latestSession,
-                   let previous = previousSession,
-                   let latestMetrics = decodeEmotionalMetrics(from: latest),
-                   let previousMetrics = decodeEmotionalMetrics(from: previous) {
-                    NavigationLink {
-                        BeforeAfterView(
-                            beforeMetrics: previousMetrics,
-                            afterMetrics: latestMetrics,
-                            beforeDate: previous.date,
-                            afterDate: latest.date
-                        )
+                // Sticky scan button
+                stickyButton
+            }
+            .onAppear {
+                // Track screen view
+                AnalyticsManager.shared.trackScreen("home")
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showSettings = true
                     } label: {
-                        beforeAfterCTA
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     }
                 }
-
-                // Start challenge CTA (if no active challenge)
-                if currentChallenge == nil {
-                    startChallengeCTA
-                }
-
-                // History
-                historySection
-
-                Spacer(minLength: 40)
             }
-            .padding()
-        }
-        .refreshable {
-            // Reload gamification data and latest session
-            await loadLatestData()
-        }
-        .navigationTitle("Tavi")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text("Tavi")
-                    .font(.headline)
-                    .fontWeight(.bold)
-            }
-
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 20))
-                }
-                .accessibilityLabel("Settings")
-                .accessibilityHint("Open app settings")
+            .navigationDestination(for: SessionResult.self) { session in
+                ResultsDetailView(session: session)
             }
         }
         .fullScreenCover(isPresented: $showOnboarding) {
@@ -136,554 +100,282 @@ public struct HomeView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
-        .onAppear {
-            loadGamificationData()
-        }
     }
 
     // MARK: - Components
 
-    private var welcomeHeader: some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private var greetingSection: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
             let userName = UserProfileManager.shared.loadProfile().name ?? "there"
-            Text("Hey, \(userName)! 👋")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+            let greeting = getTimeBasedGreeting()
 
-            if streak.currentStreak > 0 {
-                Text("Keep up your amazing streak!")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("Ready for today's glow check?")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            }
+            Text("\(greeting), \(userName)")
+                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+            Text("Track your skin health journey")
+                .font(.system(size: 18, weight: .regular, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 8)
     }
 
-    private var streakCard: some View {
-        HStack(spacing: 16) {
-            // Streak emoji and count
-            VStack(spacing: 4) {
-                Text(streak.streakEmoji)
-                    .font(.system(size: 48))
-                    .accessibilityHidden(true)
+    private func latestScanCard(_ session: SessionResult) -> some View {
+        VStack(spacing: 0) {
+            // Gradient header
+            ZStack {
+                HeadspaceDesign.Colors.warmGradient
+                    .frame(height: 200)
 
-                Text("\(streak.currentStreak)")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(streakColor)
-                    .accessibilityLabel("\(streak.currentStreak) day streak")
-
-                Text("Day Streak")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-            }
-
-            Divider()
-                .frame(height: 80)
-
-            // Streak stats
-            VStack(alignment: .leading, spacing: 8) {
-                Text(streak.streakMessage)
-                    .font(.headline)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 16) {
-                    StatPill(label: "Best", value: "\(streak.longestStreak)")
-                        .accessibilityLabel("Best streak: \(streak.longestStreak) days")
-                    StatPill(label: "Total", value: "\(streak.totalScans)")
-                        .accessibilityLabel("Total scans: \(streak.totalScans)")
-                }
-
-                if !streak.isActiveToday {
-                    Text("Scan today to keep your streak!")
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        colors: [streakColor.opacity(0.2), streakColor.opacity(0.05)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        )
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Scan streak card")
-    }
-
-    private var streakColor: Color {
-        switch streak.currentStreak {
-        case 0: return .gray
-        case 1...2: return .green
-        case 3...6: return .orange
-        case 7...13: return .blue
-        case 14...29: return .purple
-        default: return .pink
-        }
-    }
-
-    private func challengeProgressCard(_ challenge: GlowChallenge) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("🏆 30-Day Glow Challenge")
-                        .font(.headline)
-                        .fontWeight(.bold)
-
-                    Text("Day \(challenge.daysCompleted)/\(challenge.goalDays)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                if let milestone = challenge.nextMilestone {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(milestone.emoji)
-                            .font(.title2)
-                            .accessibilityHidden(true)
-                        Text("\(milestone.days - challenge.daysCompleted) to go")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-            }
-
-            // Progress bar
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.orange.opacity(0.2))
-                        .frame(height: 12)
-
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(
-                            LinearGradient(
-                                colors: [.orange, .pink],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: geometry.size.width * challenge.progressPercentage / 100, height: 12)
-                }
-            }
-            .frame(height: 12)
-            .accessibilityLabel("Challenge progress: \(Int(challenge.progressPercentage)) percent complete")
-
-            // Improvement
-            HStack {
-                Text("Skin Health Index:")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Text("\(challenge.baselineGlowScore) → \(challenge.currentGlowScore)")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-
-                if challenge.glowImprovement > 0 {
-                    Text("+\(challenge.glowImprovement)")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.green)
-                }
-
-                Spacer()
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Skin health index improved from \(challenge.baselineGlowScore) to \(challenge.currentGlowScore), up \(challenge.glowImprovement) points")
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(uiColor: .secondarySystemBackground))
-        )
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("30-Day Glow Challenge, day \(challenge.daysCompleted) of \(challenge.goalDays)")
-    }
-
-    private var scanNowCard: some View {
-        Button {
-            if capabilities.supportsTrueDepth {
-                showScanFlow = true
-            }
-        } label: {
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Ready for Your Scan?")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-
-                    Text("Track your glow in just 60 seconds")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.9))
-                }
-
-                Spacer()
-
-                Image(systemName: "camera.circle.fill")
-                    .font(.system(size: 56))
-                    .foregroundColor(.white.opacity(0.9))
-            }
-            .padding()
-            .background(
-                LinearGradient(
-                    colors: [.blue, .cyan],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .cornerRadius(20)
-        }
-        .disabled(!capabilities.supportsTrueDepth)
-        .opacity(capabilities.supportsTrueDepth ? 1.0 : 0.5)
-        .accessibilityLabel("Start skin scan")
-        .accessibilityHint(capabilities.supportsTrueDepth ? "Begins a 60-second face scan to analyze your skin health" : "TrueDepth camera required for face scanning")
-    }
-
-    private var recentAchievementsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Recent Achievements 🎉")
-                .font(.title2)
-                .fontWeight(.bold)
-
-            ForEach(recentAchievements.prefix(3)) { achievement in
-                AchievementRow(achievement: achievement)
-            }
-        }
-    }
-
-    private func latestResultsCard(_ session: SessionResult) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Latest Scan")
-                .font(.title2)
-                .fontWeight(.bold)
-
-            NavigationLink {
-                // Show full results
-                ResultsDetailView(session: session)
-            } label: {
-                HStack(spacing: 16) {
+                VStack(spacing: HeadspaceDesign.Spacing.lg) {
                     // Score circle
                     ZStack {
                         Circle()
-                            .stroke(scoreColor(session.overallScore).opacity(0.3), lineWidth: 6)
-                            .frame(width: 80, height: 80)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 8)
+                            .frame(width: 120, height: 120)
 
                         Circle()
-                            .trim(from: 0, to: CGFloat(session.overallScore) / 100)
-                            .stroke(scoreColor(session.overallScore), style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                            .frame(width: 80, height: 80)
+                            .trim(from: 0, to: CGFloat(session.overallScore / 100))
+                            .stroke(Color.white, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                            .frame(width: 120, height: 120)
                             .rotationEffect(.degrees(-90))
 
                         Text("\(Int(session.overallScore))")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(scoreColor(session.overallScore))
+                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
                     }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Score: \(Int(session.overallScore)) out of 100")
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    Text("Your Skin Health Score")
+                        .font(.system(size: 17, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.95))
+                }
+            }
+
+            // White footer
+            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Last scanned")
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
                         Text(session.relativeDate)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        Text("Skin Health Index")
-                            .font(.headline)
-
-                        Text("Tap to view details")
-                            .font(.caption)
-                            .foregroundColor(.blue)
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                     }
 
                     Spacer()
 
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(.tertiary)
-                        .accessibilityHidden(true)
+                    NavigationLink(value: session) {
+                        HStack(spacing: 6) {
+                            Text("View details")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .bold))
+                        }
+                        .foregroundColor(HeadspaceDesign.Colors.primary)
+                    }
                 }
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Latest scan from \(session.relativeDate), score \(Int(session.overallScore)) out of 100")
-            .accessibilityHint("Double tap to view detailed results")
-            .accessibilityAddTraits(.isButton)
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(uiColor: .secondarySystemBackground))
-            )
+            .padding(HeadspaceDesign.Spacing.xl)
+            .background(Color.white)
         }
-    }
-
-    private var beforeAfterCTA: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("See Your Progress 📊")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-
-                Text("Compare your before & after")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Image(systemName: "arrow.right.circle.fill")
-                .font(.title)
-                .foregroundColor(.blue)
-                .accessibilityHidden(true)
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.blue.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
         )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("See your progress")
-        .accessibilityHint("Compare before and after scan results")
-        .accessibilityAddTraits(.isButton)
     }
 
-    private var startChallengeCTA: some View {
-        Button {
-            // Start challenge with current/baseline score
-            // For now, just create placeholder
-            let baseline = latestSession?.overallScore ?? 50.0
-            let challenge = GamificationManager.shared.startNewChallenge(baselineGlowScore: Int(baseline))
-            currentChallenge = challenge
-        } label: {
-            VStack(spacing: 12) {
-                Text("🏆")
-                    .font(.system(size: 48))
-                    .accessibilityHidden(true)
+    private var firstScanCard: some View {
+        VStack(spacing: 0) {
+            // Gradient section
+            HeadspaceDesign.Colors.peachGradient
+                .frame(height: 220)
+                .overlay(
+                    VStack(spacing: HeadspaceDesign.Spacing.lg) {
+                        Spacer()
 
-                Text("Start 30-Day Glow Challenge")
-                    .font(.title3)
-                    .fontWeight(.bold)
+                        Text("Start Your Skin Journey")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
 
-                Text("Build healthy habits & watch your skin transform")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(
-                        LinearGradient(
-                            colors: [.orange, .pink],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ),
-                        lineWidth: 2
-                    )
-            )
+                        Text("Get your personalized skin health score")
+                            .font(.system(size: 17, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.95))
+                            .multilineTextAlignment(.center)
+
+                        Spacer()
+                    }
+                    .padding(HeadspaceDesign.Spacing.xl)
+                )
         }
-        .accessibilityLabel("Start 30-Day Glow Challenge")
-        .accessibilityHint("Begin a 30-day challenge to build healthy habits and improve your skin")
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
     }
 
-    private var historySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("History")
-                    .font(.title2)
-                    .fontWeight(.bold)
+    private var recentScansSection: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+            Text("Recent scans")
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+            VStack(spacing: HeadspaceDesign.Spacing.md) {
+                ForEach(Array(sessions.prefix(5)), id: \.id) { session in
+                    recentScanListItem(session)
+                }
+            }
+        }
+    }
+
+    private func recentScanListItem(_ session: SessionResult) -> some View {
+        NavigationLink(value: session) {
+            HStack(spacing: HeadspaceDesign.Spacing.lg) {
+                // Score circle
+                ZStack {
+                    Circle()
+                        .fill(scoreColor(session.overallScore).opacity(0.12))
+                        .frame(width: 64, height: 64)
+
+                    Text("\(Int(session.overallScore))")
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(scoreColor(session.overallScore))
+                }
+
+                // Info
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(session.relativeDate)
+                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                    Text(scoreDescription(session.overallScore))
+                        .font(.system(size: 15, weight: .regular, design: .rounded))
+                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                }
 
                 Spacer()
 
-                NavigationLink {
-                    ResultsHistoryView()
-                } label: {
-                    Text("View All")
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                }
-                .accessibilityLabel("View all scan history")
-                .accessibilityHint("Show complete list of past scans")
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
             }
-
-            if sessions.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "face.smiling")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-
-                    Text("No scans yet")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text("Start your first scan to begin tracking!")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 32)
-            } else {
-                ForEach(sessions.prefix(3)) { session in
-                    NavigationLink {
-                        ResultsDetailView(session: session)
-                    } label: {
-                        CompactSessionRow(session: session)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Scan from \(session.relativeDate), score \(Int(session.overallScore))")
-                    .accessibilityHint("Double tap to view details")
-                }
-            }
+            .padding(HeadspaceDesign.Spacing.lg)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+            .shadow(
+                color: HeadspaceDesign.Shadows.card.color,
+                radius: HeadspaceDesign.Shadows.card.radius,
+                x: HeadspaceDesign.Shadows.card.x,
+                y: HeadspaceDesign.Shadows.card.y
+            )
         }
+        .buttonStyle(.plain)
+    }
+
+    private var tipsCard: some View {
+        HStack(spacing: HeadspaceDesign.Spacing.lg) {
+            // Icon circle
+            ZStack {
+                Circle()
+                    .fill(HeadspaceDesign.Colors.accent.opacity(0.12))
+                    .frame(width: 48, height: 48)
+
+                Image(systemName: "lightbulb.fill")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundColor(HeadspaceDesign.Colors.accent)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Pro tip")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+                Text("Scan in bright, natural light for best results")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+            }
+
+            Spacer()
+        }
+        .padding(HeadspaceDesign.Spacing.xl)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+
+    private var stickyButton: some View {
+        Button {
+            if capabilities.supportsTrueDepth {
+                AnalyticsManager.shared.trackAction("tap", target: "scan_now_button")
+                AnalyticsManager.shared.trackNavigation(from: "home", to: "scan_flow")
+                showScanFlow = true
+            }
+        } label: {
+            HStack(spacing: HeadspaceDesign.Spacing.md) {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 20, weight: .semibold))
+
+                Text("Scan Now")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+            .background(HeadspaceDesign.Colors.primary)
+            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+            .shadow(
+                color: HeadspaceDesign.Shadows.button.color,
+                radius: HeadspaceDesign.Shadows.button.radius,
+                x: HeadspaceDesign.Shadows.button.x,
+                y: HeadspaceDesign.Shadows.button.y
+            )
+        }
+        .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+        .padding(.bottom, HeadspaceDesign.Spacing.xxl)
     }
 
     // MARK: - Helpers
 
-    private func loadGamificationData() {
-        streak = GamificationManager.shared.getStreak()
-        currentChallenge = GamificationManager.shared.getCurrentChallenge()
-
-        let achievements = GamificationManager.shared.getAchievements()
-        recentAchievements = achievements
-            .filter { $0.isUnlocked }
-            .sorted { $0.unlockedDate ?? Date.distantPast > $1.unlockedDate ?? Date.distantPast }
-    }
-
-    /// Async function to reload latest data for pull-to-refresh
-    private func loadLatestData() async {
-        // Reload gamification data on main actor
-        await MainActor.run {
-            loadGamificationData()
+    private func getTimeBasedGreeting() -> String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 0..<12: return "Good morning"
+        case 12..<17: return "Good afternoon"
+        default: return "Good evening"
         }
     }
 
     private func scoreColor(_ score: Double) -> Color {
         switch score {
-        case 85...100: return Color(red: 0.0, green: 0.8, blue: 0.2)  // Bright green
-        case 70..<85: return Color(red: 0.6, green: 0.9, blue: 0.3)   // Light green
-        case 50..<70: return Color(red: 1.0, green: 0.8, blue: 0.0)   // Yellow
-        case 25..<50: return Color(red: 1.0, green: 0.6, blue: 0.0)   // Dark yellow/orange
-        default: return Color(red: 1.0, green: 0.3, blue: 0.2)        // Red
+        case 90...100: return Color(red: 76/255, green: 217/255, blue: 100/255)      // Brightest green
+        case 80..<90: return Color(red: 101/255, green: 188/255, blue: 126/255)     // Lighter green
+        case 50..<80: return Color(red: 149/255, green: 218/255, blue: 176/255)     // Light green
+        case 30..<50: return Color(red: 255/255, green: 204/255, blue: 0/255)       // Yellow
+        default: return Color(red: 255/255, green: 59/255, blue: 48/255)            // Red
         }
     }
 
-    private func decodeEmotionalMetrics(from session: SessionResult) -> EmotionalMetrics? {
-        guard let data = session.emotionalMetricsData else {
-            return nil
+    private func scoreDescription(_ score: Double) -> String {
+        switch score {
+        case 90...100: return "Excellent condition"
+        case 80..<90: return "Very good condition"
+        case 50..<80: return "Good condition"
+        case 30..<50: return "Needs improvement"
+        default: return "Requires attention"
         }
-        return try? JSONDecoder().decode(EmotionalMetrics.self, from: data)
     }
-}
-
-// MARK: - Supporting Views
-
-struct StatPill: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.bold)
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(uiColor: .tertiarySystemBackground))
-        )
-    }
-}
-
-struct AchievementRow: View {
-    let achievement: Achievement
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Text(achievement.emoji)
-                .font(.title)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(achievement.title)
-                    .font(.headline)
-
-                Text(achievement.description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            if let date = achievement.unlockedDate {
-                Text(date.formatted(date: .abbreviated, time: .omitted))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.yellow.opacity(0.1))
-        )
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Achievement: \(achievement.title). \(achievement.description). Unlocked \(achievement.unlockedDate?.formatted(date: .abbreviated, time: .omitted) ?? "recently")")
-    }
-}
-
-struct CompactSessionRow: View {
-    let session: SessionResult
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(session.relativeDate)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                Text("Score: \(Int(session.overallScore))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .accessibilityHidden(true)
-        }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(uiColor: .secondarySystemBackground))
-        )
-        .accessibilityElement(children: .combine)
-    }
-}
-
-// MARK: - Preview
-
-#Preview {
-    NavigationStack {
-        HomeView()
-    }
-    .environment(\.managedObjectContext, PersistenceController.preview.viewContext)
 }

@@ -9,6 +9,7 @@
 import Foundation
 import UIKit
 import PDFKit
+import os.log
 
 /// PDF report generator
 public class PDFReportGenerator {
@@ -64,9 +65,25 @@ public class PDFReportGenerator {
         return await Task.detached(priority: .userInitiated) {
             do {
                 try data.write(to: tempURL, options: .atomic)
+                AppLogger.export.info("✅ PDF report generated successfully: \(tempURL.lastPathComponent)")
+                AppLogger.export.debug("PDF size: \(data.count) bytes, Path: \(tempURL.path)")
                 return tempURL
-            } catch {
-                print("Error saving PDF: \(error)")
+            } catch let error as NSError {
+                AppLogger.export.error("❌ Failed to save PDF report: \(error.localizedDescription)")
+                AppLogger.export.error("Error domain: \(error.domain), code: \(error.code)")
+                AppLogger.export.error("Attempted path: \(tempURL.path)")
+
+                // Log additional details for debugging
+                if let underlyingError = error.userInfo[NSUnderlyingErrorKey] as? NSError {
+                    AppLogger.export.error("Underlying error: \(underlyingError.localizedDescription)")
+                }
+
+                // Check disk space
+                if let resourceValues = try? FileManager.default.attributesOfFileSystem(forPath: tempURL.path),
+                   let freeSpace = resourceValues[.systemFreeSize] as? Int64 {
+                    AppLogger.export.error("Available disk space: \(freeSpace / 1024 / 1024) MB")
+                }
+
                 return nil
             }
         }.value

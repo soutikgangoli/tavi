@@ -242,4 +242,75 @@ enum ScanError: Error, LocalizedError, Identifiable {
             return false
         }
     }
+
+    /// Whether this error is transient (temporary condition that may resolve itself)
+    /// Transient errors should trigger automatic retry with exponential backoff
+    var isTransient: Bool {
+        switch self {
+        case .faceNotDetected:
+            // User may not be positioned yet - retry automatically
+            return true
+
+        case .lightingTooLow, .lightingTooHigh:
+            // Lighting may improve as user adjusts position - retry
+            return true
+
+        case .blurryImage:
+            // Movement detected - user may stabilize - retry
+            return true
+
+        case .invalidExpression:
+            // User may relax expression - retry
+            return true
+
+        case .occludedFace:
+            // User may move hands/hair - retry
+            return true
+
+        case .multipleFacesDetected:
+            // Other person may move out of frame - retry
+            return false  // Actually should not auto-retry (user needs to fix)
+
+        case .arSessionFailed, .cameraUnavailable, .trueDepthUnsupported:
+            // Permanent device/permission issues - no auto-retry
+            return false
+
+        case .mergeFailed, .bakeFailed, .metricsFailed:
+            // Processing failures - may be resource related
+            return false  // Don't auto-retry processing failures
+
+        case .processingTimeout:
+            // Timeout - may be temporary resource constraint
+            return false  // User should manually retry after closing apps
+
+        case .coreDataSaveFailed, .insufficientStorage, .corruptedData:
+            // Storage issues - not transient
+            return false
+
+        case .cancelled, .invalidData, .processingError:
+            // Not transient
+            return false
+        }
+    }
+
+    /// Priority for retry (higher = retry sooner, nil = no auto-retry)
+    /// Used to determine retry delay via exponential backoff
+    var retryPriority: Int? {
+        guard isTransient else { return nil }
+
+        switch self {
+        case .faceNotDetected:
+            return 3  // High priority - common, quick fix
+        case .invalidExpression:
+            return 3  // High priority - user can fix quickly
+        case .blurryImage:
+            return 2  // Medium priority - user needs to stabilize
+        case .lightingTooLow, .lightingTooHigh:
+            return 2  // Medium priority - may take time to adjust
+        case .occludedFace:
+            return 2  // Medium priority
+        default:
+            return 1  // Low priority
+        }
+    }
 }

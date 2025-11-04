@@ -48,6 +48,11 @@
 		<string>arkit</string>
 		<string>truedepth-camera</string>
 	</array>
+	<!-- Background Modes: Allow processing to continue when app is minimized -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>processing</string>
+	</array>
 	<!-- Sentry Configuration (Optional - Enable after adding Sentry SDK) -->
 	<!-- Uncomment the lines below and add your DSN from https://sentry.io -->
 	<!--

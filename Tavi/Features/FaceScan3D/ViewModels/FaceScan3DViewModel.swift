@@ -13,6 +13,7 @@ import SwiftUI
 import UIKit
 import CoreImage
 import os.log
+import BackgroundTasks  // For background processing support
 
 // MARK: - Haptic Feedback Settings
 
@@ -77,6 +78,9 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Quality warning message
     @Published public var qualityWarning: String?
 
+    /// Track previous warning for haptic feedback
+    private var previousQualityWarning: String?
+
     /// Whether current pose matches target direction
     @Published public var isPoseCorrect: Bool = false
 
@@ -140,7 +144,6 @@ public class FaceScan3DViewModel: ObservableObject {
 
     // Quality check throttling to prevent FPS drops
     private var qualityCheckFrameCounter: Int = 0
-    private let qualityCheckInterval: Int = 15  // Only check every 15 frames (4 times/sec at 60fps) - INCREASED for smoother performance
     private var lastQualityCheckResult: Bool = true
 
     // Reusable CIContext to avoid expensive allocations
@@ -148,20 +151,17 @@ public class FaceScan3DViewModel: ObservableObject {
 
     // Reusable EdgeCaseDetector to avoid repeated instantiation
     private let edgeCaseDetector = EdgeCaseDetector()
-
-    // Memory threshold for using streaming merger (in vertices)
-    private let streamingThreshold = 50_000
     private let textureCapture = TextureCapture()
     private var textureBaker: TextureBaker {
         // Check high-res capture setting
         let enableHighRes = UserDefaults.standard.bool(forKey: "enableHighResCapture")
         var config = TextureBaker.Configuration()
         if enableHighRes {
-            config.textureWidth = 4096  // 4K resolution
-            config.textureHeight = 4096
+            config.textureWidth = ScanConfiguration.highResTextureWidth
+            config.textureHeight = ScanConfiguration.highResTextureHeight
         } else {
-            config.textureWidth = 2048  // Standard resolution
-            config.textureHeight = 2048
+            config.textureWidth = ScanConfiguration.standardTextureWidth
+            config.textureHeight = ScanConfiguration.standardTextureHeight
         }
         return TextureBaker(configuration: config)
     }
@@ -438,6 +438,22 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Finalize capture and merge all partial meshes into single face mesh
     /// Now includes complete clinical-grade processing pipeline
     public func finalizeCapture() async -> MergedFaceMesh? {
+        // IMPORTANT: Keep screen on during processing (2 min avg)
+        // This prevents iOS from suspending the app since beginBackgroundTask only gives ~30s
+        let previousIdleTimerState = await UIApplication.shared.isIdleTimerDisabled
+        await MainActor.run {
+            UIApplication.shared.isIdleTimerDisabled = true
+            AppLogger.mesh.info("🔋 Screen will stay on during processing (~2 minutes)")
+        }
+
+        defer {
+            // Restore screen sleep setting when done
+            Task { @MainActor in
+                UIApplication.shared.isIdleTimerDisabled = previousIdleTimerState
+                AppLogger.mesh.info("🔋 Screen sleep restored")
+            }
+        }
+
         // DEBUG: Log sequence state before accessing
         AppLogger.mesh.info("🔍 DEBUG: finalizeCapture called. Current sequence exists: \(self.currentSequence != nil)")
         if let seq = self.currentSequence {
@@ -481,7 +497,7 @@ public class FaceScan3DViewModel: ObservableObject {
 
         // Calculate total vertices to decide on merger strategy
         let totalVertices = sequence.captures.reduce(0) { $0 + $1.vertices.count }
-        let threshold = self.streamingThreshold
+        let threshold = ScanConfiguration.streamingMeshThreshold
         let useStreaming = totalVertices > threshold
 
         if useStreaming {
@@ -626,7 +642,7 @@ public class FaceScan3DViewModel: ObservableObject {
         capturedPoses = [:]
         countdownTimer = 0
         guidanceFeedback = nil
-        qualityWarning = nil
+        clearQualityWarning()
         holdStableTimer?.invalidate()
         holdStableTimer = nil
     }
@@ -698,7 +714,7 @@ public class FaceScan3DViewModel: ObservableObject {
         // Skip if already captured this step
         if capturedPoses[self.currentGuidanceStep] != nil {
             guidanceFeedback = nil
-            qualityWarning = nil
+            clearQualityWarning()
             return
         }
 
@@ -715,7 +731,7 @@ public class FaceScan3DViewModel: ObservableObject {
         } else if !self.calibrationState.lighting.isValid {
             self.qualityWarning = self.calibrationState.lighting.message
         } else {
-            self.qualityWarning = nil
+            clearQualityWarning()
         }
 
         // Extract rotation angles
@@ -727,6 +743,7 @@ public class FaceScan3DViewModel: ObservableObject {
         let isPoseValid = self.currentGuidanceStep.isPoseValid(yaw: yaw, pitch: pitch, roll: roll)
 
         // Update published pose correctness for UI
+        let wasPoseCorrect = self.isPoseCorrect
         self.isPoseCorrect = isPoseValid
 
         // Get real-time guidance feedback
@@ -737,6 +754,14 @@ public class FaceScan3DViewModel: ObservableObject {
         if isPoseValid {
             // Always check quality when pose is valid, regardless of calibration
             qualityGood = self.checkImageQuality()
+        }
+
+        // HAPTIC FEEDBACK: Provide haptic when positioning becomes correct
+        if isPoseValid && !wasPoseCorrect && self.calibrationState.isCalibrated && qualityGood {
+            // Pose just became valid - give success haptic
+            if HapticSettings.shared.isEnabled {
+                HapticManager.shared.success()
+            }
         }
 
         // Debug: Log every 30 frames (~once per second at 30fps)
@@ -781,33 +806,36 @@ public class FaceScan3DViewModel: ObservableObject {
 
             // Allow brief deviations during countdown (tolerance)
             if self.holdStableTimer != nil {
-                // TOLERANCE: Allow ~10 frames (~0.33 seconds) of deviation during countdown
-                // This prevents countdown from being too sensitive to brief movements
-                self.countdownToleranceFrames += 1
+                // UX FIX: During countdown, ONLY check pose validity
+                // Don't cancel for calibration/quality - user has already positioned correctly
+                // Only cancel if they significantly change the pose angle
 
-                if self.countdownToleranceFrames < 10 {
-                    // Still within tolerance - don't cancel countdown
-                    AppLogger.faceScan.debug("⚠️ Brief validation failure during countdown (tolerance: \(self.countdownToleranceFrames)/10)")
-                    return
-                }
-
-                // Exceeded tolerance - cancel countdown
                 if !isPoseValid {
-                    AppLogger.faceScan.warning("🚫 COUNTDOWN CANCELLED at \(self.countdownTimer) (after \(self.countdownToleranceFrames) frames) - Pose changed")
-                } else if !self.calibrationState.isCalibrated {
-                    AppLogger.faceScan.warning("🚫 COUNTDOWN CANCELLED at \(self.countdownTimer) (after \(self.countdownToleranceFrames) frames) - Lost calibration")
-                } else if !qualityGood {
-                    AppLogger.faceScan.warning("🚫 COUNTDOWN CANCELLED at \(self.countdownTimer) (after \(self.countdownToleranceFrames) frames) - Quality check failed")
+                    // Pose changed significantly - count tolerance frames
+                    self.countdownToleranceFrames += 1
+
+                    if self.countdownToleranceFrames < ScanConfiguration.countdownToleranceFrames {
+                        // Still within tolerance - don't cancel countdown
+                        AppLogger.faceScan.debug("⚠️ Brief pose deviation during countdown (tolerance: \(self.countdownToleranceFrames)/\(ScanConfiguration.countdownToleranceFrames))")
+                        return
+                    }
+
+                    // Exceeded tolerance - cancel countdown
+                    AppLogger.faceScan.warning("🚫 COUNTDOWN CANCELLED at \(self.countdownTimer) - Pose changed significantly for 0.5s")
+
+                    self.holdStableTimer?.invalidate()
+                    self.holdStableTimer = nil
+                    self.countdownTimer = 0
+                    self.countdownToleranceFrames = 0
+
+                    // CRITICAL FIX: Clear guidanceFeedback to allow fresh start
+                    // Without this, old feedback persists and confuses restart logic
+                    self.guidanceFeedback = nil
+                } else {
+                    // Pose is still valid - reset tolerance counter
+                    // This means brief deviations are forgiven as long as user returns to pose
+                    self.countdownToleranceFrames = 0
                 }
-
-                self.holdStableTimer?.invalidate()
-                self.holdStableTimer = nil
-                self.countdownTimer = 0
-                self.countdownToleranceFrames = 0
-
-                // CRITICAL FIX: Clear guidanceFeedback to allow fresh start
-                // Without this, old feedback persists and confuses restart logic
-                self.guidanceFeedback = nil
 
                 // CRITICAL FIX: After cancellation, DON'T return early
                 // Allow the next frame to immediately try starting a new countdown
@@ -826,7 +854,7 @@ public class FaceScan3DViewModel: ObservableObject {
         // PERFORMANCE OPTIMIZATION: Throttle quality checks to prevent FPS drops
         // Only run expensive image processing every N frames instead of every frame (60fps → 6fps checks)
         qualityCheckFrameCounter += 1
-        if qualityCheckFrameCounter < qualityCheckInterval {
+        if qualityCheckFrameCounter < ScanConfiguration.qualityCheckInterval {
             // Return cached result from last check
             return lastQualityCheckResult
         }
@@ -901,7 +929,7 @@ public class FaceScan3DViewModel: ObservableObject {
                 let smileAmount = (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2.0
                 if Double(smileAmount) > ScanConfiguration.maxSmileThreshold {
                     AppLogger.faceScan.warning("❌ Quality check failed: Smiling detected (\(String(format: "%.2f", smileAmount)))")
-                    qualityWarning = "Please keep a neutral expression (no smiling)"
+                    setQualityWarning("Please keep a neutral expression (no smiling)")
                     lastQualityCheckResult = false
                     return false
                 }
@@ -911,7 +939,7 @@ public class FaceScan3DViewModel: ObservableObject {
             let frownAmount = (blendShapes.mouthFrownLeft + blendShapes.mouthFrownRight) / 2.0
             if Double(frownAmount) > ScanConfiguration.maxSmileThreshold {
                 AppLogger.faceScan.warning("❌ Quality check failed: Frowning detected (\(String(format: "%.2f", frownAmount)))")
-                qualityWarning = "Please relax your expression (no frowning)"
+                setQualityWarning("Please relax your expression (no frowning)")
                 lastQualityCheckResult = false
                 return false
             }
@@ -919,7 +947,7 @@ public class FaceScan3DViewModel: ObservableObject {
             // Detect jaw movement (talking, frowning)
             if Double(blendShapes.jawOpen) > ScanConfiguration.maxJawOpenThreshold {
                 AppLogger.faceScan.warning("❌ Quality check failed: Jaw open (\(String(format: "%.2f", blendShapes.jawOpen)))")
-                qualityWarning = "Please keep your mouth closed"
+                setQualityWarning("Please keep your mouth closed")
                 lastQualityCheckResult = false
                 return false
             }
@@ -927,7 +955,7 @@ public class FaceScan3DViewModel: ObservableObject {
             // Detect lip puckering (duck face)
             if Double(blendShapes.mouthPucker) > ScanConfiguration.maxMouthPuckerThreshold {
                 AppLogger.faceScan.warning("❌ Quality check failed: Mouth pucker (\(String(format: "%.2f", blendShapes.mouthPucker)))")
-                qualityWarning = "Please relax your lips"
+                setQualityWarning("Please relax your lips")
                 lastQualityCheckResult = false
                 return false
             }
@@ -935,7 +963,7 @@ public class FaceScan3DViewModel: ObservableObject {
             // Detect cheek puffing
             if Double(blendShapes.cheekPuff) > ScanConfiguration.maxCheekPuffThreshold {
                 AppLogger.faceScan.warning("❌ Quality check failed: Cheek puff (\(String(format: "%.2f", blendShapes.cheekPuff)))")
-                qualityWarning = "Please relax your cheeks"
+                setQualityWarning("Please relax your cheeks")
                 lastQualityCheckResult = false
                 return false
             }
@@ -944,7 +972,7 @@ public class FaceScan3DViewModel: ObservableObject {
             let blinkAmount = max(blendShapes.eyeBlinkLeft, blendShapes.eyeBlinkRight)
             if Double(blinkAmount) > ScanConfiguration.blinkDetectionThreshold {
                 AppLogger.faceScan.warning("❌ Quality check failed: Eye blink (\(String(format: "%.2f", blinkAmount)))")
-                qualityWarning = "Please keep your eyes open"
+                setQualityWarning("Please keep your eyes open")
                 lastQualityCheckResult = false
                 return false
             }
@@ -953,7 +981,7 @@ public class FaceScan3DViewModel: ObservableObject {
             let eyeWideAmount = max(blendShapes.eyeWideLeft, blendShapes.eyeWideRight)
             if Double(eyeWideAmount) > ScanConfiguration.maxEyeWideThreshold {
                 AppLogger.faceScan.warning("❌ Quality check failed: Eyes wide (\(String(format: "%.2f", eyeWideAmount)))")
-                qualityWarning = "Please relax your eyes"
+                setQualityWarning("Please relax your eyes")
                 lastQualityCheckResult = false
                 return false
             }
@@ -963,7 +991,7 @@ public class FaceScan3DViewModel: ObservableObject {
                 let squintAmount = max(blendShapes.eyeSquintLeft, blendShapes.eyeSquintRight)
                 if Double(squintAmount) > ScanConfiguration.maxSquintThreshold {
                     AppLogger.faceScan.warning("❌ Quality check failed: Eye squint (\(String(format: "%.2f", squintAmount)))")
-                    qualityWarning = "Please don't squint"
+                    setQualityWarning("Please don't squint")
                     lastQualityCheckResult = false
                     return false
                 }
@@ -972,7 +1000,7 @@ public class FaceScan3DViewModel: ObservableObject {
             // Detect raised eyebrows (surprised/worried expression)
             if Double(blendShapes.browInnerUp) > ScanConfiguration.maxBrowMovementThreshold {
                 AppLogger.faceScan.warning("❌ Quality check failed: Brows raised (\(String(format: "%.2f", blendShapes.browInnerUp)))")
-                qualityWarning = "Please relax your eyebrows"
+                setQualityWarning("Please relax your eyebrows")
                 lastQualityCheckResult = false
                 return false
             }
@@ -981,7 +1009,7 @@ public class FaceScan3DViewModel: ObservableObject {
             let browDownAmount = max(blendShapes.browDownLeft, blendShapes.browDownRight)
             if Double(browDownAmount) > ScanConfiguration.maxBrowMovementThreshold {
                 AppLogger.faceScan.warning("❌ Quality check failed: Brows furrowed (\(String(format: "%.2f", browDownAmount)))")
-                qualityWarning = "Please relax your forehead"
+                setQualityWarning("Please relax your forehead")
                 lastQualityCheckResult = false
                 return false
             }
@@ -1020,9 +1048,9 @@ public class FaceScan3DViewModel: ObservableObject {
             return false
         }
 
-        // Check if exposure is within acceptable range (0.5 ± 0.3)
-        let exposureDeviation = abs(exposure - 0.5)
-        if exposureDeviation > 0.3 {
+        // Check if exposure is within acceptable range (ideal ± deviation)
+        let exposureDeviation = abs(exposure - ScanConfiguration.idealExposure)
+        if exposureDeviation > ScanConfiguration.maxExposureDeviation {
             AppLogger.faceScan.warning("❌ Quality check failed: Poor exposure (\(String(format: "%.2f", exposure)))")
             qualityWarning = "Adjust lighting for better exposure"
             lastQualityCheckResult = false
@@ -1051,11 +1079,8 @@ public class FaceScan3DViewModel: ObservableObject {
         AppLogger.faceScan.info("Starting capture countdown from 3")
         countdownTimer = 3
 
-        // Haptic feedback: Pose is correct! (if enabled)
-        if HapticSettings.shared.isEnabled {
-            hapticFeedback.impactOccurred()
-            AppLogger.faceScan.debug("Haptic feedback: Pose validated")
-        }
+        // UX: No haptic on countdown start (user requested - too many haptics)
+        // Haptic only fires when picture is actually captured
 
         // Create timer and explicitly add to main RunLoop to ensure it fires
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] timer in
@@ -1112,10 +1137,10 @@ public class FaceScan3DViewModel: ObservableObject {
                     self.holdStableTimer = nil
                     self.countdownTimer = 0
 
-                    // Haptic feedback: Capture complete! (if enabled)
+                    // UX: Single medium haptic when picture successfully captures
                     if HapticSettings.shared.isEnabled {
-                        self.hapticFeedback.impactOccurred()
-                        AppLogger.faceScan.debug("Haptic feedback: Pose captured")
+                        HapticManager.shared.medium()
+                        AppLogger.faceScan.debug("Haptic feedback: Picture captured (MEDIUM)")
                     }
 
                     self.capturePose(faceAnchor: currentAnchor, yaw: currentYaw, pitch: currentPitch, roll: currentRoll)
@@ -1169,9 +1194,8 @@ public class FaceScan3DViewModel: ObservableObject {
             // Also capture texture sample if we have current frame
             captureTextureSample(faceAnchor: faceAnchor)
 
-            // Haptic feedback
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
+            // UX: No haptic for individual frames (user already got haptic when countdown=0)
+            // This prevents 3 rapid haptics which is too much
 
             AppLogger.faceScan.info("📸 Captured \(captureSuccess)/3 frames for pose \(self.currentGuidanceStep.shortName)")
         } else {
@@ -1184,7 +1208,7 @@ public class FaceScan3DViewModel: ObservableObject {
         AppLogger.faceScan.info("🧪 Current sequence has \(self.currentSequence?.captures.count ?? 0) captures")
 
         // Small delay to let UI update
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + ScanConfiguration.calibrationRetryDelay) { [weak self] in
             self?.isCaptureInProgress = false
             self?.guidanceFeedback = "Testing mode - scan complete!"
             AppLogger.faceScan.info("🧪 Capture complete flag set. Sequence has \(self?.currentSequence?.captures.count ?? 0) captures")
@@ -1197,7 +1221,7 @@ public class FaceScan3DViewModel: ObservableObject {
         if let nextStepIndex = GuidanceStep.allCases.firstIndex(of: currentStep).map({ $0 + 1 }),
            nextStepIndex < GuidanceStep.allCases.count {
             // Move to next step
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + ScanConfiguration.resultsDisplayDelay) { [weak self] in
                 self?.currentGuidanceStep = GuidanceStep.allCases[nextStepIndex]
                 self?.isCaptureInProgress = false
                 self?.guidanceFeedback = nil
@@ -1308,10 +1332,34 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Bake texture using current sequence samples
     public func bakeTextureFromSequence() async -> TextureBakeResult? {
-        guard let merged = mergedMesh,
-              let sequence = currentSequence,
-              !sequence.textureSamples.isEmpty else {
-            errorMessage = "No mesh or texture samples to bake"
+        // Debug logging to understand which component is missing
+        if mergedMesh == nil {
+            print("🔴 TextureBake FAILED: mergedMesh is nil")
+            errorMessage = "No merged mesh available for texture baking"
+            return nil
+        }
+
+        if currentSequence == nil {
+            print("🔴 TextureBake FAILED: currentSequence is nil")
+            errorMessage = "No capture sequence available"
+            return nil
+        }
+
+        guard let sequence = currentSequence else {
+            return nil
+        }
+
+        if sequence.textureSamples.isEmpty {
+            print("🔴 TextureBake FAILED: textureSamples is empty (count: \(sequence.textureSamples.count))")
+            print("   - capturedPoses count: \(capturedPoses.count)")
+            print("   - sequence.captures count: \(sequence.captures.count)")
+            errorMessage = "No texture samples captured during scan"
+            return nil
+        }
+
+        print("✅ TextureBake STARTING: mergedMesh=\(mergedMesh != nil), samples=\(sequence.textureSamples.count)")
+
+        guard let merged = mergedMesh else {
             return nil
         }
 
@@ -1378,7 +1426,7 @@ public class FaceScan3DViewModel: ObservableObject {
         let avgDist = captures.map { $0.distanceFromCamera }.reduce(0, +) / Float(captures.count)
 
         let avgSharpness = samples.isEmpty ? 0 : samples.map { $0.focusSharpness }.reduce(0, +) / Float(samples.count)
-        let avgExposure = samples.isEmpty ? 0.5 : samples.map { $0.exposureScore }.reduce(0, +) / Float(samples.count)
+        let avgExposure = samples.isEmpty ? ScanConfiguration.idealExposure : samples.map { $0.exposureScore }.reduce(0, +) / Float(samples.count)
 
         let deviceModel = UIDevice.current.model
         let iOSVersion = UIDevice.current.systemVersion
@@ -1416,51 +1464,51 @@ public class FaceScan3DViewModel: ObservableObject {
     // MARK: - 3D Metrics API
 
     /// Compute 3D face metrics from baked result
+    /// This function runs the heavy computation off the main actor to avoid blocking UI
     public func compute3DMetrics() async -> Face3DMetrics? {
         guard let result = bakeResult else {
             errorMessage = "No baked result available - bake texture first"
             return nil
         }
 
-        isComputingMetrics = true
+        // Update UI state on main actor
+        await MainActor.run {
+            isComputingMetrics = true
+        }
 
-        AppLogger.faceScan.info("🔬 Starting metrics computation with timeout...")
+        AppLogger.faceScan.info("🔬 Starting metrics computation...")
+        print("DEBUG: About to call computeMetrics (off main actor)")
 
-        // Wrap in timeout to prevent hanging
-        // Note: computeMetrics returns Face3DMetrics?, withTimeoutOptional wraps it in another optional
-        // So we get Face3DMetrics?? and need to flatten it
-        let metricsDoubleOptional = await withTimeoutOptional(
-            seconds: 60.0,  // Increased to match full analysis pipeline time (~50s typical)
-            operation: "Metrics Computation"
-        ) {
-            await self.metricsAnalyzer.computeMetrics(
-                unifiedMesh: result.unifiedMesh,
-                unifiedTexture: result.albedoTexture
+        // Capture references before detaching
+        let analyzer = self.metricsAnalyzer
+        let unifiedMesh = result.unifiedMesh
+        let unifiedTexture = result.albedoTexture
+
+        // Run heavy computation off main actor to avoid blocking UI and timeout issues
+        let metrics = await Task.detached {
+            print("DEBUG: Inside Task.detached, calling computeMetrics")
+            let result = await analyzer.computeMetrics(
+                unifiedMesh: unifiedMesh,
+                unifiedTexture: unifiedTexture
             )
+            print("DEBUG: computeMetrics completed in Task.detached, returning \(result != nil ? "non-nil" : "nil")")
+            return result
+        }.value
+
+        print("DEBUG: Task.detached completed, metrics = \(metrics != nil ? "non-nil" : "nil")")
+
+        if metrics == nil {
+            AppLogger.faceScan.warning("⚠️ Metrics computation returned nil")
         }
 
-        // Flatten double optional Face3DMetrics?? -> Face3DMetrics?
-        // metricsDoubleOptional is Face3DMetrics?? (optional of optional)
-        // We need to flatten it: if outer is nil (timeout), result is nil
-        // If outer is non-nil, unwrap to get the inner Face3DMetrics?
-        let metrics: Face3DMetrics?
-        if let outerOptional = metricsDoubleOptional {
-            // Outer is non-nil, so we got a result (could still be nil if analyzer returned nil)
-            metrics = outerOptional
-        } else {
-            // Outer is nil, meaning timeout occurred
-            metrics = nil
-            AppLogger.faceScan.warning("⚠️ Metrics computation timed out or failed")
+        // Update state on main actor
+        await MainActor.run {
+            print("DEBUG: Back on main actor, setting face3DMetrics")
+            face3DMetrics = metrics
+            isComputingMetrics = false
         }
 
-        face3DMetrics = metrics
-        isComputingMetrics = false
-
-        // Generate visualizations for all metric types
-        if let metrics = metrics {
-            await generateVisualizations(for: metrics)
-        }
-
+        print("DEBUG: About to return metrics from compute3DMetrics")
         return metrics
     }
 
@@ -1537,6 +1585,26 @@ public class FaceScan3DViewModel: ObservableObject {
         }
 
         AppLogger.faceScan.info("Memory cleared successfully")
+    }
+
+    // MARK: - Haptic Feedback Helpers
+
+    /// Set quality warning with haptic feedback if it's a new/different warning
+    private func setQualityWarning(_ warning: String) {
+        // Only trigger haptic if this is a NEW warning (different from previous)
+        if previousQualityWarning != warning {
+            if HapticSettings.shared.isEnabled {
+                HapticManager.shared.warning()
+            }
+            previousQualityWarning = warning
+        }
+        qualityWarning = warning
+    }
+
+    /// Clear quality warning
+    private func clearQualityWarning() {
+        qualityWarning = nil
+        previousQualityWarning = nil
     }
 }
 

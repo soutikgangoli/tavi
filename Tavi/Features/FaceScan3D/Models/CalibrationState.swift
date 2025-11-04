@@ -52,9 +52,10 @@ public enum DistanceCondition: String {
     }
 
     var isValid: Bool {
-        // STRICT: Only optimal distance allowed for quality skin analysis
-        // "acceptable" is too far - blocks countdown to encourage proper positioning
-        return self == .good
+        // UX FIX: Accept both "good" (30-50cm) and "acceptable" (25-30cm, 50-60cm)
+        // This gives users more flexibility while still maintaining quality
+        // Only reject "tooClose" (<25cm) and "tooFar" (>60cm)
+        return self == .good || self == .acceptable
     }
 
     var isOptimal: Bool {
@@ -415,9 +416,10 @@ public struct CalibrationState {
 
     /// Update stability by comparing transforms over time
     public mutating func updateStability(movement: Float) {
-        // Movement threshold in meters (increased from 0.01 to 0.02 for more tolerance)
-        // 2cm movement allowance instead of 1cm - more realistic for handheld device
-        let stabilityThreshold: Float = 0.02
+        // UX FIX: Movement threshold increased to 3cm for better user experience
+        // 3cm movement allowance - more realistic for handheld device and natural micro-movements
+        // This prevents stability from being TOO strict during countdown
+        let stabilityThreshold: Float = 0.03
 
         if movement < stabilityThreshold {
             stability = .stable

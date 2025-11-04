@@ -145,8 +145,10 @@ public struct ScanConfiguration {
     public static let textureBakeTimeout: TimeInterval = 30.0
 
     /// Timeout for metrics computation (seconds)
-    /// Increased to 60s to accommodate full analysis pipeline (~50s typical)
-    public static let metricsComputationTimeout: TimeInterval = 60.0
+    /// Increased to 150s to accommodate full analysis pipeline including parallel analyzers
+    /// Breakdown: ROI processing ~40s + Parallel analysis ~65s + Glow/Sun damage ~10s + overhead = ~120s
+    /// Setting to 150s for safety margin
+    public static let metricsComputationTimeout: TimeInterval = 150.0
 
     /// Timeout for CoreData save operation (seconds)
     public static let coreDataSaveTimeout: TimeInterval = 10.0
@@ -178,6 +180,71 @@ public struct ScanConfiguration {
 
     /// Smooth animation (ease-out for exits)
     public static let smoothAnimation: Animation = .easeOut(duration: 0.3)
+
+    // MARK: - Performance Optimization
+
+    /// Quality check interval in frames
+    /// Only check every N frames to prevent FPS drops
+    /// At 60fps, 15 frames = ~4 quality checks per second
+    public static let qualityCheckInterval: Int = 15
+
+    /// Countdown tolerance frames
+    /// Allow brief validation failures during countdown without canceling
+    /// At 60fps, 15 frames = ~0.25 seconds of tolerance
+    public static let countdownToleranceFrames: Int = 15
+
+    /// Streaming mesh merger threshold (in number of vertices)
+    /// Use streaming merger for meshes with more than this many vertices
+    /// to avoid memory spikes
+    public static let streamingMeshThreshold: Int = 50_000
+
+    // MARK: - Texture Resolution
+
+    /// High-resolution texture size (4K)
+    /// Used when user enables high-res capture in settings
+    public static let highResTextureWidth: Int = 4096
+    public static let highResTextureHeight: Int = 4096
+
+    /// Standard texture size (2K)
+    /// Used by default for balanced quality/performance
+    public static let standardTextureWidth: Int = 2048
+    public static let standardTextureHeight: Int = 2048
+
+    // MARK: - Exposure and Timing
+
+    /// Ideal exposure value for image capture
+    /// Range: 0.0 (black) to 1.0 (white), 0.5 = neutral
+    public static let idealExposure: Float = 0.5
+
+    /// Maximum acceptable exposure deviation from ideal
+    /// Captures with exposure outside (ideal ± deviation) are rejected
+    public static let maxExposureDeviation: Float = 0.3
+
+    /// Delay before retrying calibration (seconds)
+    /// After failed calibration, wait this long before allowing retry
+    public static let calibrationRetryDelay: TimeInterval = 0.3
+
+    /// Delay before showing results (seconds)
+    /// Brief delay after processing completes to smooth transition
+    public static let resultsDisplayDelay: TimeInterval = 0.5
+
+    // MARK: - Automatic Retry Configuration
+
+    /// Maximum number of automatic retry attempts for transient errors
+    public static let maxAutoRetryAttempts: Int = 3
+
+    /// Base delay for exponential backoff (seconds)
+    /// Actual delay = baseDelay * (2 ^ attemptNumber)
+    /// Example: 1.0s, 2.0s, 4.0s for 3 attempts
+    public static let retryBaseDelay: TimeInterval = 1.0
+
+    /// Maximum retry delay (seconds)
+    /// Caps exponential backoff to prevent excessive wait times
+    public static let maxRetryDelay: TimeInterval = 8.0
+
+    /// Whether to show retry progress to user
+    /// If true, display "Retrying automatically..." message
+    public static let showRetryProgress: Bool = true
 
     // MARK: - Memory Management
 

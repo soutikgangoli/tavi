@@ -14,29 +14,34 @@ public class Scoring3D {
     // MARK: - Configuration
 
     public struct Configuration {
-        // Roughness thresholds
-        public var roughnessLowThreshold: Float = 0.10    // Maps to 20%
-        public var roughnessHighThreshold: Float = 0.35   // Maps to 90%
+        // Roughness thresholds - RECALIBRATED for real-world conditions
+        // Old: 0.10-0.35, New: 0.08-0.50 (relaxed by 43% for realistic lighting)
+        public var roughnessLowThreshold: Float = 0.08    // Excellent skin
+        public var roughnessHighThreshold: Float = 0.50   // Significant texture issues
 
-        // Pigmentation thresholds
-        public var pigmentationLowThreshold: Float = 0.03  // Maps to 20%
-        public var pigmentationHighThreshold: Float = 0.15 // Maps to 90%
+        // Pigmentation thresholds - RECALIBRATED
+        // Old: 0.03-0.15, New: 0.02-0.25 (relaxed by 67% to account for lighting variance)
+        public var pigmentationLowThreshold: Float = 0.02  // Very even tone
+        public var pigmentationHighThreshold: Float = 0.25 // Noticeable pigmentation
 
-        // Discoloration thresholds
-        public var discolorationLowThreshold: Float = 0.01 // Maps to 20%
-        public var discolorationHighThreshold: Float = 0.06 // Maps to 90%
+        // Discoloration thresholds - RECALIBRATED
+        // Old: 0.01-0.06, New: 0.01-0.12 (doubled range for realistic assessment)
+        public var discolorationLowThreshold: Float = 0.01 // Minimal discoloration
+        public var discolorationHighThreshold: Float = 0.12 // Significant discoloration
 
-        // Specular/Oiliness thresholds
-        public var specularLowThreshold: Float = 0.02     // Maps to 20%
-        public var specularHighThreshold: Float = 0.12    // Maps to 90%
+        // Specular/Oiliness thresholds - RECALIBRATED
+        // Old: 0.02-0.12, New: 0.02-0.18 (relaxed by 50%)
+        public var specularLowThreshold: Float = 0.02     // Normal/dry skin
+        public var specularHighThreshold: Float = 0.18    // Very oily skin
 
-        // Score bounds (percentage scale)
+        // Score bounds (percentage scale) - FULL 0-100 RANGE
         public var minimumScore: Float = 0.0
         public var maximumScore: Float = 100.0
 
-        // Low/high score mappings (percentage scale)
-        public var lowScoreValue: Float = 20.0    // Score for low threshold
-        public var highScoreValue: Float = 90.0   // Score for high threshold
+        // Low/high score mappings - EXPANDED TO FULL RANGE
+        // Old: 20-90 (compressed range), New: 0-100 (full range)
+        public var lowScoreValue: Float = 0.0     // Score for high threshold (worst)
+        public var highScoreValue: Float = 100.0  // Score for low threshold (best)
 
         public init() {}
     }

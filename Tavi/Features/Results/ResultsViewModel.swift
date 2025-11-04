@@ -37,13 +37,16 @@ class ResultsViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
+        AppLogger.storage.info("📚 Loading all sessions from CoreData...")
+
         do {
             sessions = try storageManager.fetchAllSessions()
+            AppLogger.storage.info("✅ Loaded \(sessions.count) sessions successfully")
             isLoading = false
         } catch {
             errorMessage = "Unable to load your scan history. Please try again later."
+            AppLogger.storage.error("❌ Failed to load sessions: \(error.localizedDescription)")
             isLoading = false
-            print("Error loading sessions: \(error)")
         }
     }
 
@@ -82,18 +85,26 @@ class ResultsViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
+        AppLogger.storage.info("📝 Attempting to save session with overall score: \(scores.overallScore)")
+
         do {
             try storageManager.saveSession(
                 scores: scores,
                 faceImage: faceImage,
                 heatmaps: heatmaps
             )
+            AppLogger.storage.info("✅ Session saved successfully to CoreData")
+
             loadSessions() // Reload to include new session
+            AppLogger.storage.info("📚 Sessions reloaded. Total count: \(sessions.count)")
+
             isLoading = false
         } catch {
-            errorMessage = "Unable to save your scan results. Please ensure you have enough storage space and try again."
+            let errorMsg = "Unable to save your scan results. Please ensure you have enough storage space and try again."
+            errorMessage = errorMsg
+            AppLogger.storage.error("❌ Failed to save session: \(error.localizedDescription)")
+            AppLogger.storage.error("❌ Error details: \(error)")
             isLoading = false
-            print("Error saving session: \(error)")
         }
     }
 
