@@ -25,6 +25,18 @@ struct TaviApp: App {
         CrashReporter.shared.logUserAction("app_launched")
         CrashReporter.shared.setCustomKey("device_model", value: UIDevice.current.model)
         CrashReporter.shared.setCustomKey("ios_version", value: UIDevice.current.systemVersion)
+
+        // Attempt to migrate fallback data to Core Data on launch
+        Task { @MainActor in
+            // Process any pending saves from queue
+            await CoreDataSaveQueue.shared.processQueue()
+
+            // Try to migrate fallback data if Core Data becomes available
+            let migratedCount = await FallbackStorage.shared.migrateToCoreDataIfPossible()
+            if migratedCount > 0 {
+                AppLogger.storage.info("✅ Migrated \(migratedCount) sessions from fallback to Core Data on app launch")
+            }
+        }
     }
 
     var body: some Scene {

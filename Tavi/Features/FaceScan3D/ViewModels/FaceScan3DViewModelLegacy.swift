@@ -183,6 +183,9 @@ public class FaceScan3DViewModelLegacy: ObservableObject {
     // Memory warning observer
     private var memoryWarningObserver: NSObjectProtocol?
 
+    // Memory pressure observer
+    private var memoryPressureObserver: NSObjectProtocol?
+
     // MARK: - Initialization
 
     public init() {
@@ -193,6 +196,9 @@ public class FaceScan3DViewModelLegacy: ObservableObject {
 
         // Register for memory warnings to prevent out-of-memory crashes
         setupMemoryWarningObserver()
+
+        // Register with AdvancedMemoryMonitor for proactive management
+        setupAdvancedMemoryMonitoring()
     }
 
     deinit {
@@ -206,6 +212,14 @@ public class FaceScan3DViewModelLegacy: ObservableObject {
         if let observer = memoryWarningObserver {
             NotificationCenter.default.removeObserver(observer)
         }
+
+        // Remove memory pressure observer
+        if let observer = memoryPressureObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+
+        // Unregister from advanced memory monitor
+        AdvancedMemoryMonitor.shared.unregisterCleanupHandler(id: "FaceScan3DViewModelLegacy")
     }
 
     // MARK: - Public Methods
@@ -485,6 +499,11 @@ public class FaceScan3DViewModelLegacy: ObservableObject {
             AppLogger.mesh.error("❌ MERGE FAILED: \(msg)")
             AppLogger.mesh.error("🔍 DEBUG: capturedPoses dict has \(self.capturedPoses.count) entries")
             self.errorMessage = msg
+            return nil
+        }
+
+        // PROACTIVE MEMORY CHECK: Verify sufficient memory before starting merge
+        guard await checkMemoryBeforeMerge(captureCount: captureCount) else {
             return nil
         }
 
@@ -1325,6 +1344,11 @@ public class FaceScan3DViewModelLegacy: ObservableObject {
             return nil
         }
 
+        // PROACTIVE MEMORY CHECK: Verify sufficient memory before texture baking (~67MB)
+        guard await checkMemoryBeforeBaking() else {
+            return nil
+        }
+
         isBaking = true
 
         let result = await textureBaker.bakeUnifiedTexture(
@@ -1479,6 +1503,11 @@ public class FaceScan3DViewModelLegacy: ObservableObject {
             return nil
         }
 
+        // PROACTIVE MEMORY CHECK: Verify sufficient memory before metrics computation
+        guard await checkMemoryBeforeMetrics() else {
+            return nil
+        }
+
         // Update UI state on main actor
         await MainActor.run {
             isComputingMetrics = true
@@ -1545,6 +1574,167 @@ public class FaceScan3DViewModelLegacy: ObservableObject {
         return face3DMetrics?.metrics(for: roi)
     }
 
+    // MARK: - Memory Pre-Check Helpers
+
+    /// Check memory availability before mesh merge operation (~30MB per capture)
+    private func checkMemoryBeforeMerge(captureCount: Int) async -> Bool {
+        guard let stats = AdvancedMemoryMonitor.shared.getMemoryStats() else {
+            AppLogger.mesh.warning("⚠️ Unable to get memory stats - proceeding with caution")
+            return true
+        }
+
+        // Estimate memory needed: ~30MB per merged mesh
+        let estimatedMemoryMB = 30.0
+
+        AppLogger.mesh.info("📊 Pre-merge memory check:")
+        AppLogger.mesh.info("   Available: \(stats.formattedUsed) / \(stats.formattedTotal)")
+        AppLogger.mesh.info("   Pressure: \(stats.pressure.description)")
+        AppLogger.mesh.info("   Estimated needed: \(String(format: "%.1f MB", estimatedMemoryMB))")
+
+        // Check if device is low-end (iPhone 11, XS) and memory pressure is high
+        let isLowEndDevice = DeviceCapabilities.current.isLowEndDevice
+        let isHighPressure = stats.pressure >= .high
+
+        if isLowEndDevice && isHighPressure {
+            AppLogger.mesh.error("❌ Insufficient memory for merge on \(DeviceCapabilities.current.deviceName)")
+            AppLogger.mesh.error("   Available: \(String(format: "%.1f MB", stats.availableMB)), Need: \(String(format: "%.1f MB", estimatedMemoryMB))")
+
+            await MainActor.run {
+                self.errorMessage = "Low memory: Please close other apps and try again."
+            }
+            return false
+        }
+
+        // If available memory is less than estimated needed + 50MB buffer
+        if stats.availableMB < (estimatedMemoryMB + 50.0) {
+            AppLogger.mesh.warning("⚠️ Low memory before merge - performing cleanup")
+            AdvancedMemoryMonitor.shared.forceCleanup(atPressure: .moderate)
+
+            // Re-check after cleanup
+            if let updatedStats = AdvancedMemoryMonitor.shared.getMemoryStats() {
+                AppLogger.mesh.info("   After cleanup: \(updatedStats.formattedUsed) / \(updatedStats.formattedTotal)")
+
+                if updatedStats.availableMB < estimatedMemoryMB {
+                    await MainActor.run {
+                        self.errorMessage = "Insufficient memory: Please close other apps."
+                    }
+                    return false
+                }
+            }
+        }
+
+        return true
+    }
+
+    /// Check memory availability before texture baking (~67MB)
+    private func checkMemoryBeforeBaking() async -> Bool {
+        guard let stats = AdvancedMemoryMonitor.shared.getMemoryStats() else {
+            AppLogger.faceScan.warning("⚠️ Unable to get memory stats - proceeding with caution")
+            return true
+        }
+
+        // Texture baking: ~67MB for high-res, ~30MB for standard
+        let isHighRes = UserDefaults.standard.bool(forKey: "enableHighResCapture")
+        let estimatedMemoryMB = isHighRes ? 67.0 : 30.0
+
+        AppLogger.faceScan.info("📊 Pre-baking memory check:")
+        AppLogger.faceScan.info("   Available: \(stats.formattedUsed) / \(stats.formattedTotal)")
+        AppLogger.faceScan.info("   Pressure: \(stats.pressure.description)")
+        AppLogger.faceScan.info("   Estimated needed: \(String(format: "%.1f MB", estimatedMemoryMB)) (\(isHighRes ? "4K" : "2K"))")
+
+        // Check if device is low-end and memory pressure is high/critical
+        let isLowEndDevice = DeviceCapabilities.current.isLowEndDevice
+        let isCriticalPressure = stats.pressure >= .critical
+
+        if isLowEndDevice && isCriticalPressure {
+            AppLogger.faceScan.error("❌ Insufficient memory for texture baking on \(DeviceCapabilities.current.deviceName)")
+            AppLogger.faceScan.error("   Available: \(String(format: "%.1f MB", stats.availableMB)), Need: \(String(format: "%.1f MB", estimatedMemoryMB))")
+
+            await MainActor.run {
+                self.errorMessage = "Low memory: Texture baking failed. Please close other apps."
+            }
+            return false
+        }
+
+        // If memory is tight, downgrade to standard resolution
+        if isHighRes && stats.availableMB < 100.0 {
+            AppLogger.faceScan.warning("⚠️ Low memory - downgrading from 4K to 2K texture")
+            UserDefaults.standard.set(false, forKey: "enableHighResCapture")
+
+            await MainActor.run {
+                // Note: This will use the standard resolution in the textureBaker property
+            }
+        }
+
+        // If available memory is critically low
+        if stats.availableMB < (estimatedMemoryMB + 30.0) {
+            AppLogger.faceScan.warning("⚠️ Low memory before baking - performing cleanup")
+            AdvancedMemoryMonitor.shared.forceCleanup(atPressure: .high)
+
+            // Re-check after cleanup
+            if let updatedStats = AdvancedMemoryMonitor.shared.getMemoryStats() {
+                AppLogger.faceScan.info("   After cleanup: \(updatedStats.formattedUsed) / \(updatedStats.formattedTotal)")
+
+                if updatedStats.availableMB < estimatedMemoryMB {
+                    await MainActor.run {
+                        self.errorMessage = "Insufficient memory for texture baking. Close other apps."
+                    }
+                    return false
+                }
+            }
+        }
+
+        return true
+    }
+
+    /// Check memory availability before metrics computation (variable size)
+    private func checkMemoryBeforeMetrics() async -> Bool {
+        guard let stats = AdvancedMemoryMonitor.shared.getMemoryStats() else {
+            AppLogger.faceScan.warning("⚠️ Unable to get memory stats - proceeding with caution")
+            return true
+        }
+
+        // Metrics computation is variable but typically ~20-50MB
+        let estimatedMemoryMB = 50.0
+
+        AppLogger.faceScan.info("📊 Pre-metrics memory check:")
+        AppLogger.faceScan.info("   Available: \(stats.formattedUsed) / \(stats.formattedTotal)")
+        AppLogger.faceScan.info("   Pressure: \(stats.pressure.description)")
+        AppLogger.faceScan.info("   Estimated needed: \(String(format: "%.1f MB", estimatedMemoryMB))")
+
+        // If memory pressure is critical, abort
+        if stats.pressure == .critical {
+            AppLogger.faceScan.error("❌ Critical memory pressure - cannot compute metrics")
+
+            await MainActor.run {
+                self.errorMessage = "Insufficient memory for metrics computation. Close other apps."
+            }
+            return false
+        }
+
+        // If memory is tight, perform cleanup
+        if stats.availableMB < (estimatedMemoryMB + 30.0) {
+            AppLogger.faceScan.warning("⚠️ Low memory before metrics - performing cleanup")
+
+            // Clear merged mesh and bake result since we only need the final data
+            await MainActor.run {
+                if self.mergedMesh != nil {
+                    AppLogger.faceScan.info("   Clearing mergedMesh to free memory")
+                    self.mergedMesh = nil
+                }
+            }
+
+            AdvancedMemoryMonitor.shared.forceCleanup(atPressure: .moderate)
+
+            // Re-check after cleanup
+            if let updatedStats = AdvancedMemoryMonitor.shared.getMemoryStats() {
+                AppLogger.faceScan.info("   After cleanup: \(updatedStats.formattedUsed) / \(updatedStats.formattedTotal)")
+            }
+        }
+
+        return true
+    }
+
     // MARK: - Memory Management
 
     /// Set up observer for memory warnings
@@ -1560,6 +1750,68 @@ public class FaceScan3DViewModelLegacy: ObservableObject {
         }
 
         AppLogger.faceScan.info("Memory warning observer registered")
+    }
+
+    /// Set up advanced memory monitoring with proactive management
+    private func setupAdvancedMemoryMonitoring() {
+        // Start monitoring if not already started
+        if !AdvancedMemoryMonitor.shared.isMonitoring {
+            AdvancedMemoryMonitor.shared.startMonitoring()
+        }
+
+        // Register cleanup handler
+        AdvancedMemoryMonitor.shared.registerCleanupHandler(id: "FaceScan3DViewModelLegacy") { [weak self] pressure in
+            Task { @MainActor in
+                self?.handleMemoryPressure(pressure)
+            }
+        }
+
+        // Observe memory pressure changes
+        memoryPressureObserver = NotificationCenter.default.addObserver(
+            forName: AdvancedMemoryMonitor.memoryPressureChangedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let pressure = notification.object as? AdvancedMemoryMonitor.MemoryPressure {
+                Task { @MainActor in
+                    self?.handleMemoryPressure(pressure)
+                }
+            }
+        }
+
+        AppLogger.faceScan.info("Advanced memory monitoring configured")
+    }
+
+    /// Handle memory pressure proactively
+    private func handleMemoryPressure(_ pressure: AdvancedMemoryMonitor.MemoryPressure) {
+        AppLogger.faceScan.warning("⚠️ Memory pressure: \(pressure.description)")
+
+        switch pressure {
+        case .normal:
+            // No action needed
+            break
+
+        case .moderate:
+            // Clear non-critical caches
+            if !metricVisualizations.isEmpty {
+                AppLogger.faceScan.info("Clearing metric visualizations due to moderate pressure")
+                metricVisualizations.removeAll()
+            }
+
+        case .high:
+            // Clear all non-essential data
+            handleMemoryWarning()
+
+        case .critical:
+            // Aggressive cleanup
+            handleMemoryWarning()
+
+            // If actively processing, warn user
+            if isMerging || isBaking || isComputingMetrics {
+                AppLogger.faceScan.error("❌ CRITICAL memory pressure during processing!")
+                errorMessage = "Low memory: Processing may be interrupted. Please close other apps."
+            }
+        }
     }
 
     /// Handle memory warning by clearing large cached data

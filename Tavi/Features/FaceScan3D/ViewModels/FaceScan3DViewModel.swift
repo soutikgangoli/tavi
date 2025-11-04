@@ -48,8 +48,11 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Whether a face is currently detected
     @Published public var faceDetected: Bool = false
 
-    /// Error message if tracking fails
+    /// Error message if tracking fails (legacy)
     @Published public var errorMessage: String?
+
+    /// Detailed error information with recovery guidance
+    @Published public var errorInfo: ARKitErrorInfo?
 
     /// Frame rate for debug display
     @Published public var currentFPS: Double = 0
@@ -223,19 +226,100 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Called when session fails
     public func sessionFailed(error: Error) {
         self.isTracking = false
-        self.errorMessage = "ARKit session failed: \(error.localizedDescription)"
+
+        // Analyze error and provide recovery guidance
+        let hadPartialCaptures = !captureManager.capturedPoses.isEmpty
+        let errorInfo = ARKitErrorAnalyzer.analyze(
+            error: error,
+            hadPartialCaptures: hadPartialCaptures
+        )
+
+        self.errorInfo = errorInfo
+        self.errorMessage = errorInfo.message  // Legacy compatibility
+
+        // Log error with details
+        AppLogger.faceScan.error("🚨 ARKit session failed: \(errorInfo.type) - \(errorInfo.message)")
+
+        // If recoverable and auto-recovery enabled, schedule retry
+        if errorInfo.type.isRecoverable, let delay = errorInfo.type.autoRecoveryDelay {
+            scheduleAutoRecovery(after: delay)
+        }
     }
 
     /// Called when session is interrupted
     public func sessionInterrupted() {
         self.isTracking = false
-        self.errorMessage = "ARKit session interrupted"
+
+        let errorInfo = ARKitErrorAnalyzer.analyzeInterruption()
+        self.errorInfo = errorInfo
+        self.errorMessage = errorInfo.message
+
+        AppLogger.faceScan.warning("⚠️ ARKit session interrupted")
     }
 
     /// Called when session interruption ends
     public func sessionInterruptionEnded() {
         self.isTracking = true
         self.errorMessage = nil
+        self.errorInfo = nil
+
+        AppLogger.faceScan.info("✅ ARKit session interruption ended")
+    }
+
+    // MARK: - Auto Recovery
+
+    private var recoveryTask: Task<Void, Never>?
+
+    /// Schedule automatic recovery attempt
+    private func scheduleAutoRecovery(after delay: TimeInterval) {
+        // Cancel any existing recovery task
+        recoveryTask?.cancel()
+
+        recoveryTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+
+            guard !Task.isCancelled else { return }
+
+            // Clear error and let tracking resume
+            AppLogger.faceScan.info("🔄 Auto-recovering from error...")
+            self.errorInfo = nil
+            self.errorMessage = nil
+            self.isTracking = true
+        }
+    }
+
+    /// Cancel any pending auto-recovery
+    public func cancelAutoRecovery() {
+        recoveryTask?.cancel()
+        recoveryTask = nil
+    }
+
+    // MARK: - Partial Capture Preservation
+
+    /// Check if there are partial captures that can be preserved
+    public var hasPartialCaptures: Bool {
+        return !captureManager.capturedPoses.isEmpty
+    }
+
+    /// Get count of captured poses
+    public var capturedPoseCount: Int {
+        return captureManager.capturedPoses.count
+    }
+
+    /// Clear partial captures (user wants to start fresh)
+    public func clearPartialCaptures() {
+        captureManager.capturedPoses = [:]
+        AppLogger.faceScan.info("🗑️ Cleared partial captures")
+    }
+
+    /// Resume scan with partial captures intact
+    public func resumeWithPartialCaptures() {
+        // Clear error but keep captured poses
+        self.errorInfo = nil
+        self.errorMessage = nil
+        self.isTracking = true
+
+        AppLogger.faceScan.info("▶️ Resuming scan with \(capturedPoseCount) poses preserved")
     }
 
     // MARK: - Public API (Scan Lifecycle)

@@ -14,19 +14,30 @@ public struct CelebratoryResultsView: View {
     let clinicalMetrics: Face3DMetrics?
     let onShareResults: () -> Void
     let onClose: () -> Void
+    let saveStatus: SaveStatus?
 
     @State private var showScore = false
     @State private var showMetrics = false
     @State private var showActions = false
 
+    public enum SaveStatus {
+        case saving
+        case saved
+        case failed
+        case queued
+        case coreDataUnavailable  // Core Data not available, using fallback
+    }
+
     public init(
         emotionalMetrics: EmotionalMetrics,
         clinicalMetrics: Face3DMetrics? = nil,
+        saveStatus: SaveStatus? = nil,
         onShareResults: @escaping () -> Void = {},
         onClose: @escaping () -> Void = {}
     ) {
         self.emotionalMetrics = emotionalMetrics
         self.clinicalMetrics = clinicalMetrics
+        self.saveStatus = saveStatus
         self.onShareResults = onShareResults
         self.onClose = onClose
     }
@@ -40,6 +51,13 @@ public struct CelebratoryResultsView: View {
                     heroSection
                         .opacity(showScore ? 1 : 0)
                         .offset(y: showScore ? 0 : -20)
+
+                    // Save status banner (if applicable)
+                    if let saveStatus = saveStatus, saveStatus != .saved {
+                        saveStatusBanner(status: saveStatus)
+                            .opacity(showScore ? 1 : 0)
+                            .offset(y: showScore ? 0 : -10)
+                    }
 
                     // Main score card
                     mainScoreCard
@@ -461,6 +479,107 @@ public struct CelebratoryResultsView: View {
 
         withAnimation(HeadspaceDesign.Animations.gentle.delay(0.5)) {
             showActions = true
+        }
+    }
+
+    // MARK: - Save Status Banner
+
+    @ViewBuilder
+    private func saveStatusBanner(status: SaveStatus) -> some View {
+        HStack(spacing: 12) {
+            // Status icon
+            Group {
+                switch status {
+                case .saving:
+                    ProgressView()
+                        .tint(HeadspaceDesign.Colors.textSecondary)
+                case .failed, .queued:
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                case .coreDataUnavailable:
+                    Image(systemName: "externaldrive.fill.badge.exclamationmark")
+                        .foregroundColor(.red)
+                }
+            }
+            .frame(width: 20, height: 20)
+
+            // Status message
+            VStack(alignment: .leading, spacing: 4) {
+                Text(statusTitle(for: status))
+                    .font(HeadspaceDesign.Typography.bodyMedium)
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                Text(statusMessage(for: status))
+                    .font(HeadspaceDesign.Typography.caption)
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            }
+
+            Spacer()
+        }
+        .padding(HeadspaceDesign.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: HeadspaceDesign.CornerRadius.medium)
+                .fill(statusBackgroundColor(for: status))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: HeadspaceDesign.CornerRadius.medium)
+                .stroke(statusBorderColor(for: status), lineWidth: 1)
+        )
+    }
+
+    private func statusTitle(for status: SaveStatus) -> String {
+        switch status {
+        case .saving:
+            return "Saving to History"
+        case .failed:
+            return "Save Failed"
+        case .queued:
+            return "Queued for Retry"
+        case .coreDataUnavailable:
+            return "Storage Issue Detected"
+        case .saved:
+            return ""
+        }
+    }
+
+    private func statusMessage(for status: SaveStatus) -> String {
+        switch status {
+        case .saving:
+            return "Your results are being saved..."
+        case .failed:
+            return "Your results are visible but won't appear in history. Will retry automatically."
+        case .queued:
+            return "Your results will be saved automatically when possible."
+        case .coreDataUnavailable:
+            return "Device storage unavailable. Results saved to backup file. Tap to export or contact support."
+        case .saved:
+            return ""
+        }
+    }
+
+    private func statusBackgroundColor(for status: SaveStatus) -> Color {
+        switch status {
+        case .saving:
+            return HeadspaceDesign.Colors.cardBackground
+        case .failed, .queued:
+            return Color.orange.opacity(0.1)
+        case .coreDataUnavailable:
+            return Color.red.opacity(0.1)
+        case .saved:
+            return .clear
+        }
+    }
+
+    private func statusBorderColor(for status: SaveStatus) -> Color {
+        switch status {
+        case .saving:
+            return HeadspaceDesign.Colors.border
+        case .failed, .queued:
+            return Color.orange.opacity(0.3)
+        case .coreDataUnavailable:
+            return Color.red.opacity(0.4)
+        case .saved:
+            return .clear
         }
     }
 }
