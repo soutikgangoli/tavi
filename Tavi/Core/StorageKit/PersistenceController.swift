@@ -47,8 +47,8 @@ final class PersistenceController {
             try context.save()
         } catch {
             // Log error but don't crash - preview data is not critical
-            print("ERROR: Failed to create preview data: \(error.localizedDescription)")
-            print("This is a non-critical error. The app will continue without preview data.")
+            AppLogger.storage.warning("Failed to create preview data: \(error.localizedDescription)")
+            AppLogger.storage.warning("This is a non-critical error. The app will continue without preview data.")
         }
 
         return controller
@@ -70,32 +70,76 @@ final class PersistenceController {
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         } else {
-            // Enable automatic lightweight migration for production
-            // This allows Core Data to automatically migrate data when the model changes
-            if let storeDescription = container.persistentStoreDescriptions.first {
-                storeDescription.shouldMigrateStoreAutomatically = true
-                storeDescription.shouldInferMappingModelAutomatically = true
+            // IMPROVED MIGRATION STRATEGY
+            // Use custom migration manager for safety and control
+            if let storeDescription = container.persistentStoreDescriptions.first,
+               let storeURL = storeDescription.url {
 
-                AppLogger.storage.info("✅ Core Data automatic migration enabled")
-                AppLogger.storage.info("   - shouldMigrateStoreAutomatically: true")
-                AppLogger.storage.info("   - shouldInferMappingModelAutomatically: true")
+                // Create migration manager
+                let migrationManager = CoreDataMigrationManager(
+                    modelName: "TaviModel",
+                    storeURL: storeURL
+                )
+
+                // Perform migration if needed (with backup and rollback support)
+                let migrationResult = migrationManager.migrateStoreIfNeeded()
+
+                switch migrationResult {
+                case .notRequired:
+                    AppLogger.storage.info("✅ Core Data migration not required")
+
+                case .succeeded(let from, let to, let duration):
+                    AppLogger.storage.info("✅ Core Data migration succeeded")
+                    AppLogger.storage.info("   From: \(from) → To: \(to)")
+                    AppLogger.storage.info("   Duration: \(String(format: "%.2f", duration))s")
+
+                    // Clean up old backups (keep last 5)
+                    try? migrationManager.cleanupOldBackups(keepCount: 5)
+
+                case .failed(let error):
+                    AppLogger.storage.error("❌ Core Data migration failed: \(error.localizedDescription)")
+                    AppLogger.storage.error("   App will attempt to continue with existing store")
+                }
+
+                // Configure store for production use
+                // Note: Auto-migration disabled since we handle it manually above
+                storeDescription.shouldMigrateStoreAutomatically = false
+                storeDescription.shouldInferMappingModelAutomatically = false
+
+                AppLogger.storage.info("✅ Core Data configured with custom migration manager")
             }
         }
 
         container.loadPersistentStores { description, error in
             if let error = error {
                 // Log the error comprehensively
-                print("CRITICAL ERROR: Failed to load Core Data stack: \(error.localizedDescription)")
-                print("Store Description: \(description)")
-                print("The app will continue with in-memory storage. Data will not persist between sessions.")
+                AppLogger.storage.error("❌ CRITICAL: Failed to load Core Data stack")
+                AppLogger.storage.error("   Error: \(error.localizedDescription)")
+                AppLogger.storage.error("   Store: \(description.url?.path ?? "unknown")")
 
-                // Attempt to recover by using in-memory store as fallback
-                // This means data won't persist, but the app can still function
-                // Note: This recovery is done inside the completion handler to avoid unsafe container modification
-                print("⚠️ Using in-memory storage as fallback. Scan results will be lost when app closes.")
+                // Check if this is a migration-related error
+                let nsError = error as NSError
+                if nsError.domain == NSCocoaErrorDomain &&
+                   (nsError.code == NSPersistentStoreIncompatibleVersionHashError ||
+                    nsError.code == NSMigrationMissingSourceModelError) {
+
+                    AppLogger.storage.error("   Migration error detected - store incompatible with model")
+                    AppLogger.storage.error("   Consider restoring from backup or resetting store")
+                }
+
+                AppLogger.storage.warning("⚠️ Using in-memory storage as fallback")
+                AppLogger.storage.warning("   Data will NOT persist between app sessions")
             } else {
                 AppLogger.storage.info("✅ Core Data persistent store loaded successfully")
-                AppLogger.storage.info("   Store URL: \(description.url?.absoluteString ?? "unknown")")
+                AppLogger.storage.info("   Store URL: \(description.url?.path ?? "unknown")")
+
+                // Log store size for monitoring
+                if let storeURL = description.url,
+                   let attributes = try? FileManager.default.attributesOfItem(atPath: storeURL.path),
+                   let fileSize = attributes[.size] as? UInt64 {
+                    let sizeMB = Double(fileSize) / 1_048_576.0
+                    AppLogger.storage.info("   Store size: \(String(format: "%.2f", sizeMB)) MB")
+                }
             }
         }
 
@@ -113,9 +157,15 @@ final class PersistenceController {
             do {
                 try context.save()
             } catch {
-                // In production, handle this more gracefully
                 let nsError = error as NSError
-                print("Failed to save context: \(nsError), \(nsError.userInfo)")
+                AppLogger.storage.error("Failed to save PersistenceController context: \(nsError), \(nsError.userInfo)")
+                CrashReporter.shared.logError(error, context: [
+                    "operation": "persistence_controller_save",
+                    "has_changes": "true"
+                ])
+
+                // In production, this is a background save - we log but don't show UI
+                // If this fails, the next save attempt will retry any unsaved changes
             }
         }
     }

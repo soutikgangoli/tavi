@@ -133,6 +133,9 @@ struct CaptureSettingsView: View {
                         .foregroundColor(DesignSystem.Colors.textSecondary)
                 }
             }
+            .accessibilityLabel("High resolution capture")
+            .accessibilityHint("Captures at 4K resolution for maximum detail. Uses more battery and storage.")
+            .accessibilityValue(enableHighResCapture ? "On" : "Off")
             .tint(DesignSystem.Colors.accent)
             .onChange(of: enableHighResCapture) { newValue in
                 if newValue {
@@ -163,6 +166,9 @@ struct CaptureSettingsView: View {
                         .foregroundColor(DesignSystem.Colors.textSecondary)
                 }
             }
+            .accessibilityLabel("Face mesh overlay")
+            .accessibilityHint("Shows a 3D wireframe mesh of your face during capture using TrueDepth camera")
+            .accessibilityValue(enableFaceMesh ? "On" : "Off")
             .tint(DesignSystem.Colors.accent)
             .onChange(of: enableFaceMesh) { newValue in
                 if newValue {
@@ -189,6 +195,9 @@ struct CaptureSettingsView: View {
                         .foregroundColor(DesignSystem.Colors.textSecondary)
                 }
             }
+            .accessibilityLabel("Haptic feedback")
+            .accessibilityHint("Provides vibration feedback when pose is correct and captured")
+            .accessibilityValue(enableHapticFeedback ? "On" : "Off")
             .tint(DesignSystem.Colors.accent)
             .onChange(of: enableHapticFeedback) { newValue in
                 if newValue {
@@ -221,6 +230,9 @@ struct CaptureSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .accessibilityLabel("Lighting validation strictness level")
+                .accessibilityHint("Controls how strictly lighting conditions are validated before scanning")
+                .accessibilityValue(lightingStrictness.wrappedValue.rawValue)
                 .onChange(of: lightingStrictness.wrappedValue) { _ in
                     HapticManager.shared.light()
                 }
@@ -260,6 +272,9 @@ struct CaptureSettingsView: View {
                         .foregroundColor(DesignSystem.Colors.textSecondary)
                 }
             }
+            .accessibilityLabel("Sun damage analysis")
+            .accessibilityHint("Analyzes pigmentation, photoaging, texture, redness, and pores to assess UV damage")
+            .accessibilityValue(enableSunDamageAnalysis ? "On" : "Off")
             .tint(DesignSystem.Colors.accent)
             .onChange(of: enableSunDamageAnalysis) { newValue in
                 if newValue {
@@ -282,20 +297,44 @@ struct CaptureSettingsView: View {
                     .fontWeight(.semibold)
 
                 Toggle("Glasses", isOn: $detectGlasses)
+                    .accessibilityLabel("Detect glasses")
+                    .accessibilityHint("Warns if glasses are detected during scan")
+                    .accessibilityValue(detectGlasses ? "On" : "Off")
                     .tint(DesignSystem.Colors.accent)
                 Toggle("Hands on Face", isOn: $detectHands)
+                    .accessibilityLabel("Detect hands on face")
+                    .accessibilityHint("Warns if hands are touching face during scan")
+                    .accessibilityValue(detectHands ? "On" : "Off")
                     .tint(DesignSystem.Colors.accent)
                 Toggle("Hat/Headband", isOn: $detectHat)
+                    .accessibilityLabel("Detect hat or headband")
+                    .accessibilityHint("Warns if headwear is detected during scan")
+                    .accessibilityValue(detectHat ? "On" : "Off")
                     .tint(DesignSystem.Colors.accent)
                 Toggle("Heavy Makeup", isOn: $detectMakeup)
+                    .accessibilityLabel("Detect heavy makeup")
+                    .accessibilityHint("Warns if heavy makeup is detected during scan")
+                    .accessibilityValue(detectMakeup ? "On" : "Off")
                     .tint(DesignSystem.Colors.accent)
                 Toggle("Hair Coverage", isOn: $detectHairCoverage)
+                    .accessibilityLabel("Detect hair coverage")
+                    .accessibilityHint("Warns if hair is covering parts of face during scan")
+                    .accessibilityValue(detectHairCoverage ? "On" : "Off")
                     .tint(DesignSystem.Colors.accent)
                 Toggle("Sunburn", isOn: $detectSunburn)
+                    .accessibilityLabel("Detect sunburn")
+                    .accessibilityHint("Warns if sunburn is detected during scan")
+                    .accessibilityValue(detectSunburn ? "On" : "Off")
                     .tint(DesignSystem.Colors.accent)
                 Toggle("Earrings", isOn: $detectEarrings)
+                    .accessibilityLabel("Detect earrings")
+                    .accessibilityHint("Warns if earrings are detected during scan")
+                    .accessibilityValue(detectEarrings ? "On" : "Off")
                     .tint(DesignSystem.Colors.accent)
                 Toggle("Facial Hair", isOn: $detectFacialHair)
+                    .accessibilityLabel("Detect facial hair")
+                    .accessibilityHint("Warns if facial hair is detected during scan")
+                    .accessibilityValue(detectFacialHair ? "On" : "Off")
                     .tint(DesignSystem.Colors.accent)
             }
             .padding(.vertical, 4)
@@ -323,6 +362,9 @@ struct CaptureSettingsView: View {
                         .foregroundColor(DesignSystem.Colors.textSecondary)
                 }
             }
+            .accessibilityLabel("Real-time processing")
+            .accessibilityHint("Processes frames instantly using Neural Engine. Disable to save battery.")
+            .accessibilityValue(useRealtimeProcessing ? "On" : "Off")
             .tint(DesignSystem.Colors.accent)
             .onChange(of: useRealtimeProcessing) { newValue in
                 if newValue {
@@ -381,6 +423,8 @@ struct CaptureSettingsView: View {
                         .font(DesignSystem.Typography.body)
                 }
             }
+            .accessibilityLabel("Device Capabilities")
+            .accessibilityHint("Shows detailed information about your device hardware and supported features")
         }
     }
 }

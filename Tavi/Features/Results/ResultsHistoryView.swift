@@ -22,13 +22,14 @@ struct ResultsHistoryView: View {
     @State private var sessionToDelete: SessionResult?
     @State private var showingDeleteAlert = false
     @State private var selectedSession: SessionResult?
+    @State private var errorState: ErrorState?
 
     var body: some View {
-        ZStack {
-            if sessions.isEmpty {
-                emptyStateView
+        Group {
+            if let error = errorState {
+                errorView(error)
             } else {
-                sessionsList
+                contentView
             }
         }
         .navigationTitle("Analysis History")
@@ -46,6 +47,52 @@ struct ResultsHistoryView: View {
                 ResultsDetailView(session: session)
             }
         }
+    }
+
+    // MARK: - Content View
+
+    private var contentView: some View {
+        ZStack {
+            if sessions.isEmpty {
+                emptyStateView
+            } else {
+                sessionsList
+            }
+        }
+    }
+
+    // MARK: - Error View
+
+    private func errorView(_ error: ErrorState) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 60))
+                .foregroundColor(.orange)
+
+            Text("Unable to Load History")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Text(error.message)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            Button {
+                errorState = nil
+            } label: {
+                Text("Try Again")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: 200)
+                    .padding(.vertical, 16)
+                    .background(Color.blue)
+                    .cornerRadius(12)
+            }
+            .padding(.top)
+        }
+        .padding()
     }
 
     // MARK: - Sessions List
@@ -101,8 +148,28 @@ struct ResultsHistoryView: View {
     private func deleteSession(_ session: SessionResult) {
         withAnimation {
             viewContext.delete(session)
-            try? viewContext.save()
+            do {
+                try viewContext.save()
+            } catch {
+                handleError(error, context: "deleting session")
+            }
         }
+    }
+
+    // MARK: - Error Handling
+
+    private func handleError(_ error: Error, context: String) {
+        AppLogger.ui.error("ResultsHistoryView error (\(context)): \(error)")
+        CrashReporter.shared.logError(error, context: ["view": "ResultsHistoryView", "operation": context])
+        errorState = ErrorState(
+            message: "Unable to \(context). Please try again.",
+            error: error
+        )
+    }
+
+    private struct ErrorState {
+        let message: String
+        let error: Error
     }
 }
 

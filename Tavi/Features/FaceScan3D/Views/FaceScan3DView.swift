@@ -35,6 +35,7 @@ public struct FaceScan3DView: View {
     public var onCaptureComplete: (([GuidanceStep: CapturedPoseData]) -> Void)?
 
     @AppStorage("enableFaceMesh") private var enableFaceMesh: Bool = true
+    @State private var errorState: ErrorState?
 
     public init(
         viewModel: FaceScan3DViewModel,
@@ -57,6 +58,24 @@ public struct FaceScan3DView: View {
     }
 
     public var body: some View {
+        Group {
+            if let error = errorState {
+                errorView(error)
+            } else {
+                contentView
+            }
+        }
+        .onChange(of: viewModel.currentGeometry) { newGeometry in
+            handleGeometryUpdate(newGeometry)
+        }
+        .onChange(of: viewModel.capturedPoses.count) { newCount in
+            handleCaptureProgress(newCount)
+        }
+    }
+
+    // MARK: - Content View
+
+    private var contentView: some View {
         ZStack {
             // ARKit face tracking view
             // Show mesh during guidance to visualize 3D face geometry (if settings enabled)
@@ -121,18 +140,80 @@ public struct FaceScan3DView: View {
                 }
             }
         }
-        .onChange(of: viewModel.currentGeometry) { newGeometry in
+    }
+
+    // MARK: - Error View
+
+    private func errorView(_ error: ErrorState) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 60))
+                .foregroundColor(.orange)
+
+            Text("Scan Error")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Text(error.message)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            Button {
+                errorState = nil
+            } label: {
+                Text("Try Again")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: 200)
+                    .padding(.vertical, 16)
+                    .background(Color.blue)
+                    .cornerRadius(12)
+            }
+            .padding(.top)
+        }
+        .padding()
+    }
+
+    // MARK: - Event Handlers
+
+    private func handleGeometryUpdate(_ newGeometry: FaceMeshGeometry?) {
+        do {
             if let geometry = newGeometry {
                 onGeometryUpdate?(geometry)
             }
+        } catch {
+            handleError(error, context: "updating geometry")
         }
-        .onChange(of: viewModel.capturedPoses.count) { newCount in
+    }
+
+    private func handleCaptureProgress(_ newCount: Int) {
+        do {
             // TESTING MODE: Complete after 1 capture instead of all 7
             // TODO: Change back to == GuidanceStep.allCases.count for production
             if newCount >= 1 {
                 onCaptureComplete?(viewModel.capturedPoses)
             }
+        } catch {
+            handleError(error, context: "capturing pose")
         }
+    }
+
+    // MARK: - Error Handling
+
+    private func handleError(_ error: Error, context: String) {
+        AppLogger.ui.error("FaceScan3DView error (\(context)): \(error)")
+        CrashReporter.shared.logError(error, context: ["view": "FaceScan3DView", "operation": context])
+        errorState = ErrorState(
+            message: "Unable to \(context). Please try again.",
+            error: error
+        )
+    }
+
+    private struct ErrorState {
+        let message: String
+        let error: Error
     }
 }
 

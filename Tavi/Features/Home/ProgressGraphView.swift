@@ -90,7 +90,7 @@ public struct ProgressGraphView: View {
                         }
                     }
                     .padding(4)
-                    .background(Color.gray.opacity(0.1))
+                    .background(HeadspaceDesign.Colors.cardBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
 
@@ -100,7 +100,7 @@ public struct ProgressGraphView: View {
                 }
             }
             .padding(HeadspaceDesign.Spacing.xl)
-            .background(Color.white)
+            .background(HeadspaceDesign.Colors.elevatedCard)
 
             // Chart
             if hasData {
@@ -108,15 +108,15 @@ public struct ProgressGraphView: View {
                     .frame(height: 220)
                     .padding(.horizontal, HeadspaceDesign.Spacing.lg)
                     .padding(.vertical, HeadspaceDesign.Spacing.xl)
-                    .background(Color.white)
+                    .background(HeadspaceDesign.Colors.elevatedCard)
             } else {
                 emptyState
                     .frame(height: 220)
                     .padding(HeadspaceDesign.Spacing.xl)
-                    .background(Color.white)
+                    .background(HeadspaceDesign.Colors.elevatedCard)
             }
         }
-        .background(Color.white)
+        .background(HeadspaceDesign.Colors.elevatedCard)
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(
             color: HeadspaceDesign.Shadows.card.color,

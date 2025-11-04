@@ -58,7 +58,7 @@ class FrameAverager {
     func addFrame(_ geometry: ARFaceGeometry, confidence: Float, timestamp: TimeInterval) {
         guard capturedFrames.count < maxFrames else { return }
         guard confidence >= minTrackingConfidence else {
-            print("⚠️ Frame rejected: low tracking confidence \(confidence)")
+            AppLogger.faceScan.debug("⚠️ Frame rejected: low tracking confidence \(confidence)")
             return
         }
 
@@ -82,11 +82,11 @@ class FrameAverager {
     /// Average all captured frames with outlier rejection
     func average() -> AveragedFrame? {
         guard capturedFrames.count >= minFrames else {
-            print("❌ Not enough frames: \(capturedFrames.count)/\(minFrames)")
+            AppLogger.faceScan.error("❌ Not enough frames: \(capturedFrames.count)/\(minFrames)")
             return nil
         }
 
-        print("📊 Averaging \(capturedFrames.count) frames...")
+        AppLogger.faceScan.info("📊 Averaging \(capturedFrames.count) frames...")
 
         // Get reference geometry (first frame)
         let referenceGeometry = capturedFrames[0].geometry
@@ -154,9 +154,9 @@ class FrameAverager {
         let qualityPenalty = max(0, 1.0 - rejectionRate * 2.0)  // Penalize high rejection rates
         let finalConfidence = avgConfidence * qualityPenalty
 
-        print("✅ Averaged \(capturedFrames.count) frames")
-        print("   Confidence: \(String(format: "%.2f", finalConfidence))")
-        print("   Rejections: \(totalRejections) (\(String(format: "%.1f%%", rejectionRate * 100)))")
+        AppLogger.faceScan.info("✅ Averaged \(capturedFrames.count) frames")
+        AppLogger.faceScan.debug("   Confidence: \(String(format: "%.2f", finalConfidence))")
+        AppLogger.faceScan.debug("   Rejections: \(totalRejections) (\(String(format: "%.1f%%", rejectionRate * 100)))")
 
         // Create averaged geometry (convert Int16 to Int32 for FaceMeshGeometry)
         let triangleIndicesInt32 = Array(referenceGeometry.triangleIndices).map { Int32($0) }

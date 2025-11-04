@@ -198,9 +198,14 @@ public class UserProfileManager {
 
     // Load profile
     public func loadProfile() -> UserProfile {
-        if let data = UserDefaults.standard.data(forKey: profileKey),
-           let profile = try? JSONDecoder().decode(UserProfile.self, from: data) {
-            return profile
+        if let data = UserDefaults.standard.data(forKey: profileKey) {
+            do {
+                let profile = try JSONDecoder().decode(UserProfile.self, from: data)
+                return profile
+            } catch {
+                AppLogger.user.error("Failed to decode user profile: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "json_decode_profile"])
+            }
         }
         return UserProfile()  // New profile
     }
@@ -210,8 +215,12 @@ public class UserProfileManager {
         var updated = profile
         updated.updatedAt = Date()
 
-        if let data = try? JSONEncoder().encode(updated) {
+        do {
+            let data = try JSONEncoder().encode(updated)
             UserDefaults.standard.set(data, forKey: profileKey)
+        } catch {
+            AppLogger.user.error("Failed to encode user profile: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_encode_profile"])
         }
     }
 

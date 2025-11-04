@@ -17,6 +17,9 @@ public struct SettingsView: View {
     @AppStorage("debugModeEnabled") private var debugModeEnabled: Bool = false
     @AppStorage("skipOnboarding") private var skipOnboarding: Bool = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
+
+    @State private var showDeleteConfirmation = false
 
     public var body: some View {
         NavigationStack {
@@ -26,6 +29,8 @@ public struct SettingsView: View {
                         footer: Text("High resolution capture provides better quality but uses more storage.")) {
                     Toggle("Show 3D Face Mesh", isOn: $enableFaceMesh)
                         .accessibilityLabel("Show 3D face mesh during scan")
+                        .accessibilityHint("Displays a 3D wireframe overlay of your face during scanning")
+                        .accessibilityValue(enableFaceMesh ? "On" : "Off")
                         .onChange(of: enableFaceMesh) { oldValue, newValue in
                             AnalyticsManager.shared.trackSettingChanged(
                                 setting: "enable_face_mesh",
@@ -36,6 +41,8 @@ public struct SettingsView: View {
 
                     Toggle("High Resolution Capture", isOn: $enableHighResCapture)
                         .accessibilityLabel("Enable high resolution capture (4K texture)")
+                        .accessibilityHint("Higher quality scans with more detail, but uses more storage space")
+                        .accessibilityValue(enableHighResCapture ? "On" : "Off")
                         .onChange(of: enableHighResCapture) { oldValue, newValue in
                             AnalyticsManager.shared.trackSettingChanged(
                                 setting: "enable_high_res_capture",
@@ -46,6 +53,8 @@ public struct SettingsView: View {
 
                     Toggle("Haptic Feedback", isOn: $enableHapticFeedback)
                         .accessibilityLabel("Enable haptic feedback during scan")
+                        .accessibilityHint("Provides vibration feedback during face scanning process")
+                        .accessibilityValue(enableHapticFeedback ? "On" : "Off")
                         .onChange(of: enableHapticFeedback) { oldValue, newValue in
                             AnalyticsManager.shared.trackSettingChanged(
                                 setting: "enable_haptic_feedback",
@@ -64,6 +73,8 @@ public struct SettingsView: View {
                         Text("Off").tag("Off")
                     }
                     .accessibilityLabel("Lighting validation level")
+                    .accessibilityHint("Controls how strictly the app validates lighting conditions before scanning")
+                    .accessibilityValue(lightingStrictness)
                 }
 
                 // Advanced Settings Section
@@ -73,12 +84,92 @@ public struct SettingsView: View {
                     } label: {
                         Label("Capture Settings", systemImage: "camera.fill")
                     }
+                    .accessibilityLabel("Capture Settings")
+                    .accessibilityHint("Opens advanced camera and capture configuration options")
 
                     NavigationLink {
                         DeviceInfoView()
                     } label: {
                         Label("Device Information", systemImage: "info.circle.fill")
                     }
+                    .accessibilityLabel("Device Information")
+                    .accessibilityHint("Shows device capabilities and hardware specifications")
+                }
+
+                // Legal Section
+                Section(header: Text("Legal"),
+                        footer: Text("View our privacy policy, terms of service, and get support for the app.")) {
+                    Button {
+                        AnalyticsManager.shared.trackAction("tap", target: "privacy_policy_link")
+                        if let url = URL(string: "https://tavi.app/privacy") {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        HStack {
+                            Label("Privacy Policy", systemImage: "hand.raised.fill")
+                            Spacer()
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .foregroundColor(.primary)
+                    .accessibilityLabel("Privacy Policy")
+                    .accessibilityHint("Opens privacy policy in Safari showing how we handle your data")
+
+                    Button {
+                        AnalyticsManager.shared.trackAction("tap", target: "terms_of_service_link")
+                        if let url = URL(string: "https://tavi.app/terms") {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        HStack {
+                            Label("Terms of Service", systemImage: "doc.text.fill")
+                            Spacer()
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .foregroundColor(.primary)
+                    .accessibilityLabel("Terms of Service")
+                    .accessibilityHint("Opens terms of service in Safari with app usage agreement")
+
+                    Button {
+                        AnalyticsManager.shared.trackAction("tap", target: "support_link")
+                        if let url = URL(string: "https://tavi.app/support") {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        HStack {
+                            Label("Support", systemImage: "questionmark.circle.fill")
+                            Spacer()
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .foregroundColor(.primary)
+                    .accessibilityLabel("Support")
+                    .accessibilityHint("Opens support page in Safari for help and contact information")
+
+                    Button {
+                        AnalyticsManager.shared.trackAction("tap", target: "acknowledgments_link")
+                        if let url = URL(string: "https://tavi.app/acknowledgments") {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        HStack {
+                            Label("Acknowledgments", systemImage: "heart.fill")
+                            Spacer()
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .foregroundColor(.primary)
+                    .accessibilityLabel("Acknowledgments")
+                    .accessibilityHint("Opens acknowledgments page showing third-party libraries and credits")
                 }
 
                 // Onboarding Section
@@ -86,6 +177,8 @@ public struct SettingsView: View {
                         footer: Text("Skip onboarding screen on app launch. You can reset onboarding to see it again.")) {
                     Toggle("Skip Onboarding", isOn: $skipOnboarding)
                         .accessibilityLabel("Skip onboarding screen on app launch")
+                        .accessibilityHint("When enabled, the welcome tutorial will not be shown on app launch")
+                        .accessibilityValue(skipOnboarding ? "On" : "Off")
                         .onChange(of: skipOnboarding) { oldValue, newValue in
                             AnalyticsManager.shared.trackSettingChanged(
                                 setting: "skip_onboarding",
@@ -100,6 +193,8 @@ public struct SettingsView: View {
                         dismiss()
                     }
                     .foregroundColor(.orange)
+                    .accessibilityLabel("Reset Onboarding")
+                    .accessibilityHint("Clears onboarding completion status so the tutorial will show again on next launch")
                 }
 
                 // Developer Section
@@ -107,6 +202,20 @@ public struct SettingsView: View {
                         footer: Text("Debug mode shows additional scan information and validation details.")) {
                     Toggle("Debug Mode", isOn: $debugModeEnabled)
                         .accessibilityLabel("Enable debug mode for additional scan information")
+                        .accessibilityHint("Shows technical details and validation information during scans")
+                        .accessibilityValue(debugModeEnabled ? "On" : "Off")
+                }
+
+                // Data Management Section
+                Section(header: Text("Data Management"),
+                        footer: Text("Warning: Deleting all data will permanently remove all scan results, progress history, and app settings. This action cannot be undone.")) {
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Label("Delete All Data", systemImage: "trash.fill")
+                    }
+                    .accessibilityLabel("Delete all data")
+                    .accessibilityHint("Permanently deletes all scan results, progress history, and settings. Requires confirmation.")
                 }
 
                 // About Section
@@ -133,9 +242,109 @@ public struct SettingsView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .accessibilityLabel("Done")
+                    .accessibilityHint("Closes settings and returns to previous screen")
                 }
             }
+            .alert("Delete All Data?", isPresented: $showDeleteConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) {
+                    deleteAllData()
+                }
+            } message: {
+                Text("This will permanently delete all scan results, progress history, achievements, and app settings. This action cannot be undone.")
+            }
         }
+    }
+
+    // MARK: - Data Deletion
+
+    private func deleteAllData() {
+        // Delete all Core Data entities
+        deleteAllCoreDataEntities()
+
+        // Clear all UserDefaults
+        clearUserDefaults()
+
+        // Track analytics (before clearing everything)
+        AnalyticsManager.shared.trackAction("delete_all_data", target: "settings")
+
+        // Provide haptic feedback
+        HapticManager.shared.error()
+
+        // Dismiss settings after a brief delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            dismiss()
+        }
+    }
+
+    private func deleteAllCoreDataEntities() {
+        // Fetch and delete all SessionResult entities
+        let fetchRequest = SessionResult.fetchRequest()
+
+        do {
+            let results = try viewContext.fetch(fetchRequest)
+            for result in results {
+                viewContext.delete(result)
+            }
+
+            // Save the context to persist deletions
+            try viewContext.save()
+
+            AppLogger.storage.info("✅ Successfully deleted \(results.count) SessionResult entities")
+        } catch {
+            AppLogger.storage.error("❌ Error deleting Core Data entities: \(error.localizedDescription)")
+        }
+    }
+
+    private func clearUserDefaults() {
+        // Get all keys
+        let domain = Bundle.main.bundleIdentifier!
+        UserDefaults.standard.removePersistentDomain(forName: domain)
+        UserDefaults.standard.synchronize()
+
+        // Reset critical app storage keys
+        let keysToReset = [
+            "enableFaceMesh",
+            "enableHighResCapture",
+            "lightingStrictness",
+            "enableHapticFeedback",
+            "debugModeEnabled",
+            "skipOnboarding",
+            "hasCompletedOnboarding",
+            "useRealtimeProcessing",
+            "enableSunDamageAnalysis",
+            "detectGlasses",
+            "detectHands",
+            "detectHat",
+            "detectMakeup",
+            "detectHairCoverage",
+            "detectSunburn",
+            "detectEarrings",
+            "detectFacialHair"
+        ]
+
+        // Set defaults back to initial values
+        UserDefaults.standard.set(true, forKey: "enableFaceMesh")
+        UserDefaults.standard.set(false, forKey: "enableHighResCapture")
+        UserDefaults.standard.set("Strict", forKey: "lightingStrictness")
+        UserDefaults.standard.set(true, forKey: "enableHapticFeedback")
+        UserDefaults.standard.set(false, forKey: "debugModeEnabled")
+        UserDefaults.standard.set(false, forKey: "skipOnboarding")
+        UserDefaults.standard.set(true, forKey: "useRealtimeProcessing")
+        UserDefaults.standard.set(false, forKey: "enableSunDamageAnalysis")
+
+        // Edge case detection defaults
+        UserDefaults.standard.set(true, forKey: "detectGlasses")
+        UserDefaults.standard.set(true, forKey: "detectHands")
+        UserDefaults.standard.set(true, forKey: "detectHat")
+        UserDefaults.standard.set(true, forKey: "detectMakeup")
+        UserDefaults.standard.set(true, forKey: "detectHairCoverage")
+        UserDefaults.standard.set(true, forKey: "detectSunburn")
+        UserDefaults.standard.set(true, forKey: "detectEarrings")
+        UserDefaults.standard.set(true, forKey: "detectFacialHair")
+
+        AppLogger.storage.info("✅ Successfully cleared UserDefaults and reset to defaults")
     }
 
     private var lightingStrictnessDescription: String {

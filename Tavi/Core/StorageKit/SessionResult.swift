@@ -88,8 +88,11 @@ extension SessionResult {
             self.chinScore = extractROIScore(for: .chin, from: metrics)
 
             // Save clinical metrics as JSON
-            if let metricsData = try? JSONEncoder().encode(metrics) {
-                self.clinicalMetricsData = metricsData
+            do {
+                self.clinicalMetricsData = try JSONEncoder().encode(metrics)
+            } catch {
+                AppLogger.storage.error("Failed to encode clinical metrics in SessionResult: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "json_encode_clinical_session"])
             }
         } else {
             // Fallback to overall score with slight variation per region
@@ -99,8 +102,16 @@ extension SessionResult {
             self.chinScore = Double(scores.overallScore)
         }
 
-        // Generate thumbnail and heatmaps asynchronously with JPEG compression
+        // Generate thumbnail and save full face image asynchronously with JPEG compression
         Task {
+            // Save full resolution face image (JPEG at 0.8 quality for heatmap generation)
+            let uiFaceImage = UIImage(cgImage: faceImage)
+            if let faceImageData = uiFaceImage.jpegData(compressionQuality: 0.8) {
+                await MainActor.run {
+                    self.faceImage = faceImageData
+                }
+            }
+
             // Generate thumbnail (JPEG at 0.8 quality - saves ~5x storage vs PNG)
             if let thumbnailImage = await resizeImage(faceImage, to: CGSize(width: 200, height: 200)) {
                 await MainActor.run {

@@ -40,9 +40,9 @@ class MeshSmoother {
         preserveFeatures: Bool = true
     ) -> SmoothingResult {
         let iterationCount = iterations ?? defaultIterations
-        print("🔮 Smoothing mesh with Taubin algorithm...")
-        print("   Vertices: \(geometry.vertices.count)")
-        print("   Iterations: \(iterationCount)")
+        AppLogger.mesh.info("🔮 Smoothing mesh with Taubin algorithm...")
+        AppLogger.mesh.debug("   Vertices: \(geometry.vertices.count)")
+        AppLogger.mesh.debug("   Iterations: \(iterationCount)")
 
         var currentVertices = geometry.vertices
         let triangleIndices = geometry.triangleIndices
@@ -90,8 +90,8 @@ class MeshSmoother {
             triangles: triangleIndices
         )
 
-        print("✅ Smoothing complete")
-        print("   Avg displacement: \(String(format: "%.4f", totalDisplacement))m")
+        AppLogger.mesh.info("✅ Smoothing complete")
+        AppLogger.mesh.debug("   Avg displacement: \(String(format: "%.4f", totalDisplacement))m")
 
         return SmoothingResult(
             smoothedVertices: currentVertices,

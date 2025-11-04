@@ -108,14 +108,14 @@ public class Face3DMetricsAnalyzer {
 
         let startTime = Date().timeIntervalSince1970
 
-        print("🔬 Face3DMetricsAnalyzer: Starting analysis...")
+        AppLogger.metrics.info("🔬 Face3DMetricsAnalyzer: Starting analysis...")
 
         // Step 0: Validate texture quality
         let textureQualityResult = qualityValidator.validateTexture(unifiedTexture)
-        print("   Texture quality: \(textureQualityResult.qualityDescription)")
+        AppLogger.metrics.info("   Texture quality: \(textureQualityResult.qualityDescription)")
 
         if !textureQualityResult.isValid {
-            print("⚠️ \(textureQualityResult.reason ?? "Poor texture quality")")
+            AppLogger.metrics.warning("⚠️ \(textureQualityResult.reason ?? "Poor texture quality")")
             // Note: Still proceed but mark as low quality
         }
 
@@ -125,7 +125,7 @@ public class Face3DMetricsAnalyzer {
             topology: unifiedMesh.triangleIndices
         )
 
-        print("   Generated \(masks.count) ROI masks")
+        AppLogger.metrics.info("   Generated \(masks.count) ROI masks")
 
         // Step 2: Sample texture for each ROI
         var roiSamples: [Face3DROI: ROITextureSample] = [:]
@@ -133,12 +133,12 @@ public class Face3DMetricsAnalyzer {
         for (roi, mask) in masks {
             if let sample = ROITextureSampler.sampleROITexture(unifiedTexture, mask: mask) {
                 roiSamples[roi] = sample
-                print("   Sampled \(sample.pixelCount) pixels for \(roi.displayName)")
+                AppLogger.metrics.debug("   Sampled \(sample.pixelCount) pixels for \(roi.displayName)")
             }
         }
 
         guard !roiSamples.isEmpty else {
-            print("⚠️ No ROI samples could be extracted")
+            AppLogger.metrics.warning("⚠️ No ROI samples could be extracted")
             return nil
         }
 
@@ -149,7 +149,7 @@ public class Face3DMetricsAnalyzer {
         var lowConfidenceROIs: [Face3DROI] = []
         for (roi, confidence) in roiConfidences {
             if !confidence.isValid {
-                print("   ⚠️ \(roi.displayName) has low confidence (\(confidence.pixelCount) pixels < \(confidence.minimumRequired))")
+                AppLogger.metrics.warning("   ⚠️ \(roi.displayName) has low confidence (\(confidence.pixelCount) pixels < \(confidence.minimumRequired))")
                 lowConfidenceROIs.append(roi)
             }
         }
@@ -160,17 +160,17 @@ public class Face3DMetricsAnalyzer {
         // Pore/wrinkle/acne analyzers use full resolution
         var roiMetrics: [Face3DROI: ROI3DMetrics] = [:]
 
-        print("   Computing metrics for \(roiSamples.count) ROIs in parallel...")
+        AppLogger.metrics.info("   Computing metrics for \(roiSamples.count) ROIs in parallel...")
 
         // Parallel processing using Task Group for significant speedup
         await withTaskGroup(of: (Face3DROI, ROI3DMetrics).self) { group in
             for (roi, sample) in roiSamples {
                 let confidence = roiConfidences[roi]
                 group.addTask {
-                    print("   - Processing \(roi.displayName)...")
+                    AppLogger.metrics.debug("   - Processing \(roi.displayName)...")
                     // sample is FULL RESOLUTION - only roughness will downsample internally
                     let metrics = await self.computeROI3DMetrics(sample, rawSample: nil, confidence: confidence)
-                    print("   ✓ \(roi.displayName): roughness=\(metrics.roughnessProxy), pigmentation=\(metrics.pigmentationIndex), confidence=\(metrics.confidenceLevel)")
+                    AppLogger.metrics.debug("   ✓ \(roi.displayName): roughness=\(metrics.roughnessProxy), pigmentation=\(metrics.pigmentationIndex), confidence=\(metrics.confidenceLevel)")
                     return (roi, metrics)
                 }
             }
@@ -180,7 +180,7 @@ public class Face3DMetricsAnalyzer {
                 roiMetrics[roi] = metrics
             }
         }
-        print("   ✅ All ROI metrics computed (parallel processing)")
+        AppLogger.metrics.info("   ✅ All ROI metrics computed (parallel processing)")
 
         // Step 4: Compute global metrics and scores
         let globalResults = computeGlobalMetrics(
@@ -198,10 +198,10 @@ public class Face3DMetricsAnalyzer {
         var textureImage = UIImage(cgImage: unifiedTexture)
 
         // Step 4.5: Apply color temperature normalization BEFORE all analysis
-        print("   🌡️ Normalizing color temperature...")
+        AppLogger.metrics.info("   🌡️ Normalizing color temperature...")
         let detectedColorTemp = colorTempNormalizer.estimateColorTemperature(from: textureImage)
         let lightingType = colorTempNormalizer.detectLightingType(ambientColorTemperature: detectedColorTemp)
-        print("      Detected: \(String(format: "%.0f", detectedColorTemp))K (\(lightingType))")
+        AppLogger.metrics.info("      Detected: \(String(format: "%.0f", detectedColorTemp))K (\(lightingType))")
 
         // Normalize to standard daylight (6000K) for consistent analysis
         let targetColorTemp: CGFloat = 6000
@@ -212,20 +212,20 @@ public class Face3DMetricsAnalyzer {
                 targetColorTemp: targetColorTemp
             ) {
                 textureImage = normalizedImage
-                print("      ✅ Normalized \(String(format: "%.0f", detectedColorTemp))K → \(String(format: "%.0f", targetColorTemp))K")
+                AppLogger.metrics.info("      ✅ Normalized \(String(format: "%.0f", detectedColorTemp))K → \(String(format: "%.0f", targetColorTemp))K")
             } else {
-                print("      ⚠️ Color temp normalization failed, using original texture")
+                AppLogger.metrics.warning("      ⚠️ Color temp normalization failed, using original texture")
             }
         } else {
-            print("      ✅ Color temperature already near target (\(String(format: "%.0f", detectedColorTemp))K)")
+            AppLogger.metrics.info("      ✅ Color temperature already near target (\(String(format: "%.0f", detectedColorTemp))K)")
         }
 
         // Step 5: Detect skin tone for normalization
         let skinTone = skinToneNormalizer.detectSkinTone(texture: textureImage)
-        print("   📊 Detected skin tone: \(skinTone) (reference L*: \(skinTone.referenceL))")
+        AppLogger.metrics.info("   📊 Detected skin tone: \(skinTone) (reference L*: \(skinTone.referenceL))")
 
         // Step 5a: Compute wrinkle analysis FIRST (needed for elasticity calculation)
-        print("   🔍 Running WrinkleAnalyzer...")
+        AppLogger.metrics.info("   🔍 Running WrinkleAnalyzer...")
         let wrinkleAnalysis: WrinkleAnalysis? = wrinkleAnalyzer.analyzeWrinkles(geometry: faceMeshGeometry)
 
         // Step 5b: Compute elasticity using ACTUAL wrinkle depth (not roughness proxy!)
@@ -237,11 +237,11 @@ public class Face3DMetricsAnalyzer {
                 // Use average depth from wrinkle regions (most accurate)
                 currentWrinkleDepth = wrinkles.wrinkleRegions.isEmpty ? 0 :
                     wrinkles.wrinkleRegions.map { $0.depth }.reduce(0, +) / Float(wrinkles.wrinkleRegions.count)
-                print("   Using actual wrinkle depth for elasticity: \(String(format: "%.4f", currentWrinkleDepth))mm")
+                AppLogger.metrics.info("   Using actual wrinkle depth for elasticity: \(String(format: "%.4f", currentWrinkleDepth))mm")
             } else {
                 // Fallback to roughness only if wrinkle analysis failed
                 currentWrinkleDepth = globalResults.roughness * 0.001  // Convert to meters
-                print("   ⚠️ Wrinkle analysis unavailable, using roughness fallback")
+                AppLogger.metrics.warning("   ⚠️ Wrinkle analysis unavailable, using roughness fallback")
             }
 
             elasticityAnalysis = skinElasticityAnalyzer.estimateElasticity(
@@ -253,7 +253,7 @@ public class Face3DMetricsAnalyzer {
         }
 
         // Step 5c: Compute remaining advanced metrics IN PARALLEL using TaskGroup
-        print("   🔍 Running advanced analyzers in parallel...")
+        AppLogger.metrics.info("   🔍 Running advanced analyzers in parallel...")
 
         let parallelStartTime = Date().timeIntervalSince1970
 
@@ -265,7 +265,7 @@ public class Face3DMetricsAnalyzer {
         // Run all independent analyzers concurrently
         // Note: Using nonisolated(unsafe) to suppress Sendable warnings
         // The analyzers don't mutate state and are safe for concurrent access
-        print("   🚀 Starting parallel analysis tasks...")
+        AppLogger.metrics.debug("   🚀 Starting parallel analysis tasks...")
         let (volumeAnalysis, regionalAnalysis, skinTypeAnalysis, poreAnalysis, acneAnalysis, rednessAnalysis, topologyAnalysis) = await withTaskGroup(
             of: AnalysisResult.self,
             returning: (VolumeAnalysis?, RegionalAnalysis?, SkinTypeAnalysis?, PoreAnalysis?, AcneAnalysis?, RednessAnalysis?, TopologyAnalysis?).self
@@ -334,25 +334,25 @@ public class Face3DMetricsAnalyzer {
             for await result in group {
                 switch result {
                 case .volume(let analysis):
-                    print("      ✓ Volume analysis complete")
+                    AppLogger.metrics.debug("      ✓ Volume analysis complete")
                     volume = analysis
                 case .regional(let analysis):
-                    print("      ✓ Regional analysis complete")
+                    AppLogger.metrics.debug("      ✓ Regional analysis complete")
                     regional = analysis
                 case .skinType(let analysis):
-                    print("      ✓ Skin type analysis complete")
+                    AppLogger.metrics.debug("      ✓ Skin type analysis complete")
                     skinType = analysis
                 case .pore(let analysis):
-                    print("      ✓ Pore analysis complete")
+                    AppLogger.metrics.debug("      ✓ Pore analysis complete")
                     pore = analysis
                 case .acne(let analysis):
-                    print("      ✓ Acne analysis complete")
+                    AppLogger.metrics.debug("      ✓ Acne analysis complete")
                     acne = analysis
                 case .redness(let analysis):
-                    print("      ✓ Redness analysis complete")
+                    AppLogger.metrics.debug("      ✓ Redness analysis complete")
                     redness = analysis
                 case .topology(let analysis):
-                    print("      ✓ Topology analysis complete")
+                    AppLogger.metrics.debug("      ✓ Topology analysis complete")
                     topology = analysis
                 }
             }
@@ -361,35 +361,35 @@ public class Face3DMetricsAnalyzer {
         }
 
         let parallelTime = Date().timeIntervalSince1970 - parallelStartTime
-        print("   ⚡️ Parallel analysis completed in \(String(format: "%.3f", parallelTime))s")
+        AppLogger.metrics.info("   ⚡️ Parallel analysis completed in \(String(format: "%.3f", parallelTime))s")
 
-        print("   Advanced metrics computed:")
+        AppLogger.metrics.info("   Advanced metrics computed:")
         if let elasticity = elasticityAnalysis {
-            print("   - Elasticity: \(elasticity.overallScore)/100 (\(elasticity.elasticityLevel))")
+            AppLogger.metrics.info("   - Elasticity: \(elasticity.overallScore)/100 (\(elasticity.elasticityLevel))")
         }
         if let volume = volumeAnalysis {
-            print("   - Volume: \(volume.overallScore)/100")
+            AppLogger.metrics.info("   - Volume: \(volume.overallScore)/100")
         }
         if let regional = regionalAnalysis {
-            print("   - Regional: Under-eye \(regional.underEyeDarkness.score)/100, Jawline \(regional.jawlineDefinition.definition)/100")
+            AppLogger.metrics.info("   - Regional: Under-eye \(regional.underEyeDarkness.score)/100, Jawline \(regional.jawlineDefinition.definition)/100")
         }
         if let skinType = skinTypeAnalysis {
-            print("   - Skin Type: \(skinType.skinType) (confidence: \(skinType.confidence))")
+            AppLogger.metrics.info("   - Skin Type: \(skinType.skinType) (confidence: \(skinType.confidence))")
         }
         if let wrinkles = wrinkleAnalysis {
-            print("   - Wrinkles: \(wrinkles.overallScore)/100 (\(wrinkles.wrinkleDepth), count: \(wrinkles.wrinkleCount))")
+            AppLogger.metrics.info("   - Wrinkles: \(wrinkles.overallScore)/100 (\(wrinkles.wrinkleDepth), count: \(wrinkles.wrinkleCount))")
         }
         if let pores = poreAnalysis {
-            print("   - Pores: visibility \(pores.visibility)/100")
+            AppLogger.metrics.info("   - Pores: visibility \(pores.visibility)/100")
         }
         if let acne = acneAnalysis {
-            print("   - Acne: \(acne.overallScore)/100 (\(acne.severity), count: \(acne.blemishCount))")
+            AppLogger.metrics.info("   - Acne: \(acne.overallScore)/100 (\(acne.severity), count: \(acne.blemishCount))")
         }
         if let redness = rednessAnalysis {
-            print("   - Redness: \(redness.overallScore)/100 (\(redness.rednessLevel))")
+            AppLogger.metrics.info("   - Redness: \(redness.overallScore)/100 (\(redness.rednessLevel))")
         }
         if let topology = topologyAnalysis {
-            print("   - Topology: \(String(format: "%.1f", topology.overallScore))/100 (\(topology.qualityLevel)) - Manifold: \(topology.isManifold), Watertight: \(topology.isWatertight)")
+            AppLogger.metrics.info("   - Topology: \(String(format: "%.1f", topology.overallScore))/100 (\(topology.qualityLevel)) - Manifold: \(topology.isManifold), Watertight: \(topology.isWatertight)")
         }
 
         // Step 6: Apply skin tone normalization to pigmentation and discoloration scores
@@ -402,9 +402,9 @@ public class Face3DMetricsAnalyzer {
             skinTone: skinTone
         )
 
-        print("   📊 Skin tone normalization applied:")
-        print("      Pigmentation: \(String(format: "%.1f", globalResults.pigmentationScore)) → \(String(format: "%.1f", normalizedPigmentationScore))")
-        print("      Discoloration: \(String(format: "%.1f", globalResults.discolorationScore)) → \(String(format: "%.1f", normalizedDiscolorationScore))")
+        AppLogger.metrics.info("   📊 Skin tone normalization applied:")
+        AppLogger.metrics.info("      Pigmentation: \(String(format: "%.1f", globalResults.pigmentationScore)) → \(String(format: "%.1f", normalizedPigmentationScore))")
+        AppLogger.metrics.info("      Discoloration: \(String(format: "%.1f", globalResults.discolorationScore)) → \(String(format: "%.1f", normalizedDiscolorationScore))")
 
         // Recalculate overall score with normalized values
         let normalizedOverallScore = scoring.computeOverallScore(
@@ -454,24 +454,24 @@ public class Face3DMetricsAnalyzer {
 
         let sunDamageAnalysis: SunDamageAnalysis?
         if enableSunDamageAnalysis {
-            print("   🔍 Running SunDamageAnalyzer...")
+            AppLogger.metrics.info("   🔍 Running SunDamageAnalyzer...")
             sunDamageAnalysis = sunDamageAnalyzer.analyzeSunDamage(
                 from: metrics,
                 skinTone: skinTone
             )
 
             if let sunDamage = sunDamageAnalysis {
-                print("   - Sun Protection: \(String(format: "%.1f", sunDamage.protectionScore))/100 (\(sunDamage.damageLevel.rawValue))")
-                print("      Components: Pigmentation \(String(format: "%.0f", sunDamage.pigmentationHealth))%, Photoaging \(String(format: "%.0f", sunDamage.photoagingResistance))%, Texture \(String(format: "%.0f", sunDamage.textureHealth))%")
-                print("      Normalized for \(skinTone): ✅")
+                AppLogger.metrics.info("   - Sun Protection: \(String(format: "%.1f", sunDamage.protectionScore))/100 (\(sunDamage.damageLevel.rawValue))")
+                AppLogger.metrics.info("      Components: Pigmentation \(String(format: "%.0f", sunDamage.pigmentationHealth))%, Photoaging \(String(format: "%.0f", sunDamage.photoagingResistance))%, Texture \(String(format: "%.0f", sunDamage.textureHealth))%")
+                AppLogger.metrics.info("      Normalized for \(skinTone): ✅")
             }
         } else {
-            print("   ⏭️  Skipping SunDamageAnalyzer (disabled in settings)")
+            AppLogger.metrics.info("   ⏭️  Skipping SunDamageAnalyzer (disabled in settings)")
             sunDamageAnalysis = nil
         }
 
         // Glow and radiance analysis (differentiated measurements)
-        print("   ✨ Running GlowAnalyzer...")
+        AppLogger.metrics.info("   ✨ Running GlowAnalyzer...")
         let glowAnalyzer = GlowAnalyzer()
         let glowAnalysis = glowAnalyzer.analyzeGlow(
             texture: UIImage(cgImage: unifiedTexture),
@@ -479,8 +479,8 @@ public class Face3DMetricsAnalyzer {
             existingMetrics: metrics,
             specularAnalyzer: specularAnalyzer
         )
-        print("   - Glow Score (Health): \(String(format: "%.1f", glowAnalysis.glowScore))/100")
-        print("   - Radiance Score (Luminosity): \(String(format: "%.1f", glowAnalysis.radianceScore))/100")
+        AppLogger.metrics.info("   - Glow Score (Health): \(String(format: "%.1f", glowAnalysis.glowScore))/100")
+        AppLogger.metrics.info("   - Radiance Score (Luminosity): \(String(format: "%.1f", glowAnalysis.radianceScore))/100")
 
         // Calculate ACTUAL total processing time including all parallel analyzers
         let actualProcessingTime = Date().timeIntervalSince1970 - startTime
@@ -519,10 +519,10 @@ public class Face3DMetricsAnalyzer {
             glowAnalysis: glowAnalysis
         )
 
-        print("✅ Face3DMetricsAnalyzer: Complete in \(actualProcessingTime)s")
-        print("   Overall Score: \(globalResults.overallScore)/10 (\(globalResults.scoreInterpretation))")
+        AppLogger.metrics.info("✅ Face3DMetricsAnalyzer: Complete in \(actualProcessingTime)s")
+        AppLogger.metrics.info("   Overall Score: \(globalResults.overallScore)/10 (\(globalResults.scoreInterpretation))")
         if !lowConfidenceROIs.isEmpty {
-            print("   ⚠️ Low confidence ROIs (excluded from global): \(lowConfidenceROIs.map { $0.displayName }.joined(separator: ", "))")
+            AppLogger.metrics.warning("   ⚠️ Low confidence ROIs (excluded from global): \(lowConfidenceROIs.map { $0.displayName }.joined(separator: ", "))")
         }
         return finalMetrics
     }
@@ -530,35 +530,35 @@ public class Face3DMetricsAnalyzer {
     // MARK: - ROI Metrics Computation
 
     private func computeROI3DMetrics(_ sample: ROITextureSample, rawSample: ROITextureSample?, confidence: ROIConfidence?) async -> ROI3DMetrics {
-        print("      → Computing roughness...")
+        AppLogger.metrics.debug("      → Computing roughness...")
         // Compute roughness proxy
         let roughness = roughnessAnalyzer.computeRoughnessProxy(sample)
-        print("      ✓ Roughness: \(roughness)")
+        AppLogger.metrics.debug("      ✓ Roughness: \(roughness)")
 
-        print("      → Computing pigmentation...")
+        AppLogger.metrics.debug("      → Computing pigmentation...")
         // Compute pigmentation index
         let pigmentation = pigmentationAnalyzer.computePigmentationIndex(sample)
-        print("      ✓ Pigmentation: \(pigmentation)")
+        AppLogger.metrics.debug("      ✓ Pigmentation: \(pigmentation)")
 
         // Compute specular proxy (if raw frames available)
         let specular: Float?
         if configuration.computeSpecular, let rawSample = rawSample {
-            print("      → Computing specular...")
+            AppLogger.metrics.debug("      → Computing specular...")
             specular = specularAnalyzer.computeSpecularProxy(rawSample)
-            print("      ✓ Specular: \(specular ?? 0)")
+            AppLogger.metrics.debug("      ✓ Specular: \(specular ?? 0)")
         } else {
             specular = nil
         }
 
-        print("      → Computing luminance...")
+        AppLogger.metrics.debug("      → Computing luminance...")
         // Compute average luminance
         let luminance = computeAverageLuminance(sample.pixels)
-        print("      ✓ Luminance: \(luminance)")
+        AppLogger.metrics.debug("      ✓ Luminance: \(luminance)")
 
-        print("      → Computing CIELAB values...")
+        AppLogger.metrics.debug("      → Computing CIELAB values...")
         // Compute average CIELAB values
         let labMean = discolorationAnalyzer.computeLABMean(sample)
-        print("      ✓ LAB mean computed")
+        AppLogger.metrics.debug("      ✓ LAB mean computed")
 
         // Compute scores
         let roughnessScore = scoring.mapRoughnessScore(roughness)
@@ -720,7 +720,7 @@ public class Face3DMetricsAnalyzer {
     /// TEMPORARY: Return nil to skip metrics - EmotionalMetricsGenerator will handle it
     /// This bypasses the hanging parallel analyzers for testing
     public func computeBasicMetrics(unifiedTexture: CGImage) async -> Face3DMetrics? {
-        print("⚠️ SKIPPING METRICS COMPUTATION ENTIRELY - will use fallback values")
+        AppLogger.metrics.warning("⚠️ SKIPPING METRICS COMPUTATION ENTIRELY - will use fallback values")
         return nil
     }
 }

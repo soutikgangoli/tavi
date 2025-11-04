@@ -1334,13 +1334,13 @@ public class FaceScan3DViewModel: ObservableObject {
     public func bakeTextureFromSequence() async -> TextureBakeResult? {
         // Debug logging to understand which component is missing
         if mergedMesh == nil {
-            print("🔴 TextureBake FAILED: mergedMesh is nil")
+            AppLogger.mesh.error("🔴 TextureBake FAILED: mergedMesh is nil")
             errorMessage = "No merged mesh available for texture baking"
             return nil
         }
 
         if currentSequence == nil {
-            print("🔴 TextureBake FAILED: currentSequence is nil")
+            AppLogger.mesh.error("🔴 TextureBake FAILED: currentSequence is nil")
             errorMessage = "No capture sequence available"
             return nil
         }
@@ -1350,14 +1350,14 @@ public class FaceScan3DViewModel: ObservableObject {
         }
 
         if sequence.textureSamples.isEmpty {
-            print("🔴 TextureBake FAILED: textureSamples is empty (count: \(sequence.textureSamples.count))")
-            print("   - capturedPoses count: \(capturedPoses.count)")
-            print("   - sequence.captures count: \(sequence.captures.count)")
+            AppLogger.mesh.error("🔴 TextureBake FAILED: textureSamples is empty (count: \(sequence.textureSamples.count))")
+            AppLogger.mesh.error("   - capturedPoses count: \(capturedPoses.count)")
+            AppLogger.mesh.error("   - sequence.captures count: \(sequence.captures.count)")
             errorMessage = "No texture samples captured during scan"
             return nil
         }
 
-        print("✅ TextureBake STARTING: mergedMesh=\(mergedMesh != nil), samples=\(sequence.textureSamples.count)")
+        AppLogger.mesh.info("✅ TextureBake STARTING: mergedMesh=\(mergedMesh != nil), samples=\(sequence.textureSamples.count)")
 
         guard let merged = mergedMesh else {
             return nil
@@ -1477,7 +1477,7 @@ public class FaceScan3DViewModel: ObservableObject {
         }
 
         AppLogger.faceScan.info("🔬 Starting metrics computation...")
-        print("DEBUG: About to call computeMetrics (off main actor)")
+        AppLogger.faceScan.debug("About to call computeMetrics (off main actor)")
 
         // Capture references before detaching
         let analyzer = self.metricsAnalyzer
@@ -1486,16 +1486,16 @@ public class FaceScan3DViewModel: ObservableObject {
 
         // Run heavy computation off main actor to avoid blocking UI and timeout issues
         let metrics = await Task.detached {
-            print("DEBUG: Inside Task.detached, calling computeMetrics")
+            AppLogger.faceScan.debug("Inside Task.detached, calling computeMetrics")
             let result = await analyzer.computeMetrics(
                 unifiedMesh: unifiedMesh,
                 unifiedTexture: unifiedTexture
             )
-            print("DEBUG: computeMetrics completed in Task.detached, returning \(result != nil ? "non-nil" : "nil")")
+            AppLogger.faceScan.debug("computeMetrics completed in Task.detached, returning \(result != nil ? "non-nil" : "nil")")
             return result
         }.value
 
-        print("DEBUG: Task.detached completed, metrics = \(metrics != nil ? "non-nil" : "nil")")
+        AppLogger.faceScan.debug("Task.detached completed, metrics = \(metrics != nil ? "non-nil" : "nil")")
 
         if metrics == nil {
             AppLogger.faceScan.warning("⚠️ Metrics computation returned nil")
@@ -1503,12 +1503,12 @@ public class FaceScan3DViewModel: ObservableObject {
 
         // Update state on main actor
         await MainActor.run {
-            print("DEBUG: Back on main actor, setting face3DMetrics")
+            AppLogger.faceScan.debug("Back on main actor, setting face3DMetrics")
             face3DMetrics = metrics
             isComputingMetrics = false
         }
 
-        print("DEBUG: About to return metrics from compute3DMetrics")
+        AppLogger.faceScan.debug("About to return metrics from compute3DMetrics")
         return metrics
     }
 

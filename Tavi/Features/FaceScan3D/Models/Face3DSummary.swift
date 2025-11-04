@@ -230,18 +230,29 @@ public class Face3DSummaryManager {
             summaries = Array(summaries.suffix(50))
         }
 
-        if let encoded = try? JSONEncoder().encode(summaries) {
+        do {
+            let encoded = try JSONEncoder().encode(summaries)
             UserDefaults.standard.set(encoded, forKey: storageKey)
+        } catch {
+            AppLogger.faceScan.error("Failed to encode Face3DSummary: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_encode_summary"])
         }
     }
 
     /// Load all summaries
     public static func loadAll() -> [Face3DSummary] {
-        guard let data = UserDefaults.standard.data(forKey: storageKey),
-              let summaries = try? JSONDecoder().decode([Face3DSummary].self, from: data) else {
+        guard let data = UserDefaults.standard.data(forKey: storageKey) else {
             return []
         }
-        return summaries.sorted { $0.date > $1.date }
+
+        do {
+            let summaries = try JSONDecoder().decode([Face3DSummary].self, from: data)
+            return summaries.sorted { $0.date > $1.date }
+        } catch {
+            AppLogger.faceScan.error("Failed to decode Face3DSummary: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_decode_summary"])
+            return []
+        }
     }
 
     /// Load summary by ID
@@ -254,8 +265,12 @@ public class Face3DSummaryManager {
         var summaries = loadAll()
         summaries.removeAll { $0.id == id }
 
-        if let encoded = try? JSONEncoder().encode(summaries) {
+        do {
+            let encoded = try JSONEncoder().encode(summaries)
             UserDefaults.standard.set(encoded, forKey: storageKey)
+        } catch {
+            AppLogger.faceScan.error("Failed to encode Face3DSummary after delete: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_encode_summary_delete"])
         }
     }
 

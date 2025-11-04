@@ -23,15 +23,15 @@ public struct HeadspaceDesign {
         // Success and positive
         public static let success = Color(red: 101/255, green: 188/255, blue: 126/255) // Soft green
 
-        // Backgrounds - clean white base
-        public static let background = Color.white
-        public static let cardBackground = Color(red: 247/255, green: 247/255, blue: 249/255) // Very light gray
-        public static let elevatedCard = Color.white
+        // Backgrounds - adaptive for light/dark mode
+        public static let background = Color(uiColor: .systemBackground) // Adapts to dark mode
+        public static let cardBackground = Color(uiColor: .secondarySystemBackground) // Adapts to dark mode
+        public static let elevatedCard = Color(uiColor: .tertiarySystemBackground) // Adapts to dark mode
 
-        // Text hierarchy
-        public static let textPrimary = Color(red: 30/255, green: 30/255, blue: 30/255) // Almost black
-        public static let textSecondary = Color(red: 102/255, green: 102/255, blue: 102/255) // Medium gray
-        public static let textTertiary = Color(red: 153/255, green: 153/255, blue: 153/255) // Light gray
+        // Text hierarchy - adaptive for light/dark mode
+        public static let textPrimary = Color(uiColor: .label) // Adapts to dark mode
+        public static let textSecondary = Color(uiColor: .secondaryLabel) // Adapts to dark mode
+        public static let textTertiary = Color(uiColor: .tertiaryLabel) // Adapts to dark mode
 
         // Gradients - subtle and warm
         public static let warmGradient = LinearGradient(
@@ -137,32 +137,44 @@ public struct HeadspaceDesign {
         public static let pill: CGFloat = 100
     }
 
-    // MARK: - Shadows (Headspace uses very subtle shadows)
+    // MARK: - Shadows (Headspace uses very subtle shadows, adaptive for dark mode)
 
     public struct Shadows {
         public static let card = Shadow(
-            color: Color.black.opacity(0.04),
+            color: Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+                ? UIColor.black.withAlphaComponent(0.3)  // Stronger shadow in dark mode
+                : UIColor.black.withAlphaComponent(0.04) // Subtle shadow in light mode
+            }),
             radius: 8,
             x: 0,
             y: 2
         )
 
         public static let soft = Shadow(
-            color: Color.black.opacity(0.04),
+            color: Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+                ? UIColor.black.withAlphaComponent(0.3)
+                : UIColor.black.withAlphaComponent(0.04)
+            }),
             radius: 8,
             x: 0,
             y: 2
         )
 
         public static let button = Shadow(
-            color: Color.black.opacity(0.08),
+            color: Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+                ? UIColor.black.withAlphaComponent(0.4)
+                : UIColor.black.withAlphaComponent(0.08)
+            }),
             radius: 12,
             x: 0,
             y: 4
         )
 
         public static let elevated = Shadow(
-            color: Color.black.opacity(0.06),
+            color: Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+                ? UIColor.black.withAlphaComponent(0.35)
+                : UIColor.black.withAlphaComponent(0.06)
+            }),
             radius: 16,
             x: 0,
             y: 6

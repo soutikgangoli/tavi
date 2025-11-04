@@ -104,6 +104,8 @@ public struct BeforeAfterView: View {
                         .font(.system(size: 36, weight: .bold))
                         .foregroundColor(.gray)
                 }
+                .accessibilityLabel("Before score")
+                .accessibilityValue("\(beforeMetrics.glowScore) out of 100")
 
                 Text(beforeDate.formatted(date: .abbreviated, time: .omitted))
                     .font(.caption2)
@@ -151,6 +153,8 @@ public struct BeforeAfterView: View {
                         .font(.system(size: 36, weight: .bold))
                         .foregroundColor(.green)
                 }
+                .accessibilityLabel("After score")
+                .accessibilityValue("\(afterMetrics.glowScore) out of 100, improved by \(afterMetrics.glowScore - beforeMetrics.glowScore) points")
 
                 Text(afterDate.formatted(date: .abbreviated, time: .omitted))
                     .font(.caption2)
@@ -341,6 +345,8 @@ public struct BeforeAfterView: View {
             .foregroundColor(.white)
             .cornerRadius(12)
         }
+        .accessibilityLabel("Share my progress")
+        .accessibilityHint("Opens share sheet to share your before and after comparison")
     }
 }
 

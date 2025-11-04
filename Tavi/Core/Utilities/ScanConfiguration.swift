@@ -116,8 +116,24 @@ public struct ScanConfiguration {
     // MARK: - Mesh Processing
 
     /// Wrinkle depth scaling factor (empirical value needs validation)
-    /// TODO: Conduct validation study to verify this factor
-    public static let wrinkleDepthScalingFactor: Double = 0.00002  // 20 micrometers
+    ///
+    /// ⚠️ **VALIDATION REQUIRED**: This coefficient is based on empirical estimates and has NOT been
+    /// validated against ground truth measurements. Clinical accuracy depends on proper calibration.
+    ///
+    /// **Action Required**:
+    /// - Conduct validation study with calibrated depth measurement tools (e.g., optical profilometer)
+    /// - Compare wrinkle depth measurements against known standards
+    /// - Adjust this factor based on statistical analysis of measurement error
+    /// - Document the validation methodology and results
+    ///
+    /// **Expected Range**: 15-25 micrometers (0.000015 - 0.000025)
+    /// **Current Value**: 20 micrometers (0.00002)
+    ///
+    /// **Impact**: Incorrect scaling affects wrinkle/roughness measurements, which impacts:
+    /// - Overall skin quality scores
+    /// - Clinical metric accuracy
+    /// - Longitudinal tracking precision
+    public static let wrinkleDepthScalingFactor: Double = 0.00002  // 20 micrometers (UNVALIDATED)
 
     /// Smoothing iterations for mesh processing
     public static let meshSmoothingIterations: Int = 3

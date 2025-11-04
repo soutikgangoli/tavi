@@ -146,7 +146,7 @@ public struct CelebratoryResultsView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(HeadspaceDesign.Spacing.xl)
-            .background(Color.white)
+            .background(HeadspaceDesign.Colors.elevatedCard)
         }
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(
@@ -260,7 +260,7 @@ public struct CelebratoryResultsView: View {
             }
         }
         .padding(HeadspaceDesign.Spacing.xl)
-        .background(Color.white)
+        .background(HeadspaceDesign.Colors.elevatedCard)
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(
             color: HeadspaceDesign.Shadows.card.color,
@@ -316,7 +316,7 @@ public struct CelebratoryResultsView: View {
             Spacer()
         }
         .padding(HeadspaceDesign.Spacing.xl)
-        .background(Color.white)
+        .background(HeadspaceDesign.Colors.elevatedCard)
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(
             color: HeadspaceDesign.Shadows.card.color,

@@ -165,7 +165,7 @@ public struct HeatmapView: View {
             heatmapImages[metric] = heatmap
         } catch {
             errorMessage = "Failed to generate heatmap: \(error.localizedDescription)"
-            print("Heatmap generation error: \(error)")
+            AppLogger.ui.error("Heatmap generation error: \(error)")
             // Fallback to original image on error
             heatmapImages[metric] = faceImage
         }

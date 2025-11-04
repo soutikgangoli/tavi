@@ -302,11 +302,18 @@ public class GamificationManager {
     // MARK: - Challenge
 
     public func getCurrentChallenge() -> GlowChallenge? {
-        guard let data = UserDefaults.standard.data(forKey: challengeKey),
-              let challenge = try? JSONDecoder().decode(GlowChallenge.self, from: data) else {
+        guard let data = UserDefaults.standard.data(forKey: challengeKey) else {
             return nil
         }
-        return challenge.isActive ? challenge : nil
+
+        do {
+            let challenge = try JSONDecoder().decode(GlowChallenge.self, from: data)
+            return challenge.isActive ? challenge : nil
+        } catch {
+            AppLogger.gamification.error("Failed to decode current challenge: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_decode_challenge"])
+            return nil
+        }
     }
 
     public func startNewChallenge(baselineGlowScore: Int) -> GlowChallenge {
@@ -343,17 +350,26 @@ public class GamificationManager {
     }
 
     private func saveChallenge(_ challenge: GlowChallenge) {
-        if let data = try? JSONEncoder().encode(challenge) {
+        do {
+            let data = try JSONEncoder().encode(challenge)
             UserDefaults.standard.set(data, forKey: challengeKey)
+        } catch {
+            AppLogger.gamification.error("Failed to encode challenge: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_encode_challenge"])
         }
     }
 
     // MARK: - Streak
 
     public func getStreak() -> GlowStreak {
-        if let data = UserDefaults.standard.data(forKey: streakKey),
-           let streak = try? JSONDecoder().decode(GlowStreak.self, from: data) {
-            return streak
+        if let data = UserDefaults.standard.data(forKey: streakKey) {
+            do {
+                let streak = try JSONDecoder().decode(GlowStreak.self, from: data)
+                return streak
+            } catch {
+                AppLogger.gamification.error("Failed to decode streak: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "json_decode_streak"])
+            }
         }
         return GlowStreak()
     }
@@ -366,17 +382,26 @@ public class GamificationManager {
     }
 
     private func saveStreak(_ streak: GlowStreak) {
-        if let data = try? JSONEncoder().encode(streak) {
+        do {
+            let data = try JSONEncoder().encode(streak)
             UserDefaults.standard.set(data, forKey: streakKey)
+        } catch {
+            AppLogger.gamification.error("Failed to encode streak: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_encode_streak"])
         }
     }
 
     // MARK: - Achievements
 
     public func getAchievements() -> [Achievement] {
-        if let data = UserDefaults.standard.data(forKey: achievementsKey),
-           let achievements = try? JSONDecoder().decode([Achievement].self, from: data) {
-            return achievements
+        if let data = UserDefaults.standard.data(forKey: achievementsKey) {
+            do {
+                let achievements = try JSONDecoder().decode([Achievement].self, from: data)
+                return achievements
+            } catch {
+                AppLogger.gamification.error("Failed to decode achievements: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "json_decode_achievements"])
+            }
         }
         return Achievement.allAchievements
     }
@@ -421,8 +446,12 @@ public class GamificationManager {
     }
 
     private func saveAchievements(_ achievements: [Achievement]) {
-        if let data = try? JSONEncoder().encode(achievements) {
+        do {
+            let data = try JSONEncoder().encode(achievements)
             UserDefaults.standard.set(data, forKey: achievementsKey)
+        } catch {
+            AppLogger.gamification.error("Failed to encode achievements: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_encode_achievements"])
         }
     }
 }

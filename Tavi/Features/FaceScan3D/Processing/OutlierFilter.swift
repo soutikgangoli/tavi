@@ -67,7 +67,7 @@ class OutlierFilter {
             }
         }
 
-        print("🔍 Filtering outliers from \(vertices.count) vertices...")
+        AppLogger.mesh.info("🔍 Filtering outliers from \(vertices.count) vertices...")
 
         // Step 1: Calculate face centroid
         let centroid = calculateCentroid(vertices)
@@ -111,7 +111,7 @@ class OutlierFilter {
 
         // Safety check: if too many outliers, something is wrong
         if outlierPercentage > (1.0 - minValidPercentage) {
-            print("⚠️ Too many outliers detected (\(String(format: "%.1f%%", outlierPercentage * 100))), keeping all vertices")
+            AppLogger.mesh.warning("⚠️ Too many outliers detected (\(String(format: "%.1f%%", outlierPercentage * 100))), keeping all vertices")
             return FilterResult(
                 cleanedVertices: vertices,
                 cleanedNormals: normals,
@@ -121,8 +121,8 @@ class OutlierFilter {
             )
         }
 
-        print("✅ Filtered \(outlierCount) outliers (\(String(format: "%.1f%%", outlierPercentage * 100)))")
-        print("   Kept \(cleanedVertices.count) vertices")
+        AppLogger.mesh.info("✅ Filtered \(outlierCount) outliers (\(String(format: "%.1f%%", outlierPercentage * 100)))")
+        AppLogger.mesh.debug("   Kept \(cleanedVertices.count) vertices")
 
         return FilterResult(
             cleanedVertices: cleanedVertices,

@@ -95,13 +95,15 @@ public struct CalibrationOverlay: View {
                 }
             }
 
-            // Debug info overlay - shows detailed scan information
+            // Debug info overlay - shows detailed scan information (only in debug builds)
+            #if DEBUG
             if debugModeEnabled {
                 VStack {
                     Spacer()
                     CalibrationDebugInfoView(viewModel: viewModel)
                 }
             }
+            #endif
         }
     }
 }
@@ -247,6 +249,7 @@ struct GuidanceView: View {
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
 
+                    #if DEBUG
                     // DEBUG: Show why countdown not starting when everything appears green
                     if countdownTimer == 0 && isPoseCorrect && calibrationState.isCalibrated {
                         Text("⚠️ DEBUG: All conditions green but no countdown - check quality/busy state")
@@ -255,6 +258,7 @@ struct GuidanceView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 4)
                     }
+                    #endif
 
                     // Warnings and feedback - FIXED HEIGHT container
                     ZStack {
@@ -411,6 +415,7 @@ struct StepIndicator: View {
 
 // MARK: - Calibration Debug Info View
 
+#if DEBUG
 struct CalibrationDebugInfoView: View {
     @ObservedObject var viewModel: FaceScan3DViewModel
 
@@ -491,6 +496,7 @@ struct CalibrationDebugInfoView: View {
         .padding(.bottom, 8)
     }
 }
+#endif
 
 // MARK: - Preview
 

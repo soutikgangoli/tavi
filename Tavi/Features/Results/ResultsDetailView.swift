@@ -20,16 +20,58 @@ struct ResultsDetailView: View {
     @State private var showingOriginal = false
     @State private var showingDeleteAlert = false
     @State private var clinicalMetrics: Face3DMetrics?
+    @State private var isGeneratingPDF = false
+    @State private var isPreparingShare = false
+    @State private var errorState: ErrorState?
 
     init(session: SessionResult) {
         self.session = session
         // Decode clinical metrics for confidence scores
         if let data = session.clinicalMetricsData {
-            _clinicalMetrics = State(initialValue: try? JSONDecoder().decode(Face3DMetrics.self, from: data))
+            do {
+                let metrics = try JSONDecoder().decode(Face3DMetrics.self, from: data)
+                _clinicalMetrics = State(initialValue: metrics)
+            } catch {
+                AppLogger.ui.error("Failed to decode clinical metrics in ResultsDetailView: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "json_decode_clinical_results"])
+                _clinicalMetrics = State(initialValue: nil)
+            }
         }
     }
 
     var body: some View {
+        Group {
+            if let error = errorState {
+                errorView(error)
+            } else {
+                contentView
+            }
+        }
+        .navigationTitle("Analysis Results")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingDeleteAlert = true
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                }
+            }
+        }
+        .alert("Delete Session", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteSession()
+            }
+        } message: {
+            Text("Are you sure you want to delete this analysis session?")
+        }
+    }
+
+    // MARK: - Content View
+
+    private var contentView: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Header
@@ -57,26 +99,40 @@ struct ResultsDetailView: View {
             }
             .padding()
         }
-        .navigationTitle("Analysis Results")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    showingDeleteAlert = true
-                } label: {
-                    Image(systemName: "trash")
-                        .foregroundColor(.red)
-                }
+    }
+
+    // MARK: - Error View
+
+    private func errorView(_ error: ErrorState) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 60))
+                .foregroundColor(.orange)
+
+            Text("Unable to Load Results")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Text(error.message)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            Button {
+                errorState = nil
+            } label: {
+                Text("Try Again")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: 200)
+                    .padding(.vertical, 16)
+                    .background(Color.blue)
+                    .cornerRadius(12)
             }
+            .padding(.top)
         }
-        .alert("Delete Session", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-                deleteSession()
-            }
-        } message: {
-            Text("Are you sure you want to delete this analysis session?")
-        }
+        .padding()
     }
 
     // MARK: - Header Section
@@ -503,8 +559,15 @@ struct ResultsDetailView: View {
                 }
             }
 
-            PrimaryButton(title: "Share Results") {
+            PrimaryButton(title: isPreparingShare ? "Preparing..." : "Share Results") {
                 shareResults()
+            }
+            .disabled(isPreparingShare)
+            .overlay {
+                if isPreparingShare {
+                    ProgressView()
+                        .tint(.white)
+                }
             }
 
             Button {
@@ -550,6 +613,11 @@ struct ResultsDetailView: View {
     }
 
     private func performShare() async {
+        // Set loading state
+        await MainActor.run {
+            isPreparingShare = true
+        }
+
         // Generate share content
         var itemsToShare: [Any] = []
 
@@ -572,6 +640,7 @@ struct ResultsDetailView: View {
 
         // Present native iOS share sheet on main actor
         await MainActor.run {
+            isPreparingShare = false
             let activityVC = UIActivityViewController(
                 activityItems: itemsToShare,
                 applicationActivities: nil
@@ -618,9 +687,28 @@ struct ResultsDetailView: View {
     }
 
     private func generatePDFReport() async -> Data? {
+        // Set loading state
+        await MainActor.run {
+            isGeneratingPDF = true
+        }
+
+        defer {
+            Task { @MainActor in
+                isGeneratingPDF = false
+            }
+        }
+
         // Only generate PDF if we have clinical metrics
-        guard let metricsData = session.clinicalMetricsData,
-              let metrics = try? JSONDecoder().decode(Face3DMetrics.self, from: metricsData) else {
+        guard let metricsData = session.clinicalMetricsData else {
+            return nil
+        }
+
+        let metrics: Face3DMetrics
+        do {
+            metrics = try JSONDecoder().decode(Face3DMetrics.self, from: metricsData)
+        } catch {
+            AppLogger.ui.error("Failed to decode clinical metrics for PDF generation: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_decode_clinical_pdf"])
             return nil
         }
 
@@ -650,8 +738,30 @@ struct ResultsDetailView: View {
 
     private func deleteSession() {
         viewContext.delete(session)
-        try? viewContext.save()
-        dismiss()
+        do {
+            try viewContext.save()
+            dismiss()
+        } catch {
+            handleError(error, context: "deleting session")
+            // Still dismiss even on error - delete was queued
+            dismiss()
+        }
+    }
+
+    // MARK: - Error Handling
+
+    private func handleError(_ error: Error, context: String) {
+        AppLogger.ui.error("ResultsDetailView error (\(context)): \(error)")
+        CrashReporter.shared.logError(error, context: ["view": "ResultsDetailView", "operation": context])
+        errorState = ErrorState(
+            message: "Unable to \(context). Please try again.",
+            error: error
+        )
+    }
+
+    private struct ErrorState {
+        let message: String
+        let error: Error
     }
 
     // MARK: - Helpers

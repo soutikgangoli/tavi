@@ -18,6 +18,12 @@ public struct EmotionalScan3DFlowView: View {
     @State private var flowState: FlowState = .preparing(countdown: 3)
     @State private var showResults = false
     @State private var processingProgress: String = ""
+    @State private var processingStep: Int = 0
+    @State private var totalProcessingSteps: Int = 6
+    @State private var estimatedTimeRemaining: String = ""
+    @State private var processingStartTime: Date?
+    @State private var currentStepStartTime: Date?
+    @State private var timeRemainingSeconds: Int = 0
     @State private var emotionalMetrics: EmotionalMetrics?
     @State private var clinicalMetrics: Face3DMetrics?
     @State private var previousMetrics: EmotionalMetrics?
@@ -29,6 +35,12 @@ public struct EmotionalScan3DFlowView: View {
     @State private var retryCount: Int = 0
     @State private var isAutoRetrying: Bool = false
     @State private var lastError: ScanError?
+
+    // Core Data save error state
+    @State private var showSaveErrorAlert = false
+    @State private var saveErrorMessage = ""
+    @State private var saveRetryCount = 0
+    @State private var pendingSaveData: (emotionalMetrics: EmotionalMetrics, clinicalMetrics: Face3DMetrics)?
 
     // Analytics timing
     @State private var scanStartTime: Date?
@@ -110,6 +122,21 @@ public struct EmotionalScan3DFlowView: View {
                 )
             }
         }
+        .alert("Failed to Save Results", isPresented: $showSaveErrorAlert) {
+            Button("Retry") {
+                retrySaveToCoreData()
+            }
+            Button("Continue Anyway") {
+                // Continue without saving - results are still visible but won't be in history
+                pendingSaveData = nil
+                saveRetryCount = 0
+            }
+            Button("Dismiss", role: .cancel) {
+                // Keep pending data so user can retry later if needed
+            }
+        } message: {
+            Text("We couldn't save your scan results to your history. Your results are still visible, but they won't appear in your scan history.\n\nRetry attempts: \(saveRetryCount)\n\nError: \(saveErrorMessage)")
+        }
     }
 
     // MARK: - Capturing View
@@ -132,54 +159,84 @@ public struct EmotionalScan3DFlowView: View {
     // MARK: - Processing View
 
     private var processingView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 40) {
             Spacer()
 
-            // Processing animation
+            // Processing circle - fills radially like a clock/pie chart
             ZStack {
+                // Background circle (light gray)
                 Circle()
-                    .stroke(Color.blue.opacity(0.2), lineWidth: 8)
-                    .frame(width: 120, height: 120)
+                    .fill(Color.gray.opacity(0.15))
+                    .frame(width: 160, height: 160)
 
+                // Progress pie fill (like clock hand sweeping)
                 Circle()
-                    .trim(from: 0, to: 0.7)
-                    .stroke(
-                        LinearGradient(
-                            colors: [.blue, .cyan],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ),
-                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                    .trim(from: 0, to: CGFloat(processingStep) / CGFloat(totalProcessingSteps))
+                    .fill(
+                        AngularGradient(
+                            colors: [.blue, .cyan, .blue],
+                            center: .center,
+                            startAngle: .degrees(0),
+                            endAngle: .degrees(360)
+                        )
                     )
-                    .frame(width: 120, height: 120)
+                    .frame(width: 160, height: 160)
                     .rotationEffect(.degrees(-90))
-                    .rotationEffect(.degrees(rotationAngle))
-                    .animation(.linear(duration: 1.5).repeatForever(autoreverses: false), value: rotationAngle)
+                    .animation(.easeInOut(duration: 0.5), value: processingStep)
 
-                Image(systemName: "sparkles")
-                    .font(.system(size: 40))
+                // White background circle for percentage text
+                Circle()
+                    .fill(Color(uiColor: .systemBackground))
+                    .frame(width: 120, height: 120)
+
+                // Percentage text in center
+                Text("\(Int((Double(processingStep) / Double(totalProcessingSteps)) * 100))%")
+                    .font(.system(size: 36, weight: .bold))
                     .foregroundColor(.blue)
             }
-            .onAppear {
-                rotationAngle = 360
-            }
 
-            VStack(spacing: 12) {
-                Text("Processing Your Scan")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
+            VStack(spacing: 16) {
+                // Processing message (above time)
                 Text(processingProgress)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
+
+                // Time remaining (below message)
+                if timeRemainingSeconds > 0 {
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock.fill")
+                            .font(.subheadline)
+                        Text(formatTimeRemaining(timeRemainingSeconds))
+                            .font(.subheadline)
+                            .monospacedDigit()
+                    }
+                    .foregroundStyle(.secondary)
+                }
+
+                // Background processing warning
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+
+                    Text("Please keep the app open during processing")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 32)
+                .padding(.top, 8)
             }
 
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .systemBackground))
+        .onAppear {
+            startTimeCountdown()
+        }
     }
 
     @State private var rotationAngle: Double = 0
@@ -416,7 +473,9 @@ public struct EmotionalScan3DFlowView: View {
         Task {
             do {
                 // Step 1: Merge meshes (with timeout protection)
+                processingStep = 1
                 processingProgress = "Merging your 3D face scan... ✨"
+                timeRemainingSeconds = 120  // 2 minutes (30s mesh + 30s texture + 150s metrics ÷ 2.5)
                 CrashReporter.shared.setCustomKey("processing_step", value: "mesh_merge")
 
                 let merged = try await withTimeout(
@@ -439,7 +498,9 @@ public struct EmotionalScan3DFlowView: View {
                 try await Task.sleep(nanoseconds: 500_000_000)
 
                 // Step 2: Bake texture (with timeout protection)
+                processingStep = 2
                 processingProgress = "Creating your skin texture map... 🎨"
+                timeRemainingSeconds = 90  // 90 seconds (30s texture + 150s metrics ÷ 2)
                 CrashReporter.shared.setCustomKey("processing_step", value: "texture_bake")
 
                 let bakeResult = try await withTimeout(
@@ -458,7 +519,9 @@ public struct EmotionalScan3DFlowView: View {
                 try await Task.sleep(nanoseconds: 500_000_000)
 
                 // Step 3: Compute clinical metrics (with timeout protection)
+                processingStep = 3
                 processingProgress = "Analyzing your skin... 🔬"
+                timeRemainingSeconds = 75  // 75 seconds (up to 150s for metrics, estimate 50%)
                 CrashReporter.shared.setCustomKey("processing_step", value: "metrics_analysis")
 
                 // Attempt metrics computation with timeout protection
@@ -477,7 +540,9 @@ public struct EmotionalScan3DFlowView: View {
                 try await Task.sleep(nanoseconds: 500_000_000)
 
                 // Step 4: Convert to emotional metrics
+                processingStep = 4
                 processingProgress = "Calculating your Skin Health Index... 🌟"
+                timeRemainingSeconds = 20  // 20 seconds (fast computation)
                 CrashReporter.shared.setCustomKey("processing_step", value: "emotional_metrics")
 
                 let userProfile = UserProfileManager.shared.loadProfile()
@@ -495,7 +560,9 @@ public struct EmotionalScan3DFlowView: View {
                 self.previousMetrics = loadedPreviousMetrics
 
                 // Step 5: Update gamification
+                processingStep = 5
                 processingProgress = "Updating your progress... 🎉"
+                timeRemainingSeconds = 10  // 10 seconds (quick gamification update)
                 CrashReporter.shared.setCustomKey("processing_step", value: "gamification")
 
                 let updatedStreak = GamificationManager.shared.recordScan()
@@ -516,7 +583,9 @@ public struct EmotionalScan3DFlowView: View {
                 )
 
                 // Step 6: Save to Core Data (with timeout protection)
+                processingStep = 6
                 processingProgress = "Saving your results... 💾"
+                timeRemainingSeconds = 5  // 5 seconds (Core Data save timeout is 10s)
                 CrashReporter.shared.setCustomKey("processing_step", value: "core_data_save")
 
                 // Try to save, but don't block if Core Data isn't available
@@ -627,16 +696,26 @@ public struct EmotionalScan3DFlowView: View {
             request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
             request.fetchLimit = 1  // Get most recent session
 
-            guard let sessions = try? context.fetch(request),
-                  let lastSession = sessions.first,
-                  let data = lastSession.clinicalMetricsData,
-                  let metrics = try? JSONDecoder().decode(Face3DMetrics.self, from: data) else {
-                print("ℹ️ No previous clinical metrics found (this is expected for first scan)")
+            do {
+                guard let sessions = try context.fetch(request),
+                      let lastSession = sessions.first,
+                      let data = lastSession.clinicalMetricsData else {
+                    AppLogger.faceScan.info("ℹ️ No previous clinical metrics found (this is expected for first scan)")
+                    return nil
+                }
+
+                let metrics = try JSONDecoder().decode(Face3DMetrics.self, from: data)
+                AppLogger.faceScan.info("✅ Loaded previous clinical metrics from \(lastSession.date)")
+                return metrics
+            } catch let error as DecodingError {
+                AppLogger.faceScan.error("Failed to decode clinical metrics: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "json_decode_clinical"])
+                return nil
+            } catch {
+                AppLogger.faceScan.error("Failed to fetch previous clinical metrics: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "fetch_clinical_metrics"])
                 return nil
             }
-
-            print("✅ Loaded previous clinical metrics from \(lastSession.date)")
-            return metrics
         }
     }
 
@@ -654,16 +733,26 @@ public struct EmotionalScan3DFlowView: View {
             request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: false)]
             request.fetchLimit = 1  // Get most recent session
 
-            guard let sessions = try? context.fetch(request),
-                  let lastSession = sessions.first,
-                  let data = lastSession.emotionalMetricsData,
-                  let metrics = try? JSONDecoder().decode(EmotionalMetrics.self, from: data) else {
-                print("ℹ️ No previous emotional metrics found (this is expected for first scan)")
+            do {
+                guard let sessions = try context.fetch(request),
+                      let lastSession = sessions.first,
+                      let data = lastSession.emotionalMetricsData else {
+                    AppLogger.faceScan.info("ℹ️ No previous emotional metrics found (this is expected for first scan)")
+                    return nil
+                }
+
+                let metrics = try JSONDecoder().decode(EmotionalMetrics.self, from: data)
+                AppLogger.faceScan.info("✅ Loaded previous emotional metrics from \(lastSession.date)")
+                return metrics
+            } catch let error as DecodingError {
+                AppLogger.faceScan.error("Failed to decode emotional metrics: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "json_decode_emotional_previous"])
+                return nil
+            } catch {
+                AppLogger.faceScan.error("Failed to fetch previous emotional metrics: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "fetch_emotional_metrics"])
                 return nil
             }
-
-            print("✅ Loaded previous emotional metrics from \(lastSession.date)")
-            return metrics
         }
     }
 
@@ -691,22 +780,56 @@ public struct EmotionalScan3DFlowView: View {
             session.moistureSmoothness = Double(emotionalMetrics.freshness)
 
             // Store full emotional metrics as JSON
-            if let emotionalData = try? JSONEncoder().encode(emotionalMetrics) {
-                session.emotionalMetricsData = emotionalData
+            do {
+                session.emotionalMetricsData = try JSONEncoder().encode(emotionalMetrics)
+            } catch {
+                AppLogger.faceScan.error("Failed to encode emotional metrics: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "json_encode_emotional"])
             }
 
             // Store full clinical metrics as JSON (for comparisons)
-            if let clinicalData = try? JSONEncoder().encode(clinicalMetrics) {
-                session.clinicalMetricsData = clinicalData
+            do {
+                session.clinicalMetricsData = try JSONEncoder().encode(clinicalMetrics)
+            } catch {
+                AppLogger.faceScan.error("Failed to encode clinical metrics: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "json_encode_clinical"])
             }
 
             // Save to Core Data
             do {
                 try context.save()
                 AppLogger.faceScan.info("✅ Session saved successfully to Core Data!")
+
+                // Clear any pending save data and reset retry count on success
+                await MainActor.run {
+                    pendingSaveData = nil
+                    saveRetryCount = 0
+                }
             } catch {
                 AppLogger.faceScan.error("❌ Failed to save session: \(error.localizedDescription)")
+                CrashReporter.shared.logError(error, context: [
+                    "operation": "core_data_save",
+                    "retry_count": "\(saveRetryCount)"
+                ])
+
+                // Store pending data for retry
+                await MainActor.run {
+                    pendingSaveData = (emotionalMetrics, clinicalMetrics)
+                    saveErrorMessage = error.localizedDescription
+                    showSaveErrorAlert = true
+                }
             }
+        }
+    }
+
+    private func retrySaveToCoreData() {
+        guard let data = pendingSaveData else { return }
+
+        saveRetryCount += 1
+        AppLogger.faceScan.info("🔄 Retrying Core Data save (attempt \(saveRetryCount))...")
+
+        Task {
+            await saveToCoreData(emotionalMetrics: data.emotionalMetrics, clinicalMetrics: data.clinicalMetrics)
         }
     }
 
@@ -889,6 +1012,45 @@ struct AchievementUnlockOverlay: View {
             flowState = .error("Insufficient storage. Please free up space and try again.")
         case .corruptedData:
             flowState = .error("Data corrupted. Please try scanning again.")
+        }
+    }
+
+    // MARK: - Time Management
+
+    /// Format seconds into human-readable time string
+    private func formatTimeRemaining(_ seconds: Int) -> String {
+        if seconds >= 60 {
+            let minutes = seconds / 60
+            let remainingSeconds = seconds % 60
+            if remainingSeconds > 0 {
+                return "\(minutes)m \(remainingSeconds)s remaining"
+            } else {
+                return "\(minutes)m remaining"
+            }
+        } else if seconds > 0 {
+            return "\(seconds)s remaining"
+        } else {
+            return "Almost done..."
+        }
+    }
+
+    /// Start the real-time countdown timer
+    private func startTimeCountdown() {
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+            Task { @MainActor in
+                if timeRemainingSeconds > 0 {
+                    timeRemainingSeconds -= 1
+                } else {
+                    timer.invalidate()
+                }
+
+                // Stop timer if we're no longer processing
+                if case .processing = flowState {
+                    // Continue
+                } else {
+                    timer.invalidate()
+                }
+            }
         }
     }
 }

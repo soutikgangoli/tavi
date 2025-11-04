@@ -95,7 +95,13 @@ public struct Comparison3DView: View {
 
     private func decodeMetrics(from session: SessionResult) -> Face3DMetrics? {
         guard let data = session.clinicalMetricsData else { return nil }
-        return try? JSONDecoder().decode(Face3DMetrics.self, from: data)
+        do {
+            return try JSONDecoder().decode(Face3DMetrics.self, from: data)
+        } catch {
+            AppLogger.ui.error("Failed to decode metrics in ComparisonView: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_decode_comparison"])
+            return nil
+        }
     }
 }
 

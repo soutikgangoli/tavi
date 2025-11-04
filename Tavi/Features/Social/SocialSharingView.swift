@@ -37,6 +37,9 @@ public struct SocialSharingView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .accessibilityLabel("Share type")
+                    .accessibilityHint("Choose what to share: progress, achievement, streak, or challenge")
+                    .accessibilityValue(selectedShareType.rawValue)
                     .padding(.horizontal)
 
                     // Preview card
@@ -58,6 +61,8 @@ public struct SocialSharingView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .accessibilityLabel("Done")
+                    .accessibilityHint("Closes share screen and returns to previous view")
                 }
             }
         }
@@ -130,6 +135,8 @@ public struct SocialSharingView: View {
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }
+            .accessibilityLabel("More sharing options")
+            .accessibilityHint("Opens system share sheet with all available sharing methods")
 
             // Social platforms (placeholders)
             HStack(spacing: 12) {
@@ -161,6 +168,8 @@ public struct SocialSharingView: View {
                 .foregroundColor(.primary)
                 .cornerRadius(12)
             }
+            .accessibilityLabel("Copy shareable text")
+            .accessibilityHint("Copies progress text to clipboard for sharing")
         }
     }
 
@@ -245,7 +254,7 @@ public struct SocialSharingView: View {
         UIPasteboard.general.string = text
 
         // Show success feedback (would implement with proper toast)
-        print("Copied to clipboard: \(text)")
+        AppLogger.social.info("Copied to clipboard: \(text)")
     }
 
     private func generateShareImage() -> UIImage {
@@ -591,6 +600,8 @@ struct SocialButton: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .accessibilityLabel("Share to \(label)")
+        .accessibilityHint("Opens \(label) to share your progress")
     }
 }
 

@@ -41,9 +41,9 @@ class ICPAligner {
         target: FaceMeshGeometry,
         initialTransform: simd_float4x4
     ) -> ICPResult {
-        print("🎯 Starting ICP alignment...")
-        print("   Source: \(source.vertices.count) vertices")
-        print("   Target: \(target.vertices.count) vertices")
+        AppLogger.mesh.info("🎯 Starting ICP alignment...")
+        AppLogger.mesh.debug("   Source: \(source.vertices.count) vertices")
+        AppLogger.mesh.debug("   Target: \(target.vertices.count) vertices")
 
         var currentTransform = initialTransform
         var previousError: Float = .infinity
@@ -75,7 +75,7 @@ class ICPAligner {
             }
 
             guard correspondences.count > sourcePoints.count / 2 else {
-                print("❌ ICP failed: too few correspondences (\(correspondences.count))")
+                AppLogger.mesh.error("❌ ICP failed: too few correspondences (\(correspondences.count))")
                 return ICPResult(
                     refinedTransform: initialTransform,
                     finalError: previousError,
@@ -91,9 +91,9 @@ class ICPAligner {
             // Check for convergence
             let errorChange = abs(previousError - currentError)
             if errorChange < convergenceThreshold {
-                print("✅ ICP converged at iteration \(iteration)")
-                print("   Final error: \(String(format: "%.4f", currentError))m")
-                print("   Error change: \(String(format: "%.6f", errorChange))m")
+                AppLogger.mesh.info("✅ ICP converged at iteration \(iteration)")
+                AppLogger.mesh.debug("   Final error: \(String(format: "%.4f", currentError))m")
+                AppLogger.mesh.debug("   Error change: \(String(format: "%.6f", errorChange))m")
 
                 let quality = calculateAlignmentQuality(error: currentError, correspondenceRatio: Float(correspondences.count) / Float(sourcePoints.count))
 
@@ -114,8 +114,8 @@ class ICPAligner {
             iteration += 1
         }
 
-        print("⚠️ ICP reached max iterations without convergence")
-        print("   Final error: \(String(format: "%.4f", previousError))m")
+        AppLogger.mesh.warning("⚠️ ICP reached max iterations without convergence")
+        AppLogger.mesh.debug("   Final error: \(String(format: "%.4f", previousError))m")
 
         let quality = calculateAlignmentQuality(error: previousError, correspondenceRatio: 0.8)
 
@@ -182,7 +182,7 @@ class ICPAligner {
         let svdResult = computeSVD3x3(H)
 
         guard svdResult.converged else {
-            print("⚠️ SVD did not converge, using simplified approach")
+            AppLogger.mesh.debug("⚠️ SVD did not converge, using simplified approach")
             return extractRotationSimplified(from: H)
         }
 

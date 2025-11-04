@@ -31,7 +31,7 @@ class HoleFiller {
 
     /// Detect and fill holes in mesh
     func fillHoles(geometry: FaceMeshGeometry) -> HoleFillingResult {
-        print("🔧 Detecting holes in mesh...")
+        AppLogger.mesh.info("🔧 Detecting holes in mesh...")
 
         // Build edge connectivity
         let edges = buildEdgeMap(triangles: geometry.triangleIndices)
@@ -39,14 +39,14 @@ class HoleFiller {
         // Find boundary loops (edges with only one adjacent triangle)
         let boundaries = findBoundaryLoops(edges: edges, vertexCount: geometry.vertices.count)
 
-        print("   Found \(boundaries.count) boundary loops")
+        AppLogger.mesh.debug("   Found \(boundaries.count) boundary loops")
 
         // Filter fillable holes
         let fillableHoles = boundaries.filter { boundary in
             boundary.count >= minHoleSize && boundary.count <= maxHoleSize
         }
 
-        print("   Fillable holes: \(fillableHoles.count)")
+        AppLogger.mesh.debug("   Fillable holes: \(fillableHoles.count)")
 
         // Fill holes
         var vertices = geometry.vertices
@@ -79,9 +79,9 @@ class HoleFiller {
             newVerticesAdded += newVerts.count
         }
 
-        print("✅ Filled \(fillableHoles.count) holes")
-        print("   Added \(newVerticesAdded) vertices")
-        print("   Added \(fillableHoles.count * 3) triangles (approx)")
+        AppLogger.mesh.info("✅ Filled \(fillableHoles.count) holes")
+        AppLogger.mesh.debug("   Added \(newVerticesAdded) vertices")
+        AppLogger.mesh.debug("   Added \(fillableHoles.count * 3) triangles (approx)")
 
         return HoleFillingResult(
             filledVertices: vertices,

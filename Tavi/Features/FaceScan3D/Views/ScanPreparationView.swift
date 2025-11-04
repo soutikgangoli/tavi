@@ -83,7 +83,7 @@ public struct ScanPreparationView: View {
                             .foregroundColor(HeadspaceDesign.Colors.secondary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 20)
-                            .background(Color.white)
+                            .background(HeadspaceDesign.Colors.elevatedCard)
                             .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
                     }
                     .padding(.horizontal, HeadspaceDesign.Spacing.xl)

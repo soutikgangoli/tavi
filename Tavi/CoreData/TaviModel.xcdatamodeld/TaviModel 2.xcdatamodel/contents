@@ -9,6 +9,7 @@
         <attribute name="deviceOS" attributeType="String"/>
         <attribute name="discolorationIndex" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="emotionalMetricsData" optional="YES" attributeType="Binary"/>
+        <attribute name="faceImage" optional="YES" attributeType="Binary"/>
         <attribute name="foreheadScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="heatmapComposite" optional="YES" attributeType="Binary"/>
         <attribute name="heatmapMoisture" optional="YES" attributeType="Binary"/>

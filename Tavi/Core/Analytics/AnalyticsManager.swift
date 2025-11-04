@@ -162,20 +162,29 @@ public class AnalyticsManager {
     }
 
     private func persistEvents() {
-        guard let encoded = try? JSONEncoder().encode(eventStorage) else { return }
-
-        UserDefaults.standard.set(encoded, forKey: "analytics_events")
-        logger.debug("💾 Persisted \(self.eventStorage.count) events to storage")
+        do {
+            let encoded = try JSONEncoder().encode(eventStorage)
+            UserDefaults.standard.set(encoded, forKey: "analytics_events")
+            logger.debug("💾 Persisted \(self.eventStorage.count) events to storage")
+        } catch {
+            logger.error("Failed to encode analytics events: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_encode_analytics"])
+        }
     }
 
     private func loadStoredEvents() {
-        guard let data = UserDefaults.standard.data(forKey: "analytics_events"),
-              let events = try? JSONDecoder().decode([AnalyticsEvent].self, from: data) else {
+        guard let data = UserDefaults.standard.data(forKey: "analytics_events") else {
             return
         }
 
-        eventStorage = events
-        logger.info("📂 Loaded \(events.count) stored events")
+        do {
+            let events = try JSONDecoder().decode([AnalyticsEvent].self, from: data)
+            eventStorage = events
+            logger.info("📂 Loaded \(events.count) stored events")
+        } catch {
+            logger.error("Failed to decode analytics events: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_decode_analytics"])
+        }
     }
 
     // MARK: - Future Server Upload
@@ -200,7 +209,13 @@ public class AnalyticsManager {
             events: eventStorage
         )
 
-        return try? JSONEncoder().encode(uploadPayload)
+        do {
+            return try JSONEncoder().encode(uploadPayload)
+        } catch {
+            logger.error("Failed to encode analytics upload payload: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "json_encode_analytics_upload"])
+            return nil
+        }
     }
 }
 

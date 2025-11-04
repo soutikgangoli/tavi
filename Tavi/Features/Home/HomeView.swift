@@ -15,6 +15,7 @@ public struct HomeView: View {
     @State private var showOnboarding: Bool
     @State private var showScanFlow = false
     @State private var showSettings = false
+    @State private var errorState: ErrorState?
     @AppStorage("skipOnboarding") private var skipOnboarding: Bool = false
 
     public init() {
@@ -31,56 +32,47 @@ public struct HomeView: View {
     private var sessions: FetchedResults<SessionResult>
 
     private var latestSession: SessionResult? {
-        sessions.first
+        do {
+            return sessions.first
+        } catch {
+            handleError(error, context: "fetching latest session")
+            return nil
+        }
     }
 
     private var hasScans: Bool {
-        sessions.count > 0
+        do {
+            return sessions.count > 0
+        } catch {
+            handleError(error, context: "checking scan count")
+            return false
+        }
+    }
+
+    // MARK: - Error Handling
+
+    private func handleError(_ error: Error, context: String) {
+        AppLogger.ui.error("HomeView error (\(context)): \(error)")
+        CrashReporter.shared.logError(error, context: ["view": "HomeView", "operation": context])
+        errorState = ErrorState(
+            message: "Unable to load your data. Please try again.",
+            error: error
+        )
+    }
+
+    private struct ErrorState {
+        let message: String
+        let error: Error
     }
 
     public var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: HeadspaceDesign.Spacing.xl) {
-                        // Greeting header
-                        greetingSection
-                            .padding(.top, HeadspaceDesign.Spacing.md)
-
-                        // Main scan card
-                        if let latest = latestSession {
-                            latestScanCard(latest)
-                        } else {
-                            firstScanCard
-                        }
-
-                        // Active challenge card
-                        if let challenge = GamificationManager.shared.getCurrentChallenge(), challenge.isActive {
-                            activeChallengeCard(challenge)
-                        }
-
-                        // Progress graph (shows if 2+ scans)
-                        if sessions.count >= 2 {
-                            ProgressGraphView(sessions: sessions)
-                        }
-
-                        // Recent scans
-                        if hasScans {
-                            recentScansSection
-                        }
-
-                        // Tips section
-                        tipsCard
-
-                        // Bottom padding for sticky button
-                        Spacer().frame(height: 100)
-                    }
-                    .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+            Group {
+                if let error = errorState {
+                    errorView(error)
+                } else {
+                    contentView
                 }
-                .background(HeadspaceDesign.Colors.background)
-
-                // Sticky scan button
-                stickyButton
             }
             .onAppear {
                 // Track screen view
@@ -96,6 +88,8 @@ public struct HomeView: View {
                             .font(.system(size: 20, weight: .medium))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     }
+                    .accessibilityLabel("Settings")
+                    .accessibilityHint("Opens app settings and preferences")
                 }
             }
             .navigationDestination(for: SessionResult.self) { session in
@@ -113,6 +107,87 @@ public struct HomeView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
+    }
+
+    // MARK: - Content View
+
+    private var contentView: some View {
+        ZStack(alignment: .bottom) {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: HeadspaceDesign.Spacing.xl) {
+                    // Greeting header
+                    greetingSection
+                        .padding(.top, HeadspaceDesign.Spacing.md)
+
+                    // Main scan card
+                    if let latest = latestSession {
+                        latestScanCard(latest)
+                    } else {
+                        firstScanCard
+                    }
+
+                    // Active challenge card
+                    if let challenge = GamificationManager.shared.getCurrentChallenge(), challenge.isActive {
+                        activeChallengeCard(challenge)
+                    }
+
+                    // Progress graph (shows if 2+ scans)
+                    if sessions.count >= 2 {
+                        ProgressGraphView(sessions: sessions)
+                    }
+
+                    // Recent scans
+                    if hasScans {
+                        recentScansSection
+                    }
+
+                    // Tips section
+                    tipsCard
+
+                    // Bottom padding for sticky button
+                    Spacer().frame(height: 100)
+                }
+                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+            }
+            .background(HeadspaceDesign.Colors.background)
+
+            // Sticky scan button
+            stickyButton
+        }
+    }
+
+    // MARK: - Error View
+
+    private func errorView(_ error: ErrorState) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 60))
+                .foregroundColor(.orange)
+
+            Text("Something went wrong")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Text(error.message)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            Button {
+                errorState = nil
+            } label: {
+                Text("Try Again")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: 200)
+                    .padding(.vertical, 16)
+                    .background(HeadspaceDesign.Colors.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+            }
+            .padding(.top)
+        }
+        .padding()
     }
 
     // MARK: - Components
@@ -157,10 +232,13 @@ public struct HomeView: View {
                             .font(.system(size: 48, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                     }
+                    .accessibilityLabel("Skin Health Score")
+                    .accessibilityValue("\(Int(session.overallScore)) out of 100, \(scoreDescription(session.overallScore))")
 
                     Text("Your Skin Health Score")
                         .font(.system(size: 17, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.95))
+                        .accessibilityHidden(true)
                 }
             }
 
@@ -189,10 +267,12 @@ public struct HomeView: View {
                         }
                         .foregroundColor(HeadspaceDesign.Colors.primary)
                     }
+                    .accessibilityLabel("View scan details")
+                    .accessibilityHint("Shows complete results and metrics for your latest scan")
                 }
             }
             .padding(HeadspaceDesign.Spacing.xl)
-            .background(Color.white)
+            .background(HeadspaceDesign.Colors.elevatedCard)
         }
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(
@@ -331,6 +411,8 @@ public struct HomeView: View {
                             .background(HeadspaceDesign.Colors.primary.opacity(0.1))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
+                        .accessibilityLabel("Compare with latest scan")
+                        .accessibilityHint("Shows side-by-side comparison of this scan with your most recent scan")
                     }
 
                     // View button
@@ -346,6 +428,8 @@ public struct HomeView: View {
                         .background(HeadspaceDesign.Colors.secondary.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
+                    .accessibilityLabel("View scan details")
+                    .accessibilityHint("Opens detailed results for this scan")
                 }
             } else {
                 // For latest scan: just show arrow to view
@@ -354,10 +438,12 @@ public struct HomeView: View {
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(HeadspaceDesign.Colors.textTertiary)
                 }
+                .accessibilityLabel("View latest scan")
+                .accessibilityHint("Opens detailed results for your most recent scan")
             }
         }
         .padding(HeadspaceDesign.Spacing.lg)
-        .background(Color.white)
+        .background(HeadspaceDesign.Colors.elevatedCard)
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(
             color: HeadspaceDesign.Shadows.card.color,
@@ -497,7 +583,7 @@ public struct HomeView: View {
                 }
             }
             .padding(HeadspaceDesign.Spacing.xl)
-            .background(Color.white)
+            .background(HeadspaceDesign.Colors.elevatedCard)
         }
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(
@@ -534,7 +620,7 @@ public struct HomeView: View {
             Spacer()
         }
         .padding(HeadspaceDesign.Spacing.xl)
-        .background(Color.white)
+        .background(HeadspaceDesign.Colors.elevatedCard)
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(
             color: HeadspaceDesign.Shadows.card.color,
@@ -571,6 +657,9 @@ public struct HomeView: View {
                 y: HeadspaceDesign.Shadows.button.y
             )
         }
+        .accessibilityLabel("Scan Now")
+        .accessibilityHint("Starts a new 3D facial scan to analyze your skin health")
+        .accessibilityAddTraits(.isButton)
         .padding(.horizontal, HeadspaceDesign.Spacing.lg)
         .padding(.bottom, HeadspaceDesign.Spacing.xxl)
     }

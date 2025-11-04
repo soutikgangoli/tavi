@@ -57,5 +57,217 @@
 	<!-- ✅ Configured: Crash reporting enabled -->
 	<key>SENTRY_DSN</key>
 	<string>https://4ab4a0452feaae053c4661da191d4780@o4510306390835200.ingest.us.sentry.io/4510306395750400</string>
+
+	<!-- ========================================= -->
+	<!-- PRIVACY MANIFEST (App Store Required)    -->
+	<!-- ========================================= -->
+
+	<!-- Tracking Declaration -->
+	<!-- Set to false because we do NOT track users across apps/websites for advertising -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+
+	<!-- Privacy Nutrition Labels: Data Collection -->
+	<!-- Required by App Store Connect for app privacy details -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+
+		<!-- 1. HEALTH & FITNESS DATA -->
+		<!-- Skin health metrics, scan results, facial analysis -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeHealthAndFitness</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+
+		<!-- 2. PHOTOS AND VIDEOS -->
+		<!-- Face scan images, 3D mesh captures, before/after photos -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePhotosAndVideos</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- 3. USER CONTENT -->
+		<!-- User-generated notes, custom settings, preferences -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- 4. IDENTIFIERS -->
+		<!-- Device ID for crash reporting (Sentry), analytics -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- 5. USAGE DATA -->
+		<!-- App interactions, feature usage, screen views, button taps -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				<string>NSPrivacyCollectedDataTypePurposeProductPersonalization</string>
+			</array>
+		</dict>
+
+		<!-- 6. DIAGNOSTICS -->
+		<!-- Crash reports, performance metrics, error logs (Sentry) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeCrashData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- 7. PERFORMANCE DATA -->
+		<!-- App performance metrics, load times, frame rates -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePerformanceData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+
+		<!-- 8. OTHER DIAGNOSTIC DATA -->
+		<!-- Device capabilities, iOS version, hardware info -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherDiagnosticData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+	</array>
+
+	<!-- Privacy Accessed API Types -->
+	<!-- Required for APIs that access sensitive data -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+
+		<!-- 1. USER DEFAULTS -->
+		<!-- Used for: App settings, preferences, user choices -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- CA92.1: Access app's own user defaults -->
+				<string>CA92.1</string>
+			</array>
+		</dict>
+
+		<!-- 2. FILE TIMESTAMP -->
+		<!-- Used for: Scan date tracking, file modification times -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- C617.1: Display timestamps to user in UI -->
+				<string>C617.1</string>
+				<!-- DDA9.1: Access for file management -->
+				<string>DDA9.1</string>
+			</array>
+		</dict>
+
+		<!-- 3. SYSTEM BOOT TIME -->
+		<!-- Used for: Analytics, session tracking -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- 35F9.1: Measure time intervals -->
+				<string>35F9.1</string>
+			</array>
+		</dict>
+
+		<!-- 4. DISK SPACE -->
+		<!-- Used for: Check available space before saving scans -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- E174.1: Display available disk space to user -->
+				<string>E174.1</string>
+				<!-- 85F4.1: Write/delete files based on available space -->
+				<string>85F4.1</string>
+			</array>
+		</dict>
+
+		<!-- 5. ACTIVE KEYBOARDS -->
+		<!-- Used for: Text input in notes, settings -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryActiveKeyboards</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- 54BD.1: Present appropriate keyboard to user -->
+				<string>54BD.1</string>
+			</array>
+		</dict>
+
+	</array>
+
 </dict>
 </plist>

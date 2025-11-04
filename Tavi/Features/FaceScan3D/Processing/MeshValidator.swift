@@ -66,7 +66,7 @@ class MeshValidator {
 
     /// Validate mesh quality
     func validate(geometry: FaceMeshGeometry) -> MeshValidationResult {
-        print("🔍 Validating mesh quality...")
+        AppLogger.mesh.info("🔍 Validating mesh quality...")
 
         var issues: [String] = []
 
@@ -117,7 +117,7 @@ class MeshValidator {
             issues: issues
         )
 
-        print(result.description)
+        AppLogger.mesh.info(result.description)
 
         return result
     }
