@@ -251,7 +251,26 @@ public class CaptureSequenceManager: ObservableObject {
             self?.guidanceFeedback = "Testing mode - scan complete!"
         }
 
-        // Original production code would move to next step here
+        // Production code (7-pose workflow) commented out:
+        /*
+        // Move to next step or finish
+        let currentStep = self.currentGuidanceStep
+        if let nextStepIndex = GuidanceStep.allCases.firstIndex(of: currentStep).map({ $0 + 1 }),
+           nextStepIndex < GuidanceStep.allCases.count {
+            // Move to next step
+            DispatchQueue.main.asyncAfter(deadline: .now() + ScanConfiguration.resultsDisplayDelay) { [weak self] in
+                self?.currentGuidanceStep = GuidanceStep.allCases[nextStepIndex]
+                self?.isCaptureInProgress = false
+                self?.guidanceFeedback = nil
+                AppLogger.faceScan.info("➡️ Moved to next step: \(GuidanceStep.allCases[nextStepIndex].shortName)")
+            }
+        } else {
+            // All steps captured - keep guidance active until View calls finalizeCapture()
+            AppLogger.faceScan.info("✅ All 7 poses captured! Waiting for View to call finalizeCapture()")
+            self.isCaptureInProgress = false
+            self.guidanceFeedback = "All poses captured!"
+        }
+        */
     }
 
     /// Complete the sequence
