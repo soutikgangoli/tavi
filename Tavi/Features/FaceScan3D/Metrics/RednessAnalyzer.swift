@@ -49,10 +49,12 @@ public class RednessAnalyzer {
     private let adaptiveMultiplier: Float = 1.5    // Multiplier for relative detection (skin-tone adaptive)
     private let moderateThreshold: Float = 0.20
     private let severeThreshold: Float = 0.30
+    private let skinToneNormalizer = SkinToneNormalizer()
 
     // MARK: - Public API
 
     /// Analyze redness and inflammation from texture
+    /// IMPROVED: Detects inflammation on darker skin (appears as darkening, not redness)
     public func analyzeRedness(texture: UIImage) -> RednessAnalysis {
         print("🔬 Analyzing redness and inflammation...")
 
@@ -85,8 +87,11 @@ public class RednessAnalyzer {
 
         context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
-        // 1. Calculate global redness
-        let globalRedness = calculateGlobalRedness(pixelData: pixelData, width: width, height: height)
+        // Detect skin tone for adaptive inflammation detection
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: texture)
+
+        // 1. Calculate global redness (skin-tone aware)
+        let globalRedness = calculateGlobalRedness(pixelData: pixelData, width: width, height: height, skinTone: skinTone)
 
         // 2. Calculate regional redness
         let regionalRedness = calculateRegionalRedness(pixelData: pixelData, width: width, height: height)
@@ -121,16 +126,21 @@ public class RednessAnalyzer {
     // MARK: - Private Methods
 
     /// Calculate global average redness using skin-tone adaptive threshold
-    private func calculateGlobalRedness(pixelData: [UInt8], width: Int, height: Int) -> Float {
+    /// IMPROVED: For darker skin, inflammation appears as darkening (not redness)
+    private func calculateGlobalRedness(pixelData: [UInt8], width: Int, height: Int, skinTone: SkinToneCategory) -> Float {
         // STEP 1: Calculate baseline skin tone (average RGB in center region)
         let baselineRGB = calculateBaselineSkinTone(pixelData: pixelData, width: width, height: height)
         let baselineRedness = baselineRGB.r - (baselineRGB.g + baselineRGB.b) / 2.0
+        let baselineBrightness = (baselineRGB.r + baselineRGB.g + baselineRGB.b) / 3.0
 
         // STEP 2: Use RELATIVE threshold (adaptive to skin tone)
         let adaptiveThreshold = max(0.08, baselineRedness * adaptiveMultiplier)
 
-        var totalRedness: Float = 0
+        var totalInflammation: Float = 0
         var pixelCount = 0
+
+        // SKIN-TONE AWARE: Dark skin inflammation detection
+        let useDarkeningDetection = (skinTone == .dark || skinTone == .veryDark || skinTone == .mediumDark)
 
         for y in 0..<height {
             for x in 0..<width {
@@ -139,20 +149,30 @@ public class RednessAnalyzer {
                 let g = Float(pixelData[index + 1]) / 255.0
                 let b = Float(pixelData[index + 2]) / 255.0
 
-                // Redness index = R - (G+B)/2
-                let redness = r - (g + b) / 2.0
+                if useDarkeningDetection {
+                    // For dark skin: inflammation = localized darkening
+                    let brightness = (r + g + b) / 3.0
+                    let relativeDarkness = baselineBrightness - brightness
 
-                // Relative redness: deviation from baseline
-                let relativeRedness = redness - baselineRedness
+                    // Inflammation shows as areas significantly darker than baseline
+                    if relativeDarkness > 0.10 {  // 10% darker = inflammation
+                        totalInflammation += relativeDarkness
+                        pixelCount += 1
+                    }
+                } else {
+                    // For light skin: standard red-based detection
+                    let redness = r - (g + b) / 2.0
+                    let relativeRedness = redness - baselineRedness
 
-                if relativeRedness > adaptiveThreshold {
-                    totalRedness += relativeRedness
-                    pixelCount += 1
+                    if relativeRedness > adaptiveThreshold {
+                        totalInflammation += relativeRedness
+                        pixelCount += 1
+                    }
                 }
             }
         }
 
-        return pixelCount > 0 ? totalRedness / Float(pixelCount) : 0
+        return pixelCount > 0 ? totalInflammation / Float(pixelCount) : 0
     }
 
     /// Calculate redness per facial region

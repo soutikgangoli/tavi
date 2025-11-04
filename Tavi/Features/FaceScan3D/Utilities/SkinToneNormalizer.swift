@@ -11,7 +11,7 @@ import UIKit
 import simd
 
 /// Detected skin tone category (simplified Fitzpatrick scale)
-public enum SkinToneCategory: Codable, Sendable {
+public enum SkinToneCategory: String, Codable, Sendable {
     case veryLight      // Fitzpatrick I
     case light          // Fitzpatrick II
     case medium         // Fitzpatrick III
@@ -42,25 +42,27 @@ public class SkinToneNormalizer {
     // MARK: - Public API
 
     /// Detect skin tone category from texture
+    /// IMPROVED: Better thresholds for Indian/South Asian skin tones (L* 45-65)
     public func detectSkinTone(texture: UIImage) -> SkinToneCategory {
         // Sample central face region (avoid background)
         let averageLAB = calculateAverageLAB(image: texture, centralRegionOnly: true)
 
         // Classify based on L* (lightness) value
+        // Thresholds refined to better distinguish Indian skin tones
         let L = averageLAB.l
 
-        if L > 80 {
-            return .veryLight
-        } else if L > 70 {
-            return .light
-        } else if L > 60 {
-            return .medium
-        } else if L > 50 {
-            return .mediumDark
-        } else if L > 40 {
-            return .dark
+        if L > 78 {
+            return .veryLight  // Fitzpatrick I
+        } else if L > 68 {
+            return .light      // Fitzpatrick II
+        } else if L > 58 {
+            return .medium     // Fitzpatrick III (lighter Indian)
+        } else if L > 48 {
+            return .mediumDark // Fitzpatrick IV (most Indian skin tones)
+        } else if L > 38 {
+            return .dark       // Fitzpatrick V (darker Indian)
         } else {
-            return .veryDark
+            return .veryDark   // Fitzpatrick VI
         }
     }
 

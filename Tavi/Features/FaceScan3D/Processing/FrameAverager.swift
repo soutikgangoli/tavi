@@ -56,13 +56,13 @@ class FrameAverager {
 
     /// Add a frame to the buffer
     func addFrame(_ geometry: ARFaceGeometry, confidence: Float, timestamp: TimeInterval) {
-        guard capturedFrames.count < maxFrames else { return }
-        guard confidence >= minTrackingConfidence else {
+        guard self.capturedFrames.count < self.maxFrames else { return }
+        guard confidence >= self.minTrackingConfidence else {
             AppLogger.faceScan.debug("⚠️ Frame rejected: low tracking confidence \(confidence)")
             return
         }
 
-        capturedFrames.append(CapturedFrame(
+        self.capturedFrames.append(CapturedFrame(
             geometry: geometry,
             confidence: confidence,
             timestamp: timestamp
@@ -71,30 +71,30 @@ class FrameAverager {
 
     /// Check if enough frames captured
     var hasEnoughFrames: Bool {
-        return capturedFrames.count >= minFrames
+        return self.capturedFrames.count >= self.minFrames
     }
 
     /// Get current frame count
     var frameCount: Int {
-        return capturedFrames.count
+        return self.capturedFrames.count
     }
 
     /// Average all captured frames with outlier rejection
     func average() -> AveragedFrame? {
-        guard capturedFrames.count >= minFrames else {
-            AppLogger.faceScan.error("❌ Not enough frames: \(capturedFrames.count)/\(minFrames)")
+        guard self.capturedFrames.count >= self.minFrames else {
+            AppLogger.faceScan.error("❌ Not enough frames: \(self.capturedFrames.count)/\(self.minFrames)")
             return nil
         }
 
-        AppLogger.faceScan.info("📊 Averaging \(capturedFrames.count) frames...")
+        AppLogger.faceScan.info("📊 Averaging \(self.capturedFrames.count) frames...")
 
         // Get reference geometry (first frame)
-        let referenceGeometry = capturedFrames[0].geometry
+        let referenceGeometry = self.capturedFrames[0].geometry
         let vertexCount = referenceGeometry.vertices.count
 
         // Collect all vertex positions
         var vertexPositions: [[SIMD3<Float>]] = []
-        for frame in capturedFrames {
+        for frame in self.capturedFrames {
             let positions = (0..<frame.geometry.vertices.count).map { i in
                 frame.geometry.vertices[i]
             }
@@ -148,13 +148,13 @@ class FrameAverager {
         }
 
         // Calculate overall confidence
-        let avgConfidence = capturedFrames.map { $0.confidence }.reduce(0, +) / Float(capturedFrames.count)
+        let avgConfidence = self.capturedFrames.map { $0.confidence }.reduce(0, +) / Float(self.capturedFrames.count)
         let totalRejections = rejectionCounts.reduce(0, +)
-        let rejectionRate = Float(totalRejections) / Float(vertexCount * capturedFrames.count)
+        let rejectionRate = Float(totalRejections) / Float(vertexCount * self.capturedFrames.count)
         let qualityPenalty = max(0, 1.0 - rejectionRate * 2.0)  // Penalize high rejection rates
         let finalConfidence = avgConfidence * qualityPenalty
 
-        AppLogger.faceScan.info("✅ Averaged \(capturedFrames.count) frames")
+        AppLogger.faceScan.info("✅ Averaged \(self.capturedFrames.count) frames")
         AppLogger.faceScan.debug("   Confidence: \(String(format: "%.2f", finalConfidence))")
         AppLogger.faceScan.debug("   Rejections: \(totalRejections) (\(String(format: "%.1f%%", rejectionRate * 100)))")
 
@@ -170,7 +170,7 @@ class FrameAverager {
         let result = AveragedFrame(
             geometry: averagedGeometry,
             confidence: finalConfidence,
-            framesUsed: capturedFrames.count,
+            framesUsed: self.capturedFrames.count,
             framesRejected: 0  // Individual frame rejection handled in addFrame
         )
 
@@ -182,7 +182,7 @@ class FrameAverager {
 
     /// Reset frame buffer
     func reset() {
-        capturedFrames.removeAll()
+        self.capturedFrames.removeAll()
     }
 
     // MARK: - Private Methods

@@ -154,10 +154,25 @@ public class Face3DMetricsAnalyzer {
             }
         }
 
-        // Step 3: Compute metrics for each ROI IN PARALLEL for performance
+        // Step 3: Convert CGImage to UIImage for initial quality assessment
+        var textureImage = UIImage(cgImage: unifiedTexture)
+
+        // Step 3.1: Assess lighting quality BEFORE metrics computation
+        AppLogger.metrics.info("   💡 Assessing lighting quality...")
+        let lightingNormalizer = LightingNormalizer()
+        let lightingQuality = lightingNormalizer.assessLightingQuality(image: textureImage)
+        AppLogger.metrics.info("      Overall quality: \(String(format: "%.2f", lightingQuality.overallScore)) (\(lightingQuality.isAcceptable ? "acceptable" : "poor"))")
+        AppLogger.metrics.info("      Brightness: \(String(format: "%.2f", lightingQuality.brightness)), Uniformity: \(String(format: "%.2f", lightingQuality.uniformity)), Shadows: \(String(format: "%.2f", lightingQuality.shadowPresence))")
+        if !lightingQuality.issues.isEmpty {
+            AppLogger.metrics.warning("      ⚠️ Issues: \(lightingQuality.issues.joined(separator: ", "))")
+        }
+
+        // Extract lighting quality score for variance correction
+        let lightingQualityScore = lightingQuality.overallScore
+
+        // Step 3.2: Compute metrics for each ROI IN PARALLEL with lighting quality awareness
         // NOTE: roiSamples contains FULL RESOLUTION data
         // Only RoughnessAnalyzer downsamples internally for performance
-        // Pore/wrinkle/acne analyzers use full resolution
         var roiMetrics: [Face3DROI: ROI3DMetrics] = [:]
 
         AppLogger.metrics.info("   Computing metrics for \(roiSamples.count) ROIs in parallel...")
@@ -166,10 +181,11 @@ public class Face3DMetricsAnalyzer {
         await withTaskGroup(of: (Face3DROI, ROI3DMetrics).self) { group in
             for (roi, sample) in roiSamples {
                 let confidence = roiConfidences[roi]
+                let lightingScore = lightingQualityScore  // Capture for async context
                 group.addTask {
                     AppLogger.metrics.debug("   - Processing \(roi.displayName)...")
-                    // sample is FULL RESOLUTION - only roughness will downsample internally
-                    let metrics = await self.computeROI3DMetrics(sample, rawSample: nil, confidence: confidence)
+                    // Pass lighting quality to metrics computation
+                    let metrics = await self.computeROI3DMetrics(sample, rawSample: nil, confidence: confidence, lightingQuality: lightingScore)
                     AppLogger.metrics.debug("   ✓ \(roi.displayName): roughness=\(metrics.roughnessProxy), pigmentation=\(metrics.pigmentationIndex), confidence=\(metrics.confidenceLevel)")
                     return (roi, metrics)
                 }
@@ -185,7 +201,8 @@ public class Face3DMetricsAnalyzer {
         // Step 4: Compute global metrics and scores
         let globalResults = computeGlobalMetrics(
             roiMetrics: roiMetrics,
-            roiSamples: roiSamples
+            roiSamples: roiSamples,
+            lightingQuality: lightingQualityScore
         )
 
         // NOTE: Don't calculate processingTime here - it's calculated at the end after all analysis
@@ -194,10 +211,7 @@ public class Face3DMetricsAnalyzer {
         // Step 5: Convert UnifiedMesh to FaceMeshGeometry for advanced analyzers
         let faceMeshGeometry = convertToFaceMeshGeometry(unifiedMesh: unifiedMesh)
 
-        // Convert CGImage to UIImage for texture-based analyzers
-        var textureImage = UIImage(cgImage: unifiedTexture)
-
-        // Step 4.5: Apply color temperature normalization BEFORE all analysis
+        // Step 4.5: Apply color temperature normalization BEFORE advanced analysis
         AppLogger.metrics.info("   🌡️ Normalizing color temperature...")
         let detectedColorTemp = colorTempNormalizer.estimateColorTemperature(from: textureImage)
         let lightingType = colorTempNormalizer.detectLightingType(ambientColorTemperature: detectedColorTemp)
@@ -529,15 +543,15 @@ public class Face3DMetricsAnalyzer {
 
     // MARK: - ROI Metrics Computation
 
-    private func computeROI3DMetrics(_ sample: ROITextureSample, rawSample: ROITextureSample?, confidence: ROIConfidence?) async -> ROI3DMetrics {
+    private func computeROI3DMetrics(_ sample: ROITextureSample, rawSample: ROITextureSample?, confidence: ROIConfidence?, lightingQuality: Float?) async -> ROI3DMetrics {
         AppLogger.metrics.debug("      → Computing roughness...")
         // Compute roughness proxy
         let roughness = roughnessAnalyzer.computeRoughnessProxy(sample)
         AppLogger.metrics.debug("      ✓ Roughness: \(roughness)")
 
         AppLogger.metrics.debug("      → Computing pigmentation...")
-        // Compute pigmentation index
-        let pigmentation = pigmentationAnalyzer.computePigmentationIndex(sample)
+        // Compute pigmentation index WITH lighting quality correction
+        let pigmentation = pigmentationAnalyzer.computePigmentationIndex(sample, lightingQuality: lightingQuality)
         AppLogger.metrics.debug("      ✓ Pigmentation: \(pigmentation)")
 
         // Compute specular proxy (if raw frames available)
@@ -560,9 +574,9 @@ public class Face3DMetricsAnalyzer {
         let labMean = discolorationAnalyzer.computeLABMean(sample)
         AppLogger.metrics.debug("      ✓ LAB mean computed")
 
-        // Compute scores
+        // Compute scores WITH lighting quality-aware adaptive thresholds
         let roughnessScore = scoring.mapRoughnessScore(roughness)
-        let pigmentationScore = scoring.mapPigmentationScore(pigmentation)
+        let pigmentationScore = scoring.mapPigmentationScore(pigmentation, lightingQuality: lightingQuality)
         let specularScore = specular.map { scoring.mapSpecularScore($0) }
 
         return ROI3DMetrics(
@@ -587,7 +601,8 @@ public class Face3DMetricsAnalyzer {
 
     private func computeGlobalMetrics(
         roiMetrics: [Face3DROI: ROI3DMetrics],
-        roiSamples: [Face3DROI: ROITextureSample]
+        roiSamples: [Face3DROI: ROITextureSample],
+        lightingQuality: Float?
     ) -> (
         roughness: Float,
         pigmentation: Float,
@@ -644,12 +659,12 @@ public class Face3DMetricsAnalyzer {
         for (roi, sample) in roiSamples {
             roiLABMeans[roi] = discolorationAnalyzer.computeLABMean(sample)
         }
-        let globalDiscoloration = discolorationAnalyzer.computeDiscolorationIndex(roiLABMeans)
+        let globalDiscoloration = discolorationAnalyzer.computeDiscolorationIndex(roiLABMeans, lightingQuality: lightingQuality)
 
-        // Compute scores
+        // Compute scores WITH lighting quality-aware adaptive thresholds
         let roughnessScore = scoring.mapRoughnessScore(globalRoughness)
-        let pigmentationScore = scoring.mapPigmentationScore(globalPigmentation)
-        let discolorationScore = scoring.mapDiscolorationScore(globalDiscoloration)
+        let pigmentationScore = scoring.mapPigmentationScore(globalPigmentation, lightingQuality: lightingQuality)
+        let discolorationScore = scoring.mapDiscolorationScore(globalDiscoloration, lightingQuality: lightingQuality)
         let specularScore = globalSpecular.map { scoring.mapSpecularScore($0) }
 
         // Compute overall score

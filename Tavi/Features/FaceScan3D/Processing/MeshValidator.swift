@@ -117,7 +117,7 @@ class MeshValidator {
             issues: issues
         )
 
-        AppLogger.mesh.info(result.description)
+        AppLogger.mesh.info("\(result.description)")
 
         return result
     }

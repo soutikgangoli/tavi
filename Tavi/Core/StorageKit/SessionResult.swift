@@ -13,7 +13,7 @@ import UIKit
 // MARK: - Session Result Entity
 
 @objc(SessionResult)
-public class SessionResult: NSManagedObject, Identifiable {
+public class SessionResult: NSManagedObject {
 
     @NSManaged public var id: UUID
     @NSManaged public var date: Date
@@ -199,13 +199,9 @@ extension SessionResult {
     }
 }
 
-// MARK: - Hashable Conformance
+// MARK: - Equality Comparison
 
-extension SessionResult: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-
+extension SessionResult {
     public static func == (lhs: SessionResult, rhs: SessionResult) -> Bool {
         lhs.id == rhs.id
     }

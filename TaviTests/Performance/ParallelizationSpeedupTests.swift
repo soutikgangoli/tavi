@@ -340,6 +340,9 @@ final class ParallelizationSpeedupTests: XCTestCase {
         }
         let sequentialDuration = Date().timeIntervalSince(sequentialStart)
 
+        // Verify sequential texture was populated
+        XCTAssertEqual(sequentialTexture.count, height, "Should have all rows")
+
         // Parallel row processing
         let parallelStart = Date()
         let tasks: [(String, () async throws -> (Int, [UInt32]))] = (0..<height).map { y in
@@ -369,6 +372,11 @@ final class ParallelizationSpeedupTests: XCTestCase {
 
         XCTAssertEqual(results.count, height, "Should process all rows")
         XCTAssertGreaterThan(speedup, 2.0, "Should achieve significant speedup")
+
+        // Verify results are ordered correctly
+        for (index, result) in results.enumerated() {
+            XCTAssertEqual(result.0, index, "Row index should match")
+        }
     }
 
     // MARK: - Helper Methods

@@ -13,10 +13,12 @@ import CoreImage
 /// Normalizes images for different color temperatures and lighting conditions
 public class ColorTemperatureNormalizer {
 
+    private let skinToneNormalizer = SkinToneNormalizer()
+
     // MARK: - Color Temperature Detection
 
     /// Detected lighting type
-    public enum LightingType {
+    public enum LightingType: String, Codable {
         case daylight       // ~5500-6500K (neutral)
         case warmLight      // ~2700-3500K (incandescent, warm LED)
         case coolLight      // ~4000-5000K (fluorescent, cool LED)
@@ -67,18 +69,38 @@ public class ColorTemperatureNormalizer {
     }
 
     /// Apply white balance correction to normalize color temperature
+    /// IMPROVED: Skin-tone-aware target temperature (preserves natural undertones)
     public func normalizeColorTemperature(
         image: UIImage,
         currentColorTemp: CGFloat,
-        targetColorTemp: CGFloat = 6000  // Standard daylight
+        targetColorTemp: CGFloat? = nil,  // Optional override
+        skinTone: SkinToneCategory? = nil
     ) -> UIImage? {
         guard let inputCG = image.cgImage else { return image }
 
         let context = CIContext()
         let inputImage = CIImage(cgImage: inputCG)
 
+        // Determine adaptive target temperature based on skin tone
+        let adaptiveTarget: CGFloat
+        if let target = targetColorTemp {
+            adaptiveTarget = target
+        } else if let tone = skinTone {
+            // Indian skin has warmer undertones - preserve some warmth
+            switch tone {
+            case .veryLight, .light:
+                adaptiveTarget = 6000  // Standard daylight
+            case .medium, .mediumDark:
+                adaptiveTarget = 5800  // Slightly warmer to preserve golden undertones
+            case .dark, .veryDark:
+                adaptiveTarget = 5600  // More warmth preservation
+            }
+        } else {
+            adaptiveTarget = 6000  // Default
+        }
+
         // Calculate temperature adjustment
-        let tempDelta = (targetColorTemp - currentColorTemp) / 1000.0
+        let tempDelta = (adaptiveTarget - currentColorTemp) / 1000.0
 
         // Apply white balance filter
         guard let filter = CIFilter(name: "CITemperatureAndTint") else {
@@ -99,7 +121,7 @@ public class ColorTemperatureNormalizer {
             return image
         }
 
-        print("✅ Applied color temperature normalization: \(currentColorTemp)K → \(targetColorTemp)K")
+        print("✅ Applied color temperature normalization: \(currentColorTemp)K → \(adaptiveTarget)K")
         return UIImage(cgImage: outputCG)
     }
 

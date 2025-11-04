@@ -54,10 +54,12 @@ class LightingNormalizer {
     private let minUniformity: Float = 0.5  // Relaxed from 0.7 - faces have natural variance
     private let maxShadowPresence: Float = 0.3
     private let minAcceptableScore: Float = 0.5  // Relaxed from 0.6 for real-world lighting
+    private let skinToneNormalizer = SkinToneNormalizer()
 
     // MARK: - Public API
 
     /// Assess lighting quality
+    /// IMPROVED: Skin-tone-aware dynamic range thresholds
     func assessLightingQuality(image: UIImage) -> ProcessingLightingQuality {
         guard let ciImage = CIImage(image: image) else {
             return ProcessingLightingQuality(
@@ -72,15 +74,22 @@ class LightingNormalizer {
 
         var issues: [String] = []
 
+        // Detect skin tone for adaptive thresholds
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: image)
+
         // Calculate brightness
         let brightness = calculateAverageBrightness(ciImage: ciImage)
 
         // Calculate dynamic range (skin-tone independent metric)
         let dynamicRange = calculateDynamicRange(ciImage: ciImage)
 
-        // SKIN-TONE AWARE: Check dynamic range first (works for all skin tones)
+        // SKIN-TONE AWARE: Adaptive dynamic range thresholds
+        // Darker skin may have lower dynamic range even in good lighting
+        let minDynamicRange: Float = (skinTone == .dark || skinTone == .veryDark) ? 0.25 : 0.30
+
+        // Check dynamic range first (works for all skin tones)
         // Only flag as "too dark" if BOTH low brightness AND poor dynamic range
-        if dynamicRange < 0.30 {
+        if dynamicRange < minDynamicRange {
             issues.append("Too dark - increase lighting")
         } else if brightness < minBrightness {  // 0.15 - only block if VERY dark
             issues.append("Too dark - increase lighting")

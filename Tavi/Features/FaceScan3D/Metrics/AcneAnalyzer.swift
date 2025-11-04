@@ -68,11 +68,13 @@ public class AcneAnalyzer {
 
     private let minBlemishSize: Float = 2.0      // pixels
     private let maxBlemishSize: Float = 50.0     // pixels
+    private let skinToneNormalizer = SkinToneNormalizer()
 
     // MARK: - Public API
 
     /// Analyze acne using unified approach (darkness + 3D elevation)
     /// Works fairly across all skin tones (Fitzpatrick I-VI)
+    /// IMPROVED: Refined thresholds for very dark skin to avoid false positives
     public func analyzeAcne(texture: UIImage, geometry: FaceMeshGeometry? = nil) -> AcneAnalysis {
         print("🔬 Analyzing acne (unified method - skin-tone-fair)...")
 
@@ -90,8 +92,11 @@ public class AcneAnalyzer {
         let width = cgImage.width
         let height = cgImage.height
 
+        // Detect skin tone for adaptive thresholds
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: texture)
+
         // Step 1: Detect darkness variations (adaptive threshold)
-        let darknessSpots = detectDarknessVariations(image: cgImage)
+        let darknessSpots = detectDarknessVariations(image: cgImage, skinTone: skinTone)
         print("   Found \(darknessSpots.count) darkness variations")
 
         // Step 2: Detect 3D elevations (if geometry available)
@@ -144,7 +149,8 @@ public class AcneAnalyzer {
     // MARK: - Step 1: Darkness Detection (Adaptive)
 
     /// Detect local darkness variations (works for all skin tones)
-    private func detectDarknessVariations(image: CGImage) -> [(x: Int, y: Int, darkness: Float, size: Float)] {
+    /// IMPROVED: Skin-tone-specific darkness thresholds
+    private func detectDarknessVariations(image: CGImage, skinTone: SkinToneCategory) -> [(x: Int, y: Int, darkness: Float, size: Float)] {
         let width = image.width
         let height = image.height
 
@@ -169,11 +175,24 @@ public class AcneAnalyzer {
         // Calculate adaptive darkness threshold based on skin brightness
         let avgBrightness = calculateAverageBrightness(data: grayData, width: width, height: height)
 
-        // Dark spots are 20-30% darker than surrounding skin
-        // This works for all skin tones (light to dark)
-        let darknessThreshold = UInt8(max(30, Int(avgBrightness * 0.70)))
+        // SKIN-TONE AWARE: Adjust darkness threshold
+        // Very dark skin needs less strict threshold to avoid false positives
+        let darknessMultiplier: Float
+        switch skinTone {
+        case .veryLight, .light:
+            darknessMultiplier = 0.70  // 30% darker for light skin
+        case .medium:
+            darknessMultiplier = 0.72  // 28% darker for medium skin
+        case .mediumDark:
+            darknessMultiplier = 0.75  // 25% darker for Indian skin (less strict)
+        case .dark, .veryDark:
+            darknessMultiplier = 0.78  // 22% darker for very dark skin (avoid texture noise)
+        }
 
-        print("   Adaptive darkness threshold: \(darknessThreshold) (avg brightness: \(avgBrightness))")
+        // Dark spots are darker than surrounding skin
+        let darknessThreshold = UInt8(max(30, Int(avgBrightness * darknessMultiplier)))
+
+        print("   Adaptive darkness threshold: \(darknessThreshold) (avg: \(avgBrightness), tone: \(skinTone), multiplier: \(darknessMultiplier))")
 
         // Detect local minima (dark spots)
         var darkSpots: [(x: Int, y: Int, darkness: Float, size: Float)] = []

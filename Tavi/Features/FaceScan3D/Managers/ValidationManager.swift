@@ -74,28 +74,16 @@ public class ValidationManager: ObservableObject {
     }
 
     /// Validates face position and orientation (5 poses)
+    /// UNIFIED: Now matches CalibrationState.isPoseValid() for consistency
     public func validateFacePosition(transform: simd_float4x4, targetStep: GuidanceStep) -> Bool {
         let angles = extractEulerAngles(from: transform)
 
         let pitchDegrees = angles.pitch * 180 / .pi
         let yawDegrees = angles.yaw * 180 / .pi
+        let rollDegrees = angles.roll * 180 / .pi
 
-        switch targetStep {
-        case .lookStraight:
-            return abs(pitchDegrees) < 10 && abs(yawDegrees) < 10
-
-        case .lookUp:
-            return pitchDegrees > 10 && pitchDegrees < 22 && abs(yawDegrees) < 10
-
-        case .lookDown:
-            return pitchDegrees < -10 && pitchDegrees > -25 && abs(yawDegrees) < 10
-
-        case .turnLeft:
-            return yawDegrees > 20 && yawDegrees < 45 && abs(pitchDegrees) < 10
-
-        case .turnRight:
-            return yawDegrees < -20 && yawDegrees > -45 && abs(pitchDegrees) < 10
-        }
+        // Delegate to GuidanceStep.isPoseValid for unified validation
+        return targetStep.isPoseValid(yaw: yawDegrees, pitch: pitchDegrees, roll: rollDegrees)
     }
 
     /// Detects edge cases (glasses, hands, hat, etc.)

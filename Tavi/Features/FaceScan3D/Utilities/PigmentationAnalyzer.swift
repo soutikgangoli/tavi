@@ -11,6 +11,19 @@ import UIKit
 import Accelerate
 import simd
 
+/// Pigmentation analysis result
+public struct PigmentationAnalysis: Codable, Sendable {
+    public let evenness: Float       // 0-100, higher = more even
+    public let darkSpots: Int        // Number of dark spots detected
+    public let confidence: Float     // 0-100, reliability of analysis
+
+    public init(evenness: Float, darkSpots: Int, confidence: Float) {
+        self.evenness = evenness
+        self.darkSpots = darkSpots
+        self.confidence = confidence
+    }
+}
+
 /// Analyzes pigmentation variance using CIELAB color space
 public class PigmentationAnalyzer {
 
@@ -30,6 +43,7 @@ public class PigmentationAnalyzer {
     }
 
     private let configuration: Configuration
+    private let skinToneNormalizer = SkinToneNormalizer()
 
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
@@ -39,10 +53,12 @@ public class PigmentationAnalyzer {
 
     /// Compute pigmentation index from ROI texture sample
     /// Returns 0-1 score (higher = more pigmentation variation)
+    /// IMPROVED: Skin-tone-aware normalization for Indian/darker skin tones
     /// - Parameters:
     ///   - sample: ROI texture sample with pixel colors
     ///   - lightingQuality: Optional lighting quality score (0-1). If provided and < 0.7, applies correction for lighting artifacts
-    public func computePigmentationIndex(_ sample: ROITextureSample, lightingQuality: Float? = nil) -> Float {
+    ///   - skinTone: Optional skin tone category for adaptive normalization
+    public func computePigmentationIndex(_ sample: ROITextureSample, lightingQuality: Float? = nil, skinTone: SkinToneCategory? = nil) -> Float {
         // Convert RGB to CIELAB
         let labColors = convertToLAB(sample.pixels)
 
@@ -81,8 +97,29 @@ public class PigmentationAnalyzer {
             AppLogger.metrics.debug("🔦 Lighting quality correction applied: quality=\(String(format: "%.2f", quality)), correction=\(String(format: "%.3f", correctionFactor))")
         }
 
+        // SKIN-TONE AWARE NORMALIZATION:
+        // Indian skin (Fitzpatrick III-IV) naturally has higher B* variance (yellow tones)
+        // Adjust normalization factor to account for natural variation
+        var normalizationFactor = configuration.varianceNormalization
+
+        if let tone = skinTone {
+            switch tone {
+            case .veryLight, .light:
+                // Standard normalization for light skin
+                normalizationFactor = 100.0
+            case .medium, .mediumDark:
+                // Higher normalization for Indian skin (allows more yellow tone variation)
+                normalizationFactor = 120.0  // 20% more tolerance for natural variation
+            case .dark, .veryDark:
+                // Even higher for darker skin
+                normalizationFactor = 130.0  // 30% more tolerance
+            }
+
+            AppLogger.metrics.debug("🎨 Skin-tone normalization: \(tone.rawValue) → factor=\(normalizationFactor)")
+        }
+
         // Normalize to 0-1 range
-        let pigmentationIndex = min(sqrt(combinedVariance) / configuration.varianceNormalization, 1.0)
+        let pigmentationIndex = min(sqrt(combinedVariance) / normalizationFactor, 1.0)
 
         return pigmentationIndex
     }
