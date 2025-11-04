@@ -339,9 +339,29 @@ public struct CelebratoryResultsView: View {
                 }
                 .frame(height: 8)
 
-                Text(description)
-                    .font(.system(size: 14, weight: .regular, design: .rounded))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                // Quality indicator badge
+                HStack(spacing: 8) {
+                    qualityBadge(for: score)
+
+                    Text(description)
+                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                }
+
+                // Improvement suggestion (if score needs improvement)
+                if let suggestion = improvementSuggestion(for: score, metricType: metricType) {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.orange.opacity(0.8))
+
+                        Text(suggestion)
+                            .font(.system(size: 13, weight: .regular, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, 4)
+                }
             }
         }
         .padding(HeadspaceDesign.Spacing.xl)
@@ -530,6 +550,63 @@ public struct CelebratoryResultsView: View {
         case 60..<80: return HeadspaceDesign.Colors.secondary
         case 40..<60: return HeadspaceDesign.Colors.accent
         default: return HeadspaceDesign.Colors.primary
+        }
+    }
+
+    /// Quality badge showing assessment level
+    @ViewBuilder
+    private func qualityBadge(for score: Int) -> some View {
+        let (label, color) = qualityLevel(for: score)
+
+        Text(label)
+            .font(.system(size: 11, weight: .semibold, design: .rounded))
+            .foregroundColor(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.15))
+            .clipShape(Capsule())
+    }
+
+    /// Get quality level label and color for score
+    private func qualityLevel(for score: Int) -> (String, Color) {
+        switch score {
+        case 90...100:
+            return ("Excellent", HeadspaceDesign.Colors.success)
+        case 75..<90:
+            return ("Good", HeadspaceDesign.Colors.success)
+        case 60..<75:
+            return ("Fair", HeadspaceDesign.Colors.secondary)
+        case 40..<60:
+            return ("Needs Attention", HeadspaceDesign.Colors.accent)
+        default:
+            return ("Needs Improvement", HeadspaceDesign.Colors.primary)
+        }
+    }
+
+    /// Get context-sensitive improvement suggestion based on score and metric type
+    private func improvementSuggestion(for score: Int, metricType: MetricType?) -> String? {
+        // Only show suggestions for scores below 75
+        guard score < 75, let metricType = metricType else { return nil }
+
+        switch metricType {
+        case .brightness:
+            return "Try vitamin C serums or exfoliating to boost radiance"
+        case .roughness:
+            return "Regular exfoliation and moisturizing can improve smoothness"
+        case .pigmentation:
+            return "SPF daily and targeted treatments can help even skin tone"
+        case .wrinkles:
+            return "Retinol and peptides can help improve skin firmness"
+        case .hydration:
+            return "Increase water intake and use hydrating serums"
+        case .discoloration:
+            return "Daily SPF 30+ is essential for preventing UV damage"
+        case .pores:
+            return "Salicylic acid and niacinamide can help minimize pores"
+        case .specular:
+            return "Oil-control products and regular cleansing can help"
+        case .luminance:
+            return "Brightening serums with vitamin C can enhance luminosity"
         }
     }
 

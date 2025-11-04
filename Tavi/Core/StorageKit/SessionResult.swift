@@ -87,9 +87,13 @@ extension SessionResult {
             self.foreheadScore = extractROIScore(for: .forehead, from: metrics)
             self.chinScore = extractROIScore(for: .chin, from: metrics)
 
-            // Save clinical metrics as JSON
+            // Save clinical metrics as versioned JSON
             do {
-                self.clinicalMetricsData = try JSONEncoder().encode(metrics)
+                let versionedWrapper = try VersionedFace3DMetrics(metrics: metrics)
+                let encoder = JSONEncoder()
+                encoder.dateEncodingStrategy = .iso8601
+                self.clinicalMetricsData = try encoder.encode(versionedWrapper)
+                AppLogger.storage.info("💾 Saved clinical metrics in SessionResult with version \(MetricsVersion.current.versionString)")
             } catch {
                 AppLogger.storage.error("Failed to encode clinical metrics in SessionResult: \(error)")
                 CrashReporter.shared.logError(error, context: ["operation": "json_encode_clinical_session"])

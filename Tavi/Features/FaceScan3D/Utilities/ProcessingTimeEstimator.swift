@@ -27,6 +27,40 @@ public enum ProcessingPhase: Int, CaseIterable {
         case .coreDataSave: return "Saving your results... 💾"
         }
     }
+
+    /// Detailed explanation with interesting facts
+    var detailedDescription: String {
+        switch self {
+        case .meshMerge:
+            return "Merging 50+ captures into your 3D model"
+        case .textureBake:
+            return "Processing 4K resolution skin texture"
+        case .metricsAnalysis:
+            return "Analyzing 50,000+ data points across your face"
+        case .emotionalMetrics:
+            return "Computing your personalized Skin Health Index"
+        case .gamification:
+            return "Updating achievements and milestones"
+        case .coreDataSave:
+            return "Encrypting and saving your results securely"
+        }
+    }
+
+    /// Quality explanation - why this step takes time (nil if step is fast)
+    var qualityExplanation: String? {
+        switch self {
+        case .meshMerge:
+            return "Taking time to ensure millimeter-accurate results"
+        case .textureBake:
+            return "Ensuring every detail is captured clearly"
+        case .metricsAnalysis:
+            return "Performing clinical-grade skin analysis"
+        case .emotionalMetrics:
+            return "Calculating your unique skin profile"
+        case .gamification, .coreDataSave:
+            return nil  // These are fast, no explanation needed
+        }
+    }
 }
 
 /// Device performance tier for time estimation

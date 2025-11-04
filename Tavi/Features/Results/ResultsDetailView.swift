@@ -26,14 +26,20 @@ struct ResultsDetailView: View {
 
     init(session: SessionResult) {
         self.session = session
-        // Decode clinical metrics for confidence scores
+        // Decode clinical metrics for confidence scores with versioned loader
         if let data = session.clinicalMetricsData {
-            do {
-                let metrics = try JSONDecoder().decode(Face3DMetrics.self, from: data)
+            let result = VersionedMetricsLoader.loadFace3DMetrics(from: data)
+            if let metrics = result.metrics {
                 _clinicalMetrics = State(initialValue: metrics)
-            } catch {
-                AppLogger.ui.error("Failed to decode clinical metrics in ResultsDetailView: \(error)")
-                CrashReporter.shared.logError(error, context: ["operation": "json_decode_clinical_results"])
+                if case .migrated(_, let from, let to) = result {
+                    AppLogger.ui.info("Migrated clinical metrics from v\(from.versionString) to v\(to.versionString)")
+                }
+            } else {
+                AppLogger.ui.error("Failed to load clinical metrics in ResultsDetailView: \(result.userMessage)")
+                CrashReporter.shared.logError(
+                    NSError(domain: "ResultsDetailView", code: -1, userInfo: ["message": result.userMessage]),
+                    context: ["operation": "versioned_load_clinical_results"]
+                )
                 _clinicalMetrics = State(initialValue: nil)
             }
         }
@@ -703,12 +709,14 @@ struct ResultsDetailView: View {
             return nil
         }
 
-        let metrics: Face3DMetrics
-        do {
-            metrics = try JSONDecoder().decode(Face3DMetrics.self, from: metricsData)
-        } catch {
-            AppLogger.ui.error("Failed to decode clinical metrics for PDF generation: \(error)")
-            CrashReporter.shared.logError(error, context: ["operation": "json_decode_clinical_pdf"])
+        // Load metrics with versioned loader
+        let result = VersionedMetricsLoader.loadFace3DMetrics(from: metricsData)
+        guard let metrics = result.metrics else {
+            AppLogger.ui.error("Failed to load clinical metrics for PDF generation: \(result.userMessage)")
+            CrashReporter.shared.logError(
+                NSError(domain: "ResultsDetailView", code: -1, userInfo: ["message": result.userMessage]),
+                context: ["operation": "versioned_load_clinical_pdf"]
+            )
             return nil
         }
 

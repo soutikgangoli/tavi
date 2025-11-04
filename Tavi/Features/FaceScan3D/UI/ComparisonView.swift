@@ -95,13 +95,15 @@ public struct Comparison3DView: View {
 
     private func decodeMetrics(from session: SessionResult) -> Face3DMetrics? {
         guard let data = session.clinicalMetricsData else { return nil }
-        do {
-            return try JSONDecoder().decode(Face3DMetrics.self, from: data)
-        } catch {
-            AppLogger.ui.error("Failed to decode metrics in ComparisonView: \(error)")
-            CrashReporter.shared.logError(error, context: ["operation": "json_decode_comparison"])
-            return nil
+        let result = VersionedMetricsLoader.loadFace3DMetrics(from: data)
+        if result.metrics == nil {
+            AppLogger.ui.error("Failed to load metrics in ComparisonView: \(result.userMessage)")
+            CrashReporter.shared.logError(
+                NSError(domain: "ComparisonView", code: -1, userInfo: ["message": result.userMessage]),
+                context: ["operation": "versioned_load_comparison"]
+            )
         }
+        return result.metrics
     }
 }
 

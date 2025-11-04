@@ -151,10 +151,18 @@ public class CoreDataSaveQueue: ObservableObject {
             session.moistureSpecular = Double(emotionalMetrics.radiance)
             session.moistureSmoothness = Double(emotionalMetrics.freshness)
 
-            // Store full metrics as JSON
+            // Store full metrics as versioned JSON
             do {
-                session.emotionalMetricsData = try JSONEncoder().encode(emotionalMetrics)
-                session.clinicalMetricsData = try JSONEncoder().encode(clinicalMetrics)
+                let emotionalWrapper = try VersionedEmotionalMetrics(metrics: emotionalMetrics)
+                let clinicalWrapper = try VersionedFace3DMetrics(metrics: clinicalMetrics)
+
+                let encoder = JSONEncoder()
+                encoder.dateEncodingStrategy = .iso8601
+
+                session.emotionalMetricsData = try encoder.encode(emotionalWrapper)
+                session.clinicalMetricsData = try encoder.encode(clinicalWrapper)
+
+                AppLogger.faceScan.info("💾 Saved metrics in CoreDataSaveQueue with version \(MetricsVersion.current.versionString)")
             } catch {
                 AppLogger.faceScan.error("Failed to encode metrics: \(error)")
                 return false

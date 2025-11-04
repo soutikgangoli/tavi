@@ -312,14 +312,23 @@ public struct EmotionalScan3DFlowView: View {
             }
 
             VStack(spacing: 16) {
-                // Processing message (above time)
+                // Main processing message
                 Text(processingProgress)
                     .font(.headline)
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
 
-                // Time remaining (below message)
+                // Detailed info - what's actually happening
+                if let currentPhase = getCurrentProcessingPhase() {
+                    Text(currentPhase.detailedDescription)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+
+                // Time remaining
                 if timeRemainingSeconds > 0 {
                     HStack(spacing: 6) {
                         Image(systemName: "clock.fill")
@@ -338,6 +347,17 @@ public struct EmotionalScan3DFlowView: View {
                             .font(.subheadline)
                     }
                     .foregroundStyle(.secondary)
+                }
+
+                // Quality explanation - why it takes time (only for slow steps)
+                if let currentPhase = getCurrentProcessingPhase(),
+                   let explanation = currentPhase.qualityExplanation {
+                    Text(explanation)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                        .padding(.top, 4)
                 }
 
                 // Device-specific warning (if applicable)
@@ -1306,6 +1326,14 @@ struct AchievementUnlockOverlay: View {
     }
 
     // MARK: - Time Management
+
+    /// Get the current processing phase based on the step number
+    private func getCurrentProcessingPhase() -> ProcessingPhase? {
+        guard processingStep >= 1 && processingStep <= totalProcessingSteps else {
+            return nil
+        }
+        return ProcessingPhase(rawValue: processingStep)
+    }
 
     /// Format seconds into human-readable time string
     private func formatTimeRemaining(_ seconds: Int) -> String {

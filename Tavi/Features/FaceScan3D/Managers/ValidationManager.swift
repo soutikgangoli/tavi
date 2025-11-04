@@ -99,7 +99,7 @@ public class ValidationManager: ObservableObject {
     }
 
     /// Detects edge cases (glasses, hands, hat, etc.)
-    public func detectEdgeCases(from blendShapes: ARFaceAnchor.BlendShapeLocation: NSNumber]?) -> [String] {
+    public func detectEdgeCases(from blendShapes: [ARFaceAnchor.BlendShapeLocation: NSNumber]?) -> [String] {
         var warnings: [String] = []
 
         guard let shapes = blendShapes else {

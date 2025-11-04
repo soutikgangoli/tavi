@@ -157,12 +157,19 @@ public class FallbackStorage: ObservableObject {
                 coreDataSession.moistureSpecular = Double(session.emotionalMetrics.radiance)
                 coreDataSession.moistureSmoothness = Double(session.emotionalMetrics.freshness)
 
-                // Encode metrics
+                // Encode metrics with versioning
                 do {
-                    coreDataSession.emotionalMetricsData = try JSONEncoder().encode(session.emotionalMetrics)
-                    coreDataSession.clinicalMetricsData = try JSONEncoder().encode(session.clinicalMetrics)
+                    let emotionalWrapper = try VersionedEmotionalMetrics(metrics: session.emotionalMetrics)
+                    let clinicalWrapper = try VersionedFace3DMetrics(metrics: session.clinicalMetrics)
+
+                    let encoder = JSONEncoder()
+                    encoder.dateEncodingStrategy = .iso8601
+
+                    coreDataSession.emotionalMetricsData = try encoder.encode(emotionalWrapper)
+                    coreDataSession.clinicalMetricsData = try encoder.encode(clinicalWrapper)
 
                     try context.save()
+                    AppLogger.storage.info("💾 Migrated session \(session.id) to Core Data with version \(MetricsVersion.current.versionString)")
                     return true
                 } catch {
                     AppLogger.storage.error("Failed to migrate session \(session.id): \(error)")
