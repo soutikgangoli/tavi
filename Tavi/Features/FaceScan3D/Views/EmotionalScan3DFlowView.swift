@@ -14,6 +14,7 @@ public struct EmotionalScan3DFlowView: View {
     @StateObject private var viewModel = FaceScan3DViewModel()
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var flowState: FlowState = .preparing(countdown: 3)
     @State private var showResults = false
@@ -201,6 +202,23 @@ public struct EmotionalScan3DFlowView: View {
                 Text("You've captured \(capturedCount) pose\(capturedCount == 1 ? "" : "s"). If you cancel now, your progress will be lost and you'll need to start over.\n\nAre you sure you want to cancel?")
             } else {
                 Text("If you cancel now, you'll need to start the scan over.\n\nAre you sure you want to cancel?")
+            }
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            // Handle app lifecycle to protect pending saves
+            if newPhase == .background && pendingSaveData != nil {
+                AppLogger.faceScan.warning("App backgrounded with pending save data")
+                // Data persists in saveQueue - will auto-retry on foreground
+            }
+
+            if newPhase == .active && saveQueue.hasPendingSaves {
+                AppLogger.faceScan.info("App foregrounded - resuming save queue")
+                // CoreDataSaveQueue automatically retries on foreground
+            }
+        }
+        .onDisappear {
+            if pendingSaveData != nil {
+                AppLogger.faceScan.warning("⚠️ View dismissed with unsaved data - but data is safely queued for retry")
             }
         }
     }

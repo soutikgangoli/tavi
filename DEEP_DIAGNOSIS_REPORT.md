@@ -330,88 +330,96 @@ Button("Cancel") {
 
 ### 2.5 Processing Timeout
 
-**Status:** 🟡 **PARTIALLY RESOLVED** (estimation exists, timeout scaling needed)
+**Status:** ✅ **RESOLVED** (device-aware timeout scaling implemented)
 
-**Issue:** Timeout handling exists but may be too aggressive on older devices
+**Issue:** Timeout handling exists but was too aggressive on older devices
 
 **Code Location:**
-- Timeouts: `ScanConfiguration.swift:158-170`
-- Timeout handling: `EmotionalScan3DFlowView.swift:631-823`
-- Device estimation: `ProcessingTimeEstimator.swift:39-47`
+- Base timeouts: `ScanConfiguration.swift:158-170`
+- Device adjustment: `ProcessingTimeEstimator.swift:150-152`
+- Usage: `EmotionalScan3DFlowView.swift:674, 699, 723, 786`
 
-**Current Timeouts (FIXED values):**
+**Base Timeout Values (scaled by device):**
 ```swift
-meshMergeTimeout: 30.0 seconds
-textureBakeTimeout: 30.0 seconds
-metricsComputationTimeout: 150.0 seconds  // Intentionally high
-coreDataSaveTimeout: 10.0 seconds
+meshMergeTimeout: 30.0 seconds (base)
+textureBakeTimeout: 30.0 seconds (base)
+metricsComputationTimeout: 150.0 seconds (base)
+coreDataSaveTimeout: 10.0 seconds (base)
 ```
 
-**Current Device Performance Detection:**
-The app **DOES detect device performance** and provides estimates:
-- **Flagship** (iPhone 15 Pro): 1.0x multiplier
-- **High** (iPhone 14/13 Pro): 1.15x multiplier
-- **Standard** (iPhone 12 Pro): 1.35x multiplier
-- **Legacy** (iPhone 11/X/XS): 1.65x multiplier
+**Device Performance Multipliers:**
+- **Flagship** (iPhone 15 Pro): 1.0x
+- **High** (iPhone 14/13 Pro): 1.15x
+- **Standard** (iPhone 12 Pro): 1.35x
+- **Legacy** (iPhone 11/X/XS): 1.65x
 
-**The Problem:**
-Device estimation exists but **timeout values are NOT scaled by device performance**.
+**Implementation:**
 
-Example scenario:
-1. iPhone 15 Pro: Expected 25s merge time, 30s timeout = ✅ Works
-2. iPhone 11 Pro: Expected 25s × 1.65 = 41s, but timeout still 30s = ❌ **Times out incorrectly**
-
-**Evidence from ProcessingTimeEstimator:**
+Added `getDeviceAdjustedTimeout()` method to `ProcessingTimeEstimator`:
 ```swift
-// Line 79-81
-.meshMerge: 25,           // Expect ~25s on flagship
-// But with legacy multiplier: 25 × 1.65 = 41s expected
-// Yet timeout is fixed at 30s → False timeout error
-```
-
-**User Impact:**
-- ✅ User sees accurate time estimates ("4-5 minutes on older devices")
-- ✅ User sees device-specific warnings
-- ❌ But processing still times out before expected completion time
-- ❌ User sees error: "Processing timed out..." when it's just slow, not failed
-
-**What Works Well:**
-✅ Device performance detection is accurate
-✅ Time estimation is device-aware
-✅ User warnings are shown for older devices
-✅ Metrics timeout is generously set to 150s
-✅ Timeout error handling is clean and user-friendly
-
-**What Needs Improvement:**
-❌ Timeout values should scale with `performanceMultiplier`
-❌ Mesh merge timeout too aggressive for legacy devices (30s < 41s expected)
-❌ Texture bake timeout too aggressive for legacy devices (30s < 33s expected)
-
-**Recommended Solution:**
-```swift
-// In ScanConfiguration.swift or ProcessingTimeEstimator
-func getDeviceAdjustedTimeout(baseTimeout: TimeInterval) -> TimeInterval {
+// ProcessingTimeEstimator.swift:150-152
+public func getDeviceAdjustedTimeout(_ baseTimeout: TimeInterval) -> TimeInterval {
     return baseTimeout * performanceTier.performanceMultiplier
 }
-
-// Usage in EmotionalScan3DFlowView:
-let adjustedMeshTimeout = timeEstimator.getDeviceAdjustedTimeout(
-    ScanConfiguration.meshMergeTimeout
-)
 ```
 
-**Alternative Approach:**
-Add grace period for older devices:
+Updated all timeout usages in `EmotionalScan3DFlowView.swift`:
 ```swift
-// Add 50% buffer for legacy devices
-if performanceTier == .legacy {
-    timeout *= 1.5  // 30s → 45s
-}
+// Mesh merge (line 674)
+let merged = try await withTimeout(
+    seconds: timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.meshMergeTimeout),
+    operation: "Mesh Merge"
+) { ... }
+
+// Texture bake (line 699)
+let bakeResult = try await withTimeout(
+    seconds: timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.textureBakeTimeout),
+    operation: "Texture Baking"
+) { ... }
+
+// Metrics computation (line 723)
+let metrics = try await withTimeout(
+    seconds: timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.metricsComputationTimeout),
+    operation: "Metrics Computation"
+) { ... }
+
+// Core Data save (line 786)
+try await withTimeout(
+    seconds: timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.coreDataSaveTimeout),
+    operation: "CoreData Save"
+) { ... }
 ```
 
-**Risk Level:** 🟡 **MEDIUM**
-- Low probability (only affects legacy devices under normal conditions)
-- High impact when it occurs (user loses scan data after waiting)
+**Actual Timeout Values by Device:**
+
+| Operation | Flagship | High | Standard | Legacy |
+|-----------|----------|------|----------|--------|
+| Mesh Merge | 30.0s | 34.5s | 40.5s | 49.5s |
+| Texture Bake | 30.0s | 34.5s | 40.5s | 49.5s |
+| Metrics | 150.0s | 172.5s | 202.5s | 247.5s |
+| Core Data Save | 10.0s | 11.5s | 13.5s | 16.5s |
+
+**Before vs After (iPhone 11 Pro - Legacy):**
+
+**Mesh Merge:**
+- Before: 30.0s timeout, 41.3s expected → ❌ Times out
+- After: 49.5s timeout, 41.3s expected → ✅ Works (8.2s margin)
+
+**Texture Bake:**
+- Before: 30.0s timeout, 33.0s expected → ❌ Times out
+- After: 49.5s timeout, 33.0s expected → ✅ Works (16.5s margin)
+
+**Benefits:**
+✅ Legacy devices get appropriate timeout values
+✅ Flagship devices unaffected (same performance)
+✅ Maintains safety margin on all devices
+✅ No false timeout errors on slower devices
+✅ User experience consistent across device tiers
+
+**Risk Level:** ✅ **RESOLVED**
+- All device tiers now have appropriate timeout margins
+- Expected processing time always < timeout value
+- Prevents false timeout errors on legacy devices
 
 ---
 
