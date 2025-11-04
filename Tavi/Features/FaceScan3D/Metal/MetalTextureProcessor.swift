@@ -49,7 +49,8 @@ public final class MetalTextureProcessor {
         self.commandQueue = commandQueue
 
         logger.info("✅ Metal GPU initialized: \(device.name)")
-        logger.info("   Max threads per threadgroup: \(device.maxThreadsPerThreadgroup)")
+        let maxThreads = device.maxThreadsPerThreadgroup
+        logger.info("   Max threads per threadgroup: \(maxThreads.width)×\(maxThreads.height)×\(maxThreads.depth)")
         logger.info("   Supports family Apple7: \(device.supportsFamily(.apple7))")
     }
 

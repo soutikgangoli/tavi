@@ -97,7 +97,12 @@ public final class AdvancedMemoryMonitor: ObservableObject {
     private init() {}
 
     deinit {
-        stopMonitoring()
+        // Cannot call MainActor-isolated method from deinit
+        // Cleanup will be handled by Timer invalidation and notification removal
+        monitoringTimer?.invalidate()
+        if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     // MARK: - Public API

@@ -71,7 +71,7 @@ public class TextureCapture {
 
         // Extract rotation angles
         let transform = faceAnchor.transform
-        let eulerAngles = transform.eulerAngles
+        let eulerAngles = extractEulerAngles(from: transform)
         let yaw = eulerAngles.y * 180 / .pi
         let pitch = eulerAngles.x * 180 / .pi
         let roll = eulerAngles.z * 180 / .pi
@@ -166,6 +166,42 @@ public class TextureCapture {
 
         return scaledImage
     }
-}
 
-// Note: eulerAngles extension is defined in FaceScan3DViewModel.swift
+    // MARK: - Helper Methods
+
+    /// Extract Euler angles (pitch, yaw, roll) from a 4x4 transformation matrix
+    private func extractEulerAngles(from matrix: simd_float4x4) -> SIMD3<Float> {
+        // Extract rotation matrix (upper-left 3x3)
+        let m11 = matrix.columns.0.x
+        let m12 = matrix.columns.1.x
+        let m13 = matrix.columns.2.x
+        let m21 = matrix.columns.0.y
+        let m22 = matrix.columns.1.y
+        let m23 = matrix.columns.2.y
+        let m31 = matrix.columns.0.z
+        let m32 = matrix.columns.1.z
+        let m33 = matrix.columns.2.z
+
+        // Calculate Euler angles (ZYX convention)
+        // pitch (x-axis rotation)
+        let pitch = asin(-m23)
+
+        // yaw (y-axis rotation)
+        let yaw: Float
+        if abs(m23) < 0.99999 {
+            yaw = atan2(m13, m33)
+        } else {
+            yaw = atan2(-m31, m11)
+        }
+
+        // roll (z-axis rotation)
+        let roll: Float
+        if abs(m23) < 0.99999 {
+            roll = atan2(m21, m22)
+        } else {
+            roll = 0
+        }
+
+        return SIMD3<Float>(pitch, yaw, roll)
+    }
+}

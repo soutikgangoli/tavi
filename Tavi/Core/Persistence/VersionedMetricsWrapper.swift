@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 
 /// Semantic version for metrics data format
 public struct MetricsVersion: Codable, Equatable, Comparable {

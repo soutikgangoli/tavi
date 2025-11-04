@@ -13,6 +13,12 @@ import SwiftUI
 import UIKit
 import os.log
 
+/// Type alias for captured pose data
+public typealias CapturedPose = CapturedPoseData
+
+/// Type alias for texture samples
+public typealias TextureSample = PoseSample
+
 /// Thin coordinator ViewModel that delegates to specialized managers
 /// This refactored version addresses the monolithic ViewModel issue by separating concerns
 @MainActor
@@ -92,8 +98,8 @@ public class FaceScan3DViewModel: ObservableObject {
         captureManager.isGuidanceActive
     }
 
-    /// Array of captured poses (from CaptureSequenceManager)
-    public var capturedPoses: [CapturedPose] {
+    /// Dictionary of captured poses by guidance step (from CaptureSequenceManager)
+    public var capturedPoses: [GuidanceStep: CapturedPose] {
         captureManager.capturedPoses
     }
 
@@ -319,7 +325,7 @@ public class FaceScan3DViewModel: ObservableObject {
         self.errorMessage = nil
         self.isTracking = true
 
-        AppLogger.faceScan.info("▶️ Resuming scan with \(capturedPoseCount) poses preserved")
+        AppLogger.faceScan.info("▶️ Resuming scan with \(self.capturedPoseCount) poses preserved")
     }
 
     // MARK: - Public API (Scan Lifecycle)

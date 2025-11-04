@@ -163,8 +163,12 @@ public final class MemoryBudgetManager: ObservableObject {
 
         // Adjust all budgets
         for (component, budget) in budgets {
-            var adjusted = budget
-            adjusted.maxMB *= multiplier
+            let adjusted = Budget(
+                component: budget.component,
+                maxMB: budget.maxMB * multiplier,
+                allocatedMB: budget.allocatedMB,
+                priority: budget.priority
+            )
             budgets[component] = adjusted
         }
 
@@ -244,18 +248,22 @@ public struct Budgeted<T> {
         set {
             if let _ = newValue, value == nil {
                 // Allocating
+                let component = self.component
+                let sizeMB = self.estimatedSizeMB
                 Task { @MainActor in
                     _ = MemoryBudgetManager.shared.requestAllocation(
                         component: component,
-                        sizeMB: estimatedSizeMB
+                        sizeMB: sizeMB
                     )
                 }
             } else if newValue == nil, let _ = value {
                 // Releasing
+                let component = self.component
+                let sizeMB = self.estimatedSizeMB
                 Task { @MainActor in
                     MemoryBudgetManager.shared.releaseAllocation(
                         component: component,
-                        sizeMB: estimatedSizeMB
+                        sizeMB: sizeMB
                     )
                 }
             }

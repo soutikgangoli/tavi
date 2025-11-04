@@ -10,31 +10,31 @@ import Foundation
 import CoreGraphics
 import os.log
 
+// MARK: - Types
+
+/// Resource priority (determines cleanup order)
+public enum MemoryResourcePriority: Int, Comparable {
+    case low = 0        // Released first (e.g., cached preview images)
+    case medium = 1     // Released on moderate pressure (e.g., intermediate data)
+    case high = 2       // Released on high pressure (e.g., original captures)
+    case critical = 3   // Only released on critical pressure (e.g., active scan data)
+
+    public static func < (lhs: MemoryResourcePriority, rhs: MemoryResourcePriority) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
 /// Container for large memory resources that can be automatically released under pressure
 @MainActor
 public final class MemoryManagedResource<T> {
-
-    // MARK: - Types
-
-    /// Resource priority (determines cleanup order)
-    public enum Priority: Int, Comparable {
-        case low = 0        // Released first (e.g., cached preview images)
-        case medium = 1     // Released on moderate pressure (e.g., intermediate data)
-        case high = 2       // Released on high pressure (e.g., original captures)
-        case critical = 3   // Only released on critical pressure (e.g., active scan data)
-
-        public static func < (lhs: Priority, rhs: Priority) -> Bool {
-            lhs.rawValue < rhs.rawValue
-        }
-    }
 
     // MARK: - Properties
 
     private var resource: T?
     private let loader: () -> T?
-    private let estimatedSizeMB: Double
-    private let priority: Priority
-    private let identifier: String
+    public let estimatedSizeMB: Double
+    public let priority: MemoryResourcePriority
+    public let identifier: String
     private var accessCount: Int = 0
     private var lastAccessTime: Date = Date()
 
@@ -52,7 +52,7 @@ public final class MemoryManagedResource<T> {
     public init(
         identifier: String,
         estimatedSizeMB: Double,
-        priority: Priority,
+        priority: MemoryResourcePriority,
         loader: @escaping () -> T?,
         resource: T
     ) {
@@ -65,12 +65,14 @@ public final class MemoryManagedResource<T> {
         // Register with memory manager
         MemoryResourceManager.shared.register(self)
 
-        logger.debug("📦 Created managed resource: \(identifier) (\(String(format: "%.2f", estimatedSizeMB)) MB, \(String(describing: priority)))")
+        logger.debug("📦 Created managed resource: \(self.identifier) (\(String(format: "%.2f", self.estimatedSizeMB)) MB, \(String(describing: self.priority)))")
     }
 
     deinit {
-        MemoryResourceManager.shared.unregister(identifier)
-        logger.debug("♻️ Released managed resource: \(identifier)")
+        let id = identifier
+        Task { @MainActor in
+            MemoryResourceManager.shared.unregister(id)
+        }
     }
 
     // MARK: - Public API
@@ -81,7 +83,7 @@ public final class MemoryManagedResource<T> {
         lastAccessTime = Date()
 
         if resource == nil {
-            logger.info("🔄 Reloading released resource: \(identifier)")
+            logger.info("🔄 Reloading released resource: \(self.identifier)")
             resource = loader()
         }
 
@@ -102,7 +104,7 @@ public final class MemoryManagedResource<T> {
     public func release() {
         guard resource != nil else { return }
 
-        logger.debug("🗑️ Releasing resource: \(identifier) (\(String(format: "%.2f", estimatedSizeMB)) MB)")
+        logger.debug("🗑️ Releasing resource: \(self.identifier) (\(String(format: "%.2f", self.estimatedSizeMB)) MB)")
         resource = nil
     }
 
@@ -113,7 +115,7 @@ public final class MemoryManagedResource<T> {
 
     // MARK: - Internal
 
-    internal func shouldRelease(forPressure pressure: AdvancedMemoryMonitor.MemoryPressure) -> Bool {
+    public func shouldRelease(forPressure pressure: AdvancedMemoryMonitor.MemoryPressure) -> Bool {
         guard resource != nil else { return false }
 
         switch pressure {
@@ -138,7 +140,7 @@ public final class MemoryManagedResource<T> {
         }
     }
 
-    internal var metadata: ResourceMetadata {
+    public var metadata: ResourceMetadata {
         ResourceMetadata(
             identifier: identifier,
             estimatedSizeMB: estimatedSizeMB,
@@ -155,7 +157,7 @@ public final class MemoryManagedResource<T> {
 public struct ResourceMetadata {
     public let identifier: String
     public let estimatedSizeMB: Double
-    public let priority: MemoryManagedResource<Any>.Priority
+    public let priority: MemoryResourcePriority
     public let isLoaded: Bool
     public let accessCount: Int
     public let lastAccessTime: Date
@@ -203,9 +205,10 @@ public final class MemoryResourceManager: ObservableObject {
     // MARK: - Public API
 
     public func register<T>(_ resource: MemoryManagedResource<T>) {
-        registeredResources[resource.identifier] = resource
+        let id = resource.identifier
+        registeredResources[id] = resource
         updateTotalMemory()
-        logger.debug("Registered resource: \(resource.identifier)")
+        logger.debug("Registered resource: \(id)")
     }
 
     public func unregister(_ identifier: String) {
@@ -221,10 +224,10 @@ public final class MemoryResourceManager: ObservableObject {
     public func getLoadedMemoryMB() -> Double {
         registeredResources.values
             .filter { $0.isLoaded }
-            .reduce(0) { $0 + $1.estimatedSizeMB }
+            .reduce(0) { total, resource in total + resource.estimatedSizeMB }
     }
 
-    public func releaseAll(upToPriority priority: MemoryManagedResource<Any>.Priority) {
+    public func releaseAll(upToPriority priority: MemoryResourcePriority) {
         logger.warning("🧹 Releasing all resources up to priority \(String(describing: priority))")
 
         var releasedCount = 0
@@ -265,7 +268,7 @@ public final class MemoryResourceManager: ObservableObject {
     }
 
     private func updateTotalMemory() {
-        totalManagedMemoryMB = registeredResources.values.reduce(0) { $0 + $1.estimatedSizeMB }
+        totalManagedMemoryMB = registeredResources.values.reduce(0) { total, resource in total + resource.estimatedSizeMB }
     }
 }
 
@@ -274,7 +277,7 @@ public final class MemoryResourceManager: ObservableObject {
 public protocol AnyMemoryManagedResource {
     var identifier: String { get }
     var estimatedSizeMB: Double { get }
-    var priority: MemoryManagedResource<Any>.Priority { get }
+    var priority: MemoryResourcePriority { get }
     var isLoaded: Bool { get }
     var metadata: ResourceMetadata { get }
 
@@ -283,9 +286,8 @@ public protocol AnyMemoryManagedResource {
 }
 
 extension MemoryManagedResource: AnyMemoryManagedResource {
-    public var identifier: String { identifier }
-    public var estimatedSizeMB: Double { estimatedSizeMB }
-    public var priority: Priority { priority }
+    // Properties already declared in the class conform to protocol requirements
+    // No redeclaration needed - Swift will use the existing public properties
 }
 
 // MARK: - Convenience Extensions
@@ -295,7 +297,7 @@ extension MemoryManagedResource where T == CGImage {
     public static func managedImage(
         identifier: String,
         image: CGImage,
-        priority: Priority = .medium
+        priority: MemoryResourcePriority = .medium
     ) -> MemoryManagedResource<CGImage> {
         let sizeMB = Double(image.width * image.height * image.bitsPerPixel / 8) / 1_048_576.0
 
@@ -314,7 +316,7 @@ extension MemoryManagedResource where T == Data {
     public static func managedData(
         identifier: String,
         data: Data,
-        priority: Priority = .medium,
+        priority: MemoryResourcePriority = .medium,
         loader: @escaping () -> Data?
     ) -> MemoryManagedResource<Data> {
         let sizeMB = Double(data.count) / 1_048_576.0

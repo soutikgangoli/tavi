@@ -33,6 +33,9 @@ public struct HeadspaceDesign {
         public static let textSecondary = Color(uiColor: .secondaryLabel) // Adapts to dark mode
         public static let textTertiary = Color(uiColor: .tertiaryLabel) // Adapts to dark mode
 
+        // Border color
+        public static let border = Color(uiColor: .separator)
+
         // Gradients - subtle and warm
         public static let warmGradient = LinearGradient(
             colors: [
@@ -83,6 +86,9 @@ public struct HeadspaceDesign {
     // MARK: - Typography
 
     public struct Typography {
+        // Font definitions
+        public static let bodyMedium = Font.system(size: 16, weight: .medium, design: .rounded)
+
         // Headings - rounded, friendly
         public static func hero(_ text: String) -> some View {
             Text(text)
@@ -136,6 +142,9 @@ public struct HeadspaceDesign {
         public static let xl: CGFloat = 24
         public static let pill: CGFloat = 100
     }
+
+    // Alias for backward compatibility
+    public typealias CornerRadius = Radius
 
     // MARK: - Shadows (Headspace uses very subtle shadows, adaptive for dark mode)
 

@@ -10,7 +10,7 @@ import Foundation
 import ARKit
 
 /// Type of ARKit failure that occurred
-public enum ARKitFailureType {
+public enum ARKitFailureType: CustomStringConvertible {
     case trackingLost              // Face tracking temporarily lost
     case multipleFaces             // Multiple faces detected
     case poorLighting              // Insufficient lighting
@@ -22,6 +22,22 @@ public enum ARKitFailureType {
     case deviceNotSupported        // Device doesn't support face tracking
     case sessionInterrupted        // Session interrupted by system
     case unknown                   // Unknown error
+
+    public var description: String {
+        switch self {
+        case .trackingLost: return "trackingLost"
+        case .multipleFaces: return "multipleFaces"
+        case .poorLighting: return "poorLighting"
+        case .cameraOccluded: return "cameraOccluded"
+        case .configurationFailed: return "configurationFailed"
+        case .sensorFailed: return "sensorFailed"
+        case .permissionDenied: return "permissionDenied"
+        case .insufficientFeatures: return "insufficientFeatures"
+        case .deviceNotSupported: return "deviceNotSupported"
+        case .sessionInterrupted: return "sessionInterrupted"
+        case .unknown: return "unknown"
+        }
+    }
 
     /// Whether this error is recoverable without restarting
     public var isRecoverable: Bool {

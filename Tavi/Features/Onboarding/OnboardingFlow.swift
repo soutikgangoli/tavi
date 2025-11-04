@@ -287,6 +287,7 @@ extension MetricType {
         case .discoloration: return "paintpalette"
         case .specular: return "sparkles"
         case .luminance: return "sun.max.fill"
+        case .brightness: return "sun.max.fill"  // Alias for luminance
         }
     }
 
@@ -300,6 +301,7 @@ extension MetricType {
         case .discoloration: return .red
         case .specular: return .yellow
         case .luminance: return .white
+        case .brightness: return .white  // Alias for luminance
         }
     }
 
@@ -313,6 +315,7 @@ extension MetricType {
         case .discoloration: return "Color uniformity"
         case .specular: return "Shine & oil control"
         case .luminance: return "Overall brightness"
+        case .brightness: return "Overall brightness"  // Alias for luminance
         }
     }
 
@@ -333,6 +336,8 @@ extension MetricType {
         case .specular:
             return "Specular highlights measure how much light your skin reflects, indicating oiliness and shine. We analyze reflection patterns to assess oil production levels."
         case .luminance:
+            return "Luminance measures the overall brightness and lightness of your skin. We analyze the perceived brightness across your face to assess skin radiance."
+        case .brightness:
             return "Luminance measures the overall brightness and lightness of your skin. We analyze the perceived brightness across your face to assess skin radiance."
         }
     }
@@ -355,6 +360,8 @@ extension MetricType {
             return "Balanced oil production is essential for healthy skin. Too much shine can indicate excess sebum, while too little can mean dry skin. Proper oil balance helps prevent acne and maintains skin barrier function."
         case .luminance:
             return "Overall skin brightness is associated with healthy, youthful skin. Dull skin can indicate dehydration, poor circulation, or buildup of dead skin cells. Radiant skin reflects good health."
+        case .brightness:
+            return "Overall skin brightness is associated with healthy, youthful skin. Dull skin can indicate dehydration, poor circulation, or buildup of dead skin cells. Radiant skin reflects good health."
         }
     }
 
@@ -376,6 +383,8 @@ extension MetricType {
             return "We measure specular highlights by analyzing how light reflects off your skin surface. Higher specular values indicate more oil production and shine."
         case .luminance:
             return "We calculate the L* (lightness) component in LAB color space, which represents the perceived brightness of your skin independent of color."
+        case .brightness:
+            return "We calculate the L* (lightness) component in LAB color space, which represents the perceived brightness of your skin independent of color."
         }
     }
 
@@ -396,6 +405,8 @@ extension MetricType {
         case .specular:
             return ["Oil production", "Skincare routine", "Hormones", "Diet", "Climate", "Genetics"]
         case .luminance:
+            return ["Hydration", "Exfoliation", "Sleep", "Blood circulation", "Sun exposure", "Skincare routine"]
+        case .brightness:
             return ["Hydration", "Exfoliation", "Sleep", "Blood circulation", "Sun exposure", "Skincare routine"]
         }
     }
@@ -467,11 +478,21 @@ extension MetricType {
                 "Use illuminating or radiance-boosting products",
                 "Protect from sun damage with daily SPF"
             ]
+        case .brightness:
+            return [
+                "Exfoliate regularly to remove dead skin cells",
+                "Use vitamin C serum for brightening",
+                "Stay well-hydrated (8 glasses water/day)",
+                "Get adequate sleep (7-9 hours)",
+                "Use illuminating or radiance-boosting products",
+                "Protect from sun damage with daily SPF"
+            ]
         }
     }
 }
 
-public enum MetricType: String, Codable {
+public enum MetricType: String, Codable, Identifiable {
+    public var id: String { rawValue }
     case roughness
     case wrinkles
     case hydration
@@ -480,6 +501,7 @@ public enum MetricType: String, Codable {
     case discoloration
     case specular
     case luminance
+    case brightness  // Alias for luminance
 
     var name: String {
         switch self {
@@ -491,6 +513,7 @@ public enum MetricType: String, Codable {
         case .discoloration: return "Discoloration"
         case .specular: return "Oiliness"
         case .luminance: return "Brightness"
+        case .brightness: return "Brightness"
         }
     }
 
@@ -505,6 +528,7 @@ public enum MetricType: String, Codable {
         case .discoloration: return roiMetrics.pigmentationIndex // Use pigmentation as discoloration proxy
         case .specular: return roiMetrics.specularProxy ?? 0
         case .luminance: return roiMetrics.pigmentationIndex // Use pigmentation as luminance proxy
+        case .brightness: return roiMetrics.pigmentationIndex // Same as luminance
         }
     }
 }

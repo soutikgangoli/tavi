@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 /// Manages fallback JSON storage when Core Data is unavailable
 @MainActor

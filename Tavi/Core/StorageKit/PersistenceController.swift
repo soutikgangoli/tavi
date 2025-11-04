@@ -70,43 +70,13 @@ final class PersistenceController {
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         } else {
-            // IMPROVED MIGRATION STRATEGY
-            // Use custom migration manager for safety and control
-            if let storeDescription = container.persistentStoreDescriptions.first,
-               let storeURL = storeDescription.url {
+            // Configure store for production use with automatic migration
+            if let storeDescription = container.persistentStoreDescriptions.first {
+                // Enable automatic migration
+                storeDescription.shouldMigrateStoreAutomatically = true
+                storeDescription.shouldInferMappingModelAutomatically = true
 
-                // Create migration manager
-                let migrationManager = CoreDataMigrationManager(
-                    modelName: "TaviModel",
-                    storeURL: storeURL
-                )
-
-                // Perform migration if needed (with backup and rollback support)
-                let migrationResult = migrationManager.migrateStoreIfNeeded()
-
-                switch migrationResult {
-                case .notRequired:
-                    AppLogger.storage.info("✅ Core Data migration not required")
-
-                case .succeeded(let from, let to, let duration):
-                    AppLogger.storage.info("✅ Core Data migration succeeded")
-                    AppLogger.storage.info("   From: \(from) → To: \(to)")
-                    AppLogger.storage.info("   Duration: \(String(format: "%.2f", duration))s")
-
-                    // Clean up old backups (keep last 5)
-                    try? migrationManager.cleanupOldBackups(keepCount: 5)
-
-                case .failed(let error):
-                    AppLogger.storage.error("❌ Core Data migration failed: \(error.localizedDescription)")
-                    AppLogger.storage.error("   App will attempt to continue with existing store")
-                }
-
-                // Configure store for production use
-                // Note: Auto-migration disabled since we handle it manually above
-                storeDescription.shouldMigrateStoreAutomatically = false
-                storeDescription.shouldInferMappingModelAutomatically = false
-
-                AppLogger.storage.info("✅ Core Data configured with custom migration manager")
+                AppLogger.storage.info("✅ Core Data configured with automatic migration")
             }
         }
 
@@ -230,7 +200,7 @@ final class PersistenceController {
             clinicalMetrics: clinicalMetrics
         )
 
-        AppLogger.storage.info("💾 SessionResult created with ID: \(session.id?.uuidString ?? "nil")")
+        AppLogger.storage.info("💾 SessionResult created with ID: \(session.id.uuidString)")
         AppLogger.storage.info("💾 Overall score: \(session.overallScore)")
         AppLogger.storage.info("💾 Attempting CoreData context.save()...")
 

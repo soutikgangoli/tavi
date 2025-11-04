@@ -133,7 +133,7 @@ public struct HomeView: View {
 
                     // Progress graph (shows if 2+ scans)
                     if sessions.count >= 2 {
-                        ProgressGraphView(sessions: sessions)
+                        ProgressGraphView(sessions: Array(sessions))
                     }
 
                     // Recent scans

@@ -108,9 +108,14 @@ public struct MemoryDiagnosticsView: View {
                 Text("Overall Status")
                 Spacer()
                 if monitor.isMonitoring {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                        .symbolEffect(.variableColor.iterative)
-                        .foregroundStyle(.green)
+                    if #available(iOS 17.0, *) {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .symbolEffect(.variableColor.iterative)
+                            .foregroundStyle(.green)
+                    } else {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .foregroundColor(.green)
+                    }
                 }
             }
         }

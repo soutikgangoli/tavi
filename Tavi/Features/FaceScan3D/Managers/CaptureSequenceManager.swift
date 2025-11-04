@@ -62,31 +62,31 @@ public class CaptureSequenceManager: ObservableObject {
         AppLogger.faceScan.info("📋 Starting new capture sequence")
 
         // Always initialize sequence first
-        currentSequence = CaptureSequence()
+        self.currentSequence = CaptureSequence()
 
         // Start guidance
-        isGuidanceActive = true
-        currentGuidanceStep = .lookStraight
-        capturedPoses = [:]
-        countdownTimer = 0
-        guidanceFeedback = nil
+        self.isGuidanceActive = true
+        self.currentGuidanceStep = .lookStraight
+        self.capturedPoses = [:]
+        self.countdownTimer = 0
+        self.guidanceFeedback = nil
 
         AppLogger.faceScan.info("✅ Sequence initialized")
     }
 
     /// Stop guidance mode
     public func stopGuidance() {
-        isGuidanceActive = false
-        capturedPoses = [:]
-        countdownTimer = 0
-        guidanceFeedback = nil
-        holdStableTimer?.invalidate()
-        holdStableTimer = nil
+        self.isGuidanceActive = false
+        self.capturedPoses = [:]
+        self.countdownTimer = 0
+        self.guidanceFeedback = nil
+        self.holdStableTimer?.invalidate()
+        self.holdStableTimer = nil
     }
 
     /// Reset sequence
     public func resetSequence() {
-        currentSequence = nil
+        self.currentSequence = nil
         stopGuidance()
         AppLogger.faceScan.info("✅ Sequence reset")
     }
@@ -101,7 +101,7 @@ public class CaptureSequenceManager: ObservableObject {
         frameCount: Int
     ) -> String? {
         // Skip if already captured this step
-        if capturedPoses[currentGuidanceStep] != nil {
+        if self.capturedPoses[self.currentGuidanceStep] != nil {
             return nil
         }
 
@@ -111,15 +111,15 @@ public class CaptureSequenceManager: ObservableObject {
         let roll = faceAnchor.transform.eulerAngles.z * 180 / .pi
 
         // Check if pose matches current step
-        let isPoseValid = currentGuidanceStep.isPoseValid(yaw: yaw, pitch: pitch, roll: roll)
+        let isPoseValid = self.currentGuidanceStep.isPoseValid(yaw: yaw, pitch: pitch, roll: roll)
 
         // Update pose correctness
         let wasPoseCorrect = isPoseCorrect
         isPoseCorrect = isPoseValid
 
         // Get real-time guidance feedback
-        let feedback = currentGuidanceStep.getGuidanceFeedback(yaw: yaw, pitch: pitch, roll: roll)
-        guidanceFeedback = feedback
+        let feedback = self.currentGuidanceStep.getGuidanceFeedback(yaw: yaw, pitch: pitch, roll: roll)
+        self.guidanceFeedback = feedback
 
         // HAPTIC FEEDBACK: Provide haptic when positioning becomes correct
         if isPoseValid && !wasPoseCorrect && isCalibrated && qualityGood {
@@ -131,15 +131,15 @@ public class CaptureSequenceManager: ObservableObject {
         // Debug logging
         if frameCount % 30 == 0 {
             let distance = abs(faceAnchor.transform.columns.3.z)
-            AppLogger.faceScan.debug("Pose check - Step: \(currentGuidanceStep.shortName), Yaw: \(String(format: "%.1f", yaw))°, Valid: \(isPoseValid)")
+            AppLogger.faceScan.debug("Pose check - Step: \(self.currentGuidanceStep.shortName), Yaw: \(String(format: "%.1f", yaw))°, Valid: \(isPoseValid)")
         }
 
         // Start countdown if conditions are met
-        if isPoseValid && isCalibrated && qualityGood && !isCaptureInProgress {
-            if countdownTimer == 0 && holdStableTimer == nil {
+        if isPoseValid && isCalibrated && qualityGood && !self.isCaptureInProgress {
+            if self.countdownTimer == 0 && self.holdStableTimer == nil {
                 startCaptureCountdown(faceAnchor: faceAnchor, yaw: yaw, pitch: pitch, roll: roll)
             }
-            countdownToleranceFrames = 0
+            self.countdownToleranceFrames = 0
         } else {
             // Handle countdown cancellation with tolerance
             handleCountdownTolerance(isPoseValid: isPoseValid)
@@ -153,7 +153,7 @@ public class CaptureSequenceManager: ObservableObject {
         geometry: FaceMeshGeometry,
         lightEstimation: LightEstimation
     ) -> Bool {
-        guard currentSequence != nil else {
+        guard self.currentSequence != nil else {
             AppLogger.faceScan.error("❌ captureStep failed: No sequence")
             return false
         }
@@ -166,7 +166,7 @@ public class CaptureSequenceManager: ObservableObject {
 
         // Create capture
         let capture = MeshCapture(
-            step: currentGuidanceStep,
+            step: self.currentGuidanceStep,
             geometry: geometry,
             yaw: yaw,
             pitch: pitch,
@@ -174,9 +174,9 @@ public class CaptureSequenceManager: ObservableObject {
             lightEstimation: lightEstimation
         )
 
-        currentSequence!.addCapture(capture)
+        self.currentSequence!.addCapture(capture)
 
-        let captureCount = currentSequence!.captures.count
+        let captureCount = self.currentSequence!.captures.count
         AppLogger.faceScan.info("✅ Added capture to sequence. Total: \(captureCount)")
 
         return true
@@ -188,18 +188,18 @@ public class CaptureSequenceManager: ObservableObject {
         frame: ARFrame,
         lightEstimation: LightEstimation?
     ) {
-        guard currentSequence != nil else {
+        guard self.currentSequence != nil else {
             return
         }
 
-        if let sample = textureCapture.captureSample(
-            step: currentGuidanceStep.shortName,
+        if let sample = self.textureCapture.captureSample(
+            step: self.currentGuidanceStep.shortName,
             faceAnchor: faceAnchor,
             frame: frame,
             lightEstimation: lightEstimation
         ) {
-            currentSequence!.addTextureSample(sample)
-            AppLogger.faceScan.info("✅ Added texture sample. Total: \(currentSequence!.textureSamples.count)")
+            self.currentSequence!.addTextureSample(sample)
+            AppLogger.faceScan.info("✅ Added texture sample. Total: \(self.currentSequence!.textureSamples.count)")
         }
     }
 
@@ -213,20 +213,20 @@ public class CaptureSequenceManager: ObservableObject {
         pitch: Float,
         roll: Float
     ) {
-        AppLogger.faceScan.info("🎯 Capturing pose: \(currentGuidanceStep.shortName)")
+        AppLogger.faceScan.info("🎯 Capturing pose: \(self.currentGuidanceStep.shortName)")
 
-        isCaptureInProgress = true
+        self.isCaptureInProgress = true
 
         // Create captured pose data
         let poseData = CapturedPoseData(
-            step: currentGuidanceStep,
+            step: self.currentGuidanceStep,
             geometry: geometry,
             yaw: yaw,
             pitch: pitch,
             roll: roll
         )
 
-        capturedPoses[currentGuidanceStep] = poseData
+        self.capturedPoses[self.currentGuidanceStep] = poseData
 
         // Capture multiple frames for better quality
         var captureSuccess = 0
@@ -275,8 +275,8 @@ public class CaptureSequenceManager: ObservableObject {
 
     /// Complete the sequence
     public func completeSequence() {
-        currentSequence?.complete()
-        isGuidanceActive = false
+        self.currentSequence?.complete()
+        self.isGuidanceActive = false
         AppLogger.faceScan.info("✅ Sequence complete")
     }
 
@@ -284,7 +284,7 @@ public class CaptureSequenceManager: ObservableObject {
 
     private func startCaptureCountdown(faceAnchor: ARFaceAnchor, yaw: Float, pitch: Float, roll: Float) {
         AppLogger.faceScan.info("Starting capture countdown from 3")
-        countdownTimer = 3
+        self.countdownTimer = 3
 
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] timer in
             Task { @MainActor [weak self] in
@@ -323,30 +323,54 @@ public class CaptureSequenceManager: ObservableObject {
         }
 
         RunLoop.main.add(timer, forMode: .common)
-        holdStableTimer = timer
+        self.holdStableTimer = timer
     }
 
     private func handleCountdownTolerance(isPoseValid: Bool) {
-        if holdStableTimer != nil {
+        if self.holdStableTimer != nil {
             if !isPoseValid {
-                countdownToleranceFrames += 1
+                self.countdownToleranceFrames += 1
 
-                if countdownToleranceFrames < ScanConfiguration.countdownToleranceFrames {
+                if self.countdownToleranceFrames < ScanConfiguration.countdownToleranceFrames {
                     // Still within tolerance
                     return
                 }
 
                 // Exceeded tolerance - cancel countdown
                 AppLogger.faceScan.warning("🚫 Countdown cancelled - pose changed")
-                holdStableTimer?.invalidate()
-                holdStableTimer = nil
-                countdownTimer = 0
-                countdownToleranceFrames = 0
-                guidanceFeedback = nil
+                self.holdStableTimer?.invalidate()
+                self.holdStableTimer = nil
+                self.countdownTimer = 0
+                self.countdownToleranceFrames = 0
+                self.guidanceFeedback = nil
             } else {
                 // Pose valid again - reset tolerance
-                countdownToleranceFrames = 0
+                self.countdownToleranceFrames = 0
             }
         }
+    }
+
+    // MARK: - Multi-Frame Capture Callbacks
+
+    /// Called when multi-frame capture starts
+    public func onMultiFrameCaptureStarted() {
+        AppLogger.faceScan.info("📸 Multi-frame capture started")
+        isCaptureInProgress = true
+    }
+
+    /// Called when a frame is captured during multi-frame capture
+    public func onFrameCaptured(frameCount: Int, targetCount: Int, confidence: Float) {
+        AppLogger.faceScan.debug("📷 Frame captured: \(frameCount)/\(targetCount) (confidence: \(String(format: "%.2f", confidence)))")
+    }
+
+    /// Called when multi-frame capture reaches target frame count
+    public func onMultiFrameCaptureReachedTarget() {
+        AppLogger.faceScan.info("✓ Multi-frame capture reached target")
+    }
+
+    /// Called when multi-frame capture completes
+    public func onMultiFrameCaptureCompleted(frameCount: Int) {
+        AppLogger.faceScan.info("✅ Multi-frame capture completed with \(frameCount) frames")
+        isCaptureInProgress = false
     }
 }

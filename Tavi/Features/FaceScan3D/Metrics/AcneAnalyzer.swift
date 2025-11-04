@@ -177,16 +177,19 @@ public class AcneAnalyzer {
 
         // SKIN-TONE AWARE: Adjust darkness threshold
         // Very dark skin needs less strict threshold to avoid false positives
+        // REFINED: Larger increments provide better discrimination across skin tones
         let darknessMultiplier: Float
         switch skinTone {
         case .veryLight, .light:
             darknessMultiplier = 0.70  // 30% darker for light skin
         case .medium:
-            darknessMultiplier = 0.72  // 28% darker for medium skin
+            darknessMultiplier = 0.73  // 27% darker for medium skin
         case .mediumDark:
-            darknessMultiplier = 0.75  // 25% darker for Indian skin (less strict)
-        case .dark, .veryDark:
-            darknessMultiplier = 0.78  // 22% darker for very dark skin (avoid texture noise)
+            darknessMultiplier = 0.76  // 24% darker for Indian skin (balanced sensitivity)
+        case .dark:
+            darknessMultiplier = 0.80  // 20% darker for dark skin (reduce false positives)
+        case .veryDark:
+            darknessMultiplier = 0.82  // 18% darker for very dark skin (avoid texture noise)
         }
 
         // Dark spots are darker than surrounding skin

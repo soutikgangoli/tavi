@@ -211,22 +211,39 @@ public class Face3DMetricsAnalyzer {
         // Step 5: Convert UnifiedMesh to FaceMeshGeometry for advanced analyzers
         let faceMeshGeometry = convertToFaceMeshGeometry(unifiedMesh: unifiedMesh)
 
-        // Step 4.5: Apply color temperature normalization BEFORE advanced analysis
-        AppLogger.metrics.info("   🌡️ Normalizing color temperature...")
+        // Step 4.5: Pre-detect skin tone on RAW image (before normalization)
+        // This enables adaptive color temperature targets based on natural skin characteristics
+        AppLogger.metrics.info("   📊 Pre-detecting skin tone on raw image...")
+        let rawSkinTone = skinToneNormalizer.detectSkinTone(texture: textureImage)
+        AppLogger.metrics.info("      Detected: \(rawSkinTone.rawValue) (reference L*: \(rawSkinTone.referenceL))")
+
+        // Step 4.6: Apply skin-tone-aware color temperature normalization
+        AppLogger.metrics.info("   🌡️ Normalizing color temperature (adaptive)...")
         let detectedColorTemp = colorTempNormalizer.estimateColorTemperature(from: textureImage)
         let lightingType = colorTempNormalizer.detectLightingType(ambientColorTemperature: detectedColorTemp)
         AppLogger.metrics.info("      Detected: \(String(format: "%.0f", detectedColorTemp))K (\(lightingType.rawValue))")
 
-        // Normalize to standard daylight (6000K) for consistent analysis
-        let targetColorTemp: CGFloat = 6000
-        if abs(detectedColorTemp - targetColorTemp) > 500 {  // Only normalize if difference > 500K
+        // Determine adaptive target based on skin tone (preserves natural undertones)
+        let adaptiveTarget: CGFloat
+        switch rawSkinTone {
+        case .veryLight, .light:
+            adaptiveTarget = 6000  // Standard daylight
+        case .medium, .mediumDark:
+            adaptiveTarget = 5800  // Preserve golden undertones (Indian/Asian skin)
+        case .dark, .veryDark:
+            adaptiveTarget = 5600  // More warmth preservation (African/Dark skin)
+        }
+        AppLogger.metrics.info("      Adaptive target: \(String(format: "%.0f", adaptiveTarget))K for \(rawSkinTone.rawValue) skin")
+
+        if abs(detectedColorTemp - adaptiveTarget) > 500 {  // Only normalize if difference > 500K
             if let normalizedImage = colorTempNormalizer.normalizeColorTemperature(
                 image: textureImage,
                 currentColorTemp: detectedColorTemp,
-                targetColorTemp: targetColorTemp
+                targetColorTemp: adaptiveTarget,
+                skinTone: rawSkinTone
             ) {
                 textureImage = normalizedImage
-                AppLogger.metrics.info("      ✅ Normalized \(String(format: "%.0f", detectedColorTemp))K → \(String(format: "%.0f", targetColorTemp))K")
+                AppLogger.metrics.info("      ✅ Normalized \(String(format: "%.0f", detectedColorTemp))K → \(String(format: "%.0f", adaptiveTarget))K")
             } else {
                 AppLogger.metrics.warning("      ⚠️ Color temp normalization failed, using original texture")
             }
@@ -234,9 +251,12 @@ public class Face3DMetricsAnalyzer {
             AppLogger.metrics.info("      ✅ Color temperature already near target (\(String(format: "%.0f", detectedColorTemp))K)")
         }
 
-        // Step 5: Detect skin tone for normalization
+        // Step 5: Final skin tone detection (on normalized image for validation)
         let skinTone = skinToneNormalizer.detectSkinTone(texture: textureImage)
-        AppLogger.metrics.info("   📊 Detected skin tone: \(skinTone.rawValue) (reference L*: \(skinTone.referenceL))")
+        AppLogger.metrics.info("   📊 Final skin tone: \(skinTone.rawValue) (reference L*: \(skinTone.referenceL))")
+        if skinTone != rawSkinTone {
+            AppLogger.metrics.warning("      ⚠️ Skin tone changed after normalization: \(rawSkinTone.rawValue) → \(skinTone.rawValue)")
+        }
 
         // Step 5a: Compute wrinkle analysis FIRST (needed for elasticity calculation)
         AppLogger.metrics.info("   🔍 Running WrinkleAnalyzer...")

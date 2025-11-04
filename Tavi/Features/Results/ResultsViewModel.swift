@@ -152,7 +152,7 @@ class ResultsViewModel: ObservableObject {
             AppLogger.storage.info("✅ Session saved successfully to CoreData")
 
             loadSessions() // Reload to include new session
-            AppLogger.storage.info("📚 Sessions reloaded. Total count: \(sessions.count)")
+            AppLogger.storage.info("📚 Sessions reloaded. Total count: \(self.sessions.count)")
 
             isLoading = false
         } catch {
@@ -171,9 +171,9 @@ class ResultsViewModel: ObservableObject {
 
     /// Get average score across all sessions
     var averageScore: Double {
-        guard !sessions.isEmpty else { return 0 }
-        let total = sessions.reduce(0.0) { $0 + $1.overallScore }
-        return total / Double(sessions.count)
+        guard !self.sessions.isEmpty else { return 0 }
+        let total = self.sessions.reduce(0.0) { $0 + $1.overallScore }
+        return total / Double(self.sessions.count)
     }
 
     /// Get latest session

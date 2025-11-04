@@ -8,6 +8,7 @@
 
 import Foundation
 import SwiftUI
+import UIKit
 import os.log
 
 /// Event tracking manager for user behavior analytics
@@ -265,6 +266,8 @@ public class PerformanceTimer {
 
     public func stop(context: [String: String]? = nil) {
         let duration = Date().timeIntervalSince(startTime)
-        manager?.trackTiming(name, duration: duration, context: context)
+        Task { @MainActor in
+            manager?.trackTiming(name, duration: duration, context: context)
+        }
     }
 }

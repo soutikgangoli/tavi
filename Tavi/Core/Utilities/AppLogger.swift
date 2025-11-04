@@ -45,6 +45,9 @@ public struct AppLogger {
     /// Logger for export operations
     public static let export = Logger(subsystem: subsystem, category: "Export")
 
+    /// Logger for social sharing
+    public static let social = Logger(subsystem: subsystem, category: "Social")
+
     /// Logger for general app operations
     public static let app = Logger(subsystem: subsystem, category: "App")
 

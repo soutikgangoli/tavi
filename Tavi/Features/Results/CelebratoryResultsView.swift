@@ -644,6 +644,9 @@ public struct CelebratoryResultsView: View {
                 case .saving:
                     ProgressView()
                         .tint(HeadspaceDesign.Colors.textSecondary)
+                case .saved:
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(HeadspaceDesign.Colors.success)
                 case .failed, .queued:
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
@@ -657,11 +660,11 @@ public struct CelebratoryResultsView: View {
             // Status message
             VStack(alignment: .leading, spacing: 4) {
                 Text(statusTitle(for: status))
-                    .font(HeadspaceDesign.Typography.bodyMedium)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text(statusMessage(for: status))
-                    .font(HeadspaceDesign.Typography.caption)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 
@@ -669,11 +672,11 @@ public struct CelebratoryResultsView: View {
         }
         .padding(HeadspaceDesign.Spacing.md)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.CornerRadius.medium)
+            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
                 .fill(statusBackgroundColor(for: status))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.CornerRadius.medium)
+            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
                 .stroke(statusBorderColor(for: status), lineWidth: 1)
         )
     }
@@ -747,11 +750,11 @@ public struct CelebratoryResultsView: View {
             // Warning message
             VStack(alignment: .leading, spacing: 4) {
                 Text("Comparison Unavailable")
-                    .font(HeadspaceDesign.Typography.bodyMedium)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text(warning)
-                    .font(HeadspaceDesign.Typography.caption)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 
@@ -759,11 +762,11 @@ public struct CelebratoryResultsView: View {
         }
         .padding(HeadspaceDesign.Spacing.md)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.CornerRadius.medium)
+            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
                 .fill(Color.orange.opacity(0.1))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.CornerRadius.medium)
+            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
                 .stroke(Color.orange.opacity(0.3), lineWidth: 1)
         )
     }

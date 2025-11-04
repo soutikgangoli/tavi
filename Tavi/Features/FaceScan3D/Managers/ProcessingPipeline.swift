@@ -53,7 +53,8 @@ public class ProcessingPipeline: ObservableObject {
             AppLogger.mesh.info("📊 Pre-merge memory: \(stats.formattedUsed) / \(stats.formattedTotal)")
 
             // If memory is tight, proactively clean up
-            if stats.pressure >= .moderate {
+            let moderatePressure: AdvancedMemoryMonitor.MemoryPressure = .moderate
+            if stats.pressure >= moderatePressure {
                 AppLogger.mesh.warning("⚠️ Memory pressure detected - performing cleanup")
                 AdvancedMemoryMonitor.shared.forceCleanup(atPressure: stats.pressure)
 
@@ -279,9 +280,8 @@ public class ProcessingPipeline: ObservableObject {
     /// Register with memory manager for proactive cleanup
     public func registerMemoryCleanup() {
         AdvancedMemoryMonitor.shared.registerCleanupHandler(id: "ProcessingPipeline") { [weak self] pressure in
-            Task { @MainActor in
-                self?.handleMemoryPressure(pressure)
-            }
+            guard let self = self else { return }
+            self.handleMemoryPressure(pressure)
         }
     }
 

@@ -127,7 +127,6 @@ kernel void gaussianBlurAndLuminance(
             float weight = exp(-(distance * distance) / (2.0 * sigma * sigma));
 
             // Sample texture at offset
-            float2 offset = float2(dx, dy) * texelSize;
             float2 uv = (float2(gid) + float2(dx, dy)) * texelSize;
             float4 color = inputTexture.sample(textureSampler, uv);
 

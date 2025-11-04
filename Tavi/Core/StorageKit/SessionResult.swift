@@ -283,3 +283,11 @@ extension SessionResult {
         try context.save()
     }
 }
+
+// MARK: - Identifiable Conformance
+
+extension SessionResult: Identifiable {
+    // NSManagedObject already has an objectID property
+    // But for SwiftUI we use the UUID id property
+    // The @NSManaged public var id: UUID already satisfies Identifiable
+}
