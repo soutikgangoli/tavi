@@ -91,6 +91,10 @@ class WrinkleAnalyzer {
     func analyzeWrinkles(geometry: FaceMeshGeometry) -> WrinkleAnalysis {
         print("📏 Analyzing wrinkles from 3D geometry...")
 
+        // DIAGNOSTIC: Validate ARKit mesh scale
+        // ARKit vertices should be in meters, typical face is ~0.08-0.12m from origin
+        validateMeshScale(geometry: geometry)
+
         // 1. Calculate vertex curvatures
         let curvatures = calculateCurvatures(geometry: geometry)
 
@@ -127,11 +131,52 @@ class WrinkleAnalyzer {
         let detectionBonus: Float = wrinkleRegions.count > 0 ? 5.0 : -10.0
         let confidence = max(40, min(80, baseConfidence + meshQualityBonus + detectionBonus))
 
-        print("✅ Wrinkle analysis complete")
-        print("   Overall score: \(String(format: "%.1f", overallScore))/100")
-        print("   Wrinkle depth: \(depthClassification)")
-        print("   Wrinkles detected: \(wrinkleRegions.count)")
-        print("   Confidence: \(String(format: "%.0f", confidence))% (depth measurement)")
+        print("✅ Wrinkle Analysis Complete")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("   Overall Score: \(String(format: "%.1f", overallScore))/100 [higher=fewer/shallower wrinkles]")
+        print("   Depth Category: \(depthClassification.rawValue)")
+        print("   Wrinkle Count: \(wrinkleRegions.count)")
+
+        let avgDepthMM = avgDepth * 1000
+        let maxDepthMM = maxDepth * 1000
+        print("   Average Depth: \(String(format: "%.2f", avgDepthMM))mm [<0.7=fine, 0.7-1.2=moderate, >1.2=deep]")
+        print("   Maximum Depth: \(String(format: "%.2f", maxDepthMM))mm")
+        print("   Confidence: \(String(format: "%.0f", confidence))%")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        // VALIDATION: Check for suspicious values
+        var hasIssues = false
+
+        if avgDepthMM > 2.0 {
+            print("   🚨 ISSUE: Average depth (\(String(format: "%.2f", avgDepthMM))mm) is VERY deep!")
+            print("      Expected for young skin: <1.0mm")
+            print("      Possible cause: Mesh scaling error (check ARKit units)")
+            hasIssues = true
+        }
+
+        if maxDepthMM > 5.0 {
+            print("   🚨 ISSUE: Max depth (\(String(format: "%.2f", maxDepthMM))mm) is EXTREMELY deep!")
+            print("      Expected max: 2-3mm for even aged skin")
+            print("      Likely cause: Mesh artifacts or scaling bug")
+            hasIssues = true
+        }
+
+        if wrinkleRegions.count > 20 {
+            print("   ⚠️ WARNING: High wrinkle count (\(wrinkleRegions.count))")
+            print("      Expected for young skin: 3-10 wrinkles")
+            print("      May indicate: Over-sensitive detection threshold")
+            hasIssues = true
+        }
+
+        if overallScore < 50 && avgDepthMM < 1.0 {
+            print("   ⚠️ WARNING: Low score (\(String(format: "%.0f", overallScore))) but shallow wrinkles")
+            print("      This mismatch suggests scoring calculation issue")
+            hasIssues = true
+        }
+
+        if !hasIssues && overallScore >= 70 {
+            print("   ✅ Results look good for young/healthy skin")
+        }
 
         return WrinkleAnalysis(
             overallScore: overallScore,
@@ -452,5 +497,116 @@ class WrinkleAnalyzer {
         let countScore = max(0, 100 - Float(wrinkleCount) * 2)
 
         return (depthScore * 0.7 + countScore * 0.3)
+    }
+
+    // MARK: - Diagnostics
+
+    /// Validate mesh scale to detect ARKit unit issues
+    ///
+    /// ARKit returns vertices in meters relative to face anchor origin.
+    /// For a typical face mesh, vertices should be ~0.08-0.12m from origin.
+    /// If values are significantly different, we may have a scaling or unit issue.
+    private func validateMeshScale(geometry: FaceMeshGeometry) {
+        guard geometry.vertices.count > 0 else {
+            print("⚠️ ARKit Mesh Validation: Empty vertex array")
+            return
+        }
+
+        // Calculate distance statistics from origin
+        let distances = geometry.vertices.map { vertex in
+            simd_length(vertex)
+        }
+
+        let avgDistance = distances.reduce(0, +) / Float(distances.count)
+        let minDistance = distances.min() ?? 0
+        let maxDistance = distances.max() ?? 0
+
+        // Calculate face dimensions (bounding box)
+        let minX = geometry.vertices.map { $0.x }.min() ?? 0
+        let maxX = geometry.vertices.map { $0.x }.max() ?? 0
+        let minY = geometry.vertices.map { $0.y }.min() ?? 0
+        let maxY = geometry.vertices.map { $0.y }.max() ?? 0
+        let minZ = geometry.vertices.map { $0.z }.min() ?? 0
+        let maxZ = geometry.vertices.map { $0.z }.max() ?? 0
+
+        let faceWidth = maxX - minX
+        let faceHeight = maxY - minY
+        let faceDepth = maxZ - minZ
+
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("🔍 ARKit Mesh Scale Diagnostics")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("   Vertex Count: \(geometry.vertices.count)")
+        print("   Distance from origin:")
+        print("      Average: \(String(format: "%.4f", avgDistance))m (\(String(format: "%.1f", avgDistance * 1000))mm)")
+        print("      Min: \(String(format: "%.4f", minDistance))m, Max: \(String(format: "%.4f", maxDistance))m")
+        print("   Face dimensions (bounding box):")
+        print("      Width (X): \(String(format: "%.4f", faceWidth))m (\(String(format: "%.1f", faceWidth * 1000))mm)")
+        print("      Height (Y): \(String(format: "%.4f", faceHeight))m (\(String(format: "%.1f", faceHeight * 1000))mm)")
+        print("      Depth (Z): \(String(format: "%.4f", faceDepth))m (\(String(format: "%.1f", faceDepth * 1000))mm)")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        // EXPECTED VALUES FOR TYPICAL FACE:
+        // - Average distance from origin: 0.08-0.12m (80-120mm)
+        // - Face width: 0.13-0.16m (130-160mm)
+        // - Face height: 0.18-0.22m (180-220mm)
+        // - Face depth: 0.10-0.14m (100-140mm)
+
+        var hasScaleIssues = false
+
+        // Check average distance
+        if avgDistance < 0.05 {
+            print("   ⚠️ WARNING: Average distance (\(String(format: "%.1f", avgDistance * 1000))mm) is TOO SMALL")
+            print("      Expected: 80-120mm for typical face")
+            print("      → Vertices may be in centimeters, not meters")
+            print("      → Or mesh is incorrectly scaled down")
+            hasScaleIssues = true
+        } else if avgDistance > 0.20 {
+            print("   ⚠️ WARNING: Average distance (\(String(format: "%.1f", avgDistance * 1000))mm) is TOO LARGE")
+            print("      Expected: 80-120mm for typical face")
+            print("      → Mesh may be incorrectly scaled up")
+            hasScaleIssues = true
+        } else if avgDistance < 0.07 || avgDistance > 0.13 {
+            print("   ⚠️ Note: Distance (\(String(format: "%.1f", avgDistance * 1000))mm) is slightly outside typical range (70-130mm)")
+        } else {
+            print("   ✅ Distance from origin: Within expected range (80-120mm)")
+        }
+
+        // Check face width
+        if faceWidth < 0.10 {
+            print("   ⚠️ WARNING: Face width (\(String(format: "%.1f", faceWidth * 1000))mm) is TOO NARROW")
+            print("      Expected: 130-160mm")
+            hasScaleIssues = true
+        } else if faceWidth > 0.20 {
+            print("   ⚠️ WARNING: Face width (\(String(format: "%.1f", faceWidth * 1000))mm) is TOO WIDE")
+            print("      Expected: 130-160mm")
+            hasScaleIssues = true
+        } else {
+            print("   ✅ Face width: Within expected range (130-160mm)")
+        }
+
+        // Check face height
+        if faceHeight < 0.15 {
+            print("   ⚠️ WARNING: Face height (\(String(format: "%.1f", faceHeight * 1000))mm) is TOO SHORT")
+            print("      Expected: 180-220mm")
+            hasScaleIssues = true
+        } else if faceHeight > 0.25 {
+            print("   ⚠️ WARNING: Face height (\(String(format: "%.1f", faceHeight * 1000))mm) is TOO TALL")
+            print("      Expected: 180-220mm")
+            hasScaleIssues = true
+        } else {
+            print("   ✅ Face height: Within expected range (180-220mm)")
+        }
+
+        if hasScaleIssues {
+            print("   🚨 SCALE ISSUES DETECTED - Wrinkle depths will be INCORRECT")
+            print("      → Review ARKit face anchor transform")
+            print("      → Check if scaling factor is being applied incorrectly")
+            print("      → Verify ARKit coordinate system assumptions")
+        } else {
+            print("   ✅ Mesh scale appears correct - proceeding with wrinkle analysis")
+        }
+
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     }
 }

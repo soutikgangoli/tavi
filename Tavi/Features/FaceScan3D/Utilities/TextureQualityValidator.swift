@@ -21,8 +21,9 @@ public class TextureQualityValidator {
         public var minimumROIPixelCount: Int = 100
 
         /// Minimum Laplacian variance for texture sharpness
-        /// Below this threshold, texture is considered too blurry
-        public var minimumLaplacianVariance: Float = 50.0
+        /// STRICT: Increased to 150 to ensure accurate skin analysis
+        /// Below this threshold, texture is considered too blurry for reliable metrics
+        public var minimumLaplacianVariance: Float = 150.0
 
         /// Maximum percentage of low-confidence ROIs allowed
         public var maximumLowConfidenceRatio: Float = 0.4

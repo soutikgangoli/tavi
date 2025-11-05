@@ -73,6 +73,14 @@ public class TextureBaker {
         // Step 1: Apply albedo correction to all samples
         let correctedSamples = await correctSamplesLighting(samples: samples)
 
+        // Validate we have corrected samples after lighting correction
+        guard !correctedSamples.isEmpty else {
+            print("❌ TextureBaker: No valid samples after lighting correction - all \(samples.count) samples failed to decode")
+            return nil
+        }
+
+        print("✅ TextureBaker: Successfully corrected \(correctedSamples.count)/\(samples.count) samples")
+
         // Step 2: Create UV atlas and blend samples
         guard let atlasImage = await createTextureAtlas(mesh: mesh, samples: correctedSamples) else {
             print("⚠️ TextureBaker: Failed to create texture atlas")
@@ -117,7 +125,10 @@ public class TextureBaker {
         var correctedSamples: [CorrectedSample] = []
 
         for sample in samples {
-            guard let originalImage = sample.getImage() else { continue }
+            guard let originalImage = sample.getImage() else {
+                print("⚠️ TextureBaker: Failed to decode image from sample '\(sample.step)' - data size: \(sample.textureImageData.count) bytes")
+                continue
+            }
 
             // Step 1: Apply lighting normalization (white balance, exposure, shadow compensation)
             let normalizedResult = lightingNormalizer.normalize(image: originalImage)

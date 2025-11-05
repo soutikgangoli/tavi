@@ -34,6 +34,8 @@ public struct EmotionalScan3DFlowView: View {
     @State private var showShareSheet = false
     @State private var showAchievementUnlock = false
     @State private var newAchievements: [Achievement] = []
+    @State private var cyclingMessageIndex: Int = 0
+    @State private var cyclingTimer: Timer?
 
     // Automatic retry state
     @State private var retryCount: Int = 0
@@ -73,9 +75,19 @@ public struct EmotionalScan3DFlowView: View {
 
     // Computed save status for display
     private var computedSaveStatus: CelebratoryResultsView.SaveStatus? {
-        // Check if Core Data is unavailable (highest priority)
+        // FIXED: Only show red "Storage Issue" banner if fallback save FAILED
+        // If fallback is being used BUT save succeeded, treat as .saved (no scary banner)
         if fallbackStorage.isUsingFallback {
-            return .coreDataUnavailable
+            // Check if fallback save succeeded
+            if let success = saveSuccessful, success {
+                // Fallback save succeeded - show as saved (no red banner)
+                return .saved
+            } else if saveSuccessful == false {
+                // Fallback save failed - show red banner
+                return .coreDataUnavailable
+            }
+            // Still saving to fallback
+            return isSaving ? .saving : .coreDataUnavailable
         }
 
         if isSaving {
@@ -285,9 +297,8 @@ public struct EmotionalScan3DFlowView: View {
                     .fill(Color.gray.opacity(0.15))
                     .frame(width: 160, height: 160)
 
-                // Progress pie fill (like clock hand sweeping)
-                Circle()
-                    .trim(from: 0, to: CGFloat(processingStep) / CGFloat(totalProcessingSteps))
+                // Progress pie fill (like clock hand sweeping) - using a custom shape
+                PieSlice(progress: CGFloat(processingStep) / CGFloat(totalProcessingSteps))
                     .fill(
                         AngularGradient(
                             colors: [.blue, .cyan, .blue],
@@ -297,7 +308,6 @@ public struct EmotionalScan3DFlowView: View {
                         )
                     )
                     .frame(width: 160, height: 160)
-                    .rotationEffect(.degrees(-90))
                     .animation(.easeInOut(duration: 0.5), value: processingStep)
 
                 // White background circle for percentage text
@@ -319,13 +329,15 @@ public struct EmotionalScan3DFlowView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
 
-                // Detailed info - what's actually happening
+                // Detailed info - what's actually happening (cycles every 3 seconds)
                 if let currentPhase = getCurrentProcessingPhase() {
-                    Text(currentPhase.detailedDescription)
+                    Text(currentPhase.getCyclingMessage(index: cyclingMessageIndex))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
+                        .animation(.easeInOut(duration: 0.3), value: cyclingMessageIndex)
+                        .transition(.opacity)
                 }
 
                 // Time remaining
@@ -678,6 +690,9 @@ public struct EmotionalScan3DFlowView: View {
         // Initialize device-specific time estimation
         deviceWarningMessage = timeEstimator.getProcessingWarning()
 
+        // Start cycling messages every 3 seconds
+        startCyclingMessages()
+
         // Log scan processing start with context
         CrashReporter.shared.logUserAction("scan_processing_started")
         CrashReporter.shared.setCustomKey("capture_count", value: viewModel.capturedPoses.count)
@@ -688,7 +703,7 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 1: Merge meshes (with timeout protection)
                 processingStep = 1
                 processingProgress = ProcessingPhase.meshMerge.description
-                timeRemainingSeconds = timeEstimator.estimateTimeRemaining(from: .meshMerge)
+                updateTimeRemaining(from: .meshMerge)
                 CrashReporter.shared.setCustomKey("processing_step", value: "mesh_merge")
 
                 let merged = try await withTimeout(
@@ -713,7 +728,7 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 2: Bake texture (with timeout protection)
                 processingStep = 2
                 processingProgress = ProcessingPhase.textureBake.description
-                timeRemainingSeconds = timeEstimator.estimateTimeRemaining(from: .textureBake)
+                updateTimeRemaining(from: .textureBake)
                 CrashReporter.shared.setCustomKey("processing_step", value: "texture_bake")
 
                 let bakeResult = try await withTimeout(
@@ -734,7 +749,7 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 3: Compute clinical metrics (with timeout protection)
                 processingStep = 3
                 processingProgress = ProcessingPhase.metricsAnalysis.description
-                timeRemainingSeconds = timeEstimator.estimateTimeRemaining(from: .metricsAnalysis)
+                updateTimeRemaining(from: .metricsAnalysis)
                 CrashReporter.shared.setCustomKey("processing_step", value: "metrics_analysis")
 
                 // Attempt metrics computation with timeout protection
@@ -755,7 +770,7 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 4: Convert to emotional metrics
                 processingStep = 4
                 processingProgress = ProcessingPhase.emotionalMetrics.description
-                timeRemainingSeconds = timeEstimator.estimateTimeRemaining(from: .emotionalMetrics)
+                updateTimeRemaining(from: .emotionalMetrics)
                 CrashReporter.shared.setCustomKey("processing_step", value: "emotional_metrics")
 
                 let userProfile = UserProfileManager.shared.loadProfile()
@@ -775,7 +790,7 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 5: Update gamification
                 processingStep = 5
                 processingProgress = ProcessingPhase.gamification.description
-                timeRemainingSeconds = timeEstimator.estimateTimeRemaining(from: .gamification)
+                updateTimeRemaining(from: .gamification)
                 CrashReporter.shared.setCustomKey("processing_step", value: "gamification")
 
                 let updatedStreak = GamificationManager.shared.recordScan()
@@ -798,10 +813,12 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 6: Save to Core Data (with timeout protection)
                 processingStep = 6
                 processingProgress = ProcessingPhase.coreDataSave.description
-                timeRemainingSeconds = timeEstimator.estimateTimeRemaining(from: .coreDataSave)
+                updateTimeRemaining(from: .coreDataSave)
                 CrashReporter.shared.setCustomKey("processing_step", value: "core_data_save")
 
                 // Try to save with timeout - saveToCoreData() handles its own errors and shows alerts
+                // CRITICAL: Capture viewContext BEFORE async to avoid Environment access warnings
+                let capturedContext = viewContext
                 do {
                     try await withTimeout(
                         seconds: timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.coreDataSaveTimeout),
@@ -809,7 +826,8 @@ public struct EmotionalScan3DFlowView: View {
                     ) {
                         await saveToCoreData(
                             emotionalMetrics: emotional,
-                            clinicalMetrics: computedClinicalMetrics
+                            clinicalMetrics: computedClinicalMetrics,
+                            context: capturedContext
                         )
                     }
                 } catch {
@@ -844,6 +862,9 @@ public struct EmotionalScan3DFlowView: View {
                 CrashReporter.shared.setCustomKey("glow_score", value: emotional.glowScore)
                 CrashReporter.shared.setCustomKey("achievements_unlocked", value: unlockedAchievements.count)
 
+                // Stop cycling messages
+                stopCyclingMessages()
+
                 // Show achievement unlock if any
                 if !unlockedAchievements.isEmpty {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -852,6 +873,8 @@ public struct EmotionalScan3DFlowView: View {
                 }
 
             } catch let scanError as ScanError {
+                // Stop cycling messages on error too
+                stopCyclingMessages()
                 // Log scan error with full context
                 CrashReporter.shared.logScanError(
                     scanError,
@@ -1016,12 +1039,11 @@ public struct EmotionalScan3DFlowView: View {
         }
     }
 
-    private func saveToCoreData(emotionalMetrics: EmotionalMetrics, clinicalMetrics: Face3DMetrics) async {
+    private func saveToCoreData(emotionalMetrics: EmotionalMetrics, clinicalMetrics: Face3DMetrics, context: NSManagedObjectContext) async {
         isSaving = true
         saveSuccessful = nil
 
-        // Check if context has a persistent store coordinator - capture context early to avoid Environment access warnings
-        let context = viewContext
+        // Check if context has a persistent store coordinator
         guard context.persistentStoreCoordinator != nil else {
             // Core Data is unavailable - use fallback storage instead
             AppLogger.faceScan.warning("⚠️ Core Data unavailable - using fallback JSON storage")
@@ -1122,8 +1144,10 @@ public struct EmotionalScan3DFlowView: View {
         saveRetryCount += 1
         AppLogger.faceScan.info("🔄 Retrying Core Data save (attempt \(saveRetryCount))...")
 
+        // Capture context before async
+        let capturedContext = viewContext
         Task {
-            await saveToCoreData(emotionalMetrics: data.emotionalMetrics, clinicalMetrics: data.clinicalMetrics)
+            await saveToCoreData(emotionalMetrics: data.emotionalMetrics, clinicalMetrics: data.clinicalMetrics, context: capturedContext)
         }
     }
 
@@ -1338,14 +1362,19 @@ extension EmotionalScan3DFlowView {
         }
     }
 
+    /// Update time remaining estimate when moving to a new step
+    private func updateTimeRemaining(from phase: ProcessingPhase) {
+        // Calculate time remaining from this phase onwards
+        timeRemainingSeconds = timeEstimator.estimateTimeRemaining(from: phase, includeCurrentPhase: true)
+    }
+
     /// Start the real-time countdown timer
     private func startTimeCountdown() {
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
             DispatchQueue.main.async { [self] in
+                // Only count down if we have time remaining
                 if timeRemainingSeconds > 0 {
                     timeRemainingSeconds -= 1
-                } else {
-                    timer.invalidate()
                 }
 
                 // Stop timer if we're no longer processing
@@ -1407,6 +1436,72 @@ extension EmotionalScan3DFlowView {
                 rootVC.present(activityVC, animated: true)
             }
         }
+    }
+
+    // MARK: - Cycling Message Timer
+
+    /// Start timer to cycle through processing messages every 3 seconds
+    private func startCyclingMessages() {
+        cyclingMessageIndex = 0
+        cyclingTimer?.invalidate()
+
+        // Note: No need for [weak self] in SwiftUI Views (structs don't have retain cycles)
+        cyclingTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                cyclingMessageIndex += 1
+            }
+        }
+    }
+
+    /// Stop cycling message timer
+    private func stopCyclingMessages() {
+        cyclingTimer?.invalidate()
+        cyclingTimer = nil
+    }
+}
+
+// MARK: - Custom Pie Slice Shape
+
+/// A pie slice shape that fills from 0° (top) clockwise based on progress
+struct PieSlice: Shape {
+    var progress: CGFloat
+
+    var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let radius = min(rect.width, rect.height) / 2
+
+        // Start from top (270°) and sweep clockwise
+        let startAngle = Angle(degrees: -90)
+        let endAngle = Angle(degrees: -90 + (360 * Double(progress)))
+
+        // Move to center
+        path.move(to: center)
+
+        // Draw line to start of arc
+        path.addLine(to: CGPoint(
+            x: center.x + radius * CGFloat(cos(startAngle.radians)),
+            y: center.y + radius * CGFloat(sin(startAngle.radians))
+        ))
+
+        // Draw the arc
+        path.addArc(
+            center: center,
+            radius: radius,
+            startAngle: startAngle,
+            endAngle: endAngle,
+            clockwise: false
+        )
+
+        // Close the path back to center
+        path.closeSubpath()
+
+        return path
     }
 }
 

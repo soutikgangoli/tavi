@@ -22,6 +22,7 @@ public struct CelebratoryResultsView: View {
     @State private var showActions = false
     @State private var selectedMetricForHelp: MetricType? = nil
     @State private var showFirstTimeBanner = false
+    @State private var animatedScore: CGFloat = 0  // For smooth circle animation
     @AppStorage("hasViewedMetricHelp") private var hasViewedMetricHelp = false
 
     public enum SaveStatus {
@@ -94,6 +95,16 @@ public struct CelebratoryResultsView: View {
                         .opacity(showActions ? 1 : 0)
                         .offset(y: showActions ? 0 : 10)
 
+                    // Clinical Diagnosis (What is What)
+                    clinicalDiagnosisSection
+                        .opacity(showActions ? 1 : 0)
+                        .offset(y: showActions ? 0 : 10)
+
+                    // Recommended Products
+                    recommendedProductsSection
+                        .opacity(showActions ? 1 : 0)
+                        .offset(y: showActions ? 0 : 10)
+
                     // Share button
                     shareButton
 
@@ -162,14 +173,16 @@ public struct CelebratoryResultsView: View {
                             .frame(width: 160, height: 160)
 
                         Circle()
-                            .trim(from: 0, to: CGFloat(emotionalMetrics.glowScore) / 100)
+                            .trim(from: 0, to: animatedScore / 100)
                             .stroke(Color.white, style: StrokeStyle(lineWidth: 10, lineCap: .round))
                             .frame(width: 160, height: 160)
                             .rotationEffect(.degrees(-90))
+                            .animation(.easeOut(duration: 1.5), value: animatedScore)
 
-                        Text("\(emotionalMetrics.glowScore)")
+                        Text("\(Int(animatedScore))")
                             .font(.system(size: 64, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
+                            .animation(.easeOut(duration: 1.5), value: animatedScore)
                     }
 
                     Text("Your Skin Health Score")
@@ -512,6 +525,214 @@ public struct CelebratoryResultsView: View {
         }
     }
 
+    // MARK: - Clinical Diagnosis Section
+
+    @State private var expandedMetric: String? = nil
+
+    private var clinicalDiagnosisSection: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            Text("Clinical Diagnosis")
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+            Text("Understand how we analyze your skin metrics")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+            VStack(spacing: HeadspaceDesign.Spacing.sm) {
+                clinicalMetricRow(
+                    title: "Wrinkles & Fine Lines",
+                    score: emotionalMetrics.youthfulness,
+                    explanation: "We use advanced 3D mesh analysis to detect surface irregularities and depth variations. Wrinkle severity is calculated by measuring the depth, length, and density of facial creases across 50,000+ data points on your face.",
+                    calculation: "Score = (100 - ((total_wrinkle_depth × 0.4) + (wrinkle_density × 0.3) + (depth_variance × 0.3)))",
+                    metricId: "wrinkles"
+                )
+
+                clinicalMetricRow(
+                    title: "Skin Texture",
+                    score: emotionalMetrics.smoothness,
+                    explanation: "Texture quality is determined by analyzing pore size distribution, surface smoothness, and uniformity. We measure micro-variations in the skin surface to assess overall skin refinement.",
+                    calculation: "Score = (surface_smoothness × 0.5) + (pore_quality × 0.3) + (uniformity × 0.2)",
+                    metricId: "texture"
+                )
+
+                clinicalMetricRow(
+                    title: "Radiance & Glow",
+                    score: emotionalMetrics.radiance,
+                    explanation: "Radiance is measured by analyzing light reflection patterns, skin luminosity, and color vibrance across different facial zones. Higher scores indicate healthier, more luminous skin.",
+                    calculation: "Score = (light_reflection_index × 0.4) + (luminosity × 0.35) + (color_vibrance × 0.25)",
+                    metricId: "radiance"
+                )
+
+                clinicalMetricRow(
+                    title: "Even Skin Tone",
+                    score: emotionalMetrics.evenness,
+                    explanation: "Skin tone evenness is calculated by measuring color consistency, detecting hyperpigmentation, and analyzing redness distribution across facial regions.",
+                    calculation: "Score = (100 - ((pigmentation_variance × 0.4) + (redness_score × 0.35) + (color_deviation × 0.25)))",
+                    metricId: "evenTone"
+                )
+
+                // NOTE: Hydration analysis is available at ROI level via moistureProxy
+                // but not yet aggregated into a global hydration score.
+                // Future enhancement: Add HydrationAnalyzer to compute global hydration metric.
+            }
+        }
+        .padding(HeadspaceDesign.Spacing.lg)
+        .background(HeadspaceDesign.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+    }
+
+    private func clinicalMetricRow(title: String, score: Int, explanation: String, calculation: String, metricId: String) -> some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    expandedMetric = expandedMetric == metricId ? nil : metricId
+                }
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                        Text("\(score)/100")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(scoreColor(for: score))
+                    }
+
+                    Spacer()
+
+                    Image(systemName: expandedMetric == metricId ? "chevron.up.circle.fill" : "chevron.down.circle")
+                        .foregroundColor(HeadspaceDesign.Colors.primary)
+                        .font(.system(size: 20))
+                }
+                .padding(HeadspaceDesign.Spacing.md)
+                .background(HeadspaceDesign.Colors.background)
+                .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+            }
+
+            if expandedMetric == metricId {
+                VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("What We Measure")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                        Text(explanation)
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .lineSpacing(4)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("How It's Calculated")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                        Text(calculation)
+                            .font(.system(size: 12, weight: .regular, design: .monospaced))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .padding(8)
+                            .background(HeadspaceDesign.Colors.background.opacity(0.5))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                }
+                .padding(HeadspaceDesign.Spacing.md)
+                .background(HeadspaceDesign.Colors.background.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    // MARK: - Recommended Products Section
+
+    private var recommendedProductsSection: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            Text("Recommended Products")
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+            Text("Based on your skin analysis")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+            VStack(spacing: HeadspaceDesign.Spacing.md) {
+                productCard(
+                    name: "Hydrating Serum",
+                    category: "Moisturizer",
+                    reason: "For improved hydration",
+                    priority: "High"
+                )
+
+                productCard(
+                    name: "Retinol Night Cream",
+                    category: "Anti-Aging",
+                    reason: "To reduce fine lines",
+                    priority: "Medium"
+                )
+
+                productCard(
+                    name: "Vitamin C Brightening Serum",
+                    category: "Brightening",
+                    reason: "For more even skin tone",
+                    priority: "Medium"
+                )
+            }
+
+            Text("Note: Product recommendations are placeholder examples")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                .padding(.top, 8)
+        }
+        .padding(HeadspaceDesign.Spacing.lg)
+        .background(HeadspaceDesign.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+    }
+
+    private func productCard(name: String, category: String, reason: String, priority: String) -> some View {
+        HStack(spacing: HeadspaceDesign.Spacing.md) {
+            // Placeholder product image
+            RoundedRectangle(cornerRadius: 8)
+                .fill(HeadspaceDesign.Colors.primary.opacity(0.1))
+                .frame(width: 60, height: 60)
+                .overlay(
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 24))
+                        .foregroundColor(HeadspaceDesign.Colors.primary)
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(name)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                Text(category)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+                Text(reason)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+            }
+
+            Spacer()
+
+            VStack {
+                Text(priority)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(priority == "High" ? Color.orange : Color.blue)
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(HeadspaceDesign.Spacing.md)
+        .background(HeadspaceDesign.Colors.background)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+    }
+
     // MARK: - Helpers
 
     private var scoreInterpretationTitle: String {
@@ -617,6 +838,11 @@ public struct CelebratoryResultsView: View {
             showScore = true
         }
 
+        // Animate score circle from 0 to target value
+        withAnimation(.easeOut(duration: 1.5).delay(0.3)) {
+            animatedScore = CGFloat(emotionalMetrics.glowScore)
+        }
+
         withAnimation(HeadspaceDesign.Animations.gentle.delay(0.3)) {
             showMetrics = true
         }
@@ -705,7 +931,7 @@ public struct CelebratoryResultsView: View {
         case .queued:
             return "Your results will be saved automatically when possible."
         case .coreDataUnavailable:
-            return "Device storage unavailable. Results saved to backup file. Tap to export or contact support."
+            return "Device storage unavailable. Results saved to backup file. Tap here to export."
         case .saved:
             return ""
         }
@@ -734,6 +960,23 @@ public struct CelebratoryResultsView: View {
             return Color.red.opacity(0.4)
         case .saved:
             return .clear
+        }
+    }
+
+    // MARK: - Score Color Helper
+
+    private func scoreColor(for score: Int) -> Color {
+        switch score {
+        case 80...100:
+            return Color.green
+        case 60..<80:
+            return Color.blue
+        case 40..<60:
+            return Color.yellow
+        case 20..<40:
+            return Color.orange
+        default:
+            return Color.red
         }
     }
 

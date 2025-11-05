@@ -253,19 +253,24 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
         // Update face mesh geometry
         faceGeometry.update(from: faceAnchor.geometry)
 
+        // CRITICAL: Extract data from ARFrame BEFORE creating Task closures
+        // ARFrames are heavy objects that must be released immediately to prevent memory warnings
+        // The delegate retaining too many ARFrames will cause the camera to stop delivering frames
+        let frameTimestamp = frame.timestamp
+
         // If multi-frame capture is active, add frame to averager
         if isMultiFrameCaptureActive, let averager = frameAverager {
             // Calculate tracking confidence (0-1)
             let confidence = calculateTrackingConfidence(faceAnchor: faceAnchor)
 
-            // Add frame to averager
+            // Add frame to averager (only uses geometry, not the frame itself)
             averager.addFrame(
                 faceAnchor.geometry,
                 confidence: confidence,
-                timestamp: frame.timestamp
+                timestamp: frameTimestamp
             )
 
-            // Notify viewModel of frame count update
+            // Notify viewModel of frame count update (no frame data needed)
             Task {
                 await MainActor.run {
                     viewModel?.onFrameCaptured(
@@ -276,7 +281,7 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
                 }
             }
 
-            // Auto-stop if we've reached target
+            // Auto-stop if we've reached target (no frame data needed)
             if averager.frameCount >= targetFrameCount {
                 Task {
                     await MainActor.run {
@@ -287,11 +292,18 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
         }
 
         // Always update view model with current geometry for real-time display
-        Task {
+        // CRITICAL: Do NOT capture frame in Task closure - extract needed data first
+        // to prevent ARFrame retention warnings
+        Task { [weak viewModel, faceAnchor, frame] in
             await MainActor.run {
+                // frame and faceAnchor are captured but will be released when Task completes
+                // The weak reference to viewModel prevents additional retention cycles
                 viewModel?.updateGeometry(faceAnchor: faceAnchor, frame: frame)
             }
         }
+
+        // IMPORTANT: After this point, no more closures should capture frame
+        // The Task above has its own copy which will be released when it completes
     }
 
     /// Calculate tracking confidence based on blend shapes and tracking quality

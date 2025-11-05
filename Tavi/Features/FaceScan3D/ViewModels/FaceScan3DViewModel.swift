@@ -160,7 +160,10 @@ public class FaceScan3DViewModel: ObservableObject {
 
     // MARK: - Private Properties
 
-    private var currentFrame: ARFrame?
+    // CRITICAL: Do NOT store ARFrame with strong reference - it causes memory retention warnings
+    // ARSession will warn: "delegate is retaining N ARFrames" and stop camera delivery
+    // Use weak reference so ARSession can properly manage frame lifecycle
+    private weak var currentFrame: ARFrame?
     private var currentFaceAnchor: ARFaceAnchor?
     private var lastFrameTime: TimeInterval = 0
     private var frameCount: Int = 0
@@ -653,7 +656,7 @@ public class FaceScan3DViewModel: ObservableObject {
 
         // Check pose and handle countdown through capture manager
         var isPoseCorrect = calibrationManager.isPoseCorrect
-        let feedback = captureManager.checkGuidancePoseAndCapture(
+        _ = captureManager.checkGuidancePoseAndCapture(
             faceAnchor: faceAnchor,
             frame: frame,
             isPoseCorrect: &isPoseCorrect,
@@ -665,14 +668,14 @@ public class FaceScan3DViewModel: ObservableObject {
         // Update calibration manager's isPoseCorrect
         calibrationManager.isPoseCorrect = isPoseCorrect
 
-        // Handle countdown completion (when timer reaches 0)
-        if captureManager.countdownTimer == 0 && isPoseCorrect && qualityGood {
-            // Check if we just completed a countdown
-            // The capture manager will have set guidanceFeedback to indicate capture
-            if let feedback = feedback, feedback.contains("Testing mode") {
-                // Capture was triggered by countdown completion
-                performCapture(faceAnchor: faceAnchor, frame: frame, geometry: geometry)
-            }
+        // Handle countdown completion - check the trigger flag
+        if captureManager.shouldTriggerCapture {
+            // Reset the trigger flag
+            captureManager.shouldTriggerCapture = false
+
+            // Trigger the capture
+            AppLogger.faceScan.info("🎯 Triggering capture after countdown completion")
+            performCapture(faceAnchor: faceAnchor, frame: frame, geometry: geometry)
         }
     }
 

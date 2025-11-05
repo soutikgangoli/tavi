@@ -64,11 +64,15 @@ public final class MetalTextureProcessor {
     public func applyGaussianBlur(_ image: UIImage, radius: Float) -> UIImage? {
         let startTime = CFAbsoluteTimeGetCurrent()
 
+        // DIAGNOSTIC: Check input
+        logger.debug("🔍 Metal Blur: Input image size: \(image.size.width)×\(image.size.height), scale: \(image.scale), radius: \(radius)")
+
         // Convert UIImage → MTLTexture
         guard let inputTexture = MetalHelpers.textureFromUIImage(image, device: device) else {
-            logger.error("Failed to create input texture for blur")
+            logger.error("❌ Metal Blur: Failed to create input texture")
             return nil
         }
+        logger.debug("✅ Metal Blur: Input texture created (\(inputTexture.width)×\(inputTexture.height), format: \(inputTexture.pixelFormat.rawValue))")
 
         // Create output texture with same dimensions
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -80,27 +84,36 @@ public final class MetalTextureProcessor {
         textureDescriptor.usage = [.shaderRead, .shaderWrite]
 
         guard let outputTexture = device.makeTexture(descriptor: textureDescriptor) else {
-            logger.error("Failed to create output texture for blur")
+            logger.error("❌ Metal Blur: Failed to create output texture")
             return nil
         }
+        logger.debug("✅ Metal Blur: Output texture created")
 
         // Create command buffer
         guard let commandBuffer = commandQueue.makeCommandBuffer() else {
-            logger.error("Failed to create command buffer")
+            logger.error("❌ Metal Blur: Failed to create command buffer")
             return nil
         }
 
         // Apply Gaussian blur using MPS
         let blur = MPSImageGaussianBlur(device: device, sigma: radius)
         blur.encode(commandBuffer: commandBuffer, sourceTexture: inputTexture, destinationTexture: outputTexture)
+        logger.debug("✅ Metal Blur: Blur kernel encoded")
 
         // Execute GPU work
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
 
+        // DIAGNOSTIC: Check for errors
+        if let error = commandBuffer.error {
+            logger.error("❌ Metal Blur: Command buffer failed with error: \(error.localizedDescription)")
+            return nil
+        }
+        logger.debug("✅ Metal Blur: Command buffer completed successfully")
+
         // Convert MTLTexture → UIImage
         guard let result = MetalHelpers.uiImageFromTexture(outputTexture) else {
-            logger.error("Failed to convert output texture to UIImage")
+            logger.error("❌ Metal Blur: Failed to convert output texture to UIImage")
             return nil
         }
 
@@ -133,6 +146,12 @@ public final class MetalTextureProcessor {
         guard samples.count == weights.count else {
             logger.error("Sample count (\(samples.count)) doesn't match weight count (\(weights.count))")
             return nil
+        }
+
+        // If only one sample, just return it resized (no need for complex blending)
+        if samples.count == 1 {
+            logger.info("Only 1 sample - returning resized image without blending")
+            return samples[0].resize(to: outputSize)
         }
 
         logger.info("🎨 Starting GPU texture blending: \(samples.count) samples → \(Int(outputSize.width))×\(Int(outputSize.height))")
@@ -361,4 +380,17 @@ public final class MetalTextureProcessor {
 /// Global helper for logging
 private extension Logger {
     static let metal = Logger(subsystem: "com.tavi.app", category: "Metal")
+}
+
+// MARK: - UIImage Extension
+
+private extension UIImage {
+    /// Resize image to specified size
+    func resize(to size: CGSize) -> UIImage? {
+        UIGraphicsBeginImageContextWithOptions(size, false, 1.0)
+        defer { UIGraphicsEndImageContext() }
+
+        draw(in: CGRect(origin: .zero, size: size))
+        return UIGraphicsGetImageFromCurrentImageContext()
+    }
 }

@@ -18,6 +18,10 @@ public struct HomeView: View {
     @State private var errorState: ErrorState?
     @AppStorage("skipOnboarding") private var skipOnboarding: Bool = false
 
+    // Fallback storage support
+    @StateObject private var fallbackStorage = FallbackStorage.shared
+    @State private var fallbackSessions: [FallbackStorage.FallbackSession] = []
+
     public init() {
         let hasCompleted = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         let skipEnabled = UserDefaults.standard.bool(forKey: "skipOnboarding")
@@ -36,6 +40,11 @@ public struct HomeView: View {
     }
 
     private var hasScans: Bool {
+        // Check both Core Data and fallback storage
+        return sessions.count > 0 || fallbackSessions.count > 0
+    }
+
+    private var hasCoreDataScans: Bool {
         return sessions.count > 0
     }
 
@@ -67,6 +76,9 @@ public struct HomeView: View {
             .onAppear {
                 // Track screen view
                 AnalyticsManager.shared.trackScreen("home")
+
+                // Load fallback sessions if Core Data is unavailable
+                loadFallbackSessionsIfNeeded()
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -109,9 +121,17 @@ public struct HomeView: View {
                     greetingSection
                         .padding(.top, HeadspaceDesign.Spacing.md)
 
+                    // Fallback storage notice (if Core Data unavailable but fallback has sessions)
+                    if !hasCoreDataScans && !fallbackSessions.isEmpty {
+                        fallbackStorageNotice
+                    }
+
                     // Main scan card
                     if let latest = latestSession {
                         latestScanCard(latest)
+                    } else if !fallbackSessions.isEmpty {
+                        // Show fallback session as latest
+                        fallbackLatestScanCard(fallbackSessions[0])
                     } else {
                         firstScanCard
                     }
@@ -121,18 +141,18 @@ public struct HomeView: View {
                         activeChallengeCard(challenge)
                     }
 
-                    // Progress graph (shows if 2+ scans)
+                    // Progress graph (shows if 2+ scans) - MOVED TO TOP
                     if sessions.count >= 2 {
                         ProgressGraphView(sessions: Array(sessions))
                     }
 
-                    // Recent scans
+                    // Tips section
+                    tipsCard
+
+                    // Recent scans - MOVED TO BOTTOM (after tips)
                     if hasScans {
                         recentScansSection
                     }
-
-                    // Tips section
-                    tipsCard
 
                     // Bottom padding for sticky button
                     Spacer().frame(height: 100)
@@ -321,7 +341,7 @@ public struct HomeView: View {
     }
 
     private func recentScanListItem(_ session: SessionResult) -> some View {
-        HStack(spacing: HeadspaceDesign.Spacing.lg) {
+        HStack(alignment: .center, spacing: HeadspaceDesign.Spacing.lg) {
             // Date badge (left corner)
             VStack(spacing: 4) {
                 Text(formatDayMonth(session.date))
@@ -347,6 +367,7 @@ public struct HomeView: View {
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundColor(scoreColor(session.overallScore))
             }
+            .frame(width: 64, height: 64)
 
             // Info with trend indicator
             VStack(alignment: .leading, spacing: 6) {
@@ -432,6 +453,7 @@ public struct HomeView: View {
                 .accessibilityHint("Opens detailed results for your most recent scan")
             }
         }
+        .frame(minHeight: 100)
         .padding(HeadspaceDesign.Spacing.lg)
         .background(HeadspaceDesign.Colors.elevatedCard)
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
@@ -638,7 +660,7 @@ public struct HomeView: View {
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 20)
-            .background(HeadspaceDesign.Colors.primary)
+            .background(Color.green)
             .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
             .shadow(
                 color: HeadspaceDesign.Shadows.button.color,
@@ -711,5 +733,92 @@ public struct HomeView: View {
         let percentChange = (scoreDiff / previousSession.overallScore) * 100
 
         return percentChange
+    }
+
+    // MARK: - Fallback Storage Support
+
+    /// Load sessions from fallback storage if Core Data is unavailable
+    private func loadFallbackSessionsIfNeeded() {
+        // Only load from fallback if Core Data is empty or unavailable
+        guard sessions.isEmpty || fallbackStorage.isUsingFallback else {
+            AppLogger.ui.debug("Core Data has sessions - skipping fallback load")
+            return
+        }
+
+        fallbackSessions = fallbackStorage.loadAllSessions()
+
+        if !fallbackSessions.isEmpty {
+            AppLogger.ui.info("✅ Loaded \(fallbackSessions.count) sessions from fallback storage")
+        }
+    }
+
+    private var fallbackStorageNotice: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 20))
+                .foregroundColor(.blue)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Showing Saved Results")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                Text("Your scan history is temporarily stored. Results are saved and will sync when available.")
+                    .font(.system(size: 14))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            }
+
+            Spacer()
+        }
+        .padding(16)
+        .background(Color.blue.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func fallbackLatestScanCard(_ session: FallbackStorage.FallbackSession) -> some View {
+        VStack(spacing: 0) {
+            // Gradient header
+            ZStack {
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        scoreColor(session.overallScore),
+                        scoreColor(session.overallScore).opacity(0.7)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .frame(height: 120)
+
+                VStack(spacing: 8) {
+                    Text("Latest Scan")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.9))
+
+                    Text("\(Int(session.overallScore))")
+                        .font(.system(size: 56, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+
+                    Text(scoreDescription(session.overallScore))
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.9))
+                }
+            }
+
+            // Content
+            VStack(alignment: .leading, spacing: 16) {
+                Text(session.relativeDate)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+                Text("Tap 'Start New Scan' below to see your latest results and track progress")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(HeadspaceDesign.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
     }
 }

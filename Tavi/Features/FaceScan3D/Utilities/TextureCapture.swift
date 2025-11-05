@@ -22,7 +22,13 @@ public class TextureCapture {
         public var targetTextureHeight: Int = 1024
 
         /// Quality thresholds
-        public var minSharpness: Float = 100.0
+        /// ADAPTIVE: Base minimum Laplacian variance for sharp texture capture
+        /// This is adjusted based on lighting conditions - lower threshold in poor lighting
+        /// Blurry textures cause incorrect roughness measurements, but we need to balance
+        /// with realistic capture success rates in various lighting conditions
+        public var minSharpness: Float = 120.0  // Lowered from 150 to be more adaptive
+        public var minSharpnessOptimal: Float = 150.0  // Target for optimal lighting
+        public var minSharpnessPoorLight: Float = 90.0   // Minimum for poor lighting
         public var minExposure: Float = 0.2
         public var maxExposure: Float = 0.8
 
@@ -63,11 +69,38 @@ public class TextureCapture {
         // Calculate quality metrics
         let quality = qualityAnalyzer.analyzeQuality(image: textureImage)
 
-        // Check quality thresholds
-        guard quality.overallQuality else {
-            print("⚠️ TextureCapture: Quality check failed - sharpness: \(quality.sharpness), exposure: \(quality.exposure)")
-            return nil
+        // ADAPTIVE SHARPNESS THRESHOLD: Adjust based on lighting conditions
+        // In poor lighting, we accept slightly lower sharpness to ensure capture success
+        var adaptiveSharpnessThreshold = configuration.minSharpness
+        if let lighting = lightEstimation {
+            let intensity = Float(lighting.ambientIntensity)
+            // Scale threshold based on lighting: 1000+ lux = optimal, <500 lux = poor
+            if intensity < 500 {
+                adaptiveSharpnessThreshold = configuration.minSharpnessPoorLight
+                print("💡 Low light detected (\(Int(intensity)) lux) - using relaxed sharpness threshold: \(adaptiveSharpnessThreshold)")
+            } else if intensity > 1000 {
+                adaptiveSharpnessThreshold = configuration.minSharpnessOptimal
+            } else {
+                // Linear interpolation between poor and optimal
+                let ratio = (intensity - 500) / 500
+                adaptiveSharpnessThreshold = configuration.minSharpnessPoorLight +
+                    (configuration.minSharpnessOptimal - configuration.minSharpnessPoorLight) * ratio
+            }
         }
+
+        // ADAPTIVE ENFORCEMENT: Reject blurry or poorly exposed images
+        // Sharp textures are critical for accurate roughness/smoothness analysis
+        let isSharpEnough = quality.sharpness >= adaptiveSharpnessThreshold
+        if !quality.isWellExposed {
+            print("❌ TextureCapture: REJECTING - poor exposure: \(quality.exposure)")
+            return nil  // Reject and force recapture
+        }
+        if !isSharpEnough {
+            print("❌ TextureCapture: REJECTING - sharpness too low: \(quality.sharpness) (adaptive min: \(adaptiveSharpnessThreshold))")
+            return nil  // Reject and force recapture
+        }
+
+        print("✅ TextureCapture: Quality validated - sharpness: \(quality.sharpness), exposure: \(quality.exposure)")
 
         // Extract rotation angles
         let transform = faceAnchor.transform

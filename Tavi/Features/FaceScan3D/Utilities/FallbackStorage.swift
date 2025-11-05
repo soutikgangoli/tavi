@@ -28,6 +28,33 @@ public class FallbackStorage: ObservableObject {
         public let emotionalMetrics: EmotionalMetrics
         public let clinicalMetrics: Face3DMetrics
 
+        /// Overall score (mapped from glow score for compatibility with SessionResult)
+        /// Returns Double to match SessionResult's type (Core Data uses Double for scores)
+        public var overallScore: Double {
+            return Double(emotionalMetrics.glowScore)
+        }
+
+        /// Relative date string (e.g., "Today", "Yesterday", "3 days ago")
+        public var relativeDate: String {
+            let calendar = Calendar.current
+            let now = Date()
+
+            if calendar.isDateInToday(date) {
+                return "Today"
+            } else if calendar.isDateInYesterday(date) {
+                return "Yesterday"
+            } else {
+                let components = calendar.dateComponents([.day], from: date, to: now)
+                if let days = components.day, days < 7 {
+                    return "\(days) days ago"
+                } else {
+                    let formatter = DateFormatter()
+                    formatter.dateStyle = .medium
+                    return formatter.string(from: date)
+                }
+            }
+        }
+
         @MainActor
         public init(
             id: UUID = UUID(),

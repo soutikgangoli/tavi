@@ -89,7 +89,16 @@ public class DeviceCapabilities {
     // MARK: - iPhone Model Detection
 
     private static func detectiPhoneModel(from identifier: String) -> iPhoneModel {
-        // iPhone 16 series (2024)
+        // iPhone 17 series (2025) - A19
+        if identifier.hasPrefix("iPhone18,") {
+            if identifier == "iPhone18,1" { return .iPhone17Pro }
+            if identifier == "iPhone18,2" { return .iPhone17ProMax }
+            if identifier == "iPhone18,3" { return .iPhone17 }
+            if identifier == "iPhone18,4" { return .iPhone17Air }
+            return .iPhone17ProMax // Default to Pro Max for unknown 18,x
+        }
+
+        // iPhone 16 series (2024) - A18
         if identifier.hasPrefix("iPhone17,") {
             if identifier == "iPhone17,1" { return .iPhone16Pro }
             if identifier == "iPhone17,2" { return .iPhone16ProMax }
@@ -98,7 +107,7 @@ public class DeviceCapabilities {
             return .iPhone16Pro // Default to Pro for unknown 17,x
         }
 
-        // iPhone 15 series (2023)
+        // iPhone 15 series (2023) - A17 Pro / A16
         if identifier.hasPrefix("iPhone15,") || identifier.hasPrefix("iPhone16,") {
             // iPhone 15 Pro models
             if identifier == "iPhone15,2" { return .iPhone15Pro }
@@ -115,28 +124,56 @@ public class DeviceCapabilities {
             return .iPhone15Pro // Default to Pro for unknown 15,x/16,x
         }
 
-        // iPhone 14 series (2022)
+        // iPhone 14 series (2022) - A16 / A15
         if identifier.hasPrefix("iPhone14,") {
             if identifier == "iPhone14,2" { return .iPhone14Pro }
             if identifier == "iPhone14,3" { return .iPhone14ProMax }
-            if identifier == "iPhone14,4" { return .iPhone14 }
-            if identifier == "iPhone14,5" { return .iPhone14Plus }
+            if identifier == "iPhone14,4" { return .iPhone14Plus }
+            if identifier == "iPhone14,5" { return .iPhone14 }
+            if identifier == "iPhone14,6" { return .iPhone14 }
+            if identifier == "iPhone14,7" { return .iPhone14 }
+            if identifier == "iPhone14,8" { return .iPhone14Plus }
             return .iPhone14Pro // Default to Pro
         }
 
         // iPhone 13 series (2021) - A15
         if identifier.hasPrefix("iPhone13,") || identifier.hasPrefix("iPhone14,") {
-            return .iPhone13Pro // Has A15, decent performance
+            if identifier == "iPhone14,2" { return .iPhone13Pro }
+            if identifier == "iPhone14,3" { return .iPhone13ProMax }
+            if identifier == "iPhone14,4" { return .iPhone13Mini }
+            if identifier == "iPhone14,5" { return .iPhone13 }
+            return .iPhone13Pro
         }
 
         // iPhone 12 series (2020) - A14
-        if identifier.hasPrefix("iPhone12,") || identifier.hasPrefix("iPhone13,") {
+        if identifier.hasPrefix("iPhone13,") {
+            if identifier == "iPhone13,1" { return .iPhone12Mini }
+            if identifier == "iPhone13,2" { return .iPhone12 }
+            if identifier == "iPhone13,3" { return .iPhone12Pro }
+            if identifier == "iPhone13,4" { return .iPhone12ProMax }
             return .iPhone12Pro
         }
 
-        // iPhone 11 and older (2019 and earlier)
-        if identifier.hasPrefix("iPhone11,") {
+        // iPhone 11 series (2019) - A13
+        if identifier.hasPrefix("iPhone12,") {
+            if identifier == "iPhone12,1" { return .iPhone11 }
+            if identifier == "iPhone12,3" { return .iPhone11Pro }
+            if identifier == "iPhone12,5" { return .iPhone11ProMax }
             return .iPhone11Pro
+        }
+
+        // iPhone XR, XS series (2018) - A12
+        if identifier.hasPrefix("iPhone11,") {
+            if identifier == "iPhone11,2" { return .iPhoneXS }
+            if identifier == "iPhone11,4" || identifier == "iPhone11,6" { return .iPhoneXSMax }
+            if identifier == "iPhone11,8" { return .iPhoneXR }
+            return .iPhoneXS
+        }
+
+        // iPhone X (2017) - A11
+        if identifier.hasPrefix("iPhone10,") {
+            if identifier == "iPhone10,3" || identifier == "iPhone10,6" { return .iPhoneX }
+            return .iPhoneX
         }
 
         // Simulator
@@ -150,6 +187,12 @@ public class DeviceCapabilities {
 
     private static func getDeviceName(for model: iPhoneModel) -> String {
         switch model {
+        // iPhone 17 series
+        case .iPhone17: return "iPhone 17"
+        case .iPhone17Air: return "iPhone 17 Air"
+        case .iPhone17Pro: return "iPhone 17 Pro"
+        case .iPhone17ProMax: return "iPhone 17 Pro Max"
+
         // iPhone 16 series
         case .iPhone16: return "iPhone 16"
         case .iPhone16Plus: return "iPhone 16 Plus"
@@ -168,11 +211,20 @@ public class DeviceCapabilities {
         case .iPhone14Pro: return "iPhone 14 Pro"
         case .iPhone14ProMax: return "iPhone 14 Pro Max"
 
-        // Older models
+        // iPhone 13 series
+        case .iPhone13: return "iPhone 13"
+        case .iPhone13Mini: return "iPhone 13 mini"
         case .iPhone13Pro: return "iPhone 13 Pro"
         case .iPhone13ProMax: return "iPhone 13 Pro Max"
+
+        // iPhone 12 series
+        case .iPhone12: return "iPhone 12"
+        case .iPhone12Mini: return "iPhone 12 mini"
         case .iPhone12Pro: return "iPhone 12 Pro"
         case .iPhone12ProMax: return "iPhone 12 Pro Max"
+
+        // iPhone 11 series
+        case .iPhone11: return "iPhone 11"
         case .iPhone11Pro: return "iPhone 11 Pro"
         case .iPhone11ProMax: return "iPhone 11 Pro Max"
 
@@ -222,6 +274,10 @@ public class DeviceCapabilities {
 
     private static func detectNeuralEngineA16Plus(model: iPhoneModel) -> Bool {
         switch model {
+        // A19 chip (2025) - iPhone 17 series
+        case .iPhone17, .iPhone17Air, .iPhone17Pro, .iPhone17ProMax:
+            return true
+
         // A18 chip (2024) - iPhone 16 series
         case .iPhone16, .iPhone16Plus, .iPhone16Pro, .iPhone16ProMax:
             return true
@@ -234,11 +290,17 @@ public class DeviceCapabilities {
         case .iPhone14Pro, .iPhone14ProMax, .iPhone15, .iPhone15Plus:
             return true
 
-        // A15 and older
-        case .iPhone14, .iPhone14Plus, .iPhone13Pro, .iPhone13ProMax, .iPhone12Pro, .iPhone12ProMax, .iPhone11Pro, .iPhone11ProMax:
+        // A15 and older - no A16+ Neural Engine
+        case .iPhone14, .iPhone14Plus:
+            return false
+        case .iPhone13, .iPhone13Mini, .iPhone13Pro, .iPhone13ProMax:
+            return false
+        case .iPhone12, .iPhone12Mini, .iPhone12Pro, .iPhone12ProMax:
+            return false
+        case .iPhone11, .iPhone11Pro, .iPhone11ProMax:
             return false
 
-        // Earlier TrueDepth models (A12/A13)
+        // Earlier TrueDepth models (A11/A12)
         case .iPhoneX, .iPhoneXS, .iPhoneXSMax, .iPhoneXR:
             return false
 
@@ -270,7 +332,7 @@ public class DeviceCapabilities {
         // Pro models with 4K support
         if supports4K {
             switch model {
-            case .iPhone15Pro, .iPhone15ProMax, .iPhone16Pro, .iPhone16ProMax:
+            case .iPhone17Pro, .iPhone17ProMax, .iPhone16Pro, .iPhone16ProMax, .iPhone15Pro, .iPhone15ProMax:
                 return .fourK  // Full 4K for latest Pro models
 
             case .iPhone14Pro, .iPhone14ProMax:
@@ -283,17 +345,28 @@ public class DeviceCapabilities {
 
         // Standard models or older devices
         switch model {
-        case .iPhone15, .iPhone15Plus, .iPhone16, .iPhone16Plus:
-            return .fullHD  // 1080p for standard models
+        // Latest standard models - Full HD
+        case .iPhone17, .iPhone17Air, .iPhone16, .iPhone16Plus, .iPhone15, .iPhone15Plus:
+            return .fullHD
 
         case .iPhone14, .iPhone14Plus:
             return .fullHD
 
-        case .iPhone13Pro:
+        // iPhone 13 series - Full HD
+        case .iPhone13, .iPhone13Mini, .iPhone13Pro, .iPhone13ProMax:
             return .fullHD
 
+        // iPhone 12 series - Full HD
+        case .iPhone12, .iPhone12Mini, .iPhone12Pro, .iPhone12ProMax:
+            return .fullHD
+
+        // iPhone 11 series - 720p
+        case .iPhone11, .iPhone11Pro, .iPhone11ProMax:
+            return .hd720
+
+        // Earlier models - 720p
         default:
-            return .hd720  // 720p for older devices
+            return .hd720
         }
     }
 
@@ -322,7 +395,11 @@ public class DeviceCapabilities {
     /// Whether device is considered "low-end" (needs aggressive optimization)
     public var isLowEndDevice: Bool {
         switch iPhoneModel {
-        case .iPhone11Pro, .iPhone12Pro, .unknown:
+        case .iPhone11, .iPhone11Pro, .iPhone11ProMax:
+            return true
+        case .iPhoneX, .iPhoneXS, .iPhoneXSMax, .iPhoneXR:
+            return true
+        case .unknown:
             return true
         default:
             return false
@@ -375,6 +452,12 @@ public class DeviceCapabilities {
 // MARK: - Supporting Types
 
 public enum iPhoneModel {
+    // iPhone 17 series (2025) - A19
+    case iPhone17
+    case iPhone17Air
+    case iPhone17Pro
+    case iPhone17ProMax
+
     // iPhone 16 series (2024) - A18
     case iPhone16
     case iPhone16Plus
@@ -394,18 +477,23 @@ public enum iPhoneModel {
     case iPhone14ProMax
 
     // iPhone 13 series (2021) - A15
+    case iPhone13
+    case iPhone13Mini
     case iPhone13Pro
     case iPhone13ProMax
 
     // iPhone 12 series (2020) - A14
+    case iPhone12
+    case iPhone12Mini
     case iPhone12Pro
     case iPhone12ProMax
 
     // iPhone 11 series (2019) - A13
+    case iPhone11
     case iPhone11Pro
     case iPhone11ProMax
 
-    // Earlier TrueDepth models
+    // Earlier TrueDepth models (2017-2018) - A11/A12
     case iPhoneX
     case iPhoneXS
     case iPhoneXSMax
@@ -417,6 +505,8 @@ public enum iPhoneModel {
 
     public var chipName: String {
         switch self {
+        case .iPhone17, .iPhone17Air, .iPhone17Pro, .iPhone17ProMax:
+            return "A19"
         case .iPhone16, .iPhone16Plus, .iPhone16Pro, .iPhone16ProMax:
             return "A18"
         case .iPhone15Pro, .iPhone15ProMax:
@@ -427,11 +517,11 @@ public enum iPhoneModel {
             return "A16"
         case .iPhone14, .iPhone14Plus:
             return "A15"
-        case .iPhone13Pro, .iPhone13ProMax:
+        case .iPhone13, .iPhone13Mini, .iPhone13Pro, .iPhone13ProMax:
             return "A15"
-        case .iPhone12Pro, .iPhone12ProMax:
+        case .iPhone12, .iPhone12Mini, .iPhone12Pro, .iPhone12ProMax:
             return "A14"
-        case .iPhone11Pro, .iPhone11ProMax:
+        case .iPhone11, .iPhone11Pro, .iPhone11ProMax:
             return "A13"
         case .iPhoneX, .iPhoneXS, .iPhoneXSMax:
             return "A12"
@@ -446,6 +536,10 @@ public enum iPhoneModel {
 
     public var displayName: String {
         switch self {
+        case .iPhone17: return "iPhone 17"
+        case .iPhone17Air: return "iPhone 17 Air"
+        case .iPhone17Pro: return "iPhone 17 Pro"
+        case .iPhone17ProMax: return "iPhone 17 Pro Max"
         case .iPhone16: return "iPhone 16"
         case .iPhone16Plus: return "iPhone 16 Plus"
         case .iPhone16Pro: return "iPhone 16 Pro"
@@ -458,10 +552,15 @@ public enum iPhoneModel {
         case .iPhone14Plus: return "iPhone 14 Plus"
         case .iPhone14Pro: return "iPhone 14 Pro"
         case .iPhone14ProMax: return "iPhone 14 Pro Max"
+        case .iPhone13: return "iPhone 13"
+        case .iPhone13Mini: return "iPhone 13 mini"
         case .iPhone13Pro: return "iPhone 13 Pro"
         case .iPhone13ProMax: return "iPhone 13 Pro Max"
+        case .iPhone12: return "iPhone 12"
+        case .iPhone12Mini: return "iPhone 12 mini"
         case .iPhone12Pro: return "iPhone 12 Pro"
         case .iPhone12ProMax: return "iPhone 12 Pro Max"
+        case .iPhone11: return "iPhone 11"
         case .iPhone11Pro: return "iPhone 11 Pro"
         case .iPhone11ProMax: return "iPhone 11 Pro Max"
         case .iPhoneX: return "iPhone X"

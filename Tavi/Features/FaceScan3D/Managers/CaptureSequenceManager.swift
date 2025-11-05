@@ -37,6 +37,9 @@ public class CaptureSequenceManager: ObservableObject {
     /// Current capture sequence
     @Published public var currentSequence: CaptureSequence?
 
+    /// Flag indicating capture should be triggered (countdown completed)
+    @Published public var shouldTriggerCapture: Bool = false
+
     // MARK: - Private Properties
 
     private var holdStableTimer: Timer?
@@ -80,6 +83,7 @@ public class CaptureSequenceManager: ObservableObject {
         self.capturedPoses = [:]
         self.countdownTimer = 0
         self.guidanceFeedback = nil
+        self.shouldTriggerCapture = false
         self.holdStableTimer?.invalidate()
         self.holdStableTimer = nil
     }
@@ -87,6 +91,7 @@ public class CaptureSequenceManager: ObservableObject {
     /// Reset sequence
     public func resetSequence() {
         self.currentSequence = nil
+        self.shouldTriggerCapture = false
         stopGuidance()
         AppLogger.faceScan.info("✅ Sequence reset")
     }
@@ -142,7 +147,9 @@ public class CaptureSequenceManager: ObservableObject {
             self.countdownToleranceFrames = 0
         } else {
             // Handle countdown cancellation with tolerance
-            handleCountdownTolerance(isPoseValid: isPoseValid)
+            // IMPORTANT: Cancel countdown if EITHER pose is invalid OR quality is bad
+            let shouldCancelCountdown = !isPoseValid || !qualityGood
+            handleCountdownTolerance(shouldCancel: shouldCancelCountdown, isPoseValid: isPoseValid, qualityGood: qualityGood)
         }
 
         return feedback
@@ -199,7 +206,11 @@ public class CaptureSequenceManager: ObservableObject {
             lightEstimation: lightEstimation
         ) {
             self.currentSequence!.addTextureSample(sample)
-            AppLogger.faceScan.info("✅ Added texture sample. Total: \(self.currentSequence!.textureSamples.count)")
+            AppLogger.faceScan.info("✅ Added texture sample (sharpness: \(sample.focusSharpness)). Total: \(self.currentSequence!.textureSamples.count)")
+        } else {
+            // Texture capture failed quality checks (blur or exposure)
+            AppLogger.faceScan.warning("⚠️ Texture capture rejected - quality below threshold (likely blur)")
+            self.guidanceFeedback = "Hold phone steady for clearer focus"
         }
     }
 
@@ -243,16 +254,16 @@ public class CaptureSequenceManager: ObservableObject {
             AppLogger.faceScan.info("📸 Captured \(captureSuccess)/3 frames")
         }
 
-        // TESTING MODE: Complete after first capture
-        AppLogger.faceScan.info("🧪 TESTING MODE: Completing scan after first capture")
+        // TESTING MODE: Complete after first capture (for Metal GPU fix validation)
+        // TODO: Re-enable full 5-pose workflow after validating Metal GPU texture conversion
+        AppLogger.faceScan.info("🧪 TESTING MODE: Completing scan after first capture (Metal GPU validation)")
 
         DispatchQueue.main.asyncAfter(deadline: .now() + ScanConfiguration.calibrationRetryDelay) { [weak self] in
             self?.isCaptureInProgress = false
             self?.guidanceFeedback = "Testing mode - scan complete!"
         }
 
-        // Production code (7-pose workflow) commented out:
-        /*
+        /* PRODUCTION CODE: Full multi-pose workflow (disabled for testing)
         // Move to next step or finish
         let currentStep = self.currentGuidanceStep
         if let nextStepIndex = GuidanceStep.allCases.firstIndex(of: currentStep).map({ $0 + 1 }),
@@ -266,7 +277,7 @@ public class CaptureSequenceManager: ObservableObject {
             }
         } else {
             // All steps captured - keep guidance active until View calls finalizeCapture()
-            AppLogger.faceScan.info("✅ All 7 poses captured! Waiting for View to call finalizeCapture()")
+            AppLogger.faceScan.info("✅ All \(GuidanceStep.allCases.count) poses captured! Waiting for View to call finalizeCapture()")
             self.isCaptureInProgress = false
             self.guidanceFeedback = "All poses captured!"
         }
@@ -305,19 +316,22 @@ public class CaptureSequenceManager: ObservableObject {
                 if self.countdownTimer > 1 {
                     self.countdownTimer -= 1
                     self.guidanceFeedback = "Hold still! \(self.countdownTimer)..."
-                } else {
-                    // Capture!
-                    AppLogger.faceScan.info("📸 Countdown complete - CAPTURING!")
+                } else if self.countdownTimer == 1 {
+                    // Countdown reached 1 - trigger capture on next tick (when it reaches 0)
+                    self.countdownTimer = 0
                     timer.invalidate()
                     self.holdStableTimer = nil
-                    self.countdownTimer = 0
 
                     // Haptic feedback
                     if HapticSettings.shared.isEnabled {
                         HapticManager.shared.medium()
                     }
 
-                    // Trigger capture (will be called by ViewModel with current data)
+                    AppLogger.faceScan.info("📸 Countdown complete - ready to capture!")
+                    self.guidanceFeedback = "Capturing..."
+
+                    // Set flag to trigger capture
+                    self.shouldTriggerCapture = true
                 }
             }
         }
@@ -326,9 +340,9 @@ public class CaptureSequenceManager: ObservableObject {
         self.holdStableTimer = timer
     }
 
-    private func handleCountdownTolerance(isPoseValid: Bool) {
+    private func handleCountdownTolerance(shouldCancel: Bool, isPoseValid: Bool, qualityGood: Bool) {
         if self.holdStableTimer != nil {
-            if !isPoseValid {
+            if shouldCancel {
                 self.countdownToleranceFrames += 1
 
                 if self.countdownToleranceFrames < ScanConfiguration.countdownToleranceFrames {
@@ -337,14 +351,15 @@ public class CaptureSequenceManager: ObservableObject {
                 }
 
                 // Exceeded tolerance - cancel countdown
-                AppLogger.faceScan.warning("🚫 Countdown cancelled - pose changed")
+                let reason = !isPoseValid ? "pose changed" : "quality degraded"
+                AppLogger.faceScan.warning("🚫 Countdown cancelled - \(reason)")
                 self.holdStableTimer?.invalidate()
                 self.holdStableTimer = nil
                 self.countdownTimer = 0
                 self.countdownToleranceFrames = 0
                 self.guidanceFeedback = nil
             } else {
-                // Pose valid again - reset tolerance
+                // Pose and quality both valid again - reset tolerance
                 self.countdownToleranceFrames = 0
             }
         }

@@ -188,7 +188,7 @@ public struct ProgressGraphView: View {
         if #available(iOS 16.0, *) {
             Chart {
                 ForEach(sortedSessions, id: \.id) { session in
-                    // Line mark
+                    // Line mark: X=Date/Time, Y=Score
                     LineMark(
                         x: .value("Date", session.date),
                         y: .value("Score", session.overallScore)
@@ -205,7 +205,7 @@ public struct ProgressGraphView: View {
                     )
                     .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
 
-                    // Area under line
+                    // Area under line: X=Date/Time, Y=Score
                     AreaMark(
                         x: .value("Date", session.date),
                         y: .value("Score", session.overallScore)
@@ -221,7 +221,7 @@ public struct ProgressGraphView: View {
                         )
                     )
 
-                    // Data points
+                    // Data points: X=Date/Time, Y=Score
                     PointMark(
                         x: .value("Date", session.date),
                         y: .value("Score", session.overallScore)
@@ -250,15 +250,27 @@ public struct ProgressGraphView: View {
                     }
                 }
             }
-            .chartYScale(domain: 0...100)
+            .chartYScale(domain: 0...100)  // Y-axis is Score (0-100)
             .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 5)) { _ in
+                // X-axis shows time + date in format: "5:22 PM (13 May)"
+                AxisMarks(values: .automatic(desiredCount: 5)) { value in
                     AxisGridLine()
                     AxisTick()
-                    AxisValueLabel(format: .dateTime.month().day(), centered: true)
+                    if let date = value.as(Date.self) {
+                        AxisValueLabel {
+                            VStack(spacing: 2) {
+                                Text(formatTime(date))
+                                    .font(.system(size: 10, weight: .medium))
+                                Text(formatDateShort(date))
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
                 }
             }
             .chartYAxis {
+                // Y-axis shows score values (0, 25, 50, 75, 100)
                 AxisMarks(position: .leading) { value in
                     AxisGridLine()
                     AxisValueLabel()
@@ -273,6 +285,7 @@ public struct ProgressGraphView: View {
                             DragGesture(minimumDistance: 0)
                                 .onChanged { value in
                                     let location = value.location
+                                    // X-axis has dates
                                     if let date: Date = proxy.value(atX: location.x) {
                                         // Find closest session
                                         if let closestSession = sortedSessions.min(by: {
@@ -392,6 +405,20 @@ public struct ProgressGraphView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d"
         return formatter.string(from: date)
+    }
+
+    /// Format time as "5:22 PM"
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter.string(from: date)
+    }
+
+    /// Format date as "(13 May)" or just "13 May"
+    private func formatDateShort(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+        return "(\(formatter.string(from: date)))"
     }
 }
 

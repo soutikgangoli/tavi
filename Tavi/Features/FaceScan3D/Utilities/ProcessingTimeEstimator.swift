@@ -28,22 +28,98 @@ public enum ProcessingPhase: Int, CaseIterable {
         }
     }
 
-    /// Detailed explanation with interesting facts
-    var detailedDescription: String {
+    /// Cycling messages for each phase (returns different message each time)
+    func getCyclingMessage(index: Int) -> String {
         switch self {
         case .meshMerge:
-            return "Merging 50+ captures into your 3D model"
+            let messages = [
+                "Merging 50+ captures into your 3D model",
+                "Aligning facial geometry with precision",
+                "Reconstructing your face in 3D space",
+                "Combining multiple angles for accuracy",
+                "Calculating spatial relationships between vertices",
+                "Blending depth information from each pose",
+                "Optimizing mesh topology for smooth surfaces",
+                "Correcting for micro-movements during capture",
+                "Building a unified coordinate system",
+                "Removing duplicate vertices and artifacts",
+                "Averaging overlapping regions for consistency",
+                "Computing surface normals and curvature"
+            ]
+            return messages[index % messages.count]
         case .textureBake:
-            return "Processing 4K resolution skin texture"
+            let messages = [
+                "Processing 4K resolution skin texture",
+                "Mapping skin details onto your 3D model",
+                "Blending texture samples for clarity",
+                "Creating photorealistic skin representation",
+                "Analyzing color information from multiple angles",
+                "Correcting for lighting variations across captures",
+                "Stitching together texture patches seamlessly",
+                "Reducing shadows and specular highlights",
+                "Normalizing color temperature across the face",
+                "Enhancing fine details like pores and texture",
+                "Applying anti-aliasing for smooth edges",
+                "Generating UV coordinates for optimal mapping"
+            ]
+            return messages[index % messages.count]
         case .metricsAnalysis:
-            return "Analyzing 50,000+ data points across your face"
+            let messages = [
+                "Analyzing 50,000+ data points across your face",
+                "Measuring pore size and distribution patterns",
+                "Detecting fine lines and texture variations",
+                "Evaluating skin tone uniformity and pigmentation",
+                "Assessing hydration levels and skin quality",
+                "Mapping facial contours and symmetry",
+                "Quantifying surface roughness at microscale",
+                "Identifying areas of redness or inflammation",
+                "Measuring skin elasticity and firmness",
+                "Detecting sun damage and hyperpigmentation",
+                "Analyzing sebum distribution and shine",
+                "Evaluating collagen density indicators",
+                "Measuring wrinkle depth and distribution",
+                "Assessing overall skin clarity and radiance",
+                "Computing texture entropy across regions"
+            ]
+            return messages[index % messages.count]
         case .emotionalMetrics:
-            return "Computing your personalized Skin Health Index"
+            let messages = [
+                "Computing your personalized Skin Health Index",
+                "Comparing with your previous scan results",
+                "Calculating improvement percentage",
+                "Generating personalized recommendations",
+                "Identifying your strongest skin attributes",
+                "Detecting patterns in your skin's progress",
+                "Weighting metrics by clinical importance",
+                "Factoring in environmental and lifestyle data",
+                "Computing age-adjusted baseline comparisons",
+                "Translating technical metrics to friendly scores",
+                "Highlighting areas showing improvement"
+            ]
+            return messages[index % messages.count]
         case .gamification:
-            return "Updating achievements and milestones"
+            let messages = [
+                "Updating achievements and milestones",
+                "Checking for new unlocks and rewards",
+                "Calculating your consistency streak",
+                "Updating your progress towards goals"
+            ]
+            return messages[index % messages.count]
         case .coreDataSave:
-            return "Encrypting and saving your results securely"
+            let messages = [
+                "Encrypting and saving your results securely",
+                "Writing scan data to device storage",
+                "Creating timestamped history entry",
+                "Backing up metrics for future comparison"
+            ]
+            return messages[index % messages.count]
         }
+    }
+
+    /// Detailed explanation with interesting facts
+    var detailedDescription: String {
+        // Default message (will be overridden by cycling)
+        return getCyclingMessage(index: 0)
     }
 
     /// Quality explanation - why this step takes time (nil if step is fast)

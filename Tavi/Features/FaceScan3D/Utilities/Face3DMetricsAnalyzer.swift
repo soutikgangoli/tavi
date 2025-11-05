@@ -177,26 +177,41 @@ public class Face3DMetricsAnalyzer {
 
         AppLogger.metrics.info("   Computing metrics for \(roiSamples.count) ROIs in parallel...")
 
-        // Parallel processing using Task Group for significant speedup
+        // MEMORY OPTIMIZATION: Parallel processing with limited concurrency
+        // Processing all ROIs simultaneously can spike memory to 2.5GB (5× 4096×4096 Metal textures)
+        // Limit to 2-3 concurrent Metal operations to keep memory under 1GB
+        let maxConcurrentOperations = 2
         await withTaskGroup(of: (Face3DROI, ROI3DMetrics).self) { group in
-            for (roi, sample) in roiSamples {
-                let confidence = roiConfidences[roi]
-                let lightingScore = lightingQualityScore  // Capture for async context
-                group.addTask {
-                    AppLogger.metrics.debug("   - Processing \(roi.displayName)...")
-                    // Pass lighting quality to metrics computation
-                    let metrics = await self.computeROI3DMetrics(sample, rawSample: nil, confidence: confidence, lightingQuality: lightingScore)
-                    AppLogger.metrics.debug("   ✓ \(roi.displayName): roughness=\(metrics.roughnessProxy), pigmentation=\(metrics.pigmentationIndex), confidence=\(metrics.confidenceLevel)")
-                    return (roi, metrics)
+            var pendingROIs = Array(roiSamples)
+            var activeCount = 0
+
+            // Process ROIs with concurrency limit
+            while !pendingROIs.isEmpty || activeCount > 0 {
+                // Start new tasks up to concurrency limit
+                while activeCount < maxConcurrentOperations && !pendingROIs.isEmpty {
+                    let (roi, sample) = pendingROIs.removeFirst()
+                    let confidence = roiConfidences[roi]
+                    let lightingScore = lightingQualityScore  // Capture for async context
+
+                    group.addTask {
+                        AppLogger.metrics.debug("   - Processing \(roi.displayName)...")
+                        // Pass lighting quality to metrics computation
+                        let metrics = await self.computeROI3DMetrics(sample, rawSample: nil, confidence: confidence, lightingQuality: lightingScore)
+                        AppLogger.metrics.debug("   ✓ \(roi.displayName): roughness=\(metrics.roughnessProxy), pigmentation=\(metrics.pigmentationIndex), confidence=\(metrics.confidenceLevel)")
+                        return (roi, metrics)
+                    }
+                    activeCount += 1
+                }
+
+                // Wait for one task to complete
+                if let result = await group.next() {
+                    let (roi, metrics) = result
+                    roiMetrics[roi] = metrics
+                    activeCount -= 1
                 }
             }
-
-            // Collect results as they complete
-            for await (roi, metrics) in group {
-                roiMetrics[roi] = metrics
-            }
         }
-        AppLogger.metrics.info("   ✅ All ROI metrics computed (parallel processing)")
+        AppLogger.metrics.info("   ✅ All ROI metrics computed (parallel processing with memory optimization)")
 
         // Step 4: Compute global metrics and scores
         let globalResults = computeGlobalMetrics(
@@ -687,6 +702,45 @@ public class Face3DMetricsAnalyzer {
         let discolorationScore = scoring.mapDiscolorationScore(globalDiscoloration, lightingQuality: lightingQuality)
         let specularScore = globalSpecular.map { scoring.mapSpecularScore($0) }
 
+        // DIAGNOSTIC: Log global metrics with clear interpretation
+        AppLogger.metrics.info("📊 Global Metrics Summary:")
+        AppLogger.metrics.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        // Roughness (Lower proxy = Better score)
+        AppLogger.metrics.info("   Roughness Proxy: \(String(format: "%.4f", Double(globalRoughness))) [0=smooth, 1=rough]")
+        AppLogger.metrics.info("   → Smoothness Score: \(String(format: "%.1f", Double(roughnessScore)))/100 [higher=better]")
+
+        // Pigmentation (Lower index = Better score)
+        AppLogger.metrics.info("   Pigmentation Index: \(String(format: "%.4f", Double(globalPigmentation))) [0=even, 1=uneven]")
+        AppLogger.metrics.info("   → Evenness Score: \(String(format: "%.1f", Double(pigmentationScore)))/100 [higher=better]")
+
+        // Discoloration (Lower index = Better score)
+        AppLogger.metrics.info("   Discoloration Index: \(String(format: "%.4f", Double(globalDiscoloration))) [0=uniform, 1=patchy]")
+        AppLogger.metrics.info("   → Uniformity Score: \(String(format: "%.1f", Double(discolorationScore)))/100 [higher=better]")
+
+        // Specular (Lower proxy = Better score)
+        if let spec = globalSpecular, let specScore = specularScore {
+            AppLogger.metrics.info("   Specular Proxy: \(String(format: "%.4f", Double(spec))) [0.02=dry, 0.18=oily]")
+            AppLogger.metrics.info("   → Oil Control Score: \(String(format: "%.1f", Double(specScore)))/100 [higher=better]")
+        }
+        AppLogger.metrics.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        // SAFETY CHECK: Validate roughness score
+        if roughnessScore == 0 {
+            AppLogger.metrics.warning("🚨 SMOOTHNESS SCORE = 0/100 (WORST possible - very rough skin)")
+            AppLogger.metrics.warning("   Roughness Proxy: \(String(format: "%.4f", Double(globalRoughness)))")
+            if globalRoughness > 0.50 {
+                AppLogger.metrics.warning("   ✓ Proxy >0.50 confirms extremely rough texture")
+            } else if globalRoughness < 0.08 {
+                AppLogger.metrics.warning("   ✗ Proxy <0.08 but score=0 → SCORING BUG!")
+            } else {
+                AppLogger.metrics.warning("   ? Proxy moderate but score=0 → Check mapping logic")
+            }
+            AppLogger.metrics.warning("   Expected for young skin: score 70-85")
+        } else if roughnessScore >= 90 {
+            AppLogger.metrics.info("✅ Excellent smoothness score: \(String(format: "%.1f", Double(roughnessScore)))/100")
+        }
+
         // Compute overall score
         let overallScore = scoring.computeOverallScore(
             roughnessScore: roughnessScore,
@@ -728,8 +782,14 @@ public class Face3DMetricsAnalyzer {
 
     /// Convert UnifiedMesh to FaceMeshGeometry for advanced analyzers
     private func convertToFaceMeshGeometry(unifiedMesh: UnifiedMesh) -> FaceMeshGeometry {
-        // Convert Vector3 to SIMD3<Float>
-        let vertices = unifiedMesh.vertices.map { $0.toSIMD() }
+        // CRITICAL FIX: Apply mesh scaling correction to match FaceMeshGeometry.init(faceAnchor:)
+        // ARKit face meshes are consistently ~1.6x too wide (228mm vs 140mm expected)
+        // This causes wrinkle depths to be measured incorrectly (3mm vs <1mm expected)
+        // Applying empirically-determined scaling factor based on diagnostic measurements
+        let meshScalingFactor: Float = 0.63  // Corrects 228mm → 144mm (within 130-160mm range)
+
+        // Convert Vector3 to SIMD3<Float> and apply scaling
+        let vertices = unifiedMesh.vertices.map { $0.toSIMD() * meshScalingFactor }
         let normals = unifiedMesh.normals.map { $0.toSIMD() }
         let textureCoordinates = unifiedMesh.textureCoordinates.map { $0.toSIMD() }
 

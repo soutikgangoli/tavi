@@ -43,9 +43,32 @@ public class RoughnessAnalyzer {
     /// NOTE: Now uses Metal GPU acceleration for full-resolution processing (no downsampling needed!)
     /// Metal enables 20-50x faster blur, allowing analysis of complete texture data.
     public func computeRoughnessProxy(_ sample: ROITextureSample) -> Float {
+        // DIAGNOSTIC: Check sample validity
+        AppLogger.mesh.debug("🔍 RoughnessAnalyzer: Processing ROI \(String(describing: sample.roi))")
+        AppLogger.mesh.debug("   Size: \(sample.width)×\(sample.height), Pixels: \(sample.pixels.count)")
+
+        guard sample.pixels.count > 0 else {
+            AppLogger.mesh.error("❌ RoughnessAnalyzer: Empty pixel array! Returning 0")
+            return 0
+        }
+
         // TRY METAL GPU FIRST (if available)
         if let metalProcessor = MetalTextureProcessor.shared {
-            return computeRoughnessProxyGPU(sample, metalProcessor: metalProcessor)
+            AppLogger.mesh.debug("🎨 RoughnessAnalyzer: Using Metal GPU path")
+            let result = computeRoughnessProxyGPU(sample, metalProcessor: metalProcessor)
+
+            // DIAGNOSTIC: Log unusual zero values
+            if result == 0 {
+                AppLogger.mesh.info("ℹ️ Metal GPU: Roughness proxy = 0.000 (perfect smoothness detected)")
+                AppLogger.mesh.info("   → Will map to Smoothness Score = 100/100")
+                AppLogger.mesh.info("   → If actual skin has visible texture, this indicates processing failure")
+            } else if result > 0.5 {
+                AppLogger.mesh.warning("⚠️ Metal GPU: Roughness proxy = \(String(format: "%.3f", Double(result))) (very rough)")
+                AppLogger.mesh.warning("   → Will map to Smoothness Score ≈ 0/100")
+                AppLogger.mesh.warning("   → For young skin, proxy should typically be 0.08-0.25")
+            }
+
+            return result
         }
 
         // FALLBACK TO CPU (with downsampling for performance)
@@ -56,7 +79,15 @@ public class RoughnessAnalyzer {
         // Convert to luminance
         let luminance = convertToLuminance(downsampledSample.pixels)
 
-        guard !luminance.isEmpty else { return 0 }
+        guard !luminance.isEmpty else {
+            AppLogger.mesh.error("❌ RoughnessAnalyzer: Luminance conversion failed! Returning 0")
+            return 0
+        }
+
+        // DIAGNOSTIC: Check luminance statistics
+        var meanLumaCheck: Float = 0
+        vDSP_meanv(luminance, 1, &meanLumaCheck, vDSP_Length(luminance.count))
+        AppLogger.mesh.debug("🔍 RoughnessAnalyzer: Mean luminance = \(String(format: "%.3f", Double(meanLumaCheck)))")
 
         // Apply high-pass filter
         let highpass = applyHighPassFilter(luminance, width: downsampledSample.width, height: downsampledSample.height)
@@ -75,6 +106,23 @@ public class RoughnessAnalyzer {
 
         // Scale to 0-1 range
         let roughnessProxy = min(normalizedEnergy * configuration.normalizationFactor, 1.0)
+
+        // DIAGNOSTIC: Log results with interpretation
+        AppLogger.mesh.info("📊 RoughnessAnalyzer CPU Results:")
+        AppLogger.mesh.info("   Roughness Proxy: \(String(format: "%.4f", Double(roughnessProxy))) [0=smooth, 1=rough]")
+        AppLogger.mesh.info("   Mean Luminance: \(String(format: "%.3f", Double(meanLuma)))")
+        AppLogger.mesh.info("   High-Pass Energy: \(String(format: "%.3f", Double(meanHighpass)))")
+
+        // Interpretation
+        if roughnessProxy < 0.08 {
+            AppLogger.mesh.info("   → Excellent smoothness (will score 90-100)")
+        } else if roughnessProxy < 0.25 {
+            AppLogger.mesh.info("   → Good smoothness (will score 60-90)")
+        } else if roughnessProxy < 0.50 {
+            AppLogger.mesh.info("   → Moderate roughness (will score 20-60)")
+        } else {
+            AppLogger.mesh.warning("   → ⚠️ High roughness (will score 0-20)")
+        }
 
         return roughnessProxy
     }
@@ -287,62 +335,109 @@ public class RoughnessAnalyzer {
 
     /// Compute roughness using Metal GPU (NO downsampling - full resolution!)
     private func computeRoughnessProxyGPU(_ sample: ROITextureSample, metalProcessor: MetalTextureProcessor) -> Float {
-        // Convert ROITextureSample → UIImage
-        guard let uiImage = sampleToUIImage(sample) else {
-            AppLogger.mesh.error("Failed to convert sample to UIImage - falling back to CPU")
-            return computeRoughnessProxyCPU(sample)
-        }
+        // MEMORY OPTIMIZATION: Wrap Metal GPU operations in autoreleasepool
+        // This immediately releases temporary Metal objects (textures, command buffers)
+        // preventing memory spikes when processing multiple ROIs in parallel
+        return autoreleasepool {
+            // Convert ROITextureSample → UIImage
+            AppLogger.mesh.debug("🔍 Metal GPU: Converting sample to UIImage...")
+            guard let uiImage = sampleToUIImage(sample) else {
+                AppLogger.mesh.error("❌ Metal GPU: Failed to convert sample to UIImage - falling back to CPU")
+                return computeRoughnessProxyCPU(sample)
+            }
+            AppLogger.mesh.debug("✅ Metal GPU: UIImage created successfully (\(uiImage.size.width)×\(uiImage.size.height))")
 
-        // Apply Gaussian blur using Metal (full resolution!)
-        let blurRadius = Float(configuration.filterRadius)
-        guard let blurredImage = metalProcessor.applyGaussianBlur(uiImage, radius: blurRadius) else {
-            AppLogger.mesh.error("Metal blur failed - falling back to CPU")
-            return computeRoughnessProxyCPU(sample)
-        }
+            // Apply Gaussian blur using Metal (full resolution!)
+            let blurRadius = Float(configuration.filterRadius)
+            AppLogger.mesh.debug("🔍 Metal GPU: Applying Gaussian blur (radius: \(blurRadius))...")
+            guard let blurredImage = metalProcessor.applyGaussianBlur(uiImage, radius: blurRadius) else {
+                AppLogger.mesh.error("❌ Metal GPU: Blur failed - falling back to CPU")
+                return computeRoughnessProxyCPU(sample)
+            }
+            AppLogger.mesh.debug("✅ Metal GPU: Blur completed successfully")
 
-        // OPTIMIZATION: Could use GPU luminance conversion here too
-        // For now using CPU conversion (fast enough for post-blur data)
+            // OPTIMIZATION: Could use GPU luminance conversion here too
+            // For now using CPU conversion (fast enough for post-blur data)
 
-        // Convert blurred image back to pixel data
-        guard let blurredSample = uiImageToSample(blurredImage, roi: sample.roi) else {
-            AppLogger.mesh.error("Failed to convert blurred image - falling back to CPU")
-            return computeRoughnessProxyCPU(sample)
-        }
+            // Convert blurred image back to pixel data
+            AppLogger.mesh.debug("🔍 Metal GPU: Converting blurred image back to sample...")
+            guard let blurredSample = uiImageToSample(blurredImage, roi: sample.roi) else {
+                AppLogger.mesh.error("❌ Metal GPU: Failed to convert blurred image - falling back to CPU")
+                return computeRoughnessProxyCPU(sample)
+            }
+            AppLogger.mesh.debug("✅ Metal GPU: Blurred sample created (pixels: \(blurredSample.pixels.count))")
 
-        // Convert to luminance (original and blurred)
-        // Note: Could optimize with GPU luminance shader if needed
-        let originalLuminance = convertToLuminance(sample.pixels)
-        let blurredLuminance = convertToLuminance(blurredSample.pixels)
+            // CRITICAL FIX: Convert original sample to full raster for comparison
+            // The blurred sample is a full 4096×4096 raster (16M pixels)
+            // But the original sample.pixels is sparse ROI data (~1.5M pixels)
+            // We need to convert the original to full raster too for fair comparison
+            AppLogger.mesh.debug("🔍 Metal GPU: Converting original sample to full raster for comparison...")
+            guard let originalUIImage = sampleToUIImage(sample) else {
+                AppLogger.mesh.error("❌ Metal GPU: Failed to convert original to full raster - falling back to CPU")
+                return computeRoughnessProxyCPU(sample)
+            }
+            guard let originalFullSample = uiImageToSample(originalUIImage, roi: sample.roi) else {
+                AppLogger.mesh.error("❌ Metal GPU: Failed to extract original full sample - falling back to CPU")
+                return computeRoughnessProxyCPU(sample)
+            }
+            AppLogger.mesh.debug("✅ Metal GPU: Original sample converted to full raster (pixels: \(originalFullSample.pixels.count))")
 
-        guard originalLuminance.count == blurredLuminance.count else {
-            AppLogger.mesh.error("Luminance arrays mismatch - falling back to CPU")
-            return computeRoughnessProxyCPU(sample)
-        }
+            // Convert to luminance (both now have same pixel count)
+            let originalLuminance = convertToLuminance(originalFullSample.pixels)
+            let blurredLuminance = convertToLuminance(blurredSample.pixels)
 
-        // High-pass = original - blurred
-        var highpass = [Float](repeating: 0, count: originalLuminance.count)
-        for i in 0..<originalLuminance.count {
-            highpass[i] = originalLuminance[i] - blurredLuminance[i]
-        }
+            guard originalLuminance.count == blurredLuminance.count else {
+                AppLogger.mesh.error("❌ Metal GPU: Luminance arrays still mismatch (original: \(originalLuminance.count), blurred: \(blurredLuminance.count)) - falling back to CPU")
+                return computeRoughnessProxyCPU(sample)
+            }
+            AppLogger.mesh.debug("✅ Metal GPU: Luminance arrays match (\(originalLuminance.count) pixels each)")
 
-        // Compute mean luminance
-        var meanLuma: Float = 0
-        vDSP_meanv(originalLuminance, 1, &meanLuma, vDSP_Length(originalLuminance.count))
+            // High-pass = original - blurred
+            var highpass = [Float](repeating: 0, count: originalLuminance.count)
+            for i in 0..<originalLuminance.count {
+                highpass[i] = originalLuminance[i] - blurredLuminance[i]
+            }
 
-        // Compute mean of absolute high-pass values
-        let absHighpass = highpass.map { abs($0) }
-        var meanHighpass: Float = 0
-        vDSP_meanv(absHighpass, 1, &meanHighpass, vDSP_Length(absHighpass.count))
+            // Compute mean luminance
+            var meanLuma: Float = 0
+            vDSP_meanv(originalLuminance, 1, &meanLuma, vDSP_Length(originalLuminance.count))
 
-        // Normalized energy = mean(abs(highpass)) / mean(luma)
-        let normalizedEnergy = meanLuma > 0 ? meanHighpass / meanLuma : 0
+            // Compute mean of absolute high-pass values
+            let absHighpass = highpass.map { abs($0) }
+            var meanHighpass: Float = 0
+            vDSP_meanv(absHighpass, 1, &meanHighpass, vDSP_Length(absHighpass.count))
 
-        // Scale to 0-1 range
-        let roughnessProxy = min(normalizedEnergy * configuration.normalizationFactor, 1.0)
+            // Normalized energy = mean(abs(highpass)) / mean(luma)
+            let normalizedEnergy = meanLuma > 0 ? meanHighpass / meanLuma : 0
 
-        AppLogger.mesh.info("✅ Metal GPU roughness: \(String(format: "%.3f", roughnessProxy)) (full \(sample.width)×\(sample.height) resolution)")
+            // Scale to 0-1 range
+            let roughnessProxy = min(normalizedEnergy * configuration.normalizationFactor, 1.0)
 
-        return roughnessProxy
+            // DIAGNOSTIC: Detailed logging with interpretation
+            AppLogger.mesh.info("📊 Metal GPU Results (full \(sample.width)×\(sample.height) resolution):")
+            AppLogger.mesh.info("   Roughness Proxy: \(String(format: "%.4f", Double(roughnessProxy))) [0=smooth, 1=rough]")
+            AppLogger.mesh.info("   Mean Luminance: \(String(format: "%.3f", Double(meanLuma)))")
+            AppLogger.mesh.info("   High-Pass Energy: \(String(format: "%.3f", Double(meanHighpass)))")
+
+            // Interpretation
+            if roughnessProxy == 0 {
+                if meanHighpass == 0 {
+                    AppLogger.mesh.warning("   ⚠️ Zero proxy + zero high-pass = processing failure or perfectly uniform texture")
+                } else {
+                    AppLogger.mesh.info("   → Perfect smoothness detected (will score 100/100)")
+                }
+            } else if roughnessProxy < 0.08 {
+                AppLogger.mesh.info("   → Excellent smoothness (will score 90-100)")
+            } else if roughnessProxy < 0.25 {
+                AppLogger.mesh.info("   → Good smoothness (will score 60-90)")
+            } else if roughnessProxy < 0.50 {
+                AppLogger.mesh.info("   → Moderate roughness (will score 20-60)")
+            } else {
+                AppLogger.mesh.warning("   → ⚠️ High roughness = \(String(format: "%.3f", Double(roughnessProxy))) (will score 0-20)")
+            }
+
+            return roughnessProxy
+        }  // autoreleasepool
     }
 
     /// CPU fallback (explicit method for clarity)
@@ -370,35 +465,126 @@ public class RoughnessAnalyzer {
     // MARK: - Image Conversion Helpers
 
     /// Convert ROITextureSample to UIImage
+    ///
+    /// CRITICAL FIX: ROITextureSample.pixels contains ONLY ROI pixels (sparse data),
+    /// but width/height are the FULL texture dimensions (4096×4096).
+    /// Instead of creating a full-size image with black background (which causes edge artifacts),
+    /// we crop to the ROI bounding box to preserve only actual skin texture.
     private func sampleToUIImage(_ sample: ROITextureSample) -> UIImage? {
-        let width = sample.width
-        let height = sample.height
-
-        guard width > 0 && height > 0 else { return nil }
-
-        // Create RGBA bitmap
-        var rgbaData = [UInt8]()
-        rgbaData.reserveCapacity(width * height * 4)
-
-        for pixel in sample.pixels {
-            rgbaData.append(UInt8(clamp(pixel.x, 0, 1) * 255))  // R
-            rgbaData.append(UInt8(clamp(pixel.y, 0, 1) * 255))  // G
-            rgbaData.append(UInt8(clamp(pixel.z, 0, 1) * 255))  // B
-            rgbaData.append(255)  // A
+        guard sample.pixels.count > 0 && sample.uvCoordinates.count == sample.pixels.count else {
+            AppLogger.mesh.error("❌ sampleToUIImage: Invalid sample data (pixels: \(sample.pixels.count), UVs: \(sample.uvCoordinates.count))")
+            return nil
         }
+
+        let fullWidth = sample.width
+        let fullHeight = sample.height
+
+        guard fullWidth > 0 && fullHeight > 0 else {
+            AppLogger.mesh.error("❌ sampleToUIImage: Invalid dimensions (\(fullWidth)×\(fullHeight))")
+            return nil
+        }
+
+        // Calculate bounding box of ROI in pixel coordinates
+        var minX = Int.max, maxX = 0
+        var minY = Int.max, maxY = 0
+
+        for uv in sample.uvCoordinates {
+            let x = Int(uv.x * Float(fullWidth - 1))
+            let y = Int(uv.y * Float(fullHeight - 1))
+            minX = min(minX, x)
+            maxX = max(maxX, x)
+            minY = min(minY, y)
+            maxY = max(maxY, y)
+        }
+
+        // Ensure valid bounding box
+        guard minX < maxX && minY < maxY else {
+            AppLogger.mesh.error("❌ sampleToUIImage: Invalid bounding box (\(minX),\(minY))-(\(maxX),\(maxY))")
+            return nil
+        }
+
+        // Calculate cropped dimensions
+        let cropWidth = maxX - minX + 1
+        let cropHeight = maxY - minY + 1
+
+        AppLogger.mesh.debug("🔍 sampleToUIImage: Cropping ROI bounding box")
+        AppLogger.mesh.debug("   Full texture: \(fullWidth)×\(fullHeight)")
+        AppLogger.mesh.debug("   ROI bounds: (\(minX),\(minY))-(\(maxX),\(maxY))")
+        AppLogger.mesh.debug("   Cropped size: \(cropWidth)×\(cropHeight)")
+        AppLogger.mesh.debug("   Pixels: \(sample.pixels.count)")
+
+        // Create cropped image with average ROI color as background
+        // (prevents edge artifacts while maintaining texture information)
+        var avgR: Float = 0, avgG: Float = 0, avgB: Float = 0
+        for pixel in sample.pixels {
+            avgR += pixel.x
+            avgG += pixel.y
+            avgB += pixel.z
+        }
+        let count = Float(sample.pixels.count)
+        avgR /= count
+        avgG /= count
+        avgB /= count
+
+        let bgR = UInt8(clamp(avgR, 0, 1) * 255)
+        let bgG = UInt8(clamp(avgG, 0, 1) * 255)
+        let bgB = UInt8(clamp(avgB, 0, 1) * 255)
+
+        var rgbaData = [UInt8](repeating: 0, count: cropWidth * cropHeight * 4)
+
+        // Fill with average background color
+        for i in 0..<(cropWidth * cropHeight) {
+            let offset = i * 4
+            rgbaData[offset + 0] = bgR
+            rgbaData[offset + 1] = bgG
+            rgbaData[offset + 2] = bgB
+            rgbaData[offset + 3] = 255
+        }
+
+        // Place ROI pixels at their positions in cropped space
+        for i in 0..<sample.pixels.count {
+            let uv = sample.uvCoordinates[i]
+            let pixel = sample.pixels[i]
+
+            // Convert UV to full texture coordinates
+            let fullX = Int(uv.x * Float(fullWidth - 1))
+            let fullY = Int(uv.y * Float(fullHeight - 1))
+
+            // Convert to cropped coordinates
+            let cropX = fullX - minX
+            let cropY = fullY - minY
+
+            // Bounds check
+            guard cropX >= 0 && cropX < cropWidth && cropY >= 0 && cropY < cropHeight else {
+                continue
+            }
+
+            let offset = (cropY * cropWidth + cropX) * 4
+            if offset + 3 < rgbaData.count {
+                rgbaData[offset + 0] = UInt8(clamp(pixel.x, 0, 1) * 255)  // R
+                rgbaData[offset + 1] = UInt8(clamp(pixel.y, 0, 1) * 255)  // G
+                rgbaData[offset + 2] = UInt8(clamp(pixel.z, 0, 1) * 255)  // B
+                rgbaData[offset + 3] = 255  // A
+            }
+        }
+
+        AppLogger.mesh.debug("✅ Created cropped ROI image: \(cropWidth)×\(cropHeight) from \(sample.pixels.count) pixels")
 
         // Create CGImage
         guard let dataProvider = CGDataProvider(data: Data(rgbaData) as CFData),
               let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else {
+            AppLogger.mesh.error("❌ sampleToUIImage: Failed to create data provider or color space")
             return nil
         }
 
+        let bytesPerRow = cropWidth * 4
+
         guard let cgImage = CGImage(
-            width: width,
-            height: height,
+            width: cropWidth,
+            height: cropHeight,
             bitsPerComponent: 8,
             bitsPerPixel: 32,
-            bytesPerRow: width * 4,
+            bytesPerRow: bytesPerRow,
             space: colorSpace,
             bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
             provider: dataProvider,
@@ -406,9 +592,11 @@ public class RoughnessAnalyzer {
             shouldInterpolate: false,
             intent: .defaultIntent
         ) else {
+            AppLogger.mesh.error("❌ sampleToUIImage: CGImage creation failed!")
             return nil
         }
 
+        AppLogger.mesh.debug("✅ sampleToUIImage: Successfully created cropped CGImage")
         return UIImage(cgImage: cgImage)
     }
 
