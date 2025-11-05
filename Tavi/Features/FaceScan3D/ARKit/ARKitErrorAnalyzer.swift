@@ -149,17 +149,19 @@ public class ARKitErrorAnalyzer {
         faceAnchor: ARFaceAnchor?
     ) -> String? {
         switch trackingState {
-        case .limited(.excessiveMotion):
-            return "Move more slowly"
-
-        case .limited(.insufficientFeatures):
-            return "Improve lighting"
-
-        case .limited(.initializing):
-            return "Initializing tracking..."
-
-        case .limited(.relocalizing):
-            return "Re-establishing tracking..."
+        case .limited(let reason):
+            switch reason {
+            case .excessiveMotion:
+                return "Move more slowly"
+            case .insufficientFeatures:
+                return "Improve lighting"
+            case .initializing:
+                return "Initializing tracking..."
+            case .relocalizing:
+                return "Re-establishing tracking..."
+            @unknown default:
+                return "Tracking limited"
+            }
 
         case .notAvailable:
             return "Tracking unavailable"
@@ -285,7 +287,9 @@ public class ARKitErrorAnalyzer {
                 shouldShowContinue: hadPartialCaptures
             )
 
-        case .fileIOFailed, .microphoneUnauthorized, .recordingFailed:
+        case .fileIOFailed, .microphoneUnauthorized, .requestFailed,
+             .invalidReferenceImage, .invalidReferenceObject, .invalidWorldMap,
+             .invalidCollaborationData, .locationUnauthorized:
             // These shouldn't happen in face tracking, but handle anyway
             return ARKitErrorInfo(
                 type: .unknown,

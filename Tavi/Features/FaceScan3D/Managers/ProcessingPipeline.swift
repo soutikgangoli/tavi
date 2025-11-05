@@ -64,20 +64,17 @@ public class ProcessingPipeline: ObservableObject {
         }
 
         // Keep screen on during processing
-        let previousIdleTimerState = await UIApplication.shared.isIdleTimerDisabled
-        await MainActor.run {
-            UIApplication.shared.isIdleTimerDisabled = true
-            AppLogger.mesh.info("🔋 Screen will stay on during processing")
-        }
+        let previousIdleTimerState = UIApplication.shared.isIdleTimerDisabled
+        UIApplication.shared.isIdleTimerDisabled = true
+        AppLogger.mesh.info("🔋 Screen will stay on during processing")
 
         defer {
-            Task { @MainActor in
-                UIApplication.shared.isIdleTimerDisabled = previousIdleTimerState
-                AppLogger.mesh.info("🔋 Screen sleep restored")
+            // Already on MainActor since class is @MainActor
+            UIApplication.shared.isIdleTimerDisabled = previousIdleTimerState
+            AppLogger.mesh.info("🔋 Screen sleep restored")
 
-                // MEMORY MANAGEMENT: Release intermediate data after processing
-                self.releaseIntermediateData()
-            }
+            // MEMORY MANAGEMENT: Release intermediate data after processing
+            self.releaseIntermediateData()
         }
 
         guard !sequence.captures.isEmpty else {
@@ -115,9 +112,8 @@ public class ProcessingPipeline: ObservableObject {
             // Use streaming merger for large meshes
             do {
                 merged = try await streamingMerger.merge(captures: captures) { progress, message in
-                    Task { @MainActor in
-                        AppLogger.mesh.debug("Streaming merge progress: \(Int(progress * 100))%")
-                    }
+                    // Log progress - callback is already on main actor
+                    AppLogger.mesh.debug("Streaming merge progress: \(Int(progress * 100))%")
                 }
             } catch {
                 AppLogger.mesh.error("❌ Streaming merge failed: \(error.localizedDescription)")
@@ -129,16 +125,16 @@ public class ProcessingPipeline: ObservableObject {
                         "capture_count": captures.count
                     ]
                 )
-                await MainActor.run {
-                    self.isMerging = false
-                }
+                self.isMerging = false
                 return nil
             }
         } else {
             // Use standard merger for smaller meshes
+            // Capture merger reference before detaching from main actor
+            let merger = self.meshMerger
             merged = await Task.detached(priority: .userInitiated) { () -> MergedFaceMesh? in
                 AppLogger.mesh.info("🔧 Calling standard merger.merge()")
-                let merged = self.meshMerger.merge(captures: captures)
+                let merged = merger.merge(captures: captures)
 
                 guard let finalMesh = merged else {
                     AppLogger.mesh.error("❌ Standard merger returned nil!")
@@ -152,9 +148,7 @@ public class ProcessingPipeline: ObservableObject {
 
         guard let merged = merged else {
             AppLogger.mesh.error("❌ MERGE FAILED: Final merged mesh is nil")
-            await MainActor.run {
-                self.isMerging = false
-            }
+            self.isMerging = false
             return nil
         }
 

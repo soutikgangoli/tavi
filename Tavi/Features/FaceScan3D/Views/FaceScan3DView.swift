@@ -179,24 +179,16 @@ public struct FaceScan3DView: View {
     // MARK: - Event Handlers
 
     private func handleGeometryUpdate(_ newGeometry: FaceMeshGeometry?) {
-        do {
-            if let geometry = newGeometry {
-                onGeometryUpdate?(geometry)
-            }
-        } catch {
-            handleError(error, context: "updating geometry")
+        if let geometry = newGeometry {
+            onGeometryUpdate?(geometry)
         }
     }
 
     private func handleCaptureProgress(_ newCount: Int) {
-        do {
-            // TESTING MODE: Complete after 1 capture instead of all 7
-            // TODO: Change back to == GuidanceStep.allCases.count for production
-            if newCount >= 1 {
-                onCaptureComplete?(viewModel.capturedPoses)
-            }
-        } catch {
-            handleError(error, context: "capturing pose")
+        // TESTING MODE: Complete after 1 capture instead of all 7
+        // TODO: Change back to == GuidanceStep.allCases.count for production
+        if newCount >= 1 {
+            onCaptureComplete?(viewModel.capturedPoses)
         }
     }
 

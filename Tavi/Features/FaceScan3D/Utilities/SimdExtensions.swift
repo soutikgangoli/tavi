@@ -16,10 +16,10 @@ extension simd_float4x4 {
         // Extract rotation matrix (upper-left 3x3)
         let m11 = self[0][0]
         let m12 = self[0][1]
-        let m13 = self[0][2]
+        let _ = self[0][2]  // m13 - unused in ZYX Euler angle calculation
         let m21 = self[1][0]
         let m22 = self[1][1]
-        let m23 = self[1][2]
+        let _ = self[1][2]  // m23 - unused in ZYX Euler angle calculation
         let m31 = self[2][0]
         let m32 = self[2][1]
         let m33 = self[2][2]

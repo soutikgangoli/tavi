@@ -32,21 +32,11 @@ public struct HomeView: View {
     private var sessions: FetchedResults<SessionResult>
 
     private var latestSession: SessionResult? {
-        do {
-            return sessions.first
-        } catch {
-            handleError(error, context: "fetching latest session")
-            return nil
-        }
+        return sessions.first
     }
 
     private var hasScans: Bool {
-        do {
-            return sessions.count > 0
-        } catch {
-            handleError(error, context: "checking scan count")
-            return false
-        }
+        return sessions.count > 0
     }
 
     // MARK: - Error Handling

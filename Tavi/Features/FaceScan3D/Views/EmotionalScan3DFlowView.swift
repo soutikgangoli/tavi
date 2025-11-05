@@ -205,7 +205,7 @@ public struct EmotionalScan3DFlowView: View {
                 Text("If you cancel now, you'll need to start the scan over.\n\nAre you sure you want to cancel?")
             }
         }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
+        .onChange(of: scenePhase) { newPhase in
             // Handle app lifecycle to protect pending saves
             if newPhase == .background && pendingSaveData != nil {
                 AppLogger.faceScan.warning("App backgrounded with pending save data")
@@ -815,41 +815,39 @@ public struct EmotionalScan3DFlowView: View {
                 } catch {
                     // Timeout error - add to persistent queue and alert user
                     AppLogger.faceScan.error("⚠️ Core Data save timed out: \(error.localizedDescription)")
-                    await MainActor.run {
-                        saveQueue.enqueueSave(emotionalMetrics: emotional, clinicalMetrics: computedClinicalMetrics)
-                        pendingSaveData = (emotional, computedClinicalMetrics)
-                        saveErrorMessage = "Save operation timed out. Your results are queued for automatic retry."
-                        showSaveErrorAlert = true
-                        saveSuccessful = false
+                    DispatchQueue.main.async {
+                        self.saveQueue.enqueueSave(emotionalMetrics: emotional, clinicalMetrics: computedClinicalMetrics)
+                        self.pendingSaveData = (emotional, computedClinicalMetrics)
+                        self.saveErrorMessage = "Save operation timed out. Your results are queued for automatic retry."
+                        self.showSaveErrorAlert = true
+                        self.saveSuccessful = false
                     }
                 }
 
                 try await Task.sleep(nanoseconds: 300_000_000)
 
                 // Complete!
-                await MainActor.run {
-                    self.emotionalMetrics = emotional
-                    self.newAchievements = unlockedAchievements
-                    flowState = .complete
+                self.emotionalMetrics = emotional
+                self.newAchievements = unlockedAchievements
+                flowState = .complete
 
-                    // Track scan completion
-                    let duration = scanStartTime.map { Date().timeIntervalSince($0) } ?? 0
-                    AnalyticsManager.shared.trackScanCompleted(
-                        duration: duration,
-                        poseCount: viewModel.capturedPoses.count,
-                        score: emotional.glowScore
-                    )
+                // Track scan completion
+                let duration = scanStartTime.map { Date().timeIntervalSince($0) } ?? 0
+                AnalyticsManager.shared.trackScanCompleted(
+                    duration: duration,
+                    poseCount: viewModel.capturedPoses.count,
+                    score: Double(emotional.glowScore)
+                )
 
-                    // Log success with metrics
-                    CrashReporter.shared.logUserAction("scan_completed_successfully")
-                    CrashReporter.shared.setCustomKey("glow_score", value: emotional.glowScore)
-                    CrashReporter.shared.setCustomKey("achievements_unlocked", value: unlockedAchievements.count)
+                // Log success with metrics
+                CrashReporter.shared.logUserAction("scan_completed_successfully")
+                CrashReporter.shared.setCustomKey("glow_score", value: emotional.glowScore)
+                CrashReporter.shared.setCustomKey("achievements_unlocked", value: unlockedAchievements.count)
 
-                    // Show achievement unlock if any
-                    if !unlockedAchievements.isEmpty {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            showAchievementUnlock = true
-                        }
+                // Show achievement unlock if any
+                if !unlockedAchievements.isEmpty {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        showAchievementUnlock = true
                     }
                 }
 
@@ -862,16 +860,14 @@ public struct EmotionalScan3DFlowView: View {
                 )
 
                 // Check if error is transient and should auto-retry
-                await MainActor.run {
-                    lastError = scanError
+                lastError = scanError
 
-                    if scanError.isTransient && retryCount < ScanConfiguration.maxAutoRetryAttempts {
-                        // Automatic retry for transient errors
-                        handleAutoRetry(for: scanError)
-                    } else {
-                        // Show error to user (non-transient or max retries exceeded)
-                        handleScanError(scanError)
-                    }
+                if scanError.isTransient && retryCount < ScanConfiguration.maxAutoRetryAttempts {
+                    // Automatic retry for transient errors
+                    handleAutoRetry(for: scanError)
+                } else {
+                    // Show error to user (non-transient or max retries exceeded)
+                    handleScanError(scanError)
                 }
             } catch let timeoutError as TimeoutError {
                 // Log timeout error
@@ -881,9 +877,7 @@ public struct EmotionalScan3DFlowView: View {
                 ])
 
                 // Handle timeout errors specifically
-                await MainActor.run {
-                    flowState = .error("Processing timed out. Please close other apps, ensure good device performance, and try again.")
-                }
+                flowState = .error("Processing timed out. Please close other apps, ensure good device performance, and try again.")
             } catch {
                 // Log unexpected error with full context
                 CrashReporter.shared.logError(error, context: [
@@ -893,9 +887,7 @@ public struct EmotionalScan3DFlowView: View {
                 ])
 
                 // Generic error fallback
-                await MainActor.run {
-                    flowState = .error("An unexpected error occurred: \(error.localizedDescription). Please try again.")
-                }
+                flowState = .error("An unexpected error occurred: \(error.localizedDescription). Please try again.")
             }
         }
     }
@@ -917,8 +909,8 @@ public struct EmotionalScan3DFlowView: View {
             request.fetchLimit = 1  // Get most recent session
 
             do {
-                guard let sessions = try context.fetch(request),
-                      let lastSession = sessions.first,
+                let sessions = try context.fetch(request)
+                guard let lastSession = sessions.first,
                       let data = lastSession.clinicalMetricsData else {
                     AppLogger.faceScan.info("ℹ️ No previous clinical metrics found (this is expected for first scan)")
                     return nil
@@ -938,7 +930,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 case .incompatible(let version, let reason):
                     AppLogger.faceScan.warning("⚠️ Incompatible clinical metrics version v\(version.versionString): \(reason)")
-                    Task { @MainActor in
+                    DispatchQueue.main.async {
                         self.comparisonUnavailableReason = "Your previous scan is from an older app version and can't be compared"
                     }
                     return nil
@@ -946,7 +938,7 @@ public struct EmotionalScan3DFlowView: View {
                 case .corrupted(let error):
                     AppLogger.faceScan.error("❌ Corrupted clinical metrics data: \(error.localizedDescription)")
                     CrashReporter.shared.logError(error, context: ["operation": "json_decode_clinical_versioned"])
-                    Task { @MainActor in
+                    DispatchQueue.main.async {
                         self.comparisonUnavailableReason = "Your previous scan data appears to be damaged and can't be compared"
                     }
                     return nil
@@ -978,8 +970,8 @@ public struct EmotionalScan3DFlowView: View {
             request.fetchLimit = 1  // Get most recent session
 
             do {
-                guard let sessions = try context.fetch(request),
-                      let lastSession = sessions.first,
+                let sessions = try context.fetch(request)
+                guard let lastSession = sessions.first,
                       let data = lastSession.emotionalMetricsData else {
                     AppLogger.faceScan.info("ℹ️ No previous emotional metrics found (this is expected for first scan)")
                     return nil
@@ -999,7 +991,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 case .incompatible(let version, let reason):
                     AppLogger.faceScan.warning("⚠️ Incompatible emotional metrics version v\(version.versionString): \(reason)")
-                    Task { @MainActor in
+                    DispatchQueue.main.async {
                         self.comparisonUnavailableReason = "Your previous scan is from an older app version and can't be compared"
                     }
                     return nil
@@ -1007,7 +999,7 @@ public struct EmotionalScan3DFlowView: View {
                 case .corrupted(let error):
                     AppLogger.faceScan.error("❌ Corrupted emotional metrics data: \(error.localizedDescription)")
                     CrashReporter.shared.logError(error, context: ["operation": "json_decode_emotional_versioned"])
-                    Task { @MainActor in
+                    DispatchQueue.main.async {
                         self.comparisonUnavailableReason = "Your previous scan data appears to be damaged and can't be compared"
                     }
                     return nil
@@ -1025,10 +1017,8 @@ public struct EmotionalScan3DFlowView: View {
     }
 
     private func saveToCoreData(emotionalMetrics: EmotionalMetrics, clinicalMetrics: Face3DMetrics) async {
-        await MainActor.run {
-            isSaving = true
-            saveSuccessful = nil
-        }
+        isSaving = true
+        saveSuccessful = nil
 
         // Check if context has a persistent store coordinator - capture context early to avoid Environment access warnings
         let context = viewContext
@@ -1037,20 +1027,16 @@ public struct EmotionalScan3DFlowView: View {
             AppLogger.faceScan.warning("⚠️ Core Data unavailable - using fallback JSON storage")
 
             do {
-                try await fallbackStorage.saveSession(emotionalMetrics: emotionalMetrics, clinicalMetrics: clinicalMetrics)
-                await MainActor.run {
-                    isSaving = false
-                    saveSuccessful = true  // Saved to fallback successfully
-                }
+                try fallbackStorage.saveSession(emotionalMetrics: emotionalMetrics, clinicalMetrics: clinicalMetrics)
+                isSaving = false
+                saveSuccessful = true  // Saved to fallback successfully
                 AppLogger.faceScan.info("✅ Session saved to fallback storage")
             } catch {
                 AppLogger.faceScan.error("❌ Failed to save to fallback storage: \(error)")
-                await MainActor.run {
-                    isSaving = false
-                    saveSuccessful = false
-                    saveErrorMessage = "Failed to save results. Please export your data."
-                    showSaveErrorAlert = true
-                }
+                isSaving = false
+                saveSuccessful = false
+                saveErrorMessage = "Failed to save results. Please export your data."
+                showSaveErrorAlert = true
             }
             return
         }
@@ -1112,23 +1098,21 @@ public struct EmotionalScan3DFlowView: View {
             }
         }
 
-        await MainActor.run {
-            isSaving = false
-            saveSuccessful = success
+        isSaving = false
+        saveSuccessful = success
 
-            if success {
-                // Clear any pending save data and reset retry count on success
-                pendingSaveData = nil
-                saveRetryCount = 0
-            } else {
-                // Add to persistent queue for automatic retry
-                saveQueue.enqueueSave(emotionalMetrics: emotionalMetrics, clinicalMetrics: clinicalMetrics)
+        if success {
+            // Clear any pending save data and reset retry count on success
+            pendingSaveData = nil
+            saveRetryCount = 0
+        } else {
+            // Add to persistent queue for automatic retry
+            saveQueue.enqueueSave(emotionalMetrics: emotionalMetrics, clinicalMetrics: clinicalMetrics)
 
-                // Store pending data for immediate retry option
-                pendingSaveData = (emotionalMetrics, clinicalMetrics)
-                saveErrorMessage = "Failed to save to device storage. Your results are queued for automatic retry."
-                showSaveErrorAlert = true
-            }
+            // Store pending data for immediate retry option
+            pendingSaveData = (emotionalMetrics, clinicalMetrics)
+            saveErrorMessage = "Failed to save to device storage. Your results are queued for automatic retry."
+            showSaveErrorAlert = true
         }
     }
 
@@ -1225,7 +1209,11 @@ struct AchievementUnlockOverlay: View {
             generator.notificationOccurred(.success)
         }
     }
+}
 
+// MARK: - EmotionalScan3DFlowView Extension - Error Handling & Time Management
+
+extension EmotionalScan3DFlowView {
     // MARK: - Auto Retry Logic
 
     private func handleAutoRetry(for error: ScanError) {
@@ -1256,12 +1244,10 @@ struct AchievementUnlockOverlay: View {
         Task {
             try? await Task.sleep(nanoseconds: UInt64(attemptDelay * 1_000_000_000))
 
-            await MainActor.run {
-                isAutoRetrying = false
-                // Reset to preparing state to restart scan
-                flowState = .preparing(countdown: 3)
-                AppLogger.faceScan.info("✅ Restarting scan after auto-retry")
-            }
+            isAutoRetrying = false
+            // Reset to preparing state to restart scan
+            flowState = .preparing(countdown: 3)
+            AppLogger.faceScan.info("✅ Restarting scan after auto-retry")
         }
     }
 
@@ -1355,7 +1341,7 @@ struct AchievementUnlockOverlay: View {
     /// Start the real-time countdown timer
     private func startTimeCountdown() {
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-            Task { @MainActor in
+            DispatchQueue.main.async { [self] in
                 if timeRemainingSeconds > 0 {
                     timeRemainingSeconds -= 1
                 } else {
@@ -1411,16 +1397,14 @@ struct AchievementUnlockOverlay: View {
             let backupURL = await createJSONBackup(data.emotionalMetrics, data.clinicalMetrics)
 
             // Share using system share sheet
-            await MainActor.run {
-                let activityVC = UIActivityViewController(
-                    activityItems: [backupURL],
-                    applicationActivities: nil
-                )
+            let activityVC = UIActivityViewController(
+                activityItems: [backupURL],
+                applicationActivities: nil
+            )
 
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let rootVC = windowScene.windows.first?.rootViewController {
-                    rootVC.present(activityVC, animated: true)
-                }
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootVC = windowScene.windows.first?.rootViewController {
+                rootVC.present(activityVC, animated: true)
             }
         }
     }

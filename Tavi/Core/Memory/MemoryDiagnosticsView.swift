@@ -262,8 +262,10 @@ public struct MemoryDiagnosticsView: View {
 
         // Refresh UI every 2 seconds
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-            // Force UI update
-            _ = monitor.getMemoryStats()
+            Task { @MainActor in
+                // Force UI update
+                _ = monitor.getMemoryStats()
+            }
         }
     }
 

@@ -203,7 +203,7 @@ public class UserProfileManager {
                 let profile = try JSONDecoder().decode(UserProfile.self, from: data)
                 return profile
             } catch {
-                AppLogger.user.error("Failed to decode user profile: \(error)")
+                AppLogger.storage.error("Failed to decode user profile: \(error)")
                 CrashReporter.shared.logError(error, context: ["operation": "json_decode_profile"])
             }
         }
@@ -219,7 +219,7 @@ public class UserProfileManager {
             let data = try JSONEncoder().encode(updated)
             UserDefaults.standard.set(data, forKey: profileKey)
         } catch {
-            AppLogger.user.error("Failed to encode user profile: \(error)")
+            AppLogger.storage.error("Failed to encode user profile: \(error)")
             CrashReporter.shared.logError(error, context: ["operation": "json_encode_profile"])
         }
     }

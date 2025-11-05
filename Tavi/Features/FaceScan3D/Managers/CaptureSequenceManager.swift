@@ -130,7 +130,7 @@ public class CaptureSequenceManager: ObservableObject {
 
         // Debug logging
         if frameCount % 30 == 0 {
-            let distance = abs(faceAnchor.transform.columns.3.z)
+            let _ = abs(faceAnchor.transform.columns.3.z)  // Distance - calculated for potential debugging
             AppLogger.faceScan.debug("Pose check - Step: \(self.currentGuidanceStep.shortName), Yaw: \(String(format: "%.1f", yaw))°, Valid: \(isPoseValid)")
         }
 
@@ -230,7 +230,7 @@ public class CaptureSequenceManager: ObservableObject {
 
         // Capture multiple frames for better quality
         var captureSuccess = 0
-        for i in 0..<3 {
+        for _ in 0..<3 {
             let success = captureStep(geometry: geometry, lightEstimation: lightEstimation)
             if success {
                 captureSuccess += 1

@@ -8,6 +8,7 @@
 import Foundation
 import CoreData
 import Combine
+import UIKit
 
 /// Manages persistent queue of failed Core Data saves with automatic retry
 @MainActor
@@ -71,7 +72,7 @@ public class CoreDataSaveQueue: ObservableObject {
 
     /// Process all pending saves in the queue
     public func processQueue() async {
-        var queue = loadQueue()
+        let queue = loadQueue()
         guard !queue.isEmpty else { return }
 
         AppLogger.faceScan.info("🔄 Processing \(queue.count) pending save(s)...")
@@ -96,9 +97,9 @@ public class CoreDataSaveQueue: ObservableObject {
                     AppLogger.faceScan.info("✅ Successfully saved queued item (ID: \(pendingSave.id))")
                 } else {
                     pendingSave.retryCount += 1
-                    if pendingSave.retryCount < maxRetryAttempts {
+                    if pendingSave.retryCount < self.maxRetryAttempts {
                         failedSaves.append(pendingSave)
-                        AppLogger.faceScan.warning("⚠️ Save retry failed, will retry again (attempt \(pendingSave.retryCount)/\(maxRetryAttempts))")
+                        AppLogger.faceScan.warning("⚠️ Save retry failed, will retry again (attempt \(pendingSave.retryCount)/\(self.maxRetryAttempts))")
                     } else {
                         AppLogger.faceScan.error("❌ Max retry attempts reached for save (ID: \(pendingSave.id)), discarding")
                         CrashReporter.shared.logError(

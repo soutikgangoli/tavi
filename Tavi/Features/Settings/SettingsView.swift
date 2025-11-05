@@ -31,11 +31,11 @@ public struct SettingsView: View {
                         .accessibilityLabel("Show 3D face mesh during scan")
                         .accessibilityHint("Displays a 3D wireframe overlay of your face during scanning")
                         .accessibilityValue(enableFaceMesh ? "On" : "Off")
-                        .onChange(of: enableFaceMesh) { oldValue, newValue in
+                        .onChange(of: enableFaceMesh) { newValue in
                             AnalyticsManager.shared.trackSettingChanged(
                                 setting: "enable_face_mesh",
                                 value: String(newValue),
-                                previousValue: String(oldValue)
+                                previousValue: String(!newValue)
                             )
                         }
 
@@ -43,11 +43,11 @@ public struct SettingsView: View {
                         .accessibilityLabel("Enable high resolution capture (4K texture)")
                         .accessibilityHint("Higher quality scans with more detail, but uses more storage space")
                         .accessibilityValue(enableHighResCapture ? "On" : "Off")
-                        .onChange(of: enableHighResCapture) { oldValue, newValue in
+                        .onChange(of: enableHighResCapture) { newValue in
                             AnalyticsManager.shared.trackSettingChanged(
                                 setting: "enable_high_res_capture",
                                 value: String(newValue),
-                                previousValue: String(oldValue)
+                                previousValue: String(!newValue)
                             )
                         }
 
@@ -55,11 +55,11 @@ public struct SettingsView: View {
                         .accessibilityLabel("Enable haptic feedback during scan")
                         .accessibilityHint("Provides vibration feedback during face scanning process")
                         .accessibilityValue(enableHapticFeedback ? "On" : "Off")
-                        .onChange(of: enableHapticFeedback) { oldValue, newValue in
+                        .onChange(of: enableHapticFeedback) { newValue in
                             AnalyticsManager.shared.trackSettingChanged(
                                 setting: "enable_haptic_feedback",
                                 value: String(newValue),
-                                previousValue: String(oldValue)
+                                previousValue: String(!newValue)
                             )
                         }
                 }
@@ -179,11 +179,11 @@ public struct SettingsView: View {
                         .accessibilityLabel("Skip onboarding screen on app launch")
                         .accessibilityHint("When enabled, the welcome tutorial will not be shown on app launch")
                         .accessibilityValue(skipOnboarding ? "On" : "Off")
-                        .onChange(of: skipOnboarding) { oldValue, newValue in
+                        .onChange(of: skipOnboarding) { newValue in
                             AnalyticsManager.shared.trackSettingChanged(
                                 setting: "skip_onboarding",
                                 value: String(newValue),
-                                previousValue: String(oldValue)
+                                previousValue: String(!newValue)
                             )
                         }
 
@@ -302,27 +302,6 @@ public struct SettingsView: View {
         let domain = Bundle.main.bundleIdentifier!
         UserDefaults.standard.removePersistentDomain(forName: domain)
         UserDefaults.standard.synchronize()
-
-        // Reset critical app storage keys
-        let keysToReset = [
-            "enableFaceMesh",
-            "enableHighResCapture",
-            "lightingStrictness",
-            "enableHapticFeedback",
-            "debugModeEnabled",
-            "skipOnboarding",
-            "hasCompletedOnboarding",
-            "useRealtimeProcessing",
-            "enableSunDamageAnalysis",
-            "detectGlasses",
-            "detectHands",
-            "detectHat",
-            "detectMakeup",
-            "detectHairCoverage",
-            "detectSunburn",
-            "detectEarrings",
-            "detectFacialHair"
-        ]
 
         // Set defaults back to initial values
         UserDefaults.standard.set(true, forKey: "enableFaceMesh")

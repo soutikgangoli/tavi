@@ -223,7 +223,7 @@ public class AnalyticsManager {
 // MARK: - Models
 
 /// Analytics event model
-public struct AnalyticsEvent: Codable, Identifiable {
+public struct AnalyticsEvent: Codable, Identifiable, Sendable {
     public let id: UUID
     public let name: String
     public let parameters: [String: String]?

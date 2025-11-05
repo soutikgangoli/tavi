@@ -20,7 +20,7 @@ public class FallbackStorage: ObservableObject {
     private let sessionListFile: URL
 
     /// Represents a session saved to fallback storage
-    public struct FallbackSession: Codable, Identifiable {
+    public struct FallbackSession: Codable, Identifiable, Sendable {
         public let id: UUID
         public let date: Date
         public let deviceModel: String
@@ -28,6 +28,7 @@ public class FallbackStorage: ObservableObject {
         public let emotionalMetrics: EmotionalMetrics
         public let clinicalMetrics: Face3DMetrics
 
+        @MainActor
         public init(
             id: UUID = UUID(),
             date: Date = Date(),

@@ -274,6 +274,7 @@ public final class MemoryResourceManager: ObservableObject {
 
 // MARK: - Protocol for Type Erasure
 
+@MainActor
 public protocol AnyMemoryManagedResource {
     var identifier: String { get }
     var estimatedSizeMB: Double { get }
