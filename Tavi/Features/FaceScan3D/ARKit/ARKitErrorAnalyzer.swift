@@ -303,7 +303,7 @@ public class ARKitErrorAnalyzer {
                 shouldRetry: true
             )
 
-        @unknown default:
+        default:
             return unknownError(arError, hadPartialCaptures: hadPartialCaptures)
         }
     }
