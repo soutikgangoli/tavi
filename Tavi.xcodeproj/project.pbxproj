@@ -149,6 +149,9 @@
 		FAD6CA5178F0F7FEABF21FA0 /* CalibrationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D528A9FDA601DB84BBD5792A /* CalibrationManager.swift */; };
 		FDDAA531EBDE8B051AC04C7E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 39D36200F591BF9382118EAA /* Assets.xcassets */; };
 		FDF6CF2E4577FCA4D7981B1B /* ProcessingPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B591178BA8F83750059D6FF7 /* ProcessingPipeline.swift */; };
+		6C2F7D310DDA4BBB8ECF9377 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2A6FE8CD8F49DCB7AAF786 /* MainTabView.swift */; };
+		D23830C0C0334F758126FC9F /* MetricDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BA60C4A3B4F4ED6A7C67733 /* MetricDetailView.swift */; };
+		6BC510D407DE43C9BF4D91FF /* ChallengeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F05A6AAB0244D7A6E3B5FE /* ChallengeDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -297,6 +300,9 @@
 		FB81F1949F33402592D1DDD2 /* AdvancedMemoryMonitor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AdvancedMemoryMonitor.swift; path = AdvancedMemoryMonitor.swift; sourceTree = "<group>"; };
 		FCDB2F0660A14AE433BD6CBF /* LightingNormalizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LightingNormalizer.swift; path = LightingNormalizer.swift; sourceTree = "<group>"; };
 		FE640788A1B559B14438FB09 /* DeviceCalibration.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeviceCalibration.swift; path = DeviceCalibration.swift; sourceTree = "<group>"; };
+		FB2A6FE8CD8F49DCB7AAF786 /* MainTabView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MainTabView.swift; path = Tavi/Features/Navigation/MainTabView.swift; sourceTree = "<group>"; };
+		1BA60C4A3B4F4ED6A7C67733 /* MetricDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MetricDetailView.swift; path = Tavi/Features/FaceScan3D/Views/MetricDetailView.swift; sourceTree = "<group>"; };
+		18F05A6AAB0244D7A6E3B5FE /* ChallengeDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChallengeDetailView.swift; path = Tavi/Features/Gamification/ChallengeDetailView.swift; sourceTree = "<group>"; };
 		TaviApp /* Tavi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tavi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -1026,6 +1032,9 @@
 				30AA10E6033EE54E5E798ACA /* ProgressGraphView.swift in Sources */,
 				618188149B59412550AD32B9 /* AnalyticsManager.swift in Sources */,
 				ACB0D7B89495BEC09517B3F9 /* SimdExtensions.swift in Sources */,
+				6C2F7D310DDA4BBB8ECF9377 /* MainTabView.swift in Sources */,
+				D23830C0C0334F758126FC9F /* MetricDetailView.swift in Sources */,
+				6BC510D407DE43C9BF4D91FF /* ChallengeDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
