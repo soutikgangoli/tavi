@@ -13,20 +13,32 @@ import ARKit
 public enum LightingCondition: String {
     case tooDark = "tooDark"
     case tooBright = "tooBright"
+    case poor = "poor"          // Quality issues (shadows, color cast, etc.)
+    case acceptable = "acceptable"  // Passable but not optimal
     case good = "good"
 
     var message: String {
         switch self {
         case .tooDark:
-            return "Please find better lighting"
+            return "Too dark - find brighter lighting"
         case .tooBright:
-            return "Lighting is too bright"
+            return "Too bright - reduce lighting"
+        case .poor:
+            return "Lighting quality issues detected"
+        case .acceptable:
+            return "Lighting acceptable - could be better"
         case .good:
             return "Lighting is good"
         }
     }
 
     var isValid: Bool {
+        // Only accept "good" - block poor, tooDark, tooBright
+        // "acceptable" is allowed but not ideal
+        return self == .good || self == .acceptable
+    }
+
+    var isOptimal: Bool {
         return self == .good
     }
 }
@@ -82,6 +94,45 @@ public enum StabilityCondition {
     }
 }
 
+/// Center position indicator (for UI display)
+public enum CenterPosition: String {
+    case center = "center"
+    case slightlyLeft = "slightlyLeft"
+    case slightlyRight = "slightlyRight"
+    case farLeft = "farLeft"
+    case farRight = "farRight"
+
+    public var displayText: String {
+        switch self {
+        case .center:
+            return "Center"
+        case .slightlyLeft:
+            return "Slightly Left"
+        case .slightlyRight:
+            return "Slightly Right"
+        case .farLeft:
+            return "Turn Right"
+        case .farRight:
+            return "Turn Left"
+        }
+    }
+
+    /// Determine center position from yaw angle (in degrees)
+    public static func from(yaw: Float) -> CenterPosition {
+        let absYaw = abs(yaw)
+
+        if absYaw <= ScanConfiguration.maxCenterYawDegrees {
+            return .center
+        } else if absYaw <= ScanConfiguration.slightTurnYawDegrees {
+            // Slightly off center
+            return yaw > 0 ? .slightlyLeft : .slightlyRight
+        } else {
+            // Far from center - tell user which way to turn
+            return yaw > 0 ? .farLeft : .farRight
+        }
+    }
+}
+
 /// Guidance steps for capture (5 poses)
 public enum GuidanceStep: Int, CaseIterable {
     case lookStraight = 0
@@ -121,44 +172,48 @@ public enum GuidanceStep: Int, CaseIterable {
     }
 
     /// Check if the current face pose matches this step
-    /// BALANCED validation - achievable but still accurate for 3D reconstruction
+    /// STRICT validation using ScanConfiguration constants (matches documentation)
     func isPoseValid(yaw: Float, pitch: Float, roll: Float) -> Bool {
+        // DEBUG: Log pose validation to understand why Direction indicator stays red
+        print("📐 isPoseValid(\(self.shortName)): yaw=\(String(format: "%.1f", yaw))° pitch=\(String(format: "%.1f", pitch))° roll=\(String(format: "%.1f", roll))°")
+
         switch self {
         case .lookStraight:
-            // Face looking at camera - BALANCED with clear boundaries
-            // Primary: yaw must be centered (most important for front view)
-            // Secondary: pitch has tolerance but STRICTLY limited on downward side
-            // CRITICAL FIX: pitch must be > -8° to avoid overlap with lookDown (requires < -12°)
-            // This creates a 4° gap: straight accepts -7.9° to +15°, down requires < -12°
-            // Tertiary: roll should be level
-            return abs(yaw) < 12 && pitch > -8 && pitch < 15 && abs(roll) < 12
+            // STRICT: ±5° for yaw and pitch, ±8° for roll (per documentation)
+            // This ensures accurate center position detection
+            let valid = abs(yaw) <= ScanConfiguration.maxCenterYawDegrees &&
+                        abs(pitch) <= ScanConfiguration.maxCenterPitchDegrees &&
+                        abs(roll) <= ScanConfiguration.maxCenterRollDegrees
+            print("   → lookStraight: \(valid ? "✅ VALID" : "❌ INVALID") (yaw ≤\(ScanConfiguration.maxCenterYawDegrees)°, pitch ≤\(ScanConfiguration.maxCenterPitchDegrees)°, roll ≤\(ScanConfiguration.maxCenterRollDegrees)°)")
+            return valid
 
         case .turnLeft:
-            // Face turned left - BALANCED
-            // Primary: yaw must be in left range (15-38° is good coverage)
-            // Secondary: pitch/roll have tolerance for natural movement
-            return yaw > 13 && yaw < 38 && abs(pitch) < 15 && abs(roll) < 15
+            // yaw must be in left range (15-35°)
+            return yaw >= ScanConfiguration.minTurnLeftYawDegrees &&
+                   yaw <= ScanConfiguration.maxTurnLeftYawDegrees &&
+                   abs(pitch) <= ScanConfiguration.turnPoseTolerancePitchRollDegrees &&
+                   abs(roll) <= ScanConfiguration.maxCenterRollDegrees
 
         case .turnRight:
-            // Face turned right - BALANCED
-            // Primary: yaw must be in right range
-            return yaw < -13 && yaw > -38 && abs(pitch) < 15 && abs(roll) < 15
+            // yaw must be in right range (-15° to -35°)
+            return yaw <= ScanConfiguration.minTurnRightYawDegrees &&
+                   yaw >= ScanConfiguration.maxTurnRightYawDegrees &&
+                   abs(pitch) <= ScanConfiguration.turnPoseTolerancePitchRollDegrees &&
+                   abs(roll) <= ScanConfiguration.maxCenterRollDegrees
 
         case .lookUp:
-            // Face tilted up - BALANCED (RELAXED: 10-22° easier to achieve)
-            // Primary: pitch must be upward (10-22° is comfortable and useful)
-            // Secondary: yaw/roll have tolerance
-            return pitch > 10 && pitch < 22 && abs(yaw) < 15 && abs(roll) < 12
+            // pitch must be upward (10-22°)
+            return pitch >= ScanConfiguration.minLookUpPitchDegrees &&
+                   pitch <= ScanConfiguration.maxLookUpPitchDegrees &&
+                   abs(yaw) <= ScanConfiguration.upDownPoseToleranceYawRollDegrees &&
+                   abs(roll) <= ScanConfiguration.maxCenterRollDegrees
 
         case .lookDown:
-            // Face tilted down - STRONGER requirement for clear distinction (RELAXED: -25° easier)
-            // Primary: pitch must be downward (-12° to -25° for clear downward tilt)
-            // CRITICAL FIX: Require at least 12° down (matching lookUp's 10° up)
-            // lookStraight accepts: pitch > -8°
-            // lookDown requires: pitch < -12°
-            // This creates a 4° gap (-12° to -8°) preventing overlap/confusion
-            // Secondary: more forgiving yaw/roll tolerance (natural head movement)
-            return pitch < -12 && pitch > -25 && abs(yaw) < 15 && abs(roll) < 12
+            // pitch must be downward (-12° to -25°)
+            return pitch <= ScanConfiguration.minLookDownPitchDegrees &&
+                   pitch >= ScanConfiguration.maxLookDownPitchDegrees &&
+                   abs(yaw) <= ScanConfiguration.upDownPoseToleranceYawRollDegrees &&
+                   abs(roll) <= ScanConfiguration.maxCenterRollDegrees
         }
     }
 
@@ -171,98 +226,113 @@ public enum GuidanceStep: Int, CaseIterable {
 
         switch self {
         case .lookStraight:
-            // Guide user to center position - balanced guidance
-            if abs(yaw) > 15 {
-                return yaw > 0 ? "Turn more to the right" : "Turn more to the left"
+            // Guide user to center position
+            // ARKit: +yaw = face turned LEFT, -yaw = face turned RIGHT
+            // User sees: Tell them which way to turn their physical head
+
+            // Priority: yaw (left/right) > pitch (up/down) > roll (tilt)
+            // Calculate absolute values for comparison
+            let absYaw = abs(yaw)
+            let absRoll = abs(roll)
+
+            // Check yaw (left/right rotation) - most important
+            if absYaw > 30 {
+                // Very far from center (>30°)
+                return yaw > 0 ? "Turn your head to the RIGHT" : "Turn your head to the LEFT"
+            } else if absYaw > ScanConfiguration.slightTurnYawDegrees {
+                // Between 10-30° off center
+                return yaw > 0 ? "Turn slightly right" : "Turn slightly left"
+            } else if absYaw > ScanConfiguration.maxCenterYawDegrees {
+                // Between 5-10° off center (close!)
+                return yaw > 0 ? "Almost centered - tiny bit right" : "Almost centered - tiny bit left"
             }
-            if abs(yaw) > 12 {
-                return yaw > 0 ? "Almost straight, turn slightly right" : "Almost straight, turn slightly left"
+
+            // Check pitch (up/down tilt)
+            if pitch < -15 {
+                // Looking too far down
+                return "Look UP toward the camera"
+            } else if pitch < -ScanConfiguration.maxCenterPitchDegrees {
+                return "Almost level - lift chin slightly"
+            } else if pitch > 25 {
+                // Looking too far up
+                return "Look DOWN toward the camera"
+            } else if pitch > ScanConfiguration.maxCenterPitchDegrees {
+                return "Almost level - lower chin slightly"
             }
-            // Check if pitch is too far down (would match lookDown)
-            if pitch < -10 {
-                return "Tilt your head up - too far down"
+
+            // Check roll (side tilt)
+            if absRoll > 25 {
+                return roll > 0 ? "Level your head (tilted to left)" : "Level your head (tilted to right)"
+            } else if absRoll > ScanConfiguration.maxCenterRollDegrees {
+                return "Almost level - straighten head"
             }
-            if pitch < -8 {
-                return "Almost there, tilt slightly up"
-            }
-            if abs(pitch) > 18 {
-                return pitch > 0 ? "Tilt head down to face camera" : "Tilt head up to face camera"
-            }
-            if abs(pitch) > 15 {
-                return pitch > 0 ? "Almost there, slightly down" : "Almost there, slightly up"
-            }
-            if abs(roll) > 12 {
-                return "Level your head (tilted to side)"
-            }
-            return "Hold steady"
+
+            // If within all ranges but still not valid
+            return "Hold steady - almost perfect"
 
         case .turnLeft:
-            // Need yaw > 13 (turn left = positive yaw)
-            // Check if user turned the WRONG direction (right instead of left)
-            if yaw < -5 {
+            // Need positive yaw (turn left)
+            if yaw < -ScanConfiguration.maxCenterYawDegrees {
                 return "Wrong direction - turn your head to the LEFT"
-            } else if yaw < 8 {
+            } else if yaw < (ScanConfiguration.minTurnLeftYawDegrees - 5) {
                 return "Turn more to the left"
-            } else if yaw < 13 {
+            } else if yaw < ScanConfiguration.minTurnLeftYawDegrees {
                 return "Almost there, turn a bit more left"
-            } else if yaw > 38 {
+            } else if yaw > ScanConfiguration.maxTurnLeftYawDegrees {
                 return "Too far, turn back slightly to the right"
-            } else if yaw > 35 {
-                return "Almost too far, ease back a bit"
-            } else if abs(pitch) > 15 {
-                return pitch > 0 ? "Good angle, now level your head" : "Good angle, now level your head"
+            } else if abs(pitch) > ScanConfiguration.turnPoseTolerancePitchRollDegrees {
+                return "Good angle - level your head"
+            } else if abs(roll) > ScanConfiguration.maxCenterRollDegrees {
+                return "Good angle - straighten head"
             }
-            return "Almost there, hold that position"
+            return "Hold that position"
 
         case .turnRight:
-            // Need yaw < -13 (turn right = negative yaw)
-            // Check if user turned the WRONG direction (left instead of right)
-            if yaw > 5 {
+            // Need negative yaw (turn right)
+            if yaw > ScanConfiguration.maxCenterYawDegrees {
                 return "Wrong direction - turn your head to the RIGHT"
-            } else if yaw > -8 {
+            } else if yaw > (ScanConfiguration.minTurnRightYawDegrees + 5) {
                 return "Turn more to the right"
-            } else if yaw > -13 {
+            } else if yaw > ScanConfiguration.minTurnRightYawDegrees {
                 return "Almost there, turn a bit more right"
-            } else if yaw < -38 {
+            } else if yaw < ScanConfiguration.maxTurnRightYawDegrees {
                 return "Too far, turn back slightly to the left"
-            } else if yaw < -35 {
-                return "Almost too far, ease back a bit"
-            } else if abs(pitch) > 15 {
-                return pitch > 0 ? "Good angle, now level your head" : "Good angle, now level your head"
+            } else if abs(pitch) > ScanConfiguration.turnPoseTolerancePitchRollDegrees {
+                return "Good angle - level your head"
+            } else if abs(roll) > ScanConfiguration.maxCenterRollDegrees {
+                return "Good angle - straighten head"
             }
-            return "Almost there, hold that position"
+            return "Hold that position"
 
         case .lookUp:
-            // Need pitch > 10 (balanced guidance, relaxed upper limit 22°)
-            if pitch < 5 {
-                return "Tilt your head up more"
-            } else if pitch < 10 {
-                return "Almost there, tilt up just a bit more"
-            } else if pitch > 22 {
+            // Need positive pitch (look up)
+            if pitch < (ScanConfiguration.minLookUpPitchDegrees - 5) {
+                return "Tilt your head UP more"
+            } else if pitch < ScanConfiguration.minLookUpPitchDegrees {
+                return "Almost there, tilt up a bit more"
+            } else if pitch > ScanConfiguration.maxLookUpPitchDegrees {
                 return "Too far, tilt down slightly"
-            } else if pitch > 20 {
-                return "Almost too far, ease down a bit"
-            } else if abs(yaw) > 15 {
-                return yaw > 0 ? "Good angle, now straighten your head" : "Good angle, now straighten your head"
+            } else if abs(yaw) > ScanConfiguration.upDownPoseToleranceYawRollDegrees {
+                return "Good angle - face more forward"
+            } else if abs(roll) > ScanConfiguration.maxCenterRollDegrees {
+                return "Good angle - level your head"
             }
-            return "Almost there, hold that position"
+            return "Hold that position"
 
         case .lookDown:
-            // Need pitch < -12 (STRONGER: clear distinction from straight, relaxed lower limit -25°)
-            if pitch > -8 {
-                return "Tilt your head down more"
-            } else if pitch > -10 {
-                return "Keep tilting down - need clear downward angle"
-            } else if pitch > -12 {
+            // Need negative pitch (look down)
+            if pitch > (ScanConfiguration.minLookDownPitchDegrees + 5) {
+                return "Tilt your head DOWN more"
+            } else if pitch > ScanConfiguration.minLookDownPitchDegrees {
                 return "Almost there, tilt down a bit more"
-            } else if pitch < -25 {
+            } else if pitch < ScanConfiguration.maxLookDownPitchDegrees {
                 return "Too far, tilt up slightly"
-            } else if pitch < -23 {
-                return "Almost too far, ease up a bit"
-            } else if abs(yaw) > 15 {
-                return yaw > 0 ? "Good angle, but face more forward" : "Good angle, but face more forward"
+            } else if abs(yaw) > ScanConfiguration.upDownPoseToleranceYawRollDegrees {
+                return "Good angle - face more forward"
+            } else if abs(roll) > ScanConfiguration.maxCenterRollDegrees {
+                return "Good angle - level your head"
             }
-            return nil  // Valid pose, no feedback needed
+            return "Hold that position"
         }
     }
 }
@@ -274,12 +344,33 @@ public struct CalibrationState {
     public var stability: StabilityCondition = .moving
     public var faceDetected: Bool = false
 
+    /// Current center position (for UI indicator)
+    public var centerPosition: CenterPosition = .center
+
+    /// Detailed lighting quality message (from EdgeCaseDetector)
+    public var lightingDetail: String? = nil
+
+    /// Current face angles for debug display (in degrees)
+    public var currentYaw: Float = 0
+    public var currentPitch: Float = 0
+    public var currentRoll: Float = 0
+
     /// Check if basic calibration is valid (ready to start guidance)
     public var isCalibrated: Bool {
         return faceDetected &&
                lighting.isValid &&
                distance.isValid &&
                stability.isValid
+    }
+
+    /// Check if lighting quality is good (for blocking button)
+    public var hasGoodLightingQuality: Bool {
+        return lighting == .good || lighting == .acceptable
+    }
+
+    /// Get specific lighting issue message
+    public var lightingIssueMessage: String {
+        return lightingDetail ?? lighting.message
     }
 
     /// Get the primary issue message
@@ -310,64 +401,83 @@ public struct CalibrationState {
             return
         }
 
-        // Typical good lighting: 500-2000 lux
-        // ARKit ambientIntensity is in lumens
+        // Use ScanConfiguration constants for lighting thresholds
         let intensity = light.ambientIntensity
 
-        if intensity < 300 {
+        // DEBUG: Log actual ARKit values to understand what we're getting
+        // ARKit ambientIntensity is in lumens - typical indoor range is 500-2000
+        print("🔆 ARKit ambientIntensity: \(intensity) lumens (min: \(ScanConfiguration.minAmbientLighting), optimal: \(ScanConfiguration.optimalLightingMin)-\(ScanConfiguration.optimalLightingMax))")
+
+        if intensity < ScanConfiguration.minAmbientLighting {
+            // Too dark - need good illumination for skin analysis
             lighting = .tooDark
-        } else if intensity > 2500 {
+            print("   → VERDICT: tooDark (< \(ScanConfiguration.minAmbientLighting))")
+        } else if intensity < ScanConfiguration.optimalLightingMin {
+            // Acceptable but not ideal
+            lighting = .acceptable
+            print("   → VERDICT: acceptable (< \(ScanConfiguration.optimalLightingMin))")
+        } else if intensity > ScanConfiguration.maxAmbientLighting {
+            // Too bright - risk of overexposure
             lighting = .tooBright
+            print("   → VERDICT: tooBright (> \(ScanConfiguration.maxAmbientLighting))")
+        } else if intensity > ScanConfiguration.optimalLightingMax {
+            // Acceptable but bright
+            lighting = .acceptable
+            print("   → VERDICT: acceptable (> \(ScanConfiguration.optimalLightingMax))")
         } else {
+            // Good lighting range: optimal min-max
             lighting = .good
+            print("   → VERDICT: good (\(ScanConfiguration.optimalLightingMin)-\(ScanConfiguration.optimalLightingMax))")
         }
     }
 
     /// Update distance from face anchor transform
     public mutating func updateDistance(from transform: simd_float4x4) {
-        // Extract Z distance from camera (negative Z in ARKit camera space)
+        // Extract Z distance from camera (depth along camera view axis)
+        // ARKit: negative Z = forward (toward camera), positive Z = backward
+        // For face scanning, we care about depth (Z-axis distance), not full 3D distance
         let distance = abs(transform.columns.3.z)
 
-        // Three-tier distance system FOR SKIN QUALITY:
-        // - OPTIMAL (30-50cm): Best quality, sufficient detail for skin analysis
-        // - ACCEPTABLE (25-30cm, 50-60cm): Works but reduced detail
-        // - TOO CLOSE/FAR: Blocks countdown OR shows strong warning
-
-        if distance < 0.20 {
-            // Too close - risk of distortion and cutoff
+        // Use ScanConfiguration constants for distance validation
+        // FIXED: Check optimal range first to ensure 0.30-0.50m gets .good status
+        if distance < ScanConfiguration.minFaceDistance {
+            // Too close - risk of distortion and cutoff (< 0.20m)
             self.distance = .tooClose
-        } else if distance < 0.25 {
-            // Close but acceptable - may have slight distortion
+        } else if distance >= ScanConfiguration.optimalDistanceMin && distance <= ScanConfiguration.optimalDistanceMax {
+            // OPTIMAL zone - best quality (0.25m - 0.50m)
+            self.distance = .good
+        } else if distance < ScanConfiguration.optimalDistanceMin {
+            // Between min and optimal - acceptable (0.20m - 0.25m)
             self.distance = .acceptable
-        } else if distance < 0.30 {
-            // Entering optimal zone
-            self.distance = .good
-        } else if distance <= 0.50 {
-            // Optimal zone - best quality (30-50cm)
-            self.distance = .good
-        } else if distance <= 0.60 {
-            // Still acceptable but REDUCED detail (50-60cm)
-            // Skin analysis quality degrades significantly beyond 50cm
+        } else if distance <= ScanConfiguration.acceptableFarDistance {
+            // Beyond optimal but still acceptable (0.50m - 0.60m)
             self.distance = .acceptable
         } else {
-            // Too far - insufficient detail for quality skin analysis
-            // Beyond 60cm, wrinkle/texture detail is too low
+            // Too far - insufficient detail (> 0.60m)
             self.distance = .tooFar
         }
     }
 
     /// Update stability by comparing transforms over time
     public mutating func updateStability(movement: Float) {
-        // UX FIX: Movement threshold increased to 3cm for better user experience
-        // 3cm movement allowance - more realistic for handheld device and natural micro-movements
-        // This prevents stability from being TOO strict during countdown
-        let stabilityThreshold: Float = 0.03
-
-        if movement < stabilityThreshold {
+        // Use ScanConfiguration constant for stability threshold
+        if movement < ScanConfiguration.stabilityMovementThreshold {
             stability = .stable
         } else {
             stability = .moving
         }
+    }
+
+    /// Update center position from yaw angle (in degrees)
+    public mutating func updateCenterPosition(yaw: Float) {
+        let newPosition = CenterPosition.from(yaw: yaw)
+
+        // DEBUG: Log center position updates to diagnose Direction indicator
+        if centerPosition != newPosition {
+            print("🧭 Center Position changed: \(centerPosition.rawValue) → \(newPosition.rawValue) (yaw: \(String(format: "%.1f", yaw))°)")
+        }
+
+        centerPosition = newPosition
     }
 }
 

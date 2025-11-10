@@ -40,6 +40,11 @@ public class CaptureSequenceManager: ObservableObject {
     /// Flag indicating capture should be triggered (countdown completed)
     @Published public var shouldTriggerCapture: Bool = false
 
+    /// Current face angles for debug display (in degrees)
+    @Published public var currentYaw: Float = 0
+    @Published public var currentPitch: Float = 0
+    @Published public var currentRoll: Float = 0
+
     // MARK: - Private Properties
 
     private var holdStableTimer: Timer?
@@ -111,9 +116,16 @@ public class CaptureSequenceManager: ObservableObject {
         }
 
         // Extract rotation angles
-        let yaw = faceAnchor.transform.eulerAngles.y * 180 / .pi
-        let pitch = faceAnchor.transform.eulerAngles.x * 180 / .pi
-        let roll = faceAnchor.transform.eulerAngles.z * 180 / .pi
+        // CRITICAL: Use camera-relative angles for accurate pose validation
+        let eulerAngles = faceAnchor.eulerAnglesRelativeToCamera()
+        let yaw = eulerAngles.y * 180 / .pi
+        let pitch = eulerAngles.x * 180 / .pi
+        let roll = eulerAngles.z * 180 / .pi
+
+        // Store current angles for debug display
+        self.currentYaw = yaw
+        self.currentPitch = pitch
+        self.currentRoll = roll
 
         // Check if pose matches current step
         let isPoseValid = self.currentGuidanceStep.isPoseValid(yaw: yaw, pitch: pitch, roll: roll)
@@ -123,7 +135,20 @@ public class CaptureSequenceManager: ObservableObject {
         isPoseCorrect = isPoseValid
 
         // Get real-time guidance feedback
-        let feedback = self.currentGuidanceStep.getGuidanceFeedback(yaw: yaw, pitch: pitch, roll: roll)
+        var feedback = self.currentGuidanceStep.getGuidanceFeedback(yaw: yaw, pitch: pitch, roll: roll)
+        
+        // ENHANCED: If pose is valid but quality is poor (blur/sharpness), prioritize quality guidance
+        // This helps users understand why countdown isn't starting even when pose looks correct
+        // Quality warnings are more important when pose is already correct
+        if isPoseValid && feedback == nil {
+            // Pose is correct - no pose feedback needed
+            // Quality warnings will be shown via qualityWarning in the UI
+            feedback = nil
+        } else if !isPoseValid {
+            // Pose needs adjustment - show pose guidance
+            // Quality warnings are secondary when pose is wrong
+        }
+        
         self.guidanceFeedback = feedback
 
         // HAPTIC FEEDBACK: Provide haptic when positioning becomes correct
@@ -133,19 +158,60 @@ public class CaptureSequenceManager: ObservableObject {
             }
         }
 
-        // Debug logging
-        if frameCount % 30 == 0 {
-            let _ = abs(faceAnchor.transform.columns.3.z)  // Distance - calculated for potential debugging
-            AppLogger.faceScan.debug("Pose check - Step: \(self.currentGuidanceStep.shortName), Yaw: \(String(format: "%.1f", yaw))°, Valid: \(isPoseValid)")
+        // Debug logging - shows angles and feedback EVERY 10 frames for troubleshooting
+        // TODO: Change back to % 30 after debugging Direction indicator issue
+        if frameCount % 10 == 0 {
+            let feedbackStr = feedback ?? "✓ Good"
+            AppLogger.faceScan.info("""
+                📐 Pose check - Step: \(self.currentGuidanceStep.shortName)
+                  Yaw: \(String(format: "%.1f", yaw))° (+ = left, - = right) | Valid: ±20°
+                  Pitch: \(String(format: "%.1f", pitch))° (+ = up, - = down) | Valid: -12° to +20°
+                  Roll: \(String(format: "%.1f", roll))° (+ = tilt left, - = tilt right) | Valid: ±20°
+                  Result: \(isPoseValid ? "✅ VALID" : "❌ INVALID")
+                  Feedback: "\(feedbackStr)"
+                """)
         }
 
         // Start countdown if conditions are met
+        // Log condition check every 30 frames to avoid spam but still be visible
+        if frameCount % 30 == 0 {
+            print("🔍 COUNTDOWN CHECK [Frame \(frameCount)]: isPoseValid=\(isPoseValid), isCalibrated=\(isCalibrated), qualityGood=\(qualityGood), isCaptureInProgress=\(self.isCaptureInProgress), countdownTimer=\(self.countdownTimer), holdStableTimer=\(self.holdStableTimer != nil ? "exists" : "nil")")
+        }
+        
+        // PERFORMANCE: Reset any stuck timers if conditions are good
         if isPoseValid && isCalibrated && qualityGood && !self.isCaptureInProgress {
+            // If timer exists but countdown is 0, something is stuck - reset it
+            if self.holdStableTimer != nil && self.countdownTimer == 0 {
+                AppLogger.faceScan.warning("⚠️ Resetting stuck countdown timer")
+                self.holdStableTimer?.invalidate()
+                self.holdStableTimer = nil
+            }
+            
             if self.countdownTimer == 0 && self.holdStableTimer == nil {
+                print("✅✅✅ ALL CONDITIONS MET - STARTING COUNTDOWN!")
+                AppLogger.faceScan.info("✅ All conditions met - starting countdown")
                 startCaptureCountdown(faceAnchor: faceAnchor, yaw: yaw, pitch: pitch, roll: roll)
+            } else {
+                if frameCount % 30 == 0 {
+                    print("⚠️ Countdown blocked: countdownTimer=\(self.countdownTimer), holdStableTimer=\(self.holdStableTimer != nil ? "exists" : "nil")")
+                }
             }
             self.countdownToleranceFrames = 0
         } else {
+            // DEBUG: Log why countdown isn't starting (throttled to every 30 frames)
+            if frameCount % 30 == 0 {
+                var reasons: [String] = []
+                if !isPoseValid { reasons.append("pose invalid (yaw=\(String(format: "%.1f", yaw))°, pitch=\(String(format: "%.1f", pitch))°, roll=\(String(format: "%.1f", roll))°)") }
+                if !isCalibrated { reasons.append("not calibrated") }
+                if !qualityGood { reasons.append("quality poor") }
+                if self.isCaptureInProgress { reasons.append("capture in progress") }
+                if self.countdownTimer > 0 { reasons.append("countdown already running") }
+                if self.holdStableTimer != nil { reasons.append("timer exists") }
+                
+                print("⏸️ COUNTDOWN NOT STARTING: \(reasons.joined(separator: ", "))")
+                AppLogger.faceScan.warning("⏸️ Countdown NOT starting: \(reasons.joined(separator: ", "))")
+            }
+            
             // Handle countdown cancellation with tolerance
             // IMPORTANT: Cancel countdown if EITHER pose is invalid OR quality is bad
             let shouldCancelCountdown = !isPoseValid || !qualityGood
@@ -206,10 +272,11 @@ public class CaptureSequenceManager: ObservableObject {
             lightEstimation: lightEstimation
         ) {
             self.currentSequence!.addTextureSample(sample)
-            AppLogger.faceScan.info("✅ Added texture sample (sharpness: \(sample.focusSharpness)). Total: \(self.currentSequence!.textureSamples.count)")
+            AppLogger.faceScan.info("✅ Added texture sample (sharpness: \(sample.focusSharpness), exposure: \(sample.exposureScore)). Total: \(self.currentSequence!.textureSamples.count)")
         } else {
             // Texture capture failed quality checks (blur or exposure)
-            AppLogger.faceScan.warning("⚠️ Texture capture rejected - quality below threshold (likely blur)")
+            AppLogger.faceScan.warning("⚠️ Texture capture rejected - quality below threshold (likely blur or exposure issue)")
+            AppLogger.faceScan.warning("⚠️ CRITICAL: No texture sample captured for step '\(self.currentGuidanceStep.shortName)' - this will cause bake to fail if no other samples exist!")
             self.guidanceFeedback = "Hold phone steady for clearer focus"
         }
     }
@@ -240,8 +307,13 @@ public class CaptureSequenceManager: ObservableObject {
         self.capturedPoses[self.currentGuidanceStep] = poseData
 
         // Capture multiple frames for better quality
+        // Dynamically select frames based on High Quality Mode setting
+        // Recommended (OFF): 3 frames (83-85% confidence)
+        // Best Case (ON): 5 frames (90-92% confidence)
+        let enableHighRes = UserDefaults.standard.bool(forKey: "enableHighResCapture")
+        let framesToCapture = enableHighRes ? ScanConfiguration.framesPerPoseBest : ScanConfiguration.framesPerPoseRecommended
         var captureSuccess = 0
-        for _ in 0..<3 {
+        for _ in 0..<framesToCapture {
             let success = captureStep(geometry: geometry, lightEstimation: lightEstimation)
             if success {
                 captureSuccess += 1
@@ -251,19 +323,9 @@ public class CaptureSequenceManager: ObservableObject {
         if captureSuccess > 0 {
             // Capture texture sample
             captureTextureSample(faceAnchor: faceAnchor, frame: frame, lightEstimation: lightEstimation)
-            AppLogger.faceScan.info("📸 Captured \(captureSuccess)/3 frames")
+            AppLogger.faceScan.info("📸 Captured \(captureSuccess)/\(framesToCapture) frames")
         }
 
-        // TESTING MODE: Complete after first capture (for Metal GPU fix validation)
-        // TODO: Re-enable full 5-pose workflow after validating Metal GPU texture conversion
-        AppLogger.faceScan.info("🧪 TESTING MODE: Completing scan after first capture (Metal GPU validation)")
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + ScanConfiguration.calibrationRetryDelay) { [weak self] in
-            self?.isCaptureInProgress = false
-            self?.guidanceFeedback = "Testing mode - scan complete!"
-        }
-
-        /* PRODUCTION CODE: Full multi-pose workflow (disabled for testing)
         // Move to next step or finish
         let currentStep = self.currentGuidanceStep
         if let nextStepIndex = GuidanceStep.allCases.firstIndex(of: currentStep).map({ $0 + 1 }),
@@ -281,7 +343,6 @@ public class CaptureSequenceManager: ObservableObject {
             self.isCaptureInProgress = false
             self.guidanceFeedback = "All poses captured!"
         }
-        */
     }
 
     /// Complete the sequence

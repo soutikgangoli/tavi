@@ -523,36 +523,122 @@ public class FaceDetector {
     public init() {}
 
     public func detectFaces(in image: CGImage) -> [FaceDetectionResult] {
-        // Use Vision framework for face detection
+        // Use Vision framework for face detection with angle extraction
         var detectedFaces: [FaceDetectionResult] = []
-
-        let request = VNDetectFaceRectanglesRequest { request, error in
-            guard error == nil else {
-                print("Face detection error: \(error!.localizedDescription)")
-                return
-            }
-
-            guard let observations = request.results as? [VNFaceObservation] else {
-                return
-            }
-
-            for observation in observations {
-                let boundingBox = observation.boundingBox
-                let confidence = observation.confidence
-
-                // Create FaceDetectionResult from Vision observation
-                let faceResult = FaceDetectionResult(
-                    faceFound: true,
-                    boundingBox: boundingBox,
-                    confidence: Float(confidence),
-                    landmarks: nil  // Vision can provide landmarks if needed
-                )
-                detectedFaces.append(faceResult)
-            }
-        }
-
+        
+        // Use Vision requests to get bounding boxes and landmarks for angle calculation
+        let rectangleRequest = VNDetectFaceRectanglesRequest()
+        let landmarksRequest = VNDetectFaceLandmarksRequest()
+        
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
-        try? handler.perform([request])
+        try? handler.perform([rectangleRequest, landmarksRequest])
+        
+        guard let rectangleObservations = rectangleRequest.results as? [VNFaceObservation] else {
+            return []
+        }
+        
+        let landmarksObservations = landmarksRequest.results as? [VNFaceObservation] ?? []
+        
+        // Match observations by bounding box overlap
+        for rectObservation in rectangleObservations {
+            let boundingBox = rectObservation.boundingBox
+            let confidence = rectObservation.confidence
+            
+            // Calculate all angles from landmarks (Vision doesn't provide yaw/roll directly)
+            var yaw: CGFloat? = nil
+            var roll: CGFloat? = nil
+            var pitch: CGFloat? = nil
+            
+            // Find matching landmarks observation
+            for landmarksObs in landmarksObservations {
+                let intersection = boundingBox.intersection(landmarksObs.boundingBox)
+                let overlap = (intersection.width * intersection.height) / 
+                             max(boundingBox.width * boundingBox.height, landmarksObs.boundingBox.width * landmarksObs.boundingBox.height)
+                if overlap > 0.5, let landmarks = landmarksObs.landmarks {
+                    // Calculate all angles from landmarks
+                    if let nose = landmarks.nose,
+                       let leftEye = landmarks.leftEye,
+                       let rightEye = landmarks.rightEye,
+                       !nose.normalizedPoints.isEmpty,
+                       !leftEye.normalizedPoints.isEmpty,
+                       !rightEye.normalizedPoints.isEmpty {
+                        
+                        // DEBUG: Log that we're calculating angles
+                        print("🔍 DEBUG: Calculating angles from landmarks - nose points: \(nose.normalizedPoints.count), leftEye: \(leftEye.normalizedPoints.count), rightEye: \(rightEye.normalizedPoints.count)")
+                        
+                        // Calculate eye centers
+                        let leftEyeSum = leftEye.normalizedPoints.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
+                        let leftEyeCenter = CGPoint(
+                            x: leftEyeSum.x / CGFloat(leftEye.normalizedPoints.count),
+                            y: leftEyeSum.y / CGFloat(leftEye.normalizedPoints.count)
+                        )
+                        
+                        let rightEyeSum = rightEye.normalizedPoints.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
+                        let rightEyeCenter = CGPoint(
+                            x: rightEyeSum.x / CGFloat(rightEye.normalizedPoints.count),
+                            y: rightEyeSum.y / CGFloat(rightEye.normalizedPoints.count)
+                        )
+                        
+                        let eyeCenter = CGPoint(
+                            x: (leftEyeCenter.x + rightEyeCenter.x) / 2,
+                            y: (leftEyeCenter.y + rightEyeCenter.y) / 2
+                        )
+                        
+                        // Calculate nose center
+                        let noseSum = nose.normalizedPoints.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
+                        let nosePoint = CGPoint(
+                            x: noseSum.x / CGFloat(nose.normalizedPoints.count),
+                            y: noseSum.y / CGFloat(nose.normalizedPoints.count)
+                        )
+                        
+                        // Calculate ROLL (head tilt) from eye angle
+                        let eyeVector = CGPoint(x: rightEyeCenter.x - leftEyeCenter.x, y: rightEyeCenter.y - leftEyeCenter.y)
+                        let rollRadians = atan2(eyeVector.y, eyeVector.x)
+                        roll = CGFloat(rollRadians) * 180 / .pi
+                        
+                        // Calculate YAW (left/right turn) from nose position relative to eye center
+                        // When face is centered, nose is between eyes. When turned, nose shifts horizontally
+                        let horizontalOffset = nosePoint.x - eyeCenter.x
+                        // Normalize by eye distance to get relative offset
+                        let eyeDistance = sqrt(eyeVector.x * eyeVector.x + eyeVector.y * eyeVector.y)
+                        if eyeDistance > 0 {
+                            let normalizedOffset = horizontalOffset / eyeDistance
+                            // Convert to approximate yaw angle (scale factor based on typical face geometry)
+                            // Typical: full profile turn (90°) ≈ 0.5-0.6 normalized offset
+                            yaw = CGFloat(normalizedOffset * 60.0) // Rough conversion
+                        }
+                        
+                        // Calculate PITCH (up/down tilt) from nose position relative to eye center
+                        let verticalOffset = nosePoint.y - eyeCenter.y
+                        // Typical face: nose is ~0.1-0.15 below eye center when level
+                        // Scale factor: ~30-40 degrees per 0.1 normalized units
+                        pitch = CGFloat(verticalOffset * 40.0)
+                        
+                        print("🔍 DEBUG: Calculated angles - Yaw: \(yaw?.description ?? "nil")°, Pitch: \(pitch?.description ?? "nil")°, Roll: \(roll?.description ?? "nil")°")
+                        break
+                    } else {
+                        print("🔍 DEBUG: Landmarks missing or empty - nose: \(landmarks.nose != nil), leftEye: \(landmarks.leftEye != nil), rightEye: \(landmarks.rightEye != nil)")
+                    }
+                } else {
+                    print("🔍 DEBUG: No landmarks found in observation")
+                }
+            }
+            
+            if yaw == nil && pitch == nil && roll == nil {
+                print("⚠️ DEBUG: No angles calculated - landmarksObservations count: \(landmarksObservations.count)")
+            }
+            
+            let faceResult = FaceDetectionResult(
+                faceFound: true,
+                boundingBox: boundingBox,
+                confidence: Float(confidence),
+                landmarks: nil,
+                yaw: yaw,
+                pitch: pitch,
+                roll: roll
+            )
+            detectedFaces.append(faceResult)
+        }
 
         return detectedFaces
     }
@@ -590,11 +676,20 @@ public class FaceDetector {
             height: CGFloat(height)
         )
 
+        // Extract angles from ARFaceAnchor transform using the extension
+        let eulerAngles = faceAnchor.eulerAnglesRelativeToCamera()
+        let yawDegrees = CGFloat(eulerAngles.y * 180 / .pi)
+        let pitchDegrees = CGFloat(eulerAngles.x * 180 / .pi)
+        let rollDegrees = CGFloat(eulerAngles.z * 180 / .pi)
+
         return FaceDetectionResult(
             faceFound: true,
             boundingBox: normalizedRect,
             confidence: 1.0,  // ARKit tracking is high confidence
-            landmarks: nil
+            landmarks: nil,
+            yaw: yawDegrees,
+            pitch: pitchDegrees,
+            roll: rollDegrees
         )
     }
 

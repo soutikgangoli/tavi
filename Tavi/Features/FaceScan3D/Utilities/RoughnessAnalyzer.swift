@@ -513,35 +513,14 @@ public class RoughnessAnalyzer {
         AppLogger.mesh.debug("   Cropped size: \(cropWidth)×\(cropHeight)")
         AppLogger.mesh.debug("   Pixels: \(sample.pixels.count)")
 
-        // Create cropped image with average ROI color as background
-        // (prevents edge artifacts while maintaining texture information)
-        var avgR: Float = 0, avgG: Float = 0, avgB: Float = 0
-        for pixel in sample.pixels {
-            avgR += pixel.x
-            avgG += pixel.y
-            avgB += pixel.z
-        }
-        let count = Float(sample.pixels.count)
-        avgR /= count
-        avgG /= count
-        avgB /= count
-
-        let bgR = UInt8(clamp(avgR, 0, 1) * 255)
-        let bgG = UInt8(clamp(avgG, 0, 1) * 255)
-        let bgB = UInt8(clamp(avgB, 0, 1) * 255)
+        // CRITICAL FIX: Instead of filling gaps with average color (creates edge artifacts),
+        // use simple edge extension - repeat nearest valid pixel for missing data
+        // This creates seamless transitions that don't trigger high-pass filter
 
         var rgbaData = [UInt8](repeating: 0, count: cropWidth * cropHeight * 4)
+        var pixelMask = [Bool](repeating: false, count: cropWidth * cropHeight)  // Track filled pixels
 
-        // Fill with average background color
-        for i in 0..<(cropWidth * cropHeight) {
-            let offset = i * 4
-            rgbaData[offset + 0] = bgR
-            rgbaData[offset + 1] = bgG
-            rgbaData[offset + 2] = bgB
-            rgbaData[offset + 3] = 255
-        }
-
-        // Place ROI pixels at their positions in cropped space
+        // First pass: Place all valid ROI pixels
         for i in 0..<sample.pixels.count {
             let uv = sample.uvCoordinates[i]
             let pixel = sample.pixels[i]
@@ -559,12 +538,57 @@ public class RoughnessAnalyzer {
                 continue
             }
 
-            let offset = (cropY * cropWidth + cropX) * 4
+            let idx = cropY * cropWidth + cropX
+            let offset = idx * 4
             if offset + 3 < rgbaData.count {
                 rgbaData[offset + 0] = UInt8(clamp(pixel.x, 0, 1) * 255)  // R
                 rgbaData[offset + 1] = UInt8(clamp(pixel.y, 0, 1) * 255)  // G
                 rgbaData[offset + 2] = UInt8(clamp(pixel.z, 0, 1) * 255)  // B
                 rgbaData[offset + 3] = 255  // A
+                pixelMask[idx] = true
+            }
+        }
+
+        // Second pass: Fill gaps by extending from nearest valid neighbor
+        // Use simple flood-fill approach with 4-connectivity
+        for y in 0..<cropHeight {
+            for x in 0..<cropWidth {
+                let idx = y * cropWidth + x
+                if !pixelMask[idx] {
+                    // Find nearest valid pixel (simple 3×3 search)
+                    var nearestR: UInt8 = 0, nearestG: UInt8 = 0, nearestB: UInt8 = 0
+                    var found = false
+
+                    // Search in expanding square around current pixel
+                    for radius in 1...5 {
+                        if found { break }
+                        for dy in -radius...radius {
+                            for dx in -radius...radius {
+                                let ny = y + dy
+                                let nx = x + dx
+                                if ny >= 0 && ny < cropHeight && nx >= 0 && nx < cropWidth {
+                                    let neighborIdx = ny * cropWidth + nx
+                                    if pixelMask[neighborIdx] {
+                                        let offset = neighborIdx * 4
+                                        nearestR = rgbaData[offset + 0]
+                                        nearestG = rgbaData[offset + 1]
+                                        nearestB = rgbaData[offset + 2]
+                                        found = true
+                                        break
+                                    }
+                                }
+                            }
+                            if found { break }
+                        }
+                    }
+
+                    // Fill with nearest neighbor value
+                    let offset = idx * 4
+                    rgbaData[offset + 0] = nearestR
+                    rgbaData[offset + 1] = nearestG
+                    rgbaData[offset + 2] = nearestB
+                    rgbaData[offset + 3] = 255
+                }
             }
         }
 

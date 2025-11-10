@@ -157,8 +157,9 @@ public struct EmotionalScan3DFlowView: View {
                     }
                 } else if case .capturing = flowState {
                     Button("Cancel") {
-                        // Capturing phase - show confirmation to prevent accidental data loss
-                        showCancelConfirmation = true
+                        // Capturing phase - cancel directly without confirmation
+                        viewModel.resetCalibration()
+                        dismiss()
                     }
                 }
             }
@@ -457,101 +458,136 @@ public struct EmotionalScan3DFlowView: View {
 
     private func preparingView(countdown: Int) -> some View {
         ZStack {
-            // Background blur
-            Color.black.opacity(0.85)
-                .ignoresSafeArea()
+            // Beautiful gradient background (matching HTML preview)
+            LinearGradient(
+                colors: [
+                    Color(red: 142/255, green: 158/255, blue: 255/255),  // #8E9EFF
+                    Color(red: 118/255, green: 135/255, blue: 240/255)   // #7687F0
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
-            VStack(spacing: 40) {
+            VStack(spacing: 0) {
                 Spacer()
 
-                // Countdown circle
+                // Large breathing circle with countdown (matches HTML preview)
                 ZStack {
+                    // Outer glow rings
                     Circle()
-                        .stroke(Color.white.opacity(0.2), lineWidth: 8)
-                        .frame(width: 180, height: 180)
-
-                    Circle()
-                        .trim(from: 0, to: CGFloat(countdown) / 3.0)
-                        .stroke(
-                            LinearGradient(
-                                colors: [.blue, .cyan],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                        .fill(
+                            RadialGradient(
+                                colors: [Color.white.opacity(0.15), Color.clear],
+                                center: .center,
+                                startRadius: 80,
+                                endRadius: 120
+                            )
                         )
-                        .frame(width: 180, height: 180)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: 1.0), value: countdown)
+                        .frame(width: 240, height: 240)
+                        .scaleEffect(countdown == 3 ? 1.0 : 1.2)
+                        .opacity(countdown == 3 ? 1.0 : 0.5)
+                        .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: countdown)
 
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [Color.white.opacity(0.08), Color.clear],
+                                center: .center,
+                                startRadius: 120,
+                                endRadius: 160
+                            )
+                        )
+                        .frame(width: 320, height: 320)
+                        .scaleEffect(countdown == 3 ? 1.0 : 1.15)
+                        .opacity(countdown == 3 ? 1.0 : 0.3)
+                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: countdown)
+
+                    // Main white breathing circle
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [Color.white, Color.white.opacity(0.85)],
+                                center: .center,
+                                startRadius: 0,
+                                endRadius: 80
+                            )
+                        )
+                        .frame(width: 160, height: 160)
+                        .scaleEffect(countdown == 3 ? 1.0 : 1.15)
+                        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: countdown)
+                        .shadow(color: Color.white.opacity(0.3), radius: 20, x: 0, y: 0)
+
+                    // Countdown number
                     Text("\(countdown)")
                         .font(.system(size: 72, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255))  // #5F6FE6
                 }
+                .padding(.vertical, 20)
 
-                VStack(spacing: 16) {
-                    Text("Get Ready!")
-                        .font(.title)
-                        .fontWeight(.bold)
+                // Title and subtitle
+                VStack(spacing: 12) {
+                    Text("Preparing scan")
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
 
-                    VStack(spacing: 8) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "face.smiling")
-                                .foregroundColor(.cyan)
-                            Text("Keep a neutral expression")
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-
-                        HStack(spacing: 12) {
-                            Image(systemName: "light.max")
-                                .foregroundColor(.yellow)
-                            Text("Ensure good lighting")
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-
-                        HStack(spacing: 12) {
-                            Image(systemName: "figure.stand")
-                                .foregroundColor(.green)
-                            Text("Hold device at eye level")
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-
-                        // Processing time estimate
-                        HStack(spacing: 12) {
-                            Image(systemName: "clock.fill")
-                                .foregroundColor(.orange)
-                            Text("Processing will take \(timeEstimator.getTimeRangeDescription())")
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-                    }
-                    .padding(.horizontal, 32)
+                    Text("Take a deep breath")
+                        .font(.system(size: 18, weight: .regular, design: .rounded))
+                        .foregroundColor(.white.opacity(0.95))
                 }
+                .padding(.bottom, 24)
 
-                // Skip button
+                Spacer()
+
+                // Checklist
+                VStack(spacing: 14) {
+                    prepChecklistItem(icon: "checkmark", text: "Find bright, natural lighting")
+                    prepChecklistItem(icon: "checkmark", text: "Remove glasses if wearing")
+                    prepChecklistItem(icon: "iphone", text: "Hold device at eye level")
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 16)
+
+                // Skip countdown button
                 Button {
                     flowState = .capturing
                     viewModel.startGuidance()
                 } label: {
                     Text("Skip")
-                        .font(.headline)
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(.white.opacity(0.8))
-                        .padding(.horizontal, 40)
-                        .padding(.vertical, 12)
-                        .background(Color.white.opacity(0.2))
-                        .cornerRadius(25)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.white.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .padding(.bottom, 40)
-
-                Spacer()
+                .padding(.horizontal, 32)
+                .padding(.bottom, 24)
             }
         }
         .onAppear {
             startCountdown()
+        }
+    }
+
+    // Helper for checklist items with white background circles
+    private func prepChecklistItem(icon: String, text: String) -> some View {
+        HStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.25))
+                    .frame(width: 48, height: 48)
+
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(.white)
+            }
+
+            Text(text)
+                .font(.system(size: 17, weight: .medium, design: .rounded))
+                .foregroundColor(.white)
+
+            Spacer()
         }
     }
 

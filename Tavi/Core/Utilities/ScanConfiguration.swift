@@ -113,6 +113,100 @@ public struct ScanConfiguration {
     /// Face detection confidence threshold
     public static let faceDetectionConfidence: Float = 0.8
 
+    // MARK: - Calibration Thresholds
+
+    /// Minimum acceptable ambient lighting (lumens)
+    /// Below this, scan quality suffers from underexposure
+    public static let minAmbientLighting: CGFloat = 600.0
+
+    /// Maximum acceptable ambient lighting (lumens)
+    /// Above this, risk of overexposure and blown highlights
+    public static let maxAmbientLighting: CGFloat = 2000.0
+
+    /// Optimal lighting range start (lumens)
+    /// Within optimal range, no warnings shown
+    public static let optimalLightingMin: CGFloat = 800.0
+
+    /// Optimal lighting range end (lumens)
+    public static let optimalLightingMax: CGFloat = 1800.0
+
+    // MARK: - Distance Calibration Thresholds
+
+    /// Minimum acceptable distance (meters)
+    /// Closer than this causes distortion and face cutoff
+    public static let minFaceDistance: Float = 0.20
+
+    /// Close acceptable range start (meters)
+    /// Acceptable but may have slight distortion
+    public static let acceptableCloseDistance: Float = 0.25
+
+    /// Optimal distance range start (meters)
+    /// Best quality for skin analysis
+    /// Expanded to 0.25m to allow closer distances for better detail (with slight distortion risk)
+    public static let optimalDistanceMin: Float = 0.25
+
+    /// Optimal distance range end (meters)
+    public static let optimalDistanceMax: Float = 0.50
+
+    /// Far acceptable range end (meters)
+    /// Beyond this, skin detail degrades significantly
+    public static let acceptableFarDistance: Float = 0.60
+
+    /// Maximum usable distance (meters)
+    /// Beyond this, insufficient detail for quality analysis
+    public static let maxFaceDistance: Float = 0.70
+
+    // MARK: - Pose Validation Thresholds (STRICT for accurate 3D reconstruction)
+
+    /// Maximum yaw angle for "look straight" (degrees)
+    /// Documentation specifies ±5° for center position
+    public static let maxCenterYawDegrees: Float = 5.0
+
+    /// Maximum pitch angle for "look straight" (degrees)
+    public static let maxCenterPitchDegrees: Float = 5.0
+
+    /// Maximum roll angle for "look straight" (degrees)
+    /// Slightly more tolerant for natural head tilt
+    public static let maxCenterRollDegrees: Float = 8.0
+
+    /// "Slightly left/right" detection threshold (degrees)
+    /// Between center and full turn angles
+    public static let slightTurnYawDegrees: Float = 10.0
+
+    /// Minimum yaw for "turn left" pose (degrees)
+    public static let minTurnLeftYawDegrees: Float = 15.0
+
+    /// Maximum yaw for "turn left" pose (degrees)
+    public static let maxTurnLeftYawDegrees: Float = 35.0
+
+    /// Minimum yaw for "turn right" pose (degrees, negative)
+    public static let minTurnRightYawDegrees: Float = -15.0
+
+    /// Maximum yaw for "turn right" pose (degrees, negative)
+    public static let maxTurnRightYawDegrees: Float = -35.0
+
+    /// Maximum pitch/roll tolerance during turn poses (degrees)
+    public static let turnPoseTolerancePitchRollDegrees: Float = 15.0
+
+    /// Minimum pitch for "look up" pose (degrees, positive)
+    public static let minLookUpPitchDegrees: Float = 10.0
+
+    /// Maximum pitch for "look up" pose (degrees, positive)
+    public static let maxLookUpPitchDegrees: Float = 22.0
+
+    /// Minimum pitch for "look down" pose (degrees, negative)
+    public static let minLookDownPitchDegrees: Float = -12.0
+
+    /// Maximum pitch for "look down" pose (degrees, negative)
+    public static let maxLookDownPitchDegrees: Float = -25.0
+
+    /// Maximum yaw/roll tolerance during up/down poses (degrees)
+    public static let upDownPoseToleranceYawRollDegrees: Float = 15.0
+
+    /// Stability movement threshold (meters)
+    /// Movement below this is considered stable
+    public static let stabilityMovementThreshold: Float = 0.03
+
     // MARK: - Mesh Processing
 
     /// Wrinkle depth scaling factor (empirical value needs validation)
@@ -201,8 +295,9 @@ public struct ScanConfiguration {
 
     /// Quality check interval in frames
     /// Only check every N frames to prevent FPS drops
-    /// At 60fps, 15 frames = ~4 quality checks per second
-    public static let qualityCheckInterval: Int = 15
+    /// PERFORMANCE: Increased to 30 frames to reduce judder from expensive sharpness analysis
+    /// At 60fps, 30 frames = ~2 quality checks per second (was 4 per second)
+    public static let qualityCheckInterval: Int = 30
 
     /// Countdown tolerance frames
     /// Allow brief validation failures during countdown without canceling
@@ -216,15 +311,36 @@ public struct ScanConfiguration {
 
     // MARK: - Texture Resolution
 
-    /// High-resolution texture size (4K)
-    /// Used when user enables high-res capture in settings
-    public static let highResTextureWidth: Int = 4096
-    public static let highResTextureHeight: Int = 4096
-
-    /// Standard texture size (2K)
+    /// Standard texture size (2K) - RECOMMENDED CONFIGURATION
+    /// Per POSE_REQUIREMENTS_GUIDE.md "Recommended Configuration" tier
+    /// Expected confidence: 83-85% overall system confidence
+    /// Real-world viability: Excellent (home environment, manageable file sizes)
     /// Used by default for balanced quality/performance
     public static let standardTextureWidth: Int = 2048
     public static let standardTextureHeight: Int = 2048
+
+    /// High resolution texture size (4K) - BEST CASE CONFIGURATION
+    /// Per POSE_REQUIREMENTS_GUIDE.md "Best Case Scenario" tier
+    /// Expected confidence: 90-92% overall system confidence
+    /// Note: 16x file size vs 1K, slower processing, requires optimal conditions
+    /// Use for: Pore analysis (4K critical), clinical-grade accuracy
+    public static let highResTextureWidth: Int = 4096
+    public static let highResTextureHeight: Int = 4096
+
+    // MARK: - Multi-Frame Capture
+
+    /// Number of frames to capture per pose - RECOMMENDED CONFIGURATION
+    /// Per POSE_REQUIREMENTS_GUIDE.md "Recommended Configuration" tier
+    /// 3 frames provides good averaging to reduce noise while maintaining speed
+    /// Expected confidence boost: +8-12 percentage points vs single frame
+    public static let framesPerPoseRecommended: Int = 3
+
+    /// Number of frames to capture per pose - BEST CASE CONFIGURATION
+    /// Per POSE_REQUIREMENTS_GUIDE.md "Best Case Scenario" tier
+    /// 5 frames provides maximum averaging for clinical-grade accuracy
+    /// Expected confidence boost: +15-20 percentage points vs single frame
+    /// Note: Slower capture, use for highest quality needs
+    public static let framesPerPoseBest: Int = 5
 
     // MARK: - Exposure and Timing
 

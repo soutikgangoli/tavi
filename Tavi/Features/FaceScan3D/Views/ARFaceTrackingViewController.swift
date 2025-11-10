@@ -292,18 +292,26 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
         }
 
         // Always update view model with current geometry for real-time display
-        // CRITICAL: Do NOT capture frame in Task closure - extract needed data first
-        // to prevent ARFrame retention warnings
-        Task { [weak viewModel, faceAnchor, frame] in
+        // CRITICAL FIX: Extract light estimation data BEFORE Task to prevent ARFrame retention
+        // ARFrames are heavy objects (11-13 retained frames causes memory warnings)
+        // The Task closure capturing frame strongly causes the retention leak
+        let lightEstimation = LightEstimation(frame: frame)
+
+        // For actual capture operations AND guidance mode (for quality checks), we DO need the frame
+        // But we let the ViewModel manage when to actually retain it
+        // The weak currentFrame property will be nil most of the time, only set during capture/guidance
+        let isCapturing = viewModel?.captureManager.isCaptureInProgress ?? false
+        let isGuidanceActive = viewModel?.captureManager.isGuidanceActive ?? false
+        let frameRef = (isCapturing || isGuidanceActive) ? frame : nil  // Pass frame during capture OR guidance
+
+        Task { [weak viewModel, faceAnchor, lightEstimation, frameRef] in
             await MainActor.run {
-                // frame and faceAnchor are captured but will be released when Task completes
-                // The weak reference to viewModel prevents additional retention cycles
-                viewModel?.updateGeometry(faceAnchor: faceAnchor, frame: frame)
+                // Pass extracted light data for tracking, optional frame only during capture
+                viewModel?.updateGeometry(faceAnchor: faceAnchor, lightEstimation: lightEstimation, captureFrame: frameRef)
             }
         }
 
         // IMPORTANT: After this point, no more closures should capture frame
-        // The Task above has its own copy which will be released when it completes
     }
 
     /// Calculate tracking confidence based on blend shapes and tracking quality

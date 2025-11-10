@@ -16,8 +16,10 @@ public struct CalibrationOverlay: View {
     public var body: some View {
         ZStack {
             // Pre-calibration indicators
-            if !viewModel.calibrationState.isCalibrated && !viewModel.isGuidanceActive {
-                CalibrationStatusView(calibrationState: viewModel.calibrationState)
+            // SWIFTUI REACTIVITY FIX: Pass calibrationManager (ObservableObject) not struct
+            // This ensures SwiftUI observes changes through the objectWillChange chain
+            if !viewModel.calibrationManager.calibrationState.isCalibrated && !viewModel.isGuidanceActive {
+                CalibrationStatusView(calibrationManager: viewModel.calibrationManager)
             }
 
             // Guidance mode
@@ -26,17 +28,18 @@ public struct CalibrationOverlay: View {
                     currentStep: viewModel.currentGuidanceStep,
                     capturedPoses: viewModel.capturedPoses,
                     countdownTimer: viewModel.countdownTimer,
-                    calibrationState: viewModel.calibrationState,
-                    guidanceFeedback: viewModel.guidanceFeedback,
-                    qualityWarning: viewModel.qualityWarning,
-                    isPoseCorrect: viewModel.isPoseCorrect
+                    calibrationManager: viewModel.calibrationManager,
+                    guidanceFeedback: viewModel.guidanceFeedback
                 )
             }
 
             // Start guidance button (when calibrated)
-            if viewModel.calibrationState.isCalibrated && !viewModel.isGuidanceActive {
-                VStack {
+            if viewModel.calibrationManager.calibrationState.isCalibrated && !viewModel.isGuidanceActive {
+                VStack(spacing: 12) {
                     Spacer()
+
+                    // CRITICAL: Block button if lighting quality is poor
+                    let lightingIsGood = viewModel.calibrationManager.calibrationState.hasGoodLightingQuality
 
                     Button {
                         viewModel.startGuidance()
@@ -49,10 +52,26 @@ public struct CalibrationOverlay: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 16)
-                        .background(.blue)
+                        .background(lightingIsGood ? Color.blue : Color.gray)
                         .cornerRadius(12)
                     }
-                    .padding(.bottom, 60)
+                    .disabled(!lightingIsGood)
+                    .opacity(lightingIsGood ? 1.0 : 0.6)
+
+                    // Show specific lighting issue if blocking
+                    if !lightingIsGood {
+                        Text(viewModel.calibrationManager.calibrationState.lightingIssueMessage)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 8)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(8)
+                    }
+
+                    Spacer()
+                        .frame(height: 60)
                 }
             }
 
@@ -111,12 +130,36 @@ public struct CalibrationOverlay: View {
 // MARK: - Calibration Status View
 
 struct CalibrationStatusView: View {
-    let calibrationState: CalibrationState
+    @ObservedObject var calibrationManager: CalibrationManager
+
+    // Convenience accessor for the state
+    private var calibrationState: CalibrationState {
+        calibrationManager.calibrationState
+    }
+
+    /// Get color for center position status
+    private func centerStatusColor(_ position: CenterPosition) -> Color {
+        switch position {
+        case .center:
+            return .green
+        case .slightlyLeft, .slightlyRight:
+            return .yellow
+        case .farLeft, .farRight:
+            return .red
+        }
+    }
 
     var body: some View {
         VStack {
             // Top indicators
             HStack(spacing: 20) {
+                // Direction indicator
+                StatusBadge(
+                    icon: "arrow.triangle.turn.up.right.diamond.fill",
+                    status: calibrationState.centerPosition == .center ? .good : (calibrationState.centerPosition == .slightlyLeft || calibrationState.centerPosition == .slightlyRight ? .warning : .error),
+                    label: "Direction"
+                )
+
                 // Lighting indicator
                 StatusBadge(
                     icon: "sun.max.fill",
@@ -131,29 +174,73 @@ struct CalibrationStatusView: View {
                     label: "Distance"
                 )
 
-                // Stability indicator
+                // Stability + Focus indicator (combines movement stability and image sharpness)
                 StatusBadge(
                     icon: "hand.raised.fill",
-                    status: calibrationState.stability.isValid ? .good : .warning,
+                    status: {
+                        // Check both stability (movement) and sharpness (blur)
+                        let isStable = calibrationState.stability.isValid
+                        let isSharp = calibrationManager.qualityWarning == nil || (!calibrationManager.qualityWarning!.contains("blur") && !calibrationManager.qualityWarning!.contains("steady") && !calibrationManager.qualityWarning!.contains("focus"))
+                        
+                        if isStable && isSharp {
+                            return .good
+                        } else if isStable || isSharp {
+                            return .warning  // One is good, one needs work
+                        } else {
+                            return .error  // Both need work
+                        }
+                    }(),
                     label: "Stability"
                 )
             }
             .padding(.top, 60)
             .padding(.horizontal)
 
+            // Center position indicator (below Direction badge)
+            HStack(spacing: 8) {
+                let centerStatus = calibrationState.centerPosition
+                Text(centerStatus.displayText)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(centerStatusColor(centerStatus).opacity(0.3))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(centerStatusColor(centerStatus), lineWidth: 1)
+                    )
+            }
+            .padding(.top, 8)
+
             Spacer()
 
-            // Guidance message
-            if let message = calibrationState.primaryMessage {
-                Text(message)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 16)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(16)
-                    .padding(.bottom, 120)
+            // Guidance message with detailed lighting info
+            VStack(spacing: 8) {
+                if let message = calibrationState.primaryMessage {
+                    Text(message)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(16)
+                }
+
+                // Show detailed lighting issue if present
+                if !calibrationState.lighting.isValid, let detail = calibrationState.lightingDetail {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(12)
+                }
             }
+            .padding(.bottom, 120)
         }
     }
 }
@@ -164,10 +251,19 @@ struct GuidanceView: View {
     let currentStep: GuidanceStep
     let capturedPoses: [GuidanceStep: CapturedPoseData]
     let countdownTimer: Int
-    let calibrationState: CalibrationState
+    @ObservedObject var calibrationManager: CalibrationManager
     let guidanceFeedback: String?
-    let qualityWarning: String?
-    let isPoseCorrect: Bool
+
+    // Convenience accessors from calibrationManager
+    private var calibrationState: CalibrationState {
+        calibrationManager.calibrationState
+    }
+    private var qualityWarning: String? {
+        calibrationManager.qualityWarning
+    }
+    private var isPoseCorrect: Bool {
+        calibrationManager.isPoseCorrect
+    }
 
     var body: some View {
         VStack {
@@ -195,10 +291,22 @@ struct GuidanceView: View {
                     label: "Distance"
                 )
 
-                // Stability indicator
+                // Stability + Focus indicator (combines movement stability and image sharpness)
                 StatusBadge(
                     icon: "hand.raised.fill",
-                    status: calibrationState.stability.isValid ? .good : .warning,
+                    status: {
+                        // Check both stability (movement) and sharpness (blur)
+                        let isStable = calibrationState.stability.isValid
+                        let isSharp = qualityWarning == nil || (!qualityWarning!.contains("blur") && !qualityWarning!.contains("steady") && !qualityWarning!.contains("focus"))
+                        
+                        if isStable && isSharp {
+                            return .good
+                        } else if isStable || isSharp {
+                            return .warning  // One is good, one needs work
+                        } else {
+                            return .error  // Both need work
+                        }
+                    }(),
                     label: "Stable"
                 )
             }
@@ -249,17 +357,6 @@ struct GuidanceView: View {
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
 
-                    #if DEBUG
-                    // DEBUG: Show why countdown not starting when everything appears green
-                    if countdownTimer == 0 && isPoseCorrect && calibrationState.isCalibrated {
-                        Text("⚠️ DEBUG: All conditions green but no countdown - check quality/busy state")
-                            .font(.caption2)
-                            .foregroundStyle(.red)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 4)
-                    }
-                    #endif
-
                     // Warnings and feedback - FIXED HEIGHT container
                     ZStack {
                         // Reserve space for feedback to prevent layout shifts
@@ -284,11 +381,27 @@ struct GuidanceView: View {
                                     }
                                 }
                             } else if let warning = qualityWarning {
-                                // Image quality warnings (blur, exposure)
-                                Text(warning)
-                                    .font(.caption)
-                                    .foregroundStyle(.orange)
-                                    .multilineTextAlignment(.center)
+                                // Image quality warnings (blur, exposure) - PRIORITY when pose is correct
+                                // Show helpful tips based on warning type
+                                VStack(spacing: 4) {
+                                    Text(warning)
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                        .multilineTextAlignment(.center)
+                                    
+                                    // Add helpful tips for blur/sharpness issues
+                                    if warning.contains("blur") || warning.contains("steady") || warning.contains("focus") {
+                                        Text("💡 Tip: Hold phone very still, wait 2-3 seconds for focus")
+                                            .font(.caption2)
+                                            .foregroundStyle(.orange.opacity(0.8))
+                                            .multilineTextAlignment(.center)
+                                    } else if warning.contains("exposure") || warning.contains("bright") || warning.contains("dark") {
+                                        Text("💡 Tip: Move to better lighting or adjust position")
+                                            .font(.caption2)
+                                            .foregroundStyle(.orange.opacity(0.8))
+                                            .multilineTextAlignment(.center)
+                                    }
+                                }
                             } else if countdownTimer == 0 {
                                 // Show real-time guidance feedback when not counting down
                                 if let feedback = guidanceFeedback {
@@ -432,16 +545,36 @@ struct CalibrationDebugInfoView: View {
                         .font(.caption2)
                         .fontWeight(.semibold)
                         .foregroundStyle(.white.opacity(0.7))
-                    Text("✓ Calibrated: \(viewModel.calibrationState.isCalibrated ? "Yes" : "No")")
+                    Text("✓ Calibrated: \(viewModel.calibrationManager.calibrationState.isCalibrated ? "Yes" : "No")")
                         .font(.caption2)
-                        .foregroundStyle(viewModel.calibrationState.isCalibrated ? .green : .red)
-                    Text("✓ Pose Valid: \(viewModel.isPoseCorrect ? "Yes" : "No")")
+                        .foregroundStyle(viewModel.calibrationManager.calibrationState.isCalibrated ? .green : .red)
+                    Text("✓ Pose Valid: \(viewModel.calibrationManager.isPoseCorrect ? "Yes" : "No")")
                         .font(.caption2)
-                        .foregroundStyle(viewModel.isPoseCorrect ? .green : .red)
+                        .foregroundStyle(viewModel.calibrationManager.isPoseCorrect ? .green : .red)
                 }
 
                 Divider()
-                    .frame(height: 40)
+                    .frame(height: 60)
+                    .background(.white.opacity(0.3))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Face Angles")
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white.opacity(0.7))
+                    Text("Yaw: \(String(format: "%.1f", viewModel.currentYaw))°")
+                        .font(.caption2)
+                        .foregroundStyle(abs(viewModel.currentYaw) < 20 ? .green : .orange)
+                    Text("Pitch: \(String(format: "%.1f", viewModel.currentPitch))°")
+                        .font(.caption2)
+                        .foregroundStyle((viewModel.currentPitch > -12 && viewModel.currentPitch < 20) ? .green : .orange)
+                    Text("Roll: \(String(format: "%.1f", viewModel.currentRoll))°")
+                        .font(.caption2)
+                        .foregroundStyle(abs(viewModel.currentRoll) < 20 ? .green : .orange)
+                }
+
+                Divider()
+                    .frame(height: 60)
                     .background(.white.opacity(0.3))
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -449,33 +582,16 @@ struct CalibrationDebugInfoView: View {
                         .font(.caption2)
                         .fontWeight(.semibold)
                         .foregroundStyle(.white.opacity(0.7))
-                    Text("Lighting: \(viewModel.calibrationState.lighting.rawValue)")
+                    Text("Lighting: \(viewModel.calibrationManager.calibrationState.lighting.rawValue)")
                         .font(.caption2)
-                        .foregroundStyle(viewModel.calibrationState.lighting.isValid ? .green : .orange)
-                    Text("Distance: \(viewModel.calibrationState.distance.rawValue)")
+                        .foregroundStyle(viewModel.calibrationManager.calibrationState.lighting.isValid ? .green : .orange)
+                    Text("Distance: \(viewModel.calibrationManager.calibrationState.distance.rawValue)")
                         .font(.caption2)
-                        .foregroundStyle(viewModel.calibrationState.distance.isValid ? .green : .orange)
-                }
-
-                Divider()
-                    .frame(height: 40)
-                    .background(.white.opacity(0.3))
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Scan State")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.white.opacity(0.7))
-                    Text("Guidance: \(viewModel.isGuidanceActive ? "Active" : "Inactive")")
-                        .font(.caption2)
-                        .foregroundStyle(viewModel.isGuidanceActive ? .green : .gray)
-                    Text("Captured: \(viewModel.capturedPoses.count)/\(GuidanceStep.allCases.count)")
-                        .font(.caption2)
-                        .foregroundStyle(.cyan)
+                        .foregroundStyle(viewModel.calibrationManager.calibrationState.distance.isValid ? .green : .orange)
                 }
             }
 
-            if let warning = viewModel.qualityWarning {
+            if let warning = viewModel.calibrationManager.qualityWarning {
                 Divider()
                     .background(.white.opacity(0.3))
                 Text("⚠️ Warning: \(warning)")

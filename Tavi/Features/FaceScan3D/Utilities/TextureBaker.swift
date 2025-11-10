@@ -54,6 +54,7 @@ public class TextureBaker {
         let startTime = Date().timeIntervalSince1970
 
         guard !samples.isEmpty else {
+            AppLogger.faceScan.error("❌ TextureBaker: No samples provided - cannot bake texture")
             print("⚠️ TextureBaker: No samples provided")
             return nil
         }
@@ -75,6 +76,7 @@ public class TextureBaker {
 
         // Validate we have corrected samples after lighting correction
         guard !correctedSamples.isEmpty else {
+            AppLogger.faceScan.error("❌ TextureBaker: No valid samples after lighting correction - all \(samples.count) samples failed to decode")
             print("❌ TextureBaker: No valid samples after lighting correction - all \(samples.count) samples failed to decode")
             return nil
         }

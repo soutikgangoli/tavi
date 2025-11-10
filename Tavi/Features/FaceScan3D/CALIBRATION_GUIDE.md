@@ -45,11 +45,18 @@ Once calibrated, the guidance system walks users through a 5-pose capture workfl
 
 ```swift
 enum LightingCondition {
-    case tooDark    // < 300 lumens
-    case tooBright  // > 2500 lumens
-    case good       // 300-2500 lumens
+    case tooDark      // < 600 lumens
+    case acceptable   // 600-800 or 1800-2000 lumens
+    case good         // 800-1800 lumens (OPTIMAL)
+    case tooBright    // > 2000 lumens
 }
 ```
+
+**Thresholds** (defined in `ScanConfiguration.swift`):
+- `minAmbientLighting`: 600 lumens
+- `optimalLightingMin`: 800 lumens
+- `optimalLightingMax`: 1800 lumens
+- `maxAmbientLighting`: 2000 lumens
 
 **Messages:**
 - "Please find better lighting"
@@ -60,11 +67,19 @@ enum LightingCondition {
 
 ```swift
 enum DistanceCondition {
-    case tooClose   // < 25cm
-    case tooFar     // > 70cm
-    case good       // 25-70cm
+    case tooClose     // < 20cm
+    case acceptable   // 20-25cm or 50-60cm
+    case good         // 30-50cm (OPTIMAL)
+    case tooFar       // > 60cm
 }
 ```
+
+**Thresholds** (defined in `ScanConfiguration.swift`):
+- `minFaceDistance`: 0.20m (20cm)
+- `optimalDistanceMin`: 0.30m (30cm)
+- `optimalDistanceMax`: 0.50m (50cm)
+- `acceptableFarDistance`: 0.60m (60cm)
+- `maxFaceDistance`: 0.70m (70cm)
 
 **Messages:**
 - "Please move back a bit"
@@ -75,38 +90,85 @@ enum DistanceCondition {
 
 ```swift
 enum StabilityCondition {
-    case moving     // > 1cm movement/frame
-    case stable     // < 1cm movement/frame
+    case moving     // > 3cm movement/frame
+    case stable     // < 3cm movement/frame
 }
 ```
+
+**Thresholds** (defined in `ScanConfiguration.swift`):
+- `stabilityMovementThreshold`: 0.03m (3cm)
 
 **Messages:**
 - "Please hold still"
 - "Holding steady"
 
+### CenterPosition (NEW!)
+
+```swift
+enum CenterPosition {
+    case center          // ±5° (green)
+    case slightlyLeft    // 5-10° left (yellow)
+    case slightlyRight   // 5-10° right (yellow)
+    case farLeft         // >10° left (red, shows "Turn Right")
+    case farRight        // >10° right (red, shows "Turn Left")
+}
+```
+
+**Display:**
+- Shows below Direction badge
+- Color-coded: green (center), yellow (slightly off), red (far off)
+- Updates in real-time based on face yaw angle
+
 ## Guidance Steps
 
-The system captures 5 different face poses:
+The system captures 5 different face poses with **STRICT validation** (defined in `ScanConfiguration.swift`):
 
 ### 1. Look Straight
-- **Validation:** yaw < 5°, pitch < 5°, roll < 8°
+- **Validation:** yaw ±5°, pitch ±5°, roll ±8° (STRICT!)
 - **Instruction:** "Please look straight at the camera"
+- **Feedback:** Progressive guidance ("Turn slightly right", "Almost centered - tiny bit right")
+- **Constants:**
+  - `maxCenterYawDegrees`: 5.0°
+  - `maxCenterPitchDegrees`: 5.0°
+  - `maxCenterRollDegrees`: 8.0°
 
 ### 2. Turn Left
-- **Validation:** yaw 15-35°, pitch < 15°, roll < 12°
-- **Instruction:** "Please turn your head left"
+- **Validation:** yaw 15-35°, pitch ±15°, roll ±8°
+- **Instruction:** "Turn your head slightly to the left"
+- **Constants:**
+  - `minTurnLeftYawDegrees`: 15.0°
+  - `maxTurnLeftYawDegrees`: 35.0°
 
 ### 3. Turn Right
-- **Validation:** yaw -15 to -35°, pitch < 15°, roll < 12°
-- **Instruction:** "Please turn your head right"
+- **Validation:** yaw -15 to -35°, pitch ±15°, roll ±8°
+- **Instruction:** "Turn your head slightly to the right"
+- **Constants:**
+  - `minTurnRightYawDegrees`: -15.0°
+  - `maxTurnRightYawDegrees`: -35.0°
 
 ### 4. Look Up
-- **Validation:** pitch -10 to -25°, yaw < 15°, roll < 12°
-- **Instruction:** "Please look up slightly"
+- **Validation:** pitch 10-22°, yaw ±15°, roll ±8°
+- **Instruction:** "Tilt your head up a bit"
+- **Constants:**
+  - `minLookUpPitchDegrees`: 10.0°
+  - `maxLookUpPitchDegrees`: 22.0°
 
 ### 5. Look Down
-- **Validation:** pitch 10-25°, yaw < 15°, roll < 12°
-- **Instruction:** "Please look down slightly"
+- **Validation:** pitch -12 to -25°, yaw ±15°, roll ±8°
+- **Instruction:** "Tilt your head down a bit"
+- **Constants:**
+  - `minLookDownPitchDegrees`: -12.0°
+  - `maxLookDownPitchDegrees`: -25.0°
+
+## Configuration Source of Truth
+
+**All calibration thresholds are defined in `ScanConfiguration.swift`.**
+
+This provides:
+- ✅ Single source of truth for all validation logic
+- ✅ Easy tuning without modifying multiple files
+- ✅ Consistent behavior across all scan features
+- ✅ Well-documented and maintainable thresholds
 
 ## Capture Workflow
 

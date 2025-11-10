@@ -19,40 +19,42 @@ struct FancyLoadingScreen: View {
 
     var body: some View {
         ZStack {
-            // Premium gradient background
+            // Premium gradient background - deeper, richer colors
             LinearGradient(
                 colors: [
-                    Color(red: 0.08, green: 0.08, blue: 0.12),
-                    Color(red: 0.12, green: 0.08, blue: 0.16),
-                    Color(red: 0.08, green: 0.12, blue: 0.18)
+                    Color(red: 0.05, green: 0.05, blue: 0.15),
+                    Color(red: 0.08, green: 0.05, blue: 0.20),
+                    Color(red: 0.05, green: 0.10, blue: 0.22)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
 
-            // Animated background particles
+            // Animated background particles - subtler, more elegant
             GeometryReader { geometry in
-                ForEach(0..<20, id: \.self) { index in
+                ForEach(0..<15, id: \.self) { index in
                     Circle()
                         .fill(
-                            LinearGradient(
+                            RadialGradient(
                                 colors: [
-                                    Color.white.opacity(0.03),
-                                    Color.blue.opacity(0.05)
+                                    Color.white.opacity(0.02),
+                                    Color.blue.opacity(0.04),
+                                    Color.clear
                                 ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                                center: .center,
+                                startRadius: 10,
+                                endRadius: 60
                             )
                         )
-                        .frame(width: CGFloat.random(in: 40...120))
+                        .frame(width: CGFloat.random(in: 60...150))
                         .position(
                             x: CGFloat.random(in: 0...geometry.size.width),
                             y: CGFloat.random(in: 0...geometry.size.height)
                         )
-                        .blur(radius: 40)
+                        .blur(radius: 30)
                         .animation(
-                            Animation.easeInOut(duration: Double.random(in: 3...6))
+                            Animation.easeInOut(duration: Double.random(in: 4...7))
                                 .repeatForever(autoreverses: true)
                                 .delay(Double.random(in: 0...2)),
                             value: pulseAnimation
@@ -63,54 +65,54 @@ struct FancyLoadingScreen: View {
                 pulseAnimation.toggle()
             }
 
-            VStack(spacing: 60) {
+            VStack(spacing: 0) {
                 Spacer()
 
-                // Logo with reveal animation
-                VStack(spacing: 16) {
-                    // Logo circle with glow
+                // Logo with reveal animation - improved spacing
+                VStack(spacing: 24) {
+                    // Logo circle with glow - more prominent
                     ZStack {
-                        // Outer glow
+                        // Outer glow - stronger presence
                         Circle()
                             .fill(
                                 RadialGradient(
                                     colors: [
-                                        Color.blue.opacity(0.3),
-                                        Color.blue.opacity(0.1),
+                                        Color.blue.opacity(0.4),
+                                        Color.blue.opacity(0.15),
                                         Color.clear
                                     ],
                                     center: .center,
-                                    startRadius: 50,
-                                    endRadius: 100
+                                    startRadius: 40,
+                                    endRadius: 120
                                 )
                             )
-                            .frame(width: 200, height: 200)
-                            .blur(radius: 20)
+                            .frame(width: 240, height: 240)
+                            .blur(radius: 25)
                             .scaleEffect(showLogo ? 1.0 : 0.8)
 
-                        // Main logo circle
+                        // Main logo circle - slightly larger
                         Circle()
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        Color(red: 0.4, green: 0.6, blue: 1.0),
-                                        Color(red: 0.2, green: 0.4, blue: 0.8)
+                                        Color(red: 0.45, green: 0.65, blue: 1.0),
+                                        Color(red: 0.25, green: 0.45, blue: 0.85)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
                             )
-                            .frame(width: 120, height: 120)
-                            .shadow(color: .blue.opacity(0.5), radius: 30, x: 0, y: 10)
+                            .frame(width: 140, height: 140)
+                            .shadow(color: .blue.opacity(0.6), radius: 35, x: 0, y: 12)
                             .scaleEffect(showLogo ? 1.0 : 0.5)
                             .opacity(showLogo ? 1.0 : 0.0)
 
-                        // App icon content
+                        // App icon content - slightly larger
                         Text("T")
-                            .font(.system(size: 64, weight: .bold, design: .rounded))
+                            .font(.system(size: 72, weight: .bold, design: .rounded))
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: [.white, Color.white.opacity(0.8)],
+                                    colors: [.white, Color.white.opacity(0.9)],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
@@ -119,19 +121,20 @@ struct FancyLoadingScreen: View {
                             .opacity(showLogo ? 1.0 : 0.0)
                     }
 
-                    // App name
+                    // App name - better spacing
                     Text("Tavi")
-                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [
                                     .white,
-                                    Color.white.opacity(0.9)
+                                    Color.white.opacity(0.95)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
+                        .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 4)
                         .opacity(showLogo ? 1.0 : 0.0)
                         .offset(y: showLogo ? 0 : 20)
                 }
@@ -139,73 +142,72 @@ struct FancyLoadingScreen: View {
 
                 Spacer()
 
-                // Progress section
-                VStack(spacing: 24) {
-                    // Loading phase text
+                // Progress section - improved layout
+                VStack(spacing: 32) {
+                    // Loading phase text - better hierarchy
                     Text(currentPhase.message)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white.opacity(0.7))
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.75))
                         .animation(.easeInOut(duration: 0.3), value: currentPhase)
 
-                    // Progress bar container
-                    VStack(spacing: 12) {
-                        // Progress bar
+                    // Progress bar container - cleaner design
+                    VStack(spacing: 16) {
+                        // Progress bar - improved sizing
                         GeometryReader { geometry in
                             ZStack(alignment: .leading) {
-                                // Background track
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.white.opacity(0.1))
-                                    .frame(height: 8)
+                                // Background track - more visible
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.white.opacity(0.12))
+                                    .frame(height: 10)
 
-                                // Progress fill with gradient
-                                RoundedRectangle(cornerRadius: 8)
+                                // Progress fill with gradient - more vibrant
+                                RoundedRectangle(cornerRadius: 10)
                                     .fill(
                                         LinearGradient(
                                             colors: [
-                                                Color(red: 0.4, green: 0.6, blue: 1.0),
-                                                Color(red: 0.3, green: 0.5, blue: 0.9),
-                                                Color(red: 0.5, green: 0.7, blue: 1.0)
+                                                Color(red: 0.45, green: 0.65, blue: 1.0),
+                                                Color(red: 0.35, green: 0.55, blue: 0.95),
+                                                Color(red: 0.55, green: 0.75, blue: 1.0)
                                             ],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
                                     )
-                                    .frame(width: geometry.size.width * (progress / 100), height: 8)
-                                    .shadow(color: .blue.opacity(0.5), radius: 8, x: 0, y: 2)
+                                    .frame(width: geometry.size.width * (progress / 100), height: 10)
+                                    .shadow(color: .blue.opacity(0.6), radius: 10, x: 0, y: 3)
 
-                                // Shimmer effect
-                                RoundedRectangle(cornerRadius: 8)
+                                // Shimmer effect - more pronounced
+                                RoundedRectangle(cornerRadius: 10)
                                     .fill(
                                         LinearGradient(
                                             colors: [
                                                 Color.white.opacity(0),
-                                                Color.white.opacity(0.3),
+                                                Color.white.opacity(0.4),
                                                 Color.white.opacity(0)
                                             ],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
                                     )
-                                    .frame(width: geometry.size.width * (progress / 100), height: 8)
+                                    .frame(width: geometry.size.width * (progress / 100), height: 10)
                                     .mask(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .frame(width: geometry.size.width * (progress / 100), height: 8)
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .frame(width: geometry.size.width * (progress / 100), height: 10)
                                     )
                             }
                         }
-                        .frame(height: 8)
-                        .frame(maxWidth: 280)
+                        .frame(height: 10)
+                        .frame(maxWidth: 320)
 
-                        // Percentage text
+                        // Percentage text - larger, more readable
                         Text("\(Int(progress))%")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.95))
                             .monospacedDigit()
                     }
                 }
                 .padding(.horizontal, 40)
-                .padding(.bottom, 60)
+                .padding(.bottom, 80)
             }
         }
         .onAppear {

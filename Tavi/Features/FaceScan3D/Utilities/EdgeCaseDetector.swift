@@ -93,6 +93,11 @@ public class EdgeCaseDetector {
 
     private let skinToneNormalizer = SkinToneNormalizer()
 
+    // Debug throttling for lighting messages
+    private var lastLoggedLightingQuality: LightingQuality?
+    private var lightingCheckCount: Int = 0
+    private let lightingLogInterval: Int = 30  // Log every 30 checks (~0.5 seconds at 60fps)
+
     // MARK: - Public API
 
     /// Detect all edge cases
@@ -367,9 +372,18 @@ public class EdgeCaseDetector {
             quality = .optimal
         }
 
-        print("💡 Lighting detected: \(quality.description)")
-        print("   Brightness: \(String(format: "%.0f", averageBrightness * 100))%, Range: \(String(format: "%.2f", dynamicRange)), Contrast: \(String(format: "%.2f", contrast))")
-        print("   Overexposed: \(String(format: "%.1f", overexposedRatio * 100))%, Underexposed: \(String(format: "%.1f", underexposedRatio * 100))%")
+        // Throttle debug output: only log when quality changes OR every N checks
+        lightingCheckCount += 1
+        let shouldLog = (lastLoggedLightingQuality != quality) || (lightingCheckCount >= lightingLogInterval)
+
+        if shouldLog {
+            print("💡 Lighting detected: \(quality.description)")
+            print("   Brightness: \(String(format: "%.0f", averageBrightness * 100))%, Range: \(String(format: "%.2f", dynamicRange)), Contrast: \(String(format: "%.2f", contrast))")
+            print("   Overexposed: \(String(format: "%.1f", overexposedRatio * 100))%, Underexposed: \(String(format: "%.1f", underexposedRatio * 100))%")
+
+            lastLoggedLightingQuality = quality
+            lightingCheckCount = 0
+        }
 
         return (averageBrightness, quality)
     }

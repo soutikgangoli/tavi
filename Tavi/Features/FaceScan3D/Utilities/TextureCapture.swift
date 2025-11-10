@@ -18,17 +18,26 @@ public class TextureCapture {
 
     public struct Configuration {
         /// Target texture resolution (will be scaled to fit)
-        public var targetTextureWidth: Int = 1024
-        public var targetTextureHeight: Int = 1024
+        /// Defaults to 2048×2048 (Recommended) or 4096×4096 (Best) based on High Quality Mode setting
+        /// Per POSE_REQUIREMENTS_GUIDE.md: 2K = 83-85% confidence, 4K = 90-92% confidence
+        public var targetTextureWidth: Int = {
+            let enableHighRes = UserDefaults.standard.bool(forKey: "enableHighResCapture")
+            return enableHighRes ? ScanConfiguration.highResTextureWidth : ScanConfiguration.standardTextureWidth
+        }()
+        public var targetTextureHeight: Int = {
+            let enableHighRes = UserDefaults.standard.bool(forKey: "enableHighResCapture")
+            return enableHighRes ? ScanConfiguration.highResTextureHeight : ScanConfiguration.standardTextureHeight
+        }()
 
         /// Quality thresholds
         /// ADAPTIVE: Base minimum Laplacian variance for sharp texture capture
         /// This is adjusted based on lighting conditions - lower threshold in poor lighting
         /// Blurry textures cause incorrect roughness measurements, but we need to balance
         /// with realistic capture success rates in various lighting conditions
-        public var minSharpness: Float = 120.0  // Lowered from 150 to be more adaptive
-        public var minSharpnessOptimal: Float = 150.0  // Target for optimal lighting
-        public var minSharpnessPoorLight: Float = 90.0   // Minimum for poor lighting
+        /// VERY LENIENT: Significantly lowered to match CalibrationManager thresholds for consistency
+        public var minSharpness: Float = 40.0  // Base minimum (significantly lowered from 80)
+        public var minSharpnessOptimal: Float = 60.0  // Target for optimal lighting (lowered from 120)
+        public var minSharpnessPoorLight: Float = 30.0   // Minimum for poor lighting (lowered from 60)
         public var minExposure: Float = 0.2
         public var maxExposure: Float = 0.8
 

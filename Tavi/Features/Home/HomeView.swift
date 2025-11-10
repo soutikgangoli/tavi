@@ -39,6 +39,11 @@ public struct HomeView: View {
         return sessions.first
     }
 
+    /// Latest scan from fallback storage (when Core Data is empty)
+    private var latestFallbackSession: FallbackStorage.FallbackSession? {
+        return fallbackSessions.first
+    }
+
     private var hasScans: Bool {
         // Check both Core Data and fallback storage
         return sessions.count > 0 || fallbackSessions.count > 0
@@ -121,19 +126,11 @@ public struct HomeView: View {
                     greetingSection
                         .padding(.top, HeadspaceDesign.Spacing.md)
 
-                    // Fallback storage notice (if Core Data unavailable but fallback has sessions)
-                    if !hasCoreDataScans && !fallbackSessions.isEmpty {
-                        fallbackStorageNotice
-                    }
-
-                    // Main scan card
-                    if let latest = latestSession {
-                        latestScanCard(latest)
-                    } else if !fallbackSessions.isEmpty {
-                        // Show fallback session as latest
-                        fallbackLatestScanCard(fallbackSessions[0])
-                    } else {
-                        firstScanCard
+                    // Progress graph (shows if 2+ scans)
+                    if sessions.count >= 2 {
+                        ProgressGraphView(sessions: Array(sessions))
+                    } else if fallbackSessions.count >= 2 {
+                        fallbackProgressChart
                     }
 
                     // Active challenge card
@@ -141,17 +138,14 @@ public struct HomeView: View {
                         activeChallengeCard(challenge)
                     }
 
-                    // Progress graph (shows if 2+ scans) - MOVED TO TOP
-                    if sessions.count >= 2 {
-                        ProgressGraphView(sessions: Array(sessions))
-                    }
-
-                    // Tips section
-                    tipsCard
-
-                    // Recent scans - MOVED TO BOTTOM (after tips)
-                    if hasScans {
+                    // Recent scans - main content
+                    if sessions.count > 0 {
                         recentScansSection
+                    } else if fallbackSessions.count > 0 {
+                        fallbackRecentScansSection
+                    } else {
+                        // Only show "first scan" card if NO scans exist
+                        firstScanCard
                     }
 
                     // Bottom padding for sticky button
@@ -210,6 +204,9 @@ public struct HomeView: View {
             Text("\(greeting), \(userName)")
                 .font(.system(size: 32, weight: .bold, design: .rounded))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text("Track your skin health journey")
                 .font(.system(size: 18, weight: .regular, design: .rounded))
@@ -294,28 +291,51 @@ public struct HomeView: View {
     }
 
     private var firstScanCard: some View {
-        VStack(spacing: 0) {
-            // Gradient section
-            HeadspaceDesign.Colors.peachGradient
-                .frame(height: 220)
-                .overlay(
-                    VStack(spacing: HeadspaceDesign.Spacing.lg) {
-                        Spacer()
+        VStack(spacing: HeadspaceDesign.Spacing.lg) {
+            // Benefits Hero Card (COMPACT - fits on first screen)
+            benefitsHeroCard
 
-                        Text("Start Your Skin Journey")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+            // Challenge Invitation Card (NEW - fits on first screen)
+            challengeInvitationCard
+
+            // 8 Metrics Feature Cards
+            metricsFeatureCards
+
+            // Technology Card
+            technologyCard
+
+            // Pro Tips Card
+            tipsCard
+        }
+    }
+
+    /// Benefits Hero Card - highlights key user benefits (COMPACT for first screen)
+    private var benefitsHeroCard: some View {
+        VStack(spacing: 0) {
+            // Gradient header (compact)
+            HeadspaceDesign.Colors.peachGradient
+                .frame(height: 100)
+                .overlay(
+                    VStack(spacing: HeadspaceDesign.Spacing.sm) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundColor(.white)
+
+                        Text("Discover Your Skin Health")
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
-
-                        Text("Get your personalized skin health score")
-                            .font(.system(size: 17, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.95))
-                            .multilineTextAlignment(.center)
-
-                        Spacer()
                     }
-                    .padding(HeadspaceDesign.Spacing.xl)
+                    .padding(HeadspaceDesign.Spacing.lg)
                 )
+
+            // Benefits list (compact - 2 benefits inline)
+            HStack(spacing: HeadspaceDesign.Spacing.md) {
+                compactBenefitBadge(icon: "chart.line.uptrend.xyaxis", text: "Track Progress")
+                compactBenefitBadge(icon: "star.fill", text: "Personalized")
+            }
+            .padding(HeadspaceDesign.Spacing.lg)
+            .background(HeadspaceDesign.Colors.elevatedCard)
         }
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(
@@ -324,6 +344,243 @@ public struct HomeView: View {
             x: HeadspaceDesign.Shadows.card.x,
             y: HeadspaceDesign.Shadows.card.y
         )
+    }
+
+    /// Compact benefit badge for inline display
+    private func compactBenefitBadge(icon: String, text: String) -> some View {
+        HStack(spacing: HeadspaceDesign.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(HeadspaceDesign.Colors.primary)
+
+            Text(text)
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, HeadspaceDesign.Spacing.sm)
+        .padding(.vertical, HeadspaceDesign.Spacing.sm)
+        .background(HeadspaceDesign.Colors.primary.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.sm))
+    }
+
+    /// Challenge Invitation Card - encourages users to start 30-day challenge
+    private var challengeInvitationCard: some View {
+        VStack(spacing: 0) {
+            // Gradient header with flame icon
+            LinearGradient(
+                colors: [
+                    Color(red: 255/255, green: 159/255, blue: 64/255),  // Orange
+                    Color(red: 255/255, green: 102/255, blue: 102/255)  // Red-orange
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .frame(height: 90)
+            .overlay(
+                VStack(spacing: HeadspaceDesign.Spacing.sm) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.white)
+
+                    Text("30-Day Glow Challenge")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(HeadspaceDesign.Spacing.lg)
+            )
+
+            // Benefits and CTA
+            VStack(spacing: HeadspaceDesign.Spacing.md) {
+                // Quick benefits
+                VStack(spacing: HeadspaceDesign.Spacing.sm) {
+                    challengeBenefitRow(icon: "checkmark.circle.fill", text: "Track daily progress")
+                    challengeBenefitRow(icon: "checkmark.circle.fill", text: "Unlock achievements")
+                    challengeBenefitRow(icon: "checkmark.circle.fill", text: "See glow improvements")
+                }
+
+                // CTA Button
+                Text("Complete your first scan to start")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, HeadspaceDesign.Spacing.sm)
+            }
+            .padding(HeadspaceDesign.Spacing.lg)
+            .background(HeadspaceDesign.Colors.elevatedCard)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+
+    /// Individual challenge benefit row
+    private func challengeBenefitRow(icon: String, text: String) -> some View {
+        HStack(spacing: HeadspaceDesign.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(Color(red: 255/255, green: 159/255, blue: 64/255))
+
+            Text(text)
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+            Spacer()
+        }
+    }
+
+    /// Individual benefit row with icon and text
+    private func benefitRow(icon: String, title: String, description: String) -> some View {
+        HStack(spacing: HeadspaceDesign.Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(HeadspaceDesign.Colors.primary.opacity(0.12))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.primary)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                Text(description)
+                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            }
+
+            Spacer()
+        }
+    }
+
+    /// 8 Metrics Feature Cards - grid showing what the app measures
+    private var metricsFeatureCards: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            Text("8 Skin Health Metrics")
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+            VStack(spacing: HeadspaceDesign.Spacing.md) {
+                // Row 1
+                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                    metricCard(icon: "waveform.path", title: "Smoothness", color: HeadspaceDesign.Colors.primary)
+                    metricCard(icon: "drop.fill", title: "Hydration", color: Color(red: 95/255, green: 158/255, blue: 255/255))
+                }
+
+                // Row 2
+                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                    metricCard(icon: "sparkles", title: "Glow", color: Color(red: 252/255, green: 188/255, blue: 78/255))
+                    metricCard(icon: "circle.hexagongrid.fill", title: "Pigmentation", color: Color(red: 200/255, green: 140/255, blue: 100/255))
+                }
+
+                // Row 3
+                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                    metricCard(icon: "circle.fill", title: "Acne", color: Color(red: 255/255, green: 102/255, blue: 102/255))
+                    metricCard(icon: "sun.max.fill", title: "Sun Damage", color: Color(red: 255/255, green: 159/255, blue: 64/255))
+                }
+
+                // Row 4
+                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                    metricCard(icon: "heart.fill", title: "Redness", color: Color(red: 255/255, green: 82/255, blue: 82/255))
+                    metricCard(icon: "square.grid.3x3.fill", title: "Roughness", color: Color(red: 149/255, green: 165/255, blue: 166/255))
+                }
+            }
+        }
+    }
+
+    /// Individual metric card
+    private func metricCard(icon: String, title: String, color: Color) -> some View {
+        VStack(spacing: HeadspaceDesign.Spacing.sm) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 56, height: 56)
+
+                Image(systemName: icon)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(color)
+            }
+
+            Text(title)
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, HeadspaceDesign.Spacing.lg)
+        .background(HeadspaceDesign.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+
+    /// Technology/Features Card
+    private var technologyCard: some View {
+        VStack(spacing: 0) {
+            // Gradient header
+            HeadspaceDesign.Colors.coolGradient
+                .frame(height: 120)
+                .overlay(
+                    VStack(spacing: HeadspaceDesign.Spacing.sm) {
+                        Image(systemName: "camera.metering.center.weighted")
+                            .font(.system(size: 36, weight: .semibold))
+                            .foregroundColor(.white)
+
+                        Text("Advanced 3D Face Scanning")
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(HeadspaceDesign.Spacing.xl)
+                )
+
+            // Features list
+            VStack(spacing: HeadspaceDesign.Spacing.md) {
+                featureHighlight(icon: "rotate.3d", text: "5-pose capture for complete coverage")
+                featureHighlight(icon: "checkmark.seal.fill", text: "Clinical-grade accuracy (83-92%)")
+                featureHighlight(icon: "lock.shield.fill", text: "Privacy-first • Data stays on device")
+            }
+            .padding(HeadspaceDesign.Spacing.xl)
+            .background(HeadspaceDesign.Colors.elevatedCard)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+
+    /// Individual feature highlight
+    private func featureHighlight(icon: String, text: String) -> some View {
+        HStack(spacing: HeadspaceDesign.Spacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(HeadspaceDesign.Colors.secondary)
+                .frame(width: 28)
+
+            Text(text)
+                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer()
+        }
     }
 
     private var recentScansSection: some View {
@@ -820,5 +1077,181 @@ public struct HomeView: View {
         .background(HeadspaceDesign.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
+    }
+
+    // MARK: - Fallback Storage Views
+
+    private var fallbackProgressChart: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            Text("Your Progress")
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+            // Simple line chart
+            GeometryReader { geometry in
+                let chartData = fallbackSessions.sorted { $0.date < $1.date }
+                let maxScore = chartData.map { $0.overallScore }.max() ?? 100
+                let minScore = chartData.map { $0.overallScore }.min() ?? 0
+                let scoreRange = max(maxScore - minScore, 20) // At least 20 point range
+                let width = geometry.size.width
+                let height = geometry.size.height
+
+                ZStack(alignment: .bottomLeading) {
+                    // Grid lines
+                    ForEach(0..<5) { i in
+                        Path { path in
+                            let y = CGFloat(i) * height / 4
+                            path.move(to: CGPoint(x: 0, y: y))
+                            path.addLine(to: CGPoint(x: width, y: y))
+                        }
+                        .stroke(HeadspaceDesign.Colors.textSecondary.opacity(0.1), lineWidth: 1)
+                    }
+
+                    // Line chart
+                    Path { path in
+                        for (index, session) in chartData.enumerated() {
+                            let x = width * CGFloat(index) / CGFloat(max(chartData.count - 1, 1))
+                            let normalizedScore = (session.overallScore - minScore) / scoreRange
+                            let y = height * (1 - CGFloat(normalizedScore))
+
+                            if index == 0 {
+                                path.move(to: CGPoint(x: x, y: y))
+                            } else {
+                                path.addLine(to: CGPoint(x: x, y: y))
+                            }
+                        }
+                    }
+                    .stroke(HeadspaceDesign.Colors.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+
+                    // Data points
+                    ForEach(Array(chartData.enumerated()), id: \.element.id) { index, session in
+                        let x = width * CGFloat(index) / CGFloat(max(chartData.count - 1, 1))
+                        let normalizedScore = (session.overallScore - minScore) / scoreRange
+                        let y = height * (1 - CGFloat(normalizedScore))
+
+                        Circle()
+                            .fill(scoreColor(session.overallScore))
+                            .frame(width: 8, height: 8)
+                            .position(x: x, y: y)
+                    }
+                }
+            }
+            .frame(height: 120)
+            .padding(.vertical, HeadspaceDesign.Spacing.sm)
+        }
+        .padding(HeadspaceDesign.Spacing.lg)
+        .background(HeadspaceDesign.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+    }
+
+    private var fallbackRecentScansSection: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+            Text("Recent scans")
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+            VStack(spacing: HeadspaceDesign.Spacing.md) {
+                ForEach(Array(fallbackSessions.prefix(5)), id: \.id) { session in
+                    fallbackScanListItem(session)
+                }
+            }
+        }
+    }
+
+    private func fallbackScanListItem(_ session: FallbackStorage.FallbackSession) -> some View {
+        HStack(alignment: .center, spacing: HeadspaceDesign.Spacing.lg) {
+            // Date badge - always show day/month number
+            VStack(spacing: 4) {
+                Text(formatDayNumber(session.date))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                Text(formatMonthShort(session.date))
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            }
+            .frame(width: 48)
+            .padding(.vertical, 8)
+            .background(HeadspaceDesign.Colors.background)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            // Score circle
+            ZStack {
+                Circle()
+                    .fill(scoreColor(session.overallScore).opacity(0.12))
+                    .frame(width: 64, height: 64)
+
+                Text("\(Int(session.overallScore))")
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundColor(scoreColor(session.overallScore))
+            }
+            .frame(width: 64, height: 64)
+
+            // Info - show date and time
+            VStack(alignment: .leading, spacing: 4) {
+                Text(formatRelativeDateForFallback(session.date))
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                Text(formatTime(session.date))
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary.opacity(0.5))
+        }
+        .padding(HeadspaceDesign.Spacing.md)
+        .background(HeadspaceDesign.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+    }
+
+    /// Format time as "3:45 PM"
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+
+    /// Format just the day number (e.g., "5")
+    private func formatDayNumber(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter.string(from: date)
+    }
+
+    /// Format just the month short name (e.g., "Nov")
+    private func formatMonthShort(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM"
+        return formatter.string(from: date)
+    }
+
+    /// Format relative date: "Today", "Yesterday", or actual date like "3rd November"
+    private func formatRelativeDateForFallback(_ date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            return "Today"
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMMM"
+            let monthName = formatter.string(from: date)
+
+            // Add ordinal suffix (st, nd, rd, th)
+            let day = calendar.component(.day, from: date)
+            let suffix: String
+            switch day {
+            case 1, 21, 31: suffix = "st"
+            case 2, 22: suffix = "nd"
+            case 3, 23: suffix = "rd"
+            default: suffix = "th"
+            }
+            return "\(day)\(suffix) \(monthName)"
+        }
     }
 }

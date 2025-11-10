@@ -122,19 +122,19 @@ struct CaptureSettingsView: View {
             Toggle(isOn: $enableHighResCapture) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("High-Res Capture")
+                        Text("High Quality Mode")
                             .font(DesignSystem.Typography.body)
 
-                        Badge(text: "4K", color: DesignSystem.Colors.accent)
+                        Badge(text: "4K + 5 Frames", color: DesignSystem.Colors.accent)
                     }
 
-                    Text("Capture at 4K resolution for maximum detail")
+                    Text("4K texture + 5 frames per pose for clinical-grade accuracy (90-92% confidence)")
                         .font(DesignSystem.Typography.caption)
                         .foregroundColor(DesignSystem.Colors.textSecondary)
                 }
             }
-            .accessibilityLabel("High resolution capture")
-            .accessibilityHint("Captures at 4K resolution for maximum detail. Uses more battery and storage.")
+            .accessibilityLabel("High quality mode")
+            .accessibilityHint("Captures at 4K texture with 5 frames per pose for maximum accuracy. Uses more battery and storage.")
             .accessibilityValue(enableHighResCapture ? "On" : "Off")
             .tint(DesignSystem.Colors.accent)
             .onChange(of: enableHighResCapture) { newValue in

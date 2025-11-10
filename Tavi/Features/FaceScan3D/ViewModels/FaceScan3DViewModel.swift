@@ -63,6 +63,11 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Frame rate for debug display
     @Published public var currentFPS: Double = 0
 
+    /// Cached angle values for debug display (updated from managers)
+    @Published private var cachedYaw: Float = 0
+    @Published private var cachedPitch: Float = 0
+    @Published private var cachedRoll: Float = 0
+
     // MARK: - Manager State Passthrough Properties
     // These properties expose manager state for SwiftUI binding compatibility
 
@@ -116,6 +121,19 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Guidance feedback message for user (from CaptureSequenceManager)
     public var guidanceFeedback: String? {
         captureManager.guidanceFeedback
+    }
+
+    /// Current face angles for debug display
+    public var currentYaw: Float {
+        cachedYaw
+    }
+
+    public var currentPitch: Float {
+        cachedPitch
+    }
+
+    public var currentRoll: Float {
+        cachedRoll
     }
 
     /// Current capture sequence (from CaptureSequenceManager)
@@ -188,25 +206,30 @@ public class FaceScan3DViewModel: ObservableObject {
 
     // MARK: - Public API (ARKit Integration)
 
-    /// Update geometry from ARFaceAnchor
-    public func updateGeometry(faceAnchor: ARFaceAnchor, frame: ARFrame) {
-        // Store current frame and anchor
-        self.currentFrame = frame
+    /// Update geometry from ARFaceAnchor (optimized to prevent ARFrame retention)
+    /// - Parameters:
+    ///   - faceAnchor: Current face anchor from ARKit
+    ///   - lightEstimation: Extracted light data (prevents frame retention)
+    ///   - captureFrame: Optional ARFrame, ONLY provided during active capture (to minimize retention)
+    public func updateGeometry(faceAnchor: ARFaceAnchor, lightEstimation: LightEstimation?, captureFrame: ARFrame? = nil) {
+        // CRITICAL: Only store frame reference during active capture operations
+        // Most of the time (real-time tracking), this will be nil to prevent memory leak
+        // ARFrames are heavy objects - retaining 11-13 of them causes memory warnings
+        self.currentFrame = captureFrame
         self.currentFaceAnchor = faceAnchor
 
         // Update geometry
         self.currentGeometry = FaceMeshGeometry(faceAnchor: faceAnchor)
         self.blendShapes = FaceBlendShapes(faceAnchor: faceAnchor)
-        self.lightEstimation = LightEstimation(frame: frame)
+        self.lightEstimation = lightEstimation
 
         // Update tracking state
         self.faceDetected = true
         self.isTracking = true
 
-        // Update calibration through manager
-        calibrationManager.updateCalibration(
+        // Update calibration through manager (uses extracted light data, no frame needed)
+        calibrationManager.updateCalibrationLightweight(
             faceAnchor: faceAnchor,
-            frame: frame,
             lightEstimation: lightEstimation
         )
 
@@ -352,7 +375,9 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Start guidance mode
     public func startGuidance() {
+        print("🚀 ViewModel.startGuidance() called - starting capture sequence")
         startCaptureSequence()
+        print("✅ Guidance started - isGuidanceActive: \(captureManager.isGuidanceActive), currentStep: \(captureManager.currentGuidanceStep.shortName)")
     }
 
     /// Stop guidance mode
@@ -402,9 +427,12 @@ public class FaceScan3DViewModel: ObservableObject {
         }
 
         if sequence.textureSamples.isEmpty {
+            AppLogger.faceScan.error("❌ bakeTextureFromSequence: No texture samples captured! Total captures: \(sequence.captures.count), but 0 texture samples.")
             errorMessage = "No texture samples captured"
             return nil
         }
+        
+        AppLogger.faceScan.info("🎨 bakeTextureFromSequence: Starting bake with \(sequence.textureSamples.count) texture samples from \(sequence.captures.count) captures")
 
         return await processingPipeline.bakeUnifiedTexture(
             from: merged,
@@ -432,9 +460,11 @@ public class FaceScan3DViewModel: ObservableObject {
             return false
         }
 
-        let yaw = faceAnchor.transform.eulerAngles.y * 180 / .pi
-        let pitch = faceAnchor.transform.eulerAngles.x * 180 / .pi
-        let roll = faceAnchor.transform.eulerAngles.z * 180 / .pi
+        // CRITICAL: Use camera-relative angles for accurate pose validation
+        let eulerAngles = faceAnchor.eulerAnglesRelativeToCamera()
+        let yaw = eulerAngles.y * 180 / .pi
+        let pitch = eulerAngles.x * 180 / .pi
+        let roll = eulerAngles.z * 180 / .pi
 
         captureManager.capturePose(
             faceAnchor: faceAnchor,
@@ -642,6 +672,9 @@ public class FaceScan3DViewModel: ObservableObject {
         guard let frame = currentFrame,
               let geometry = currentGeometry,
               let lightEstimation = lightEstimation else {
+            if frameCount % 30 == 0 {
+                print("⚠️ checkGuidancePoseAndCapture: Missing required data - frame=\(currentFrame != nil), geometry=\(currentGeometry != nil), lightEstimation=\(lightEstimation != nil)")
+            }
             return
         }
 
@@ -682,9 +715,11 @@ public class FaceScan3DViewModel: ObservableObject {
     private func performCapture(faceAnchor: ARFaceAnchor, frame: ARFrame, geometry: FaceMeshGeometry) {
         guard let lightEstimation = lightEstimation else { return }
 
-        let yaw = faceAnchor.transform.eulerAngles.y * 180 / .pi
-        let pitch = faceAnchor.transform.eulerAngles.x * 180 / .pi
-        let roll = faceAnchor.transform.eulerAngles.z * 180 / .pi
+        // CRITICAL: Use camera-relative angles for accurate pose validation
+        let eulerAngles = faceAnchor.eulerAnglesRelativeToCamera()
+        let yaw = eulerAngles.y * 180 / .pi
+        let pitch = eulerAngles.x * 180 / .pi
+        let roll = eulerAngles.z * 180 / .pi
 
         captureManager.capturePose(
             faceAnchor: faceAnchor,
@@ -731,6 +766,51 @@ public class FaceScan3DViewModel: ObservableObject {
         // Forward manager objectWillChange to ViewModel's objectWillChange
         // This ensures SwiftUI views re-render when manager state changes
 
+        // Subscribe to specific angle property changes
+        calibrationManager.$currentYaw
+            .sink { [weak self] yaw in
+                guard let self = self, !self.isGuidanceActive else { return }
+                print("🔴 ViewModel received yaw from CalibrationManager: \(yaw)")
+                self.cachedYaw = yaw
+            }
+            .store(in: &cancellables)
+
+        calibrationManager.$currentPitch
+            .sink { [weak self] pitch in
+                guard let self = self, !self.isGuidanceActive else { return }
+                self.cachedPitch = pitch
+            }
+            .store(in: &cancellables)
+
+        calibrationManager.$currentRoll
+            .sink { [weak self] roll in
+                guard let self = self, !self.isGuidanceActive else { return }
+                self.cachedRoll = roll
+            }
+            .store(in: &cancellables)
+
+        captureManager.$currentYaw
+            .sink { [weak self] yaw in
+                guard let self = self, self.isGuidanceActive else { return }
+                self.cachedYaw = yaw
+            }
+            .store(in: &cancellables)
+
+        captureManager.$currentPitch
+            .sink { [weak self] pitch in
+                guard let self = self, self.isGuidanceActive else { return }
+                self.cachedPitch = pitch
+            }
+            .store(in: &cancellables)
+
+        captureManager.$currentRoll
+            .sink { [weak self] roll in
+                guard let self = self, self.isGuidanceActive else { return }
+                self.cachedRoll = roll
+            }
+            .store(in: &cancellables)
+
+        // Forward general objectWillChange
         calibrationManager.objectWillChange
             .sink { [weak self] _ in
                 self?.objectWillChange.send()

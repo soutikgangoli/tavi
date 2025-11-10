@@ -782,14 +782,12 @@ public class Face3DMetricsAnalyzer {
 
     /// Convert UnifiedMesh to FaceMeshGeometry for advanced analyzers
     private func convertToFaceMeshGeometry(unifiedMesh: UnifiedMesh) -> FaceMeshGeometry {
-        // CRITICAL FIX: Apply mesh scaling correction to match FaceMeshGeometry.init(faceAnchor:)
-        // ARKit face meshes are consistently ~1.6x too wide (228mm vs 140mm expected)
-        // This causes wrinkle depths to be measured incorrectly (3mm vs <1mm expected)
-        // Applying empirically-determined scaling factor based on diagnostic measurements
-        let meshScalingFactor: Float = 0.63  // Corrects 228mm → 144mm (within 130-160mm range)
+        // CRITICAL FIX: Do NOT apply scaling here - vertices are already scaled by 0.63x
+        // when UnifiedMesh was created from FaceMeshGeometry.init(faceAnchor:)
+        // Applying scaling again would result in 0.63 × 0.63 = 0.40x (too small!)
 
-        // Convert Vector3 to SIMD3<Float> and apply scaling
-        let vertices = unifiedMesh.vertices.map { $0.toSIMD() * meshScalingFactor }
+        // Convert Vector3 to SIMD3<Float> WITHOUT additional scaling
+        let vertices = unifiedMesh.vertices.map { $0.toSIMD() }
         let normals = unifiedMesh.normals.map { $0.toSIMD() }
         let textureCoordinates = unifiedMesh.textureCoordinates.map { $0.toSIMD() }
 
