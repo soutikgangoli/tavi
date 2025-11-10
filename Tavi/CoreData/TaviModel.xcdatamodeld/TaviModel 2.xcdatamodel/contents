@@ -22,6 +22,8 @@
         <attribute name="moistureSpecular" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="overallScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="pigmentationAvg" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="poresScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="acneScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="rightCheekScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="textureAvg" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="thumbnail" optional="YES" attributeType="Binary"/>

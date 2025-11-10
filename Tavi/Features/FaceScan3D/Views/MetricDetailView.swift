@@ -10,7 +10,7 @@
 import SwiftUI
 import Charts
 
-enum MetricType: String, CaseIterable, Identifiable {
+public enum MetricType: String, CaseIterable, Identifiable {
     case overall = "Overall Score"
     case smoothness = "Smoothness"
     case hydration = "Hydration"
@@ -19,7 +19,7 @@ enum MetricType: String, CaseIterable, Identifiable {
     case elasticity = "Elasticity"
     case volume = "Volume"
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
     var normalRange: String {
         switch self {
@@ -81,7 +81,7 @@ enum TimeRange: String, CaseIterable {
     }
 }
 
-struct MetricDetailView: View {
+public struct MetricDetailView: View {
     let metricType: MetricType
 
     @Environment(\.dismiss) private var dismiss
@@ -692,10 +692,10 @@ struct MetricDetailView: View {
                     )
                 }
 
-                // Oil Control (disabled)
+                // Oil Control
                 if let specularScore = metrics.globalSpecularScore {
                     MetricBar(
-                        label: "Oil Control (disabled)",
+                        label: "Oil Control",
                         score: Double(specularScore),
                         color: Color(red: 255/255, green: 215/255, blue: 0/255)
                     )

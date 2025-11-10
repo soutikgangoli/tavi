@@ -650,11 +650,13 @@ public class RegionalAnalyzers {
         // Calculate jawline angle (gonial angle)
         // Approximate from vertex positions
 
-        guard vertices.count >= 3 else { return 120 }  // Default angle
+        guard vertices.count >= 3,
+              let start = vertices.first,
+              let end = vertices.last else {
+            return 120  // Default angle
+        }
 
-        let start = vertices.first!
         let mid = vertices[vertices.count / 2]
-        let end = vertices.last!
 
         // Calculate angle between vectors
         let v1 = mid - start

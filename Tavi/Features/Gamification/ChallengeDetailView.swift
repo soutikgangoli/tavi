@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-struct ChallengeDetailView: View {
+public struct ChallengeDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var challenge: GlowChallenge?

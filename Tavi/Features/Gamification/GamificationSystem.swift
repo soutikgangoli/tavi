@@ -115,6 +115,23 @@ public struct GlowStreak: Codable {
         }
     }
 
+    var streakEmoji: String {
+        switch currentStreak {
+        case 0:
+            return "💤"
+        case 1...2:
+            return "🌱"
+        case 3...6:
+            return "🔥"
+        case 7...13:
+            return "⭐"
+        case 14...29:
+            return "⚡"
+        default:
+            return "🏆"
+        }
+    }
+
     var streakMessage: String {
         switch currentStreak {
         case 0:
@@ -189,6 +206,23 @@ public struct Achievement: Codable, Identifiable {
     let category: AchievementCategory
     var isUnlocked: Bool
     var unlockedDate: Date?
+
+    /// Emoji representation for social sharing
+    var emoji: String {
+        // Map SF Symbol icons to emoji equivalents
+        switch iconName {
+        case "leaf.fill": return "🌱"
+        case "flame.fill": return "🔥"
+        case "star.fill": return "⭐"
+        case "bolt.fill": return "⚡"
+        case "trophy.fill": return "🏆"
+        case "heart.fill": return "❤️"
+        case "sparkles": return "✨"
+        case "crown.fill": return "👑"
+        case "diamond.fill": return "💎"
+        default: return "💪"
+        }
+    }
 
     static let allAchievements: [Achievement] = [
         // Scanning achievements

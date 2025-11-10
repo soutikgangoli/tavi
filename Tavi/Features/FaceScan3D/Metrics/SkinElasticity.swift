@@ -247,10 +247,19 @@ public struct HistoricalScan {
 }
 
 /// Face regions for analysis
-public enum FaceRegion: String, CaseIterable, Codable, Sendable {
+public enum FaceRegion: String, CaseIterable, Codable, Sendable, Comparable {
     case forehead = "Forehead"
     case eyes = "Eye Area"
     case cheeks = "Cheeks"
     case mouth = "Mouth"
     case chin = "Chin"
+
+    public static func < (lhs: FaceRegion, rhs: FaceRegion) -> Bool {
+        let order: [FaceRegion] = [.forehead, .eyes, .cheeks, .mouth, .chin]
+        guard let lhsIndex = order.firstIndex(of: lhs),
+              let rhsIndex = order.firstIndex(of: rhs) else {
+            return false
+        }
+        return lhsIndex < rhsIndex
+    }
 }

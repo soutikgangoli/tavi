@@ -8,12 +8,12 @@
 
 import SwiftUI
 
-struct MainTabView: View {
+public struct MainTabView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var selectedTab: Tab = .home
     @State private var showScanFlow = false
 
-    enum Tab {
+    public enum Tab {
         case home
         case history
         case scan

@@ -546,8 +546,8 @@ public struct Face3DMetrics: Codable, Sendable {
     public var smoothnessConfidence: Float {
         let validROIs = roiMetrics.filter { !$0.value.isLowConfidence }.count
         let baseConfidence: Float = 70.0
-        let roiBonus = validROIs >= 4 ? 15.0 : 0.0
-        return min(95, baseConfidence + roiBonus)
+        let roiBonus: Float = validROIs >= 4 ? 15.0 : 0.0
+        return min(95.0, baseConfidence + roiBonus)
     }
 
     /// Pigmentation confidence (80%)

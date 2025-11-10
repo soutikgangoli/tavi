@@ -536,7 +536,7 @@ public struct HomeView: View {
             let result = VersionedMetricsLoader.loadFace3DMetrics(from: data)
             if let metrics = result.metrics,
                let glowAnalysis = metrics.glowAnalysis {
-                return glowAnalysis.radianceScore
+                return Double(glowAnalysis.radianceScore)
             }
         }
 

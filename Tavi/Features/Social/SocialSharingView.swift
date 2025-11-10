@@ -632,7 +632,7 @@ struct SocialButton: View {
             id: "streak_7",
             title: "Week Warrior",
             description: "Maintain a 7-day streak",
-            emoji: "💪",
+            iconName: "flame.fill",
             category: .streaks,
             isUnlocked: true,
             unlockedDate: Date()

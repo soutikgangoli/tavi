@@ -26,10 +26,13 @@ public class ExportManager {
 
     /// Create timestamped export directory in Documents
     public static func createExportDirectory() throws -> URL {
-        let documentsPath = FileManager.default.urls(
+        guard let documentsPath = FileManager.default.urls(
             for: .documentDirectory,
             in: .userDomainMask
-        ).first!
+        ).first else {
+            AppLogger.export.error("❌ Failed to get documents directory")
+            throw NSError(domain: "ExportManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to access documents directory"])
+        }
 
         let timestamp = Int(Date().timeIntervalSince1970)
         let exportDir = documentsPath.appendingPathComponent("FaceScan_\(timestamp)")
@@ -93,10 +96,13 @@ public class ExportManager {
 
     /// Get all export directories
     public static func listExportDirectories() -> [URL] {
-        let documentsPath = FileManager.default.urls(
+        guard let documentsPath = FileManager.default.urls(
             for: .documentDirectory,
             in: .userDomainMask
-        ).first!
+        ).first else {
+            AppLogger.export.error("❌ Failed to get documents directory for listing exports")
+            return []
+        }
 
         do {
             let contents = try FileManager.default.contentsOfDirectory(

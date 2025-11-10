@@ -27,6 +27,8 @@ public class SessionResult: NSManagedObject {
     @NSManaged public var discolorationIndex: Double
     @NSManaged public var moistureSpecular: Double
     @NSManaged public var moistureSmoothness: Double
+    @NSManaged public var poresScore: Double
+    @NSManaged public var acneScore: Double
     @NSManaged public var overallScore: Double
 
     // Images (stored as JPEG data with 0.8 quality for efficient storage)
@@ -94,6 +96,10 @@ extension SessionResult {
             self.foreheadScore = extractROIScore(for: .forehead, from: metrics)
             self.chinScore = extractROIScore(for: .chin, from: metrics)
 
+            // Pores and Acne scores (core metrics in Overall Score calculation)
+            self.poresScore = Double(metrics.poreAnalysis?.visibilityScore ?? 0)
+            self.acneScore = Double(metrics.acneAnalysis?.overallScore ?? 0)
+
             // Save clinical metrics as versioned JSON
             do {
                 let versionedWrapper = try VersionedFace3DMetrics(metrics: metrics)
@@ -111,6 +117,10 @@ extension SessionResult {
             self.rightCheekScore = Double(scores.overallScore)
             self.foreheadScore = Double(scores.overallScore)
             self.chinScore = Double(scores.overallScore)
+
+            // Default values for pores and acne when clinical metrics unavailable
+            self.poresScore = 0
+            self.acneScore = 0
         }
 
         // Generate thumbnail and save full face image asynchronously with JPEG compression

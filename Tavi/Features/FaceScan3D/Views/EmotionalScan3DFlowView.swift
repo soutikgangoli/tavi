@@ -1468,32 +1468,50 @@ extension EmotionalScan3DFlowView {
     // MARK: - JSON Backup Functions
 
     /// Create JSON backup before attempting CoreData save (failsafe)
-    private func createJSONBackup(_ emotional: EmotionalMetrics, _ clinical: Face3DMetrics) async -> URL {
+    private func createJSONBackup(_ emotional: EmotionalMetrics, _ clinical: Face3DMetrics) async -> URL? {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         let timestamp = formatter.string(from: Date())
 
-        let backupDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        guard let backupDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            AppLogger.faceScan.error("❌ Failed to get document directory for backup")
+            return nil
+        }
+
+        let taviBackupDir = backupDir
             .appendingPathComponent("Tavi")
             .appendingPathComponent("Backups")
 
-        try? FileManager.default.createDirectory(at: backupDir, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(at: taviBackupDir, withIntermediateDirectories: true)
+        } catch {
+            AppLogger.faceScan.error("❌ Failed to create backup directory: \(error)")
+            return nil
+        }
 
-        let backupURL = backupDir.appendingPathComponent("scan_\(timestamp).json")
+        let backupURL = taviBackupDir.appendingPathComponent("scan_\(timestamp).json")
 
-        let backup: [String: Any] = [
-            "timestamp": timestamp,
-            "emotionalMetrics": try! JSONEncoder().encode(emotional).base64EncodedString(),
-            "clinicalMetrics": try! JSONEncoder().encode(clinical).base64EncodedString(),
-            "deviceModel": UIDevice.current.model,
-            "deviceOS": "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
-        ]
+        do {
+            let emotionalData = try JSONEncoder().encode(emotional).base64EncodedString()
+            let clinicalData = try JSONEncoder().encode(clinical).base64EncodedString()
 
-        let data = try! JSONSerialization.data(withJSONObject: backup)
-        try! data.write(to: backupURL)
+            let backup: [String: Any] = [
+                "timestamp": timestamp,
+                "emotionalMetrics": emotionalData,
+                "clinicalMetrics": clinicalData,
+                "deviceModel": UIDevice.current.model,
+                "deviceOS": "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
+            ]
 
-        AppLogger.faceScan.info("✅ Created backup at: \(backupURL.path)")
-        return backupURL
+            let data = try JSONSerialization.data(withJSONObject: backup)
+            try data.write(to: backupURL)
+
+            AppLogger.faceScan.info("✅ Created backup at: \(backupURL.path)")
+            return backupURL
+        } catch {
+            AppLogger.faceScan.error("❌ Failed to create JSON backup: \(error)")
+            return nil
+        }
     }
 
     /// Export pending data to JSON for manual backup
@@ -1501,7 +1519,10 @@ extension EmotionalScan3DFlowView {
         guard let data = pendingSaveData else { return }
 
         Task {
-            let backupURL = await createJSONBackup(data.emotionalMetrics, data.clinicalMetrics)
+            guard let backupURL = await createJSONBackup(data.emotionalMetrics, data.clinicalMetrics) else {
+                AppLogger.faceScan.error("❌ Failed to create backup URL for export")
+                return
+            }
 
             // Share using system share sheet
             let activityVC = UIActivityViewController(

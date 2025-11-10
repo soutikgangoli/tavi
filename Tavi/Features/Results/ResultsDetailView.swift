@@ -23,7 +23,7 @@ struct ResultsDetailView: View {
     @State private var isGeneratingPDF = false
     @State private var isPreparingShare = false
     @State private var showSocialSharing = false
-    @State private var errorState: ErrorState?
+    @State private var errorState: ResultsDetailViewErrorState?
 
     init(session: SessionResult) {
         self.session = session
@@ -103,7 +103,7 @@ struct ResultsDetailView: View {
 
     // MARK: - Content View
 
-    private var contentView: some View {
+    var contentView: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Header
@@ -145,7 +145,7 @@ struct ResultsDetailView: View {
 
     // MARK: - Error View
 
-    private func errorView(_ error: ErrorState) -> some View {
+    func errorView(_ error: ResultsDetailViewErrorState) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 60))
@@ -179,7 +179,7 @@ struct ResultsDetailView: View {
 
     // MARK: - Header Section
 
-    private var headerSection: some View {
+    var headerSection: some View {
         VStack(spacing: 8) {
             Text(session.relativeDate)
                 .font(.headline)
@@ -197,7 +197,7 @@ struct ResultsDetailView: View {
 
     // MARK: - Image Section
 
-    private var imageSection: some View {
+    var imageSection: some View {
         CardView {
             VStack(spacing: 12) {
                 // Heatmap Selector
@@ -215,7 +215,7 @@ struct ResultsDetailView: View {
         }
     }
 
-    private var heatmapPicker: some View {
+    var heatmapPicker: some View {
         Picker("Heatmap Type", selection: $selectedHeatmap) {
             ForEach(HeatmapType.allCases, id: \.self) { type in
                 Text(type.displayName).tag(type)
@@ -225,7 +225,7 @@ struct ResultsDetailView: View {
     }
 
     @ViewBuilder
-    private var heatmapImageView: some View {
+    var heatmapImageView: some View {
         if showingOriginal {
             if let thumbnail = session.thumbnailImage {
                 Image(uiImage: thumbnail)
@@ -245,7 +245,7 @@ struct ResultsDetailView: View {
         }
     }
 
-    private var placeholderImage: some View {
+    var placeholderImage: some View {
         Rectangle()
             .fill(Color.gray.opacity(0.2))
             .overlay {
@@ -257,7 +257,7 @@ struct ResultsDetailView: View {
 
     // MARK: - Overall Score Card
 
-    private var overallScoreCard: some View {
+    var overallScoreCard: some View {
         CardView {
             VStack(spacing: 12) {
                 Text("Overall Skin Health")
@@ -306,67 +306,120 @@ struct ResultsDetailView: View {
 
     // MARK: - Metrics Grid
 
-    private var metricsGrid: some View {
+    var metricsGrid: some View {
         VStack(spacing: 12) {
-            Text("Detailed Metrics")
+            Text("Key Metrics")
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 // Use enhanced cards with confidence if available
                 if let metrics = clinicalMetrics {
+                    // ===== CORE 5 METRICS (IN OVERALL SCORE) =====
+
+                    // 1. SMOOTHNESS (22.4%) - RENAMED FROM "SHARPNESS"
                     ResultsMetricCardWithConfidence(
-                        title: "Sharpness",
+                        title: "Smoothness",
                         value: session.blurQuality,
-                        confidence: Double(metrics.scanQuality?.textureClarity ?? 70),
-                        icon: "camera.aperture"
+                        confidence: Double(metrics.smoothnessConfidence),
+                        icon: "waveform.path",
+                        isCoreMetric: true
                     )
-                    ResultsMetricCardWithConfidence(
-                        title: "Texture",
-                        value: session.textureAvg,
-                        confidence: Double(metrics.poreAnalysis?.confidence ?? 70),
-                        icon: "square.grid.3x3"
-                    )
+
+                    // 2. PIGMENTATION (22.4%)
                     ResultsMetricCardWithConfidence(
                         title: "Pigmentation",
                         value: session.pigmentationAvg,
-                        confidence: Double(metrics.globalPigmentationScore > 0 ? 75 : 60),
-                        icon: "paintpalette"
+                        confidence: Double(metrics.pigmentationConfidence),
+                        icon: "paintpalette",
+                        isCoreMetric: true
                     )
+
+                    // 3. PORES (14.9%) - NEW CARD
+                    if let pores = metrics.poreAnalysis {
+                        ResultsMetricCardWithConfidence(
+                            title: "Pores",
+                            value: Double(pores.visibilityScore),
+                            confidence: Double(pores.confidence),
+                            icon: "circle.grid.cross.fill",
+                            isCoreMetric: true
+                        )
+                    }
+
+                    // 4. DISCOLORATION (14.9%)
                     ResultsMetricCardWithConfidence(
                         title: "Discoloration",
                         value: session.discolorationIndex,
-                        confidence: Double(metrics.globalDiscolorationScore > 0 ? 70 : 60),
-                        icon: "circle.lefthalf.filled"
+                        confidence: Double(metrics.discolorationConfidence),
+                        icon: "circle.lefthalf.filled",
+                        isCoreMetric: true
                     )
 
-                    // Glow Score (Overall Health Index)
+                    // 5. ACNE (14.9%) - NEW CARD
+                    if let acne = metrics.acneAnalysis {
+                        ResultsMetricCardWithConfidence(
+                            title: "Acne",
+                            value: Double(acne.overallScore),
+                            confidence: Double(acne.confidence),
+                            icon: "allergens",
+                            isCoreMetric: true
+                        )
+                    }
+
+                    // ===== ADDITIONAL INDICATORS (NOT IN OVERALL SCORE) =====
+
+                    // Glow (Composite Health Index)
                     if let glowAnalysis = metrics.glowAnalysis {
                         ResultsMetricCardWithConfidence(
-                            title: "Glow (Health)",
+                            title: "Glow",
                             value: Double(glowAnalysis.glowScore),
                             confidence: Double(glowAnalysis.confidence),
-                            icon: "sparkles"
+                            icon: "sparkles",
+                            isCoreMetric: false
                         )
                     }
 
-                    // Radiance Score (Pure Luminosity)
+                    // Radiance (Luminosity)
                     if let glowAnalysis = metrics.glowAnalysis {
                         ResultsMetricCardWithConfidence(
-                            title: "Radiance (Brightness)",
+                            title: "Radiance",
                             value: Double(glowAnalysis.radianceScore),
                             confidence: Double(glowAnalysis.confidence),
-                            icon: "sun.max"
+                            icon: "sun.max",
+                            isCoreMetric: false
                         )
                     }
 
-                    // Hydration with confidence (capped at 80% - indirect measurement)
+                    // Hydration (Proxy Method)
                     ResultsMetricCardWithConfidence(
-                        title: "Moisture",
+                        title: "Hydration",
                         value: session.moistureSpecular,
-                        confidence: 65, // Moderate confidence (indirect measurement)
-                        icon: "drop"
+                        confidence: Double(metrics.hydrationConfidence),
+                        icon: "drop",
+                        isCoreMetric: false
                     )
+
+                    // Redness (if available)
+                    if let redness = metrics.rednessAnalysis {
+                        ResultsMetricCardWithConfidence(
+                            title: "Redness",
+                            value: Double(redness.overallScore),
+                            confidence: Double(redness.confidence),
+                            icon: "flame.fill",
+                            isCoreMetric: false
+                        )
+                    }
+
+                    // Oil Control (if available)
+                    if let oilScore = metrics.globalSpecularScore {
+                        ResultsMetricCardWithConfidence(
+                            title: "Oil Control",
+                            value: Double(oilScore),
+                            confidence: 70.0,
+                            icon: "sparkles",
+                            isCoreMetric: false
+                        )
+                    }
 
                     // Wrinkles (categorical)
                     if let wrinkleAnalysis = metrics.wrinkleAnalysis {
@@ -380,18 +433,24 @@ struct ResultsDetailView: View {
                     }
                 } else {
                     // Fallback to basic cards if no clinical metrics
-                    ResultsMetricCard(title: "Sharpness", value: session.blurQuality, icon: "camera.aperture")
-                    ResultsMetricCard(title: "Texture", value: session.textureAvg, icon: "square.grid.3x3")
+                    ResultsMetricCard(title: "Smoothness", value: session.blurQuality, icon: "waveform.path")
                     ResultsMetricCard(title: "Pigmentation", value: session.pigmentationAvg, icon: "paintpalette")
                     ResultsMetricCard(title: "Discoloration", value: session.discolorationIndex, icon: "circle.lefthalf.filled")
-                    ResultsMetricCard(title: "Moisture (S)", value: session.moistureSpecular, icon: "drop")
-                    ResultsMetricCard(title: "Moisture (Sm)", value: session.moistureSmoothness, icon: "drop.fill")
+                    ResultsMetricCard(title: "Hydration", value: session.moistureSpecular, icon: "drop")
                 }
+            }
+
+            // Explanatory text
+            if clinicalMetrics != nil {
+                Text("Metrics with CORE badge are included in your Overall Score calculation.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
             }
         }
     }
 
-    private func wrinkleColor(for depth: WrinkleDepth) -> Color {
+    func wrinkleColor(for depth: WrinkleDepth) -> Color {
         switch depth {
         case .fine: return .green
         case .moderate: return .orange
@@ -401,7 +460,7 @@ struct ResultsDetailView: View {
 
     // MARK: - Glow vs Radiance Breakdown
 
-    private func glowRadianceBreakdown(_ analysis: GlowAnalysis) -> some View {
+    func glowRadianceBreakdown(_ analysis: GlowAnalysis) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Glow vs Radiance Analysis")
                 .font(.headline)
@@ -564,7 +623,7 @@ struct ResultsDetailView: View {
     // MARK: - Full Clinical Breakdown
 
     /// Calculate hydration score from ROI metrics
-    private func calculateHydrationScore(from metrics: Face3DMetrics) -> Float {
+    func calculateHydrationScore(from metrics: Face3DMetrics) -> Float {
         let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex }
         guard !moistureValues.isEmpty else { return 0 }
         let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
@@ -572,7 +631,7 @@ struct ResultsDetailView: View {
     }
 
     @ViewBuilder
-    private func fullClinicalBreakdown(_ metrics: Face3DMetrics) -> some View {
+    func fullClinicalBreakdown(_ metrics: Face3DMetrics) -> some View {
         VStack(alignment: .leading, spacing: 24) {
             // MARK: - Skin Health Metrics (Included in Overall Score)
             VStack(alignment: .leading, spacing: 16) {
@@ -867,7 +926,7 @@ struct ResultsDetailView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
-                        Text("Severity: \(redness.severity.rawValue) • Level: \(redness.rednessLevel.rawValue)")
+                        Text("Level: \(redness.rednessLevel.rawValue)")
                             .font(.caption)
                             .foregroundColor(.secondary)
 
@@ -973,7 +1032,7 @@ struct ResultsDetailView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
 
-                    Text("Severity: \(redness.severity.rawValue)")
+                    Text("Level: \(redness.rednessLevel.rawValue)")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
 
@@ -1016,7 +1075,7 @@ struct ResultsDetailView: View {
                             .padding(.top, 4)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            ForEach(Array(wrinkles.regionalScores.keys.sorted()), id: \.self) { region in
+                            ForEach(wrinkles.regionalScores.keys.sorted(), id: \.self) { region in
                                 if let score = wrinkles.regionalScores[region] {
                                     Text("• \(region.capitalized): \(Int(score))/100")
                                         .font(.caption)
@@ -1197,13 +1256,14 @@ struct ResultsDetailView: View {
                 .cornerRadius(12)
             }
         }
+        }
         .padding(.vertical)
     }
 
     // MARK: - Aging Indicators Section
 
     @ViewBuilder
-    private func agingIndicatorsSection(_ metrics: Face3DMetrics) -> some View {
+    func agingIndicatorsSection(_ metrics: Face3DMetrics) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Aging Indicators")
@@ -1285,7 +1345,7 @@ struct ResultsDetailView: View {
 
     // MARK: - ROI Scores
 
-    private var roiScoresSection: some View {
+    var roiScoresSection: some View {
         VStack(spacing: 12) {
             Text("Regional Scores")
                 .font(.headline)
@@ -1302,7 +1362,7 @@ struct ResultsDetailView: View {
 
     // MARK: - Actions Section
 
-    private var actionsSection: some View {
+    var actionsSection: some View {
         VStack(spacing: 12) {
             // Compare with latest button (if this isn't the latest scan)
             if !isLatestScan {
@@ -1352,7 +1412,7 @@ struct ResultsDetailView: View {
     }
 
     // Helper to check if this is the latest scan
-    private var isLatestScan: Bool {
+    var isLatestScan: Bool {
         let request = SessionResult.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)]
         request.fetchLimit = 1
@@ -1365,7 +1425,7 @@ struct ResultsDetailView: View {
     }
 
     // Helper to fetch the latest session
-    private func fetchLatestSession() -> SessionResult? {
+    func fetchLatestSession() -> SessionResult? {
         let request = SessionResult.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)]
         request.fetchLimit = 1
@@ -1375,13 +1435,13 @@ struct ResultsDetailView: View {
 
     // MARK: - Actions
 
-    private func shareResults() {
+    func shareResults() {
         Task {
             await performShare()
         }
     }
 
-    private func performShare() async {
+    func performShare() async {
         // Set loading state
         await MainActor.run {
             isPreparingShare = true
@@ -1428,7 +1488,7 @@ struct ResultsDetailView: View {
         }
     }
 
-    private func generateShareText() -> String {
+    func generateShareText() -> String {
         // Get top 3 metrics
         let metrics: [(name: String, value: Double)] = [
             ("Overall Health", session.overallScore),
@@ -1455,7 +1515,7 @@ struct ResultsDetailView: View {
         return text
     }
 
-    private func generatePDFReport() async -> Data? {
+    func generatePDFReport() async -> Data? {
         // Set loading state
         await MainActor.run {
             isGeneratingPDF = true
@@ -1507,7 +1567,7 @@ struct ResultsDetailView: View {
         return try? Data(contentsOf: pdfURL)
     }
 
-    private func deleteSession() {
+    func deleteSession() {
         viewContext.delete(session)
         do {
             try viewContext.save()
@@ -1521,23 +1581,18 @@ struct ResultsDetailView: View {
 
     // MARK: - Error Handling
 
-    private func handleError(_ error: Error, context: String) {
+    func handleError(_ error: Error, context: String) {
         AppLogger.ui.error("ResultsDetailView error (\(context)): \(error)")
         CrashReporter.shared.logError(error, context: ["view": "ResultsDetailView", "operation": context])
-        errorState = ErrorState(
+        errorState = ResultsDetailViewErrorState(
             message: "Unable to \(context). Please try again.",
             error: error
         )
     }
 
-    private struct ErrorState {
-        let message: String
-        let error: Error
-    }
-
     // MARK: - Helpers
 
-    private func scoreColor(for score: Double) -> Color {
+    func scoreColor(for score: Double) -> Color {
         switch score {
         case 80...100: return .green
         case 60..<80: return .orange
@@ -1545,7 +1600,7 @@ struct ResultsDetailView: View {
         }
     }
 
-    private func gradeColor(for grade: ScoreGrade) -> Color {
+    func gradeColor(for grade: ScoreGrade) -> Color {
         switch grade {
         case .excellent: return .green
         case .good: return .blue
@@ -1553,6 +1608,13 @@ struct ResultsDetailView: View {
         case .poor, .veryPoor: return .red
         }
     }
+}
+
+// MARK: - Error State
+
+struct ResultsDetailViewErrorState {
+    let message: String
+    let error: Error
 }
 
 // MARK: - Metric Card
@@ -1583,7 +1645,7 @@ struct ResultsMetricCard: View {
         }
     }
 
-    private var scoreColor: Color {
+    var scoreColor: Color {
         switch value {
         case 80...100: return .green
         case 60..<80: return .orange
@@ -1601,35 +1663,38 @@ struct ResultsMetricCardWithConfidence: View {
     let confidence: Double  // 0-100
     let icon: String
     let unit: String?  // Optional unit (%, categorical value, etc.)
+    var isCoreMetric: Bool = false  // NEW: Badge for core metrics
 
-    init(title: String, value: Double, confidence: Double, icon: String, unit: String? = "%") {
+    init(title: String, value: Double, confidence: Double, icon: String, unit: String? = "%", isCoreMetric: Bool = false) {
         self.title = title
         self.value = value
         self.confidence = confidence
         self.icon = icon
         self.unit = unit
+        self.isCoreMetric = isCoreMetric
     }
 
     var body: some View {
-        CardView {
-            VStack(spacing: 12) {
-                HStack {
-                    Image(systemName: icon)
-                        .font(.title3)
-                        .foregroundColor(scoreColor)
+        ZStack(alignment: .topLeading) {
+            CardView {
+                VStack(spacing: 12) {
+                    HStack {
+                        Image(systemName: icon)
+                            .font(.title3)
+                            .foregroundColor(scoreColor)
 
-                    Spacer()
+                        Spacer()
 
-                    // Confidence badge
-                    Text("\(Int(confidence))% confidence")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(confidenceColor)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(confidenceColor.opacity(0.15))
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                }
+                        // Confidence badge
+                        Text("\(Int(confidence))% confidence")
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(confidenceColor)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(confidenceColor.opacity(0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
 
                 Text(title)
                     .font(.caption)
@@ -1666,14 +1731,27 @@ struct ResultsMetricCardWithConfidence: View {
             }
             .padding(.vertical, 8)
         }
+
+            // Core metric badge overlay
+            if isCoreMetric {
+                Text("CORE")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.blue)
+                    .cornerRadius(4)
+                    .offset(x: 8, y: 8)
+            }
+        }
     }
 
-    private var displayValue: String {
+    var displayValue: String {
         // For categorical values (no unit)
         return "\(Int(value))"
     }
 
-    private var scoreColor: Color {
+    var scoreColor: Color {
         switch value {
         case 80...100: return .green
         case 60..<80: return .orange
@@ -1681,7 +1759,7 @@ struct ResultsMetricCardWithConfidence: View {
         }
     }
 
-    private var confidenceColor: Color {
+    var confidenceColor: Color {
         switch confidence {
         case 75...100: return .green
         case 50..<75: return .orange
@@ -1750,7 +1828,7 @@ struct CategoricalMetricCard: View {
         }
     }
 
-    private var confidenceColor: Color {
+    var confidenceColor: Color {
         switch confidence {
         case 75...100: return .green
         case 50..<75: return .orange

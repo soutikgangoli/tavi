@@ -844,10 +844,11 @@ struct InsightsTabView: View {
             return "Your skin shows improvement in \(metricTexts[0])!"
         } else if improvements.count == 2 {
             return "Your skin shows improvement in \(metricTexts[0]) and \(metricTexts[1])!"
-        } else {
+        } else if let last = metricTexts.last {
             let first = metricTexts.dropLast().joined(separator: ", ")
-            let last = metricTexts.last!
             return "Your skin shows improvement in \(first), and \(last)!"
+        } else {
+            return "Your skin shows improvement!"
         }
     }
 
