@@ -12,7 +12,7 @@ import SwiftUI
 public struct Face3DMetricsResultsView: View {
     @ObservedObject var viewModel: FaceScan3DViewModel
 
-    @State private var selectedMetricType: MetricType = .roughness
+    @State private var selectedMetricType: VisualizerMetricType = .roughness
     @State private var selectedROI: Face3DROI?
     @State private var showHeatmap: Bool = true
 

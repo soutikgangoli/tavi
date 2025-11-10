@@ -13,7 +13,7 @@ public struct ChallengeDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var challenge: GlowChallenge?
 
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: HeadspaceDesign.Spacing.xl) {

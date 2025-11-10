@@ -162,7 +162,7 @@ class DebugViewModel: ObservableObject {
                 let arFace = faceDetector.detectFaceFromARKit(faceAnchor: faceAnchor)
                 faces = [arFace]
                 usingARKit = true
-                AppLogger.capture.debug("Debug: Using ARKit angles - Yaw: \(arFace.yaw ?? 0)°, Pitch: \(arFace.pitch ?? 0)°, Roll: \(arFace.roll ?? 0)°")
+                AppLogger.faceScan.debug("Debug: Using ARKit angles - Yaw: \(arFace.yaw ?? 0)°, Pitch: \(arFace.pitch ?? 0)°, Roll: \(arFace.roll ?? 0)°")
             }
             // Priority 2: Fall back to Vision-based detection (approximate angles from landmarks)
             else if let cgImage = convertToCGImage(pixelBuffer: pixelBuffer) {
@@ -170,9 +170,9 @@ class DebugViewModel: ObservableObject {
                 usingARKit = false
                 if let face = faces.first {
                     if face.yaw != nil || face.pitch != nil || face.roll != nil {
-                        AppLogger.capture.debug("Debug: Using Vision approximate angles - Yaw: \(face.yaw ?? 0)°, Pitch: \(face.pitch ?? 0)°, Roll: \(face.roll ?? 0)°")
+                        AppLogger.faceScan.debug("Debug: Using Vision approximate angles - Yaw: \(face.yaw ?? 0)°, Pitch: \(face.pitch ?? 0)°, Roll: \(face.roll ?? 0)°")
                     } else {
-                        AppLogger.capture.debug("Debug: Vision angles unavailable (missing landmarks)")
+                        AppLogger.faceScan.debug("Debug: Vision angles unavailable (missing landmarks)")
                     }
                 }
             }

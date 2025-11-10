@@ -21,7 +21,7 @@ public struct MainTabView: View {
         case profile
     }
 
-    var body: some View {
+    public var body: some View {
         ZStack(alignment: .bottom) {
             // Tab content
             TabView(selection: $selectedTab) {
@@ -223,8 +223,9 @@ struct ProfileTabView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)],
-        animation: .default
+        sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)],
+        animation: .default,
+        predicate: nil
     )
     private var sessions: FetchedResults<SessionResult>
 
@@ -576,7 +577,7 @@ struct ProfileTabView: View {
 
 // MARK: - Profile Helper Views
 
-struct StatRow: View {
+private struct StatRow: View {
     let label: String
     let value: String
     var icon: String? = nil

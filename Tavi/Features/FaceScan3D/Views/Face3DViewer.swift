@@ -215,7 +215,7 @@ public struct Face3DViewer: View {
 
         case .roughness, .pigmentation, .specular:
             // Use intensity map
-            let metricType: MetricType
+            let metricType: AnalysisMetricType
             switch type {
             case .roughness:
                 metricType = .roughness

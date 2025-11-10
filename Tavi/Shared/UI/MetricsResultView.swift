@@ -397,7 +397,7 @@ struct MetricRow: View {
 
 // MARK: - Metric Bar
 
-struct MetricBar: View {
+private struct MetricBar: View {
     let label: String
     let value: Double
     let color: Color

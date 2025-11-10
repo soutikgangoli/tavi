@@ -186,11 +186,11 @@ public struct ROIScores: Codable {
 
 /// Metric type for heatmap visualization
 public struct HeatmapMetric: Codable, Hashable {
-    public let metricType: MetricType
+    public let metricType: AnalysisMetricType
     public let values: [Float]  // Per-vertex or per-ROI values
     public let colorMap: ColorMapType
 
-    public init(metricType: MetricType, values: [Float], colorMap: ColorMapType = .heatmap) {
+    public init(metricType: AnalysisMetricType, values: [Float], colorMap: ColorMapType = .heatmap) {
         self.metricType = metricType
         self.values = values
         self.colorMap = colorMap

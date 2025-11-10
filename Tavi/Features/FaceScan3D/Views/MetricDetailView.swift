@@ -10,7 +10,7 @@
 import SwiftUI
 import Charts
 
-public enum MetricType: String, CaseIterable, Identifiable {
+public enum UserMetricType: String, CaseIterable, Identifiable {
     case overall = "Overall Score"
     case smoothness = "Smoothness"
     case hydration = "Hydration"
@@ -82,7 +82,7 @@ enum TimeRange: String, CaseIterable {
 }
 
 public struct MetricDetailView: View {
-    let metricType: MetricType
+    let metricType: UserMetricType
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
@@ -134,7 +134,7 @@ public struct MetricDetailView: View {
         return scores.min() ?? 0
     }
 
-    var body: some View {
+    public var body: some View {
         ZStack {
             // Scenic background
             scenicBackground
@@ -906,7 +906,7 @@ public struct MetricDetailView: View {
 
 // MARK: - Supporting Views
 
-struct MetricBar: View {
+private struct MetricBar: View {
     let label: String
     let score: Double
     let color: Color
@@ -971,7 +971,7 @@ struct ScoreRangeLegend: View {
 // MARK: - Metric Info Sheet
 
 struct MetricInfoSheet: View {
-    let metricType: MetricType
+    let metricType: UserMetricType
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {

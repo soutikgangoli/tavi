@@ -16,6 +16,7 @@ public struct UserProfile: Codable {
 
     // User identification
     var name: String?
+    var email: String?
 
     // Demographics
     var age: Int?

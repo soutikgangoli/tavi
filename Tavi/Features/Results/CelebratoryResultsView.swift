@@ -20,7 +20,7 @@ public struct CelebratoryResultsView: View {
     @State private var showScore = false
     @State private var showMetrics = false
     @State private var showActions = false
-    @State private var selectedMetricForHelp: MetricType? = nil
+    @State private var selectedMetricForHelp: AnalysisMetricType? = nil
     @State private var showFirstTimeBanner = false
     @State private var animatedScore: CGFloat = 0  // For smooth circle animation
     @AppStorage("hasViewedMetricHelp") private var hasViewedMetricHelp = false
@@ -299,7 +299,7 @@ public struct CelebratoryResultsView: View {
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
     }
 
-    private func metricCard(title: String, icon: String, score: Int, description: String, metricType: MetricType? = nil) -> some View {
+    private func metricCard(title: String, icon: String, score: Int, description: String, metricType: AnalysisMetricType? = nil) -> some View {
         HStack(spacing: HeadspaceDesign.Spacing.lg) {
             // Icon
             ZStack {
@@ -805,7 +805,7 @@ public struct CelebratoryResultsView: View {
     }
 
     /// Get context-sensitive improvement suggestion based on score and metric type
-    private func improvementSuggestion(for score: Int, metricType: MetricType?) -> String? {
+    private func improvementSuggestion(for score: Int, metricType: AnalysisMetricType?) -> String? {
         // Only show suggestions for scores below 75
         guard score < 75, let metricType = metricType else { return nil }
 

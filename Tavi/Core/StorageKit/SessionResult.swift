@@ -124,7 +124,7 @@ extension SessionResult {
         }
 
         // Generate thumbnail and save full face image asynchronously with JPEG compression
-        Task {
+        Task { [self] in
             // Save full resolution face image (JPEG at 0.8 quality for heatmap generation)
             let uiFaceImage = UIImage(cgImage: faceImage)
             if let faceImageData = uiFaceImage.jpegData(compressionQuality: 0.8) {
@@ -276,7 +276,7 @@ extension SessionResult {
     /// Decode the full Face3DMetrics from stored JSON
     public var face3DMetrics: Face3DMetrics? {
         guard let data = clinicalMetricsData else {
-            AppLogger.storage.debug("No clinicalMetricsData available for session \(id)")
+            AppLogger.storage.debug("No clinicalMetricsData available for session \(self.id)")
             return nil
         }
 
@@ -289,7 +289,7 @@ extension SessionResult {
             return metrics
         } catch {
             AppLogger.storage.error("❌ Failed to decode Face3DMetrics: \(error)")
-            CrashReporter.shared.logError(error, context: ["operation": "decode_face3d_metrics", "session_id": id.uuidString])
+            CrashReporter.shared.logError(error, context: ["operation": "decode_face3d_metrics", "session_id": self.id.uuidString])
             return nil
         }
     }
@@ -297,7 +297,7 @@ extension SessionResult {
     /// Decode EmotionalMetrics from stored JSON
     public var emotionalMetrics: EmotionalMetrics? {
         guard let data = emotionalMetricsData else {
-            AppLogger.storage.debug("No emotionalMetricsData available for session \(id)")
+            AppLogger.storage.debug("No emotionalMetricsData available for session \(self.id)")
             return nil
         }
 
@@ -309,7 +309,7 @@ extension SessionResult {
             return metrics
         } catch {
             AppLogger.storage.error("❌ Failed to decode EmotionalMetrics: \(error)")
-            CrashReporter.shared.logError(error, context: ["operation": "decode_emotional_metrics", "session_id": id.uuidString])
+            CrashReporter.shared.logError(error, context: ["operation": "decode_emotional_metrics", "session_id": self.id.uuidString])
             return nil
         }
     }

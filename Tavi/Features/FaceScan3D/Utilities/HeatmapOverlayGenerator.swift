@@ -88,7 +88,7 @@ public class HeatmapOverlayGenerator {
     /// Generate intensity map from ROI metrics
     public func generateIntensityMap(
         metrics: Face3DMetrics,
-        type: MetricType,
+        type: AnalysisMetricType,
         resolution: CGSize
     ) -> CGImage? {
 

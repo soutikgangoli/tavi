@@ -469,12 +469,13 @@ public struct CalibrationState {
     /// Update center position from yaw angle (in degrees)
     public mutating func updateCenterPosition(yaw: Float) {
         let newPosition = CenterPosition.from(yaw: yaw)
+        let oldPosition = self.centerPosition
 
-        if centerPosition != newPosition {
-            AppLogger.faceScan.debug("🧭 Center Position changed: \(centerPosition.rawValue) → \(newPosition.rawValue) (yaw: \(String(format: "%.1f", yaw))°)")
+        if oldPosition != newPosition {
+            AppLogger.faceScan.debug("🧭 Center Position changed: \(oldPosition.rawValue) → \(newPosition.rawValue) (yaw: \(String(format: "%.1f", yaw))°)")
         }
 
-        centerPosition = newPosition
+        self.centerPosition = newPosition
     }
 }
 

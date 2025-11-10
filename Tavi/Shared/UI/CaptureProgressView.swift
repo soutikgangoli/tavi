@@ -244,7 +244,7 @@ public struct CaptureResultView: View {
     }
 }
 
-struct StatRow: View {
+private struct StatRow: View {
     let label: String
     let value: String
 

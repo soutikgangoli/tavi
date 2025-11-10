@@ -72,15 +72,16 @@ public struct ChallengeMilestone {
     let days: Int
     let title: String
     let iconName: String  // SF Symbol name
+    let emoji: String
     let reward: String
 
     static let allMilestones: [ChallengeMilestone] = [
-        ChallengeMilestone(days: 1, title: "First Scan", iconName: "leaf.fill", reward: "You've started your journey!"),
-        ChallengeMilestone(days: 3, title: "3-Day Streak", iconName: "flame.fill", reward: "Building the habit!"),
-        ChallengeMilestone(days: 7, title: "One Week", iconName: "star.fill", reward: "One week strong!"),
-        ChallengeMilestone(days: 14, title: "Two Weeks", iconName: "bolt.fill", reward: "Halfway there!"),
-        ChallengeMilestone(days: 21, title: "Three Weeks", iconName: "rocket.fill", reward: "Habit formed!"),
-        ChallengeMilestone(days: 30, title: "30-Day Glow", iconName: "trophy.fill", reward: "Challenge Complete!"),
+        ChallengeMilestone(days: 1, title: "First Scan", iconName: "leaf.fill", emoji: "🌱", reward: "You've started your journey!"),
+        ChallengeMilestone(days: 3, title: "3-Day Streak", iconName: "flame.fill", emoji: "🔥", reward: "Building the habit!"),
+        ChallengeMilestone(days: 7, title: "One Week", iconName: "star.fill", emoji: "⭐", reward: "One week strong!"),
+        ChallengeMilestone(days: 14, title: "Two Weeks", iconName: "bolt.fill", emoji: "⚡", reward: "Halfway there!"),
+        ChallengeMilestone(days: 21, title: "Three Weeks", iconName: "rocket.fill", emoji: "🚀", reward: "Habit formed!"),
+        ChallengeMilestone(days: 30, title: "30-Day Glow", iconName: "trophy.fill", emoji: "🏆", reward: "Challenge Complete!"),
     ]
 }
 

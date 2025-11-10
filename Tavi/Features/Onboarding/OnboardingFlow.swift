@@ -183,7 +183,7 @@ struct OnboardingPage {
 
 /// Metric explanation view (detailed)
 public struct MetricExplanationView: View {
-    let metric: MetricType
+    let metric: AnalysisMetricType
 
     public var body: some View {
         ScrollView {
@@ -276,7 +276,7 @@ struct SectionView<Content: View>: View {
 }
 
 /// Metric information data
-extension MetricType {
+extension AnalysisMetricType {
     var iconName: String {
         switch self {
         case .roughness: return "waveform.path"
@@ -491,7 +491,7 @@ extension MetricType {
     }
 }
 
-public enum MetricType: String, Codable, Identifiable {
+public enum AnalysisMetricType: String, Codable, Identifiable {
     public var id: String { rawValue }
     case roughness
     case wrinkles

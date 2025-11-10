@@ -98,7 +98,8 @@ class PoreAnalyzer {
 
         guard let cgImage = texture.cgImage else {
             AppLogger.metrics.warning("⚠️ Could not extract CGImage from texture")
-            return PoreAnalysis(visibility: 0, density: 0, averageSize: 0, regionalScores: [:], confidence: 0)
+            let emptyDistribution = PoreSizeDistribution(smallCount: 0, mediumCount: 0, largeCount: 0, veryLargeCount: 0)
+            return PoreAnalysis(visibility: 0, density: 0, averageSize: 0, sizeDistribution: emptyDistribution, regionalScores: [:], confidence: 0)
         }
 
         // High-frequency texture energy correlates with visible pores

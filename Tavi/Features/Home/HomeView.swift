@@ -17,7 +17,7 @@ public struct HomeView: View {
     @State private var showSettings = false
     @State private var showChallengeDetail = false
     @State private var errorState: ErrorState?
-    @State private var selectedMetricType: MetricType?
+    @State private var selectedMetricType: UserMetricType?
     @State private var selectedSessionForDetail: SessionResult?
     @AppStorage("skipOnboarding") private var skipOnboarding: Bool = false
 

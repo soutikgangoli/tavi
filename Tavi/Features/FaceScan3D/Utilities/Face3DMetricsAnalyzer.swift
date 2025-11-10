@@ -458,7 +458,7 @@ public class Face3DMetricsAnalyzer {
         // Calculate hydration score from ROI moisture proxies (for display only - not in overall score)
         let moistureValues = roiMetrics.values.map { $0.moistureProxy.moistureIndex }
         let avgMoisture = Float(moistureValues.reduce(0, +)) / Float(moistureValues.count)
-        let hydrationScore = avgMoisture * 100  // Convert 0-1 to 0-100 score
+        let _ = avgMoisture * 100  // Convert 0-1 to 0-100 score (reserved for future use)
 
         // Recalculate overall score with normalized values using new 5-metric formula
         // ONLY includes high-confidence metrics (70%+ confidence):
