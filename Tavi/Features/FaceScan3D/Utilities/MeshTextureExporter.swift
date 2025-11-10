@@ -50,7 +50,7 @@ public class MeshTextureExporter {
         let metaData = try JSONEncoder().encode(metadata)
         try metaData.write(to: metaURL)
 
-        print("✅ Exported OBJ: \(objURL.path)")
+        AppLogger.export.info("Exported OBJ: \(objURL.path)")
         return objURL
     }
 
@@ -90,7 +90,7 @@ public class MeshTextureExporter {
         let metaData = try JSONEncoder().encode(metadata)
         try metaData.write(to: metaURL)
 
-        print("✅ Exported glTF: \(gltfURL.path)")
+        AppLogger.export.info("Exported glTF: \(gltfURL.path)")
         return gltfURL
     }
 
@@ -122,7 +122,7 @@ public class MeshTextureExporter {
         let metaData = try JSONEncoder().encode(metadata)
         try metaData.write(to: metaURL)
 
-        print("✅ Exported USDZ: \(usdzURL.path)")
+        AppLogger.export.info("Exported USDZ: \(usdzURL.path)")
         return usdzURL
     }
 

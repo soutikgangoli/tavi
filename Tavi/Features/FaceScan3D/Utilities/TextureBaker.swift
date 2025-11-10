@@ -55,11 +55,11 @@ public class TextureBaker {
 
         guard !samples.isEmpty else {
             AppLogger.faceScan.error("❌ TextureBaker: No samples provided - cannot bake texture")
-            print("⚠️ TextureBaker: No samples provided")
+            AppLogger.metrics.warning("⚠️ TextureBaker: No samples provided")
             return nil
         }
 
-        print("🎨 TextureBaker: Starting bake with \(samples.count) samples...")
+        AppLogger.metrics.info("🎨 TextureBaker: Starting bake with \(samples.count) samples...")
 
         // Convert to UnifiedMesh structure
         let mesh = UnifiedMesh(
@@ -77,15 +77,15 @@ public class TextureBaker {
         // Validate we have corrected samples after lighting correction
         guard !correctedSamples.isEmpty else {
             AppLogger.faceScan.error("❌ TextureBaker: No valid samples after lighting correction - all \(samples.count) samples failed to decode")
-            print("❌ TextureBaker: No valid samples after lighting correction - all \(samples.count) samples failed to decode")
+            AppLogger.metrics.error("❌ TextureBaker: No valid samples after lighting correction - all \(samples.count) samples failed to decode")
             return nil
         }
 
-        print("✅ TextureBaker: Successfully corrected \(correctedSamples.count)/\(samples.count) samples")
+        AppLogger.metrics.info("✅ TextureBaker: Successfully corrected \(correctedSamples.count)/\(samples.count) samples")
 
         // Step 2: Create UV atlas and blend samples
         guard let atlasImage = await createTextureAtlas(mesh: mesh, samples: correctedSamples) else {
-            print("⚠️ TextureBaker: Failed to create texture atlas")
+            AppLogger.metrics.warning("⚠️ TextureBaker: Failed to create texture atlas")
             return nil
         }
 
@@ -98,7 +98,7 @@ public class TextureBaker {
         }
 
         guard let cgTexture = finalTexture.cgImage else {
-            print("⚠️ TextureBaker: Failed to get CGImage from texture")
+            AppLogger.metrics.warning("⚠️ TextureBaker: Failed to get CGImage from texture")
             return nil
         }
 
@@ -108,7 +108,7 @@ public class TextureBaker {
 
         let processingTime = Date().timeIntervalSince1970 - startTime
 
-        print("✅ TextureBaker: Bake complete - time: \(processingTime)s, coverage: \(coverage * 100)%")
+        AppLogger.metrics.info("✅ TextureBaker: Bake complete - time: \(processingTime)s, coverage: \(coverage * 100)%")
 
         return TextureBakeResult(
             unifiedMesh: mesh,
@@ -128,7 +128,7 @@ public class TextureBaker {
 
         for sample in samples {
             guard let originalImage = sample.getImage() else {
-                print("⚠️ TextureBaker: Failed to decode image from sample '\(sample.step)' - data size: \(sample.textureImageData.count) bytes")
+                AppLogger.metrics.warning("⚠️ TextureBaker: Failed to decode image from sample '\(sample.step)' - data size: \(sample.textureImageData.count) bytes")
                 continue
             }
 
@@ -138,9 +138,9 @@ public class TextureBaker {
 
             // Log lighting quality
             if let quality = normalizedResult?.lightingQuality {
-                print("   📸 Sample \(sample.step): lighting quality \(Int(quality.overallScore * 100))%")
+                AppLogger.metrics.info("   📸 Sample \(sample.step): lighting quality \(Int(quality.overallScore * 100))%")
                 if !quality.isAcceptable {
-                    print("      ⚠️ Issues: \(quality.issues.joined(separator: ", "))")
+                    AppLogger.metrics.warning("      ⚠️ Issues: \(quality.issues.joined(separator: ", "))")
                 }
             }
 
@@ -170,15 +170,15 @@ public class TextureBaker {
         // TRY METAL GPU FIRST (10-30x faster!)
         if let metalProcessor = MetalTextureProcessor.shared {
             if let gpuResult = await createTextureAtlasGPU(mesh: mesh, samples: samples, metalProcessor: metalProcessor) {
-                print("✅ TextureBaker: Used Metal GPU acceleration")
+                AppLogger.metrics.info("✅ TextureBaker: Used Metal GPU acceleration")
                 return gpuResult
             }
             // If GPU path fails, fall through to CPU
-            print("⚠️ TextureBaker: Metal GPU failed - falling back to CPU")
+            AppLogger.metrics.warning("⚠️ TextureBaker: Metal GPU failed - falling back to CPU")
         }
 
         // FALLBACK TO CPU
-        print("📝 TextureBaker: Using CPU texture blending")
+        AppLogger.metrics.info("📝 TextureBaker: Using CPU texture blending")
         return await createTextureAtlasCPU(mesh: mesh, samples: samples)
     }
 

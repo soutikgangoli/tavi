@@ -30,11 +30,11 @@ public struct PrimaryButton: View {
 #Preview {
     VStack(spacing: DesignSystem.Spacing.medium) {
         PrimaryButton(title: "Get Started") {
-            print("Button tapped")
+            AppLogger.ui.info("Button tapped")
         }
 
         PrimaryButton(title: "Disabled") {
-            print("Won't fire")
+            AppLogger.ui.info("Won't fire")
         }
         .disabled(true)
     }

@@ -384,12 +384,13 @@ public struct ProgressGraphView: View {
     // MARK: - Helpers
 
     private func calculateTrend() -> Double? {
-        guard sortedSessions.count >= 2 else { return nil }
+        guard sortedSessions.count >= 2,
+              let first = sortedSessions.first,
+              let last = sortedSessions.last else {
+            return nil
+        }
 
-        let first = sortedSessions.first!.overallScore
-        let last = sortedSessions.last!.overallScore
-
-        return ((last - first) / first) * 100
+        return ((last.overallScore - first.overallScore) / first.overallScore) * 100
     }
 
     private var averageScore: Double {
@@ -424,11 +425,14 @@ public struct ProgressGraphView: View {
 
 #Preview {
     // Create sample data
-    let sampleSessions: [SessionResult] = (0..<10).map { i in
+    let sampleSessions: [SessionResult] = (0..<10).compactMap { i in
         let context = PersistenceController.preview.viewContext
         let session = SessionResult(context: context)
         session.id = UUID()
-        session.date = Calendar.current.date(byAdding: .day, value: -i * 3, to: Date())!
+        guard let date = Calendar.current.date(byAdding: .day, value: -i * 3, to: Date()) else {
+            return nil
+        }
+        session.date = date
         session.overallScore = Double.random(in: 60...90)
         return session
     }

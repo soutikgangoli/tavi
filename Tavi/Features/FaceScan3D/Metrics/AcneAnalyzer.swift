@@ -76,7 +76,7 @@ public class AcneAnalyzer {
     /// Works fairly across all skin tones (Fitzpatrick I-VI)
     /// IMPROVED: Refined thresholds for very dark skin to avoid false positives
     public func analyzeAcne(texture: UIImage, geometry: FaceMeshGeometry? = nil) -> AcneAnalysis {
-        print("🔬 Analyzing acne (unified method - skin-tone-fair)...")
+        AppLogger.metrics.info("🔬 Analyzing acne (unified method - skin-tone-fair)...")
 
         guard let cgImage = texture.cgImage else {
             return AcneAnalysis(
@@ -97,13 +97,13 @@ public class AcneAnalyzer {
 
         // Step 1: Detect darkness variations (adaptive threshold)
         let darknessSpots = detectDarknessVariations(image: cgImage, skinTone: skinTone)
-        print("   Found \(darknessSpots.count) darkness variations")
+        AppLogger.metrics.info("   Found \(darknessSpots.count) darkness variations")
 
         // Step 2: Detect 3D elevations (if geometry available)
         var elevationMap: [SIMD2<Int>: Float] = [:]
         if let geometry = geometry {
             elevationMap = detect3DElevations(geometry: geometry, imageSize: CGSize(width: width, height: height))
-            print("   Found \(elevationMap.count) elevated regions")
+            AppLogger.metrics.info("   Found \(elevationMap.count) elevated regions")
         }
 
         // Step 3: Correlate darkness + elevation to identify acne
@@ -113,7 +113,7 @@ public class AcneAnalyzer {
             imageSize: CGSize(width: width, height: height)
         )
 
-        print("   Detected \(blemishes.count) blemishes")
+        AppLogger.metrics.info("   Detected \(blemishes.count) blemishes")
 
         // Step 4: Classify severity
         let severity = classifySeverity(blemishCount: blemishes.count)
@@ -131,10 +131,10 @@ public class AcneAnalyzer {
             imageSize: CGSize(width: width, height: height)
         )
 
-        print("✅ Acne analysis complete:")
-        print("   Blemishes: \(blemishes.count) (\(severity.rawValue))")
-        print("   Score: \(String(format: "%.1f", overallScore))/100")
-        print("   Confidence: \(String(format: "%.0f", confidence))%")
+        AppLogger.metrics.info("✅ Acne analysis complete:")
+        AppLogger.metrics.info("   Blemishes: \(blemishes.count) (\(severity.rawValue))")
+        AppLogger.metrics.info("   Score: \(String(format: "%.1f", overallScore))/100")
+        AppLogger.metrics.info("   Confidence: \(String(format: "%.0f", confidence))%")
 
         return AcneAnalysis(
             overallScore: overallScore,
@@ -195,7 +195,7 @@ public class AcneAnalyzer {
         // Dark spots are darker than surrounding skin
         let darknessThreshold = UInt8(max(30, Int(avgBrightness * darknessMultiplier)))
 
-        print("   Adaptive darkness threshold: \(darknessThreshold) (avg: \(avgBrightness), tone: \(skinTone), multiplier: \(darknessMultiplier))")
+        AppLogger.metrics.debug("   Adaptive darkness threshold: \(darknessThreshold) (avg: \(avgBrightness), tone: \(skinTone), multiplier: \(darknessMultiplier))")
 
         // Detect local minima (dark spots)
         var darkSpots: [(x: Int, y: Int, darkness: Float, size: Float)] = []

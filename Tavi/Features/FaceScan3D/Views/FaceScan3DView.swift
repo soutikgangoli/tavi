@@ -185,10 +185,9 @@ public struct FaceScan3DView: View {
     }
 
     private func handleCaptureProgress(_ newCount: Int) {
-        // TESTING MODE: Complete after 1 pose (for Metal GPU fix validation)
-        // TODO: Change back to == GuidanceStep.allCases.count for production
-        if newCount >= 1 {
-            AppLogger.faceScan.info("✅ Testing mode: 1 pose captured - notifying completion")
+        // Check if all required poses have been captured
+        if newCount == GuidanceStep.allCases.count {
+            AppLogger.faceScan.info("✅ All \(GuidanceStep.allCases.count) poses captured - notifying completion")
             onCaptureComplete?(viewModel.capturedPoses)
         }
     }

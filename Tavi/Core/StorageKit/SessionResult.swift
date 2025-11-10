@@ -274,7 +274,7 @@ extension SessionResult {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             let versionedWrapper = try decoder.decode(VersionedFace3DMetrics.self, from: data)
-            let metrics = try versionedWrapper.extractMetrics()
+            let metrics = try versionedWrapper.decodeMetrics()
             AppLogger.storage.info("✅ Successfully decoded Face3DMetrics (version \(versionedWrapper.version.versionString))")
             return metrics
         } catch {

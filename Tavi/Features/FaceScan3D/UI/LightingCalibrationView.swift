@@ -264,7 +264,7 @@ public class LightingCalibrationViewModel: NSObject, ObservableObject, AVCapture
         captureSession.sessionPreset = .medium
 
         guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
-            print("⚠️ Front camera not available")
+            AppLogger.faceScan.warning("⚠️ Front camera not available")
             return
         }
 
@@ -281,7 +281,7 @@ public class LightingCalibrationViewModel: NSObject, ObservableObject, AVCapture
                 captureSession.addOutput(videoOutput)
             }
         } catch {
-            print("⚠️ Camera setup failed: \(error)")
+            AppLogger.faceScan.error("⚠️ Camera setup failed: \(error)")
         }
     }
 

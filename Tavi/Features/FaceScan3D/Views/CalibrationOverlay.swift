@@ -76,9 +76,8 @@ public struct CalibrationOverlay: View {
             }
 
             // Completion message
-            // TESTING MODE: Show completion after 1 pose (for Metal GPU fix validation)
-            // TODO: Change back to == GuidanceStep.allCases.count for production
-            if !viewModel.isGuidanceActive && viewModel.capturedPoses.count >= 1 {
+            // Show completion message when all required poses have been captured
+            if !viewModel.isGuidanceActive && viewModel.capturedPoses.count == GuidanceStep.allCases.count {
                 VStack {
                     Spacer()
 

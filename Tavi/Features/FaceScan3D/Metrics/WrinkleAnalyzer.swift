@@ -89,7 +89,7 @@ class WrinkleAnalyzer {
 
     /// Analyze wrinkles from 3D geometry
     func analyzeWrinkles(geometry: FaceMeshGeometry) -> WrinkleAnalysis {
-        print("📏 Analyzing wrinkles from 3D geometry...")
+        AppLogger.metrics.info("📏 Analyzing wrinkles from 3D geometry...")
 
         // DIAGNOSTIC: Validate ARKit mesh scale
         // ARKit vertices should be in meters, typical face is ~0.08-0.12m from origin
@@ -131,51 +131,51 @@ class WrinkleAnalyzer {
         let detectionBonus: Float = wrinkleRegions.count > 0 ? 5.0 : -10.0
         let confidence = max(40, min(80, baseConfidence + meshQualityBonus + detectionBonus))
 
-        print("✅ Wrinkle Analysis Complete")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("   Overall Score: \(String(format: "%.1f", overallScore))/100 [higher=fewer/shallower wrinkles]")
-        print("   Depth Category: \(depthClassification.rawValue)")
-        print("   Wrinkle Count: \(wrinkleRegions.count)")
+        AppLogger.metrics.info("✅ Wrinkle Analysis Complete")
+        AppLogger.metrics.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        AppLogger.metrics.info("   Overall Score: \(String(format: "%.1f", overallScore))/100 [higher=fewer/shallower wrinkles]")
+        AppLogger.metrics.info("   Depth Category: \(depthClassification.rawValue)")
+        AppLogger.metrics.info("   Wrinkle Count: \(wrinkleRegions.count)")
 
         let avgDepthMM = avgDepth * 1000
         let maxDepthMM = maxDepth * 1000
-        print("   Average Depth: \(String(format: "%.2f", avgDepthMM))mm [<0.7=fine, 0.7-1.2=moderate, >1.2=deep]")
-        print("   Maximum Depth: \(String(format: "%.2f", maxDepthMM))mm")
-        print("   Confidence: \(String(format: "%.0f", confidence))%")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        AppLogger.metrics.info("   Average Depth: \(String(format: "%.2f", avgDepthMM))mm [<0.7=fine, 0.7-1.2=moderate, >1.2=deep]")
+        AppLogger.metrics.info("   Maximum Depth: \(String(format: "%.2f", maxDepthMM))mm")
+        AppLogger.metrics.info("   Confidence: \(String(format: "%.0f", confidence))%")
+        AppLogger.metrics.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
         // VALIDATION: Check for suspicious values
         var hasIssues = false
 
         if avgDepthMM > 2.0 {
-            print("   🚨 ISSUE: Average depth (\(String(format: "%.2f", avgDepthMM))mm) is VERY deep!")
-            print("      Expected for young skin: <1.0mm")
-            print("      Possible cause: Mesh scaling error (check ARKit units)")
+            AppLogger.metrics.error("   🚨 ISSUE: Average depth (\(String(format: "%.2f", avgDepthMM))mm) is VERY deep!")
+            AppLogger.metrics.error("      Expected for young skin: <1.0mm")
+            AppLogger.metrics.error("      Possible cause: Mesh scaling error (check ARKit units)")
             hasIssues = true
         }
 
         if maxDepthMM > 5.0 {
-            print("   🚨 ISSUE: Max depth (\(String(format: "%.2f", maxDepthMM))mm) is EXTREMELY deep!")
-            print("      Expected max: 2-3mm for even aged skin")
-            print("      Likely cause: Mesh artifacts or scaling bug")
+            AppLogger.metrics.error("   🚨 ISSUE: Max depth (\(String(format: "%.2f", maxDepthMM))mm) is EXTREMELY deep!")
+            AppLogger.metrics.error("      Expected max: 2-3mm for even aged skin")
+            AppLogger.metrics.error("      Likely cause: Mesh artifacts or scaling bug")
             hasIssues = true
         }
 
         if wrinkleRegions.count > 20 {
-            print("   ⚠️ WARNING: High wrinkle count (\(wrinkleRegions.count))")
-            print("      Expected for young skin: 3-10 wrinkles")
-            print("      May indicate: Over-sensitive detection threshold")
+            AppLogger.metrics.warning("   ⚠️ WARNING: High wrinkle count (\(wrinkleRegions.count))")
+            AppLogger.metrics.warning("      Expected for young skin: 3-10 wrinkles")
+            AppLogger.metrics.warning("      May indicate: Over-sensitive detection threshold")
             hasIssues = true
         }
 
         if overallScore < 50 && avgDepthMM < 1.0 {
-            print("   ⚠️ WARNING: Low score (\(String(format: "%.0f", overallScore))) but shallow wrinkles")
-            print("      This mismatch suggests scoring calculation issue")
+            AppLogger.metrics.warning("   ⚠️ WARNING: Low score (\(String(format: "%.0f", overallScore))) but shallow wrinkles")
+            AppLogger.metrics.warning("      This mismatch suggests scoring calculation issue")
             hasIssues = true
         }
 
         if !hasIssues && overallScore >= 70 {
-            print("   ✅ Results look good for young/healthy skin")
+            AppLogger.metrics.info("   ✅ Results look good for young/healthy skin")
         }
 
         return WrinkleAnalysis(
@@ -508,7 +508,7 @@ class WrinkleAnalyzer {
     /// If values are significantly different, we may have a scaling or unit issue.
     private func validateMeshScale(geometry: FaceMeshGeometry) {
         guard geometry.vertices.count > 0 else {
-            print("⚠️ ARKit Mesh Validation: Empty vertex array")
+            AppLogger.metrics.warning("⚠️ ARKit Mesh Validation: Empty vertex array")
             return
         }
 
@@ -533,18 +533,18 @@ class WrinkleAnalyzer {
         let faceHeight = maxY - minY
         let faceDepth = maxZ - minZ
 
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("🔍 ARKit Mesh Scale Diagnostics")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("   Vertex Count: \(geometry.vertices.count)")
-        print("   Distance from origin:")
-        print("      Average: \(String(format: "%.4f", avgDistance))m (\(String(format: "%.1f", avgDistance * 1000))mm)")
-        print("      Min: \(String(format: "%.4f", minDistance))m, Max: \(String(format: "%.4f", maxDistance))m")
-        print("   Face dimensions (bounding box):")
-        print("      Width (X): \(String(format: "%.4f", faceWidth))m (\(String(format: "%.1f", faceWidth * 1000))mm)")
-        print("      Height (Y): \(String(format: "%.4f", faceHeight))m (\(String(format: "%.1f", faceHeight * 1000))mm)")
-        print("      Depth (Z): \(String(format: "%.4f", faceDepth))m (\(String(format: "%.1f", faceDepth * 1000))mm)")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        AppLogger.metrics.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        AppLogger.metrics.info("🔍 ARKit Mesh Scale Diagnostics")
+        AppLogger.metrics.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        AppLogger.metrics.info("   Vertex Count: \(geometry.vertices.count)")
+        AppLogger.metrics.info("   Distance from origin:")
+        AppLogger.metrics.info("      Average: \(String(format: "%.4f", avgDistance))m (\(String(format: "%.1f", avgDistance * 1000))mm)")
+        AppLogger.metrics.info("      Min: \(String(format: "%.4f", minDistance))m, Max: \(String(format: "%.4f", maxDistance))m")
+        AppLogger.metrics.info("   Face dimensions (bounding box):")
+        AppLogger.metrics.info("      Width (X): \(String(format: "%.4f", faceWidth))m (\(String(format: "%.1f", faceWidth * 1000))mm)")
+        AppLogger.metrics.info("      Height (Y): \(String(format: "%.4f", faceHeight))m (\(String(format: "%.1f", faceHeight * 1000))mm)")
+        AppLogger.metrics.info("      Depth (Z): \(String(format: "%.4f", faceDepth))m (\(String(format: "%.1f", faceDepth * 1000))mm)")
+        AppLogger.metrics.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
         // EXPECTED VALUES FOR TYPICAL FACE:
         // - Average distance from origin: 0.08-0.12m (80-120mm)
@@ -556,57 +556,57 @@ class WrinkleAnalyzer {
 
         // Check average distance
         if avgDistance < 0.05 {
-            print("   ⚠️ WARNING: Average distance (\(String(format: "%.1f", avgDistance * 1000))mm) is TOO SMALL")
-            print("      Expected: 80-120mm for typical face")
-            print("      → Vertices may be in centimeters, not meters")
-            print("      → Or mesh is incorrectly scaled down")
+            AppLogger.metrics.warning("   ⚠️ WARNING: Average distance (\(String(format: "%.1f", avgDistance * 1000))mm) is TOO SMALL")
+            AppLogger.metrics.warning("      Expected: 80-120mm for typical face")
+            AppLogger.metrics.warning("      → Vertices may be in centimeters, not meters")
+            AppLogger.metrics.warning("      → Or mesh is incorrectly scaled down")
             hasScaleIssues = true
         } else if avgDistance > 0.20 {
-            print("   ⚠️ WARNING: Average distance (\(String(format: "%.1f", avgDistance * 1000))mm) is TOO LARGE")
-            print("      Expected: 80-120mm for typical face")
-            print("      → Mesh may be incorrectly scaled up")
+            AppLogger.metrics.warning("   ⚠️ WARNING: Average distance (\(String(format: "%.1f", avgDistance * 1000))mm) is TOO LARGE")
+            AppLogger.metrics.warning("      Expected: 80-120mm for typical face")
+            AppLogger.metrics.warning("      → Mesh may be incorrectly scaled up")
             hasScaleIssues = true
         } else if avgDistance < 0.07 || avgDistance > 0.13 {
-            print("   ⚠️ Note: Distance (\(String(format: "%.1f", avgDistance * 1000))mm) is slightly outside typical range (70-130mm)")
+            AppLogger.metrics.warning("   ⚠️ Note: Distance (\(String(format: "%.1f", avgDistance * 1000))mm) is slightly outside typical range (70-130mm)")
         } else {
-            print("   ✅ Distance from origin: Within expected range (80-120mm)")
+            AppLogger.metrics.info("   ✅ Distance from origin: Within expected range (80-120mm)")
         }
 
         // Check face width
         if faceWidth < 0.10 {
-            print("   ⚠️ WARNING: Face width (\(String(format: "%.1f", faceWidth * 1000))mm) is TOO NARROW")
-            print("      Expected: 130-160mm")
+            AppLogger.metrics.warning("   ⚠️ WARNING: Face width (\(String(format: "%.1f", faceWidth * 1000))mm) is TOO NARROW")
+            AppLogger.metrics.warning("      Expected: 130-160mm")
             hasScaleIssues = true
         } else if faceWidth > 0.20 {
-            print("   ⚠️ WARNING: Face width (\(String(format: "%.1f", faceWidth * 1000))mm) is TOO WIDE")
-            print("      Expected: 130-160mm")
+            AppLogger.metrics.warning("   ⚠️ WARNING: Face width (\(String(format: "%.1f", faceWidth * 1000))mm) is TOO WIDE")
+            AppLogger.metrics.warning("      Expected: 130-160mm")
             hasScaleIssues = true
         } else {
-            print("   ✅ Face width: Within expected range (130-160mm)")
+            AppLogger.metrics.info("   ✅ Face width: Within expected range (130-160mm)")
         }
 
         // Check face height
         if faceHeight < 0.15 {
-            print("   ⚠️ WARNING: Face height (\(String(format: "%.1f", faceHeight * 1000))mm) is TOO SHORT")
-            print("      Expected: 180-220mm")
+            AppLogger.metrics.warning("   ⚠️ WARNING: Face height (\(String(format: "%.1f", faceHeight * 1000))mm) is TOO SHORT")
+            AppLogger.metrics.warning("      Expected: 180-220mm")
             hasScaleIssues = true
         } else if faceHeight > 0.25 {
-            print("   ⚠️ WARNING: Face height (\(String(format: "%.1f", faceHeight * 1000))mm) is TOO TALL")
-            print("      Expected: 180-220mm")
+            AppLogger.metrics.warning("   ⚠️ WARNING: Face height (\(String(format: "%.1f", faceHeight * 1000))mm) is TOO TALL")
+            AppLogger.metrics.warning("      Expected: 180-220mm")
             hasScaleIssues = true
         } else {
-            print("   ✅ Face height: Within expected range (180-220mm)")
+            AppLogger.metrics.info("   ✅ Face height: Within expected range (180-220mm)")
         }
 
         if hasScaleIssues {
-            print("   🚨 SCALE ISSUES DETECTED - Wrinkle depths will be INCORRECT")
-            print("      → Review ARKit face anchor transform")
-            print("      → Check if scaling factor is being applied incorrectly")
-            print("      → Verify ARKit coordinate system assumptions")
+            AppLogger.metrics.error("   🚨 SCALE ISSUES DETECTED - Wrinkle depths will be INCORRECT")
+            AppLogger.metrics.error("      → Review ARKit face anchor transform")
+            AppLogger.metrics.error("      → Check if scaling factor is being applied incorrectly")
+            AppLogger.metrics.error("      → Verify ARKit coordinate system assumptions")
         } else {
-            print("   ✅ Mesh scale appears correct - proceeding with wrinkle analysis")
+            AppLogger.metrics.info("   ✅ Mesh scale appears correct - proceeding with wrinkle analysis")
         }
 
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        AppLogger.metrics.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     }
 }

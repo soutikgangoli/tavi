@@ -175,7 +175,7 @@ public enum GuidanceStep: Int, CaseIterable {
     /// STRICT validation using ScanConfiguration constants (matches documentation)
     func isPoseValid(yaw: Float, pitch: Float, roll: Float) -> Bool {
         // DEBUG: Log pose validation to understand why Direction indicator stays red
-        print("📐 isPoseValid(\(self.shortName)): yaw=\(String(format: "%.1f", yaw))° pitch=\(String(format: "%.1f", pitch))° roll=\(String(format: "%.1f", roll))°")
+        AppLogger.faceScan.debug("📐 isPoseValid(\(self.shortName)): yaw=\(String(format: "%.1f", yaw))° pitch=\(String(format: "%.1f", pitch))° roll=\(String(format: "%.1f", roll))°")
 
         switch self {
         case .lookStraight:
@@ -184,7 +184,7 @@ public enum GuidanceStep: Int, CaseIterable {
             let valid = abs(yaw) <= ScanConfiguration.maxCenterYawDegrees &&
                         abs(pitch) <= ScanConfiguration.maxCenterPitchDegrees &&
                         abs(roll) <= ScanConfiguration.maxCenterRollDegrees
-            print("   → lookStraight: \(valid ? "✅ VALID" : "❌ INVALID") (yaw ≤\(ScanConfiguration.maxCenterYawDegrees)°, pitch ≤\(ScanConfiguration.maxCenterPitchDegrees)°, roll ≤\(ScanConfiguration.maxCenterRollDegrees)°)")
+            AppLogger.faceScan.debug("   → lookStraight: \(valid ? "✅ VALID" : "❌ INVALID") (yaw ≤\(ScanConfiguration.maxCenterYawDegrees)°, pitch ≤\(ScanConfiguration.maxCenterPitchDegrees)°, roll ≤\(ScanConfiguration.maxCenterRollDegrees)°)")
             return valid
 
         case .turnLeft:
@@ -406,28 +406,28 @@ public struct CalibrationState {
 
         // DEBUG: Log actual ARKit values to understand what we're getting
         // ARKit ambientIntensity is in lumens - typical indoor range is 500-2000
-        print("🔆 ARKit ambientIntensity: \(intensity) lumens (min: \(ScanConfiguration.minAmbientLighting), optimal: \(ScanConfiguration.optimalLightingMin)-\(ScanConfiguration.optimalLightingMax))")
+        AppLogger.faceScan.debug("🔆 ARKit ambientIntensity: \(intensity) lumens (min: \(ScanConfiguration.minAmbientLighting), optimal: \(ScanConfiguration.optimalLightingMin)-\(ScanConfiguration.optimalLightingMax))")
 
         if intensity < ScanConfiguration.minAmbientLighting {
             // Too dark - need good illumination for skin analysis
             lighting = .tooDark
-            print("   → VERDICT: tooDark (< \(ScanConfiguration.minAmbientLighting))")
+            AppLogger.faceScan.debug("   → VERDICT: tooDark (< \(ScanConfiguration.minAmbientLighting))")
         } else if intensity < ScanConfiguration.optimalLightingMin {
             // Acceptable but not ideal
             lighting = .acceptable
-            print("   → VERDICT: acceptable (< \(ScanConfiguration.optimalLightingMin))")
+            AppLogger.faceScan.debug("   → VERDICT: acceptable (< \(ScanConfiguration.optimalLightingMin))")
         } else if intensity > ScanConfiguration.maxAmbientLighting {
             // Too bright - risk of overexposure
             lighting = .tooBright
-            print("   → VERDICT: tooBright (> \(ScanConfiguration.maxAmbientLighting))")
+            AppLogger.faceScan.debug("   → VERDICT: tooBright (> \(ScanConfiguration.maxAmbientLighting))")
         } else if intensity > ScanConfiguration.optimalLightingMax {
             // Acceptable but bright
             lighting = .acceptable
-            print("   → VERDICT: acceptable (> \(ScanConfiguration.optimalLightingMax))")
+            AppLogger.faceScan.debug("   → VERDICT: acceptable (> \(ScanConfiguration.optimalLightingMax))")
         } else {
             // Good lighting range: optimal min-max
             lighting = .good
-            print("   → VERDICT: good (\(ScanConfiguration.optimalLightingMin)-\(ScanConfiguration.optimalLightingMax))")
+            AppLogger.faceScan.debug("   → VERDICT: good (\(ScanConfiguration.optimalLightingMin)-\(ScanConfiguration.optimalLightingMax))")
         }
     }
 
@@ -474,7 +474,7 @@ public struct CalibrationState {
 
         // DEBUG: Log center position updates to diagnose Direction indicator
         if centerPosition != newPosition {
-            print("🧭 Center Position changed: \(centerPosition.rawValue) → \(newPosition.rawValue) (yaw: \(String(format: "%.1f", yaw))°)")
+            AppLogger.faceScan.debug("🧭 Center Position changed: \(centerPosition.rawValue) → \(newPosition.rawValue) (yaw: \(String(format: "%.1f", yaw))°)")
         }
 
         centerPosition = newPosition

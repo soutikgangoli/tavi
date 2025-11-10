@@ -60,7 +60,7 @@ public class BiometricAuth {
 
         // Check if biometric authentication is available
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-            print("Biometric authentication not available: \(error?.localizedDescription ?? "Unknown error")")
+            AppLogger.app.info("Biometric authentication not available: \(error?.localizedDescription ?? "Unknown error")")
             // Fallback to device passcode if biometrics not available
             return await authenticateWithPasscode(reason: reason)
         }
@@ -68,7 +68,7 @@ public class BiometricAuth {
         do {
             return try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason)
         } catch let laError as LAError {
-            print("Biometric authentication failed: \(laError.localizedDescription)")
+            AppLogger.app.info("Biometric authentication failed: \(laError.localizedDescription)")
             // Handle specific errors
             switch laError.code {
             case .userCancel, .appCancel, .systemCancel:
@@ -84,7 +84,7 @@ public class BiometricAuth {
                 return false
             }
         } catch {
-            print("Unexpected authentication error: \(error.localizedDescription)")
+            AppLogger.app.error("Unexpected authentication error: \(error.localizedDescription)")
             return false
         }
     }
@@ -99,7 +99,7 @@ public class BiometricAuth {
         do {
             return try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)
         } catch {
-            print("Passcode authentication failed: \(error.localizedDescription)")
+            AppLogger.app.info("Passcode authentication failed: \(error.localizedDescription)")
             return false
         }
     }

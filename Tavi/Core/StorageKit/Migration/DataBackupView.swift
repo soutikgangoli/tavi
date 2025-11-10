@@ -20,6 +20,8 @@ public struct DataBackupView: View {
     @State private var backupToRestore: BackupInfo?
     @State private var showingDeleteConfirmation = false
     @State private var backupToDelete: BackupInfo?
+    @State private var showingShareSheet = false
+    @State private var shareURL: URL?
 
     public init(storeURL: URL) {
         _backupManager = StateObject(wrappedValue: DataBackupManager(storeURL: storeURL))
@@ -197,6 +199,11 @@ public struct DataBackupView: View {
         } message: {
             Text(errorMessage)
         }
+        .sheet(isPresented: $showingShareSheet) {
+            if let url = shareURL {
+                ShareSheet(items: [url])
+            }
+        }
     }
 
     // MARK: - Actions
@@ -234,8 +241,8 @@ public struct DataBackupView: View {
     private func exportBackup(_ backup: BackupInfo) {
         do {
             let exportURL = try backupManager.exportBackup(backup)
-            // TODO: Present share sheet with exportURL
-            // For now, log success
+            shareURL = exportURL
+            showingShareSheet = true
             AppLogger.storage.info("Backup exported to: \(exportURL.path)")
         } catch {
             errorMessage = error.localizedDescription
@@ -340,4 +347,17 @@ private struct CreateBackupSheet: View {
             storeURL: URL(fileURLWithPath: "/tmp/test.sqlite")
         )
     }
+}
+
+// MARK: - ShareSheet Helper
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

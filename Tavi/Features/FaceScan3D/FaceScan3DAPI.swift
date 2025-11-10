@@ -281,7 +281,7 @@ extension Face3DSummary {
  // 2. Get merged mesh and baked texture
  guard let merged = await viewModel.finalizeCapture(),
        let bakeResult = await viewModel.bakeTextureFromSequence() else {
-     print("Capture failed")
+     AppLogger.faceScan.error("Capture failed")
      return
  }
 
@@ -290,7 +290,7 @@ extension Face3DSummary {
      unifiedMesh: bakeResult.unifiedMesh,
      texture: bakeResult.albedoTexture
  ) else {
-     print("Metrics computation failed")
+     AppLogger.metrics.error("Metrics computation failed")
      return
  }
 
@@ -312,6 +312,6 @@ extension Face3DSummary {
  try saveFace3DSummary(summary)
 
  // 7. Print summary
- print(metrics.summary)
+ AppLogger.metrics.info(metrics.summary)
  ```
  */

@@ -354,7 +354,7 @@ public struct Face3DMetricsResultsView: View {
 
         Face3DSummaryManager.save(summary)
 
-        print("✅ Saved summary to history (ID: \(summary.id))")
+        AppLogger.metrics.info("✅ Saved summary to history (ID: \(summary.id))")
     }
 
     private func exportMetrics() {
@@ -366,20 +366,22 @@ public struct Face3DMetricsResultsView: View {
             let jsonData = try encoder.encode(metrics)
 
             // Save to Documents
-            let documentsPath = FileManager.default.urls(
+            guard let documentsPath = FileManager.default.urls(
                 for: .documentDirectory,
                 in: .userDomainMask
-            ).first!
+            ).first else {
+                throw NSError(domain: "com.tavi.app", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to access Documents directory"])
+            }
 
             let filename = "face3d_metrics_\(Int(Date().timeIntervalSince1970)).json"
             let fileURL = documentsPath.appendingPathComponent(filename)
 
             try jsonData.write(to: fileURL)
 
-            print("✅ Exported metrics to: \(fileURL.path)")
+            AppLogger.metrics.info("✅ Exported metrics to: \(fileURL.path)")
 
         } catch {
-            print("⚠️ Export failed: \(error)")
+            AppLogger.metrics.warning("⚠️ Export failed: \(error)")
         }
     }
 

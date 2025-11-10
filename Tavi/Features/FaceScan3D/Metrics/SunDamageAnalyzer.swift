@@ -145,16 +145,16 @@ public class SunDamageAnalyzer {
         skinTone: SkinToneCategory
     ) -> SunDamageAnalysis {
 
-        print("☀️ Analyzing sun damage (skin-tone-fair algorithm)...")
-        print("   Detected skin tone: \(skinTone)")
+        AppLogger.metrics.info("☀️ Analyzing sun damage (skin-tone-fair algorithm)...")
+        AppLogger.metrics.info("   Detected skin tone: \(skinTone)")
 
         // Component 1: Pigmentation damage (sun spots)
         // Already normalized by SkinToneNormalizer in Face3DMetricsAnalyzer
         let pigmentationHealth = metrics.globalPigmentationScore  // 0-100
         let rawPigmentationDamage = 1.0 - (pigmentationHealth / 100.0)  // Convert to 0-1 damage
 
-        print("   1. Pigmentation health: \(String(format: "%.1f", pigmentationHealth))/100")
-        print("      (Already normalized for \(skinTone))")
+        AppLogger.metrics.info("   1. Pigmentation health: \(String(format: "%.1f", pigmentationHealth))/100")
+        AppLogger.metrics.info("      (Already normalized for \(skinTone))")
 
         // Component 2: Photoaging (wrinkles from UV)
         let photoagingResistance: Float
@@ -166,13 +166,13 @@ public class SunDamageAnalyzer {
         }
         let rawPhotoagingDamage = 1.0 - (photoagingResistance / 100.0)
 
-        print("   2. Photoaging resistance: \(String(format: "%.1f", photoagingResistance))/100")
+        AppLogger.metrics.info("   2. Photoaging resistance: \(String(format: "%.1f", photoagingResistance))/100")
 
         // Component 3: Texture coarseness (leathery skin from sun)
         let textureHealth = metrics.globalRoughnessScore  // 0-100 (higher = smoother)
         let rawTextureDamage = 1.0 - (textureHealth / 100.0)
 
-        print("   3. Texture health: \(String(format: "%.1f", textureHealth))/100")
+        AppLogger.metrics.info("   3. Texture health: \(String(format: "%.1f", textureHealth))/100")
 
         // Component 4: Vascular damage (redness/broken vessels)
         let vascularHealth: Float
@@ -184,7 +184,7 @@ public class SunDamageAnalyzer {
         }
         let rawVascularDamage = 1.0 - (vascularHealth / 100.0)
 
-        print("   4. Vascular health: \(String(format: "%.1f", vascularHealth))/100")
+        AppLogger.metrics.info("   4. Vascular health: \(String(format: "%.1f", vascularHealth))/100")
 
         // Component 5: Pore health (enlarged pores from collagen breakdown)
         let poreHealth: Float
@@ -196,7 +196,7 @@ public class SunDamageAnalyzer {
         }
         let rawPoreDamage = 1.0 - (poreHealth / 100.0)
 
-        print("   5. Pore health: \(String(format: "%.1f", poreHealth))/100")
+        AppLogger.metrics.info("   5. Pore health: \(String(format: "%.1f", poreHealth))/100")
 
         // Calculate weighted composite score
         let protectionScore = (
@@ -228,11 +228,11 @@ public class SunDamageAnalyzer {
             skinTone: skinTone
         )
 
-        print("✅ Sun damage analysis complete:")
-        print("   Protection score: \(String(format: "%.1f", protectionScore))/100 (\(damageLevel.rawValue))")
-        print("   Confidence: \(String(format: "%.0f", confidence))%")
-        print("   Normalized for skin tone: ✅ YES (fair for \(skinTone))")
-        print("   Recommendations: \(recommendations.count)")
+        AppLogger.metrics.info("✅ Sun damage analysis complete:")
+        AppLogger.metrics.info("   Protection score: \(String(format: "%.1f", protectionScore))/100 (\(damageLevel.rawValue))")
+        AppLogger.metrics.info("   Confidence: \(String(format: "%.0f", confidence))%")
+        AppLogger.metrics.info("   Normalized for skin tone: ✅ YES (fair for \(skinTone))")
+        AppLogger.metrics.info("   Recommendations: \(recommendations.count)")
 
         return SunDamageAnalysis(
             protectionScore: protectionScore,

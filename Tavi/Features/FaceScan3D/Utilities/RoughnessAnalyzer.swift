@@ -320,7 +320,7 @@ public class RoughnessAnalyzer {
             }
         }
 
-        print("      ℹ️ Downsampled from \(sample.width)x\(sample.height) to \(newWidth)x\(newHeight) for performance")
+        AppLogger.metrics.info("Downsampled from \(sample.width)x\(sample.height) to \(newWidth)x\(newHeight) for performance")
 
         return ROITextureSample(
             roi: sample.roi,

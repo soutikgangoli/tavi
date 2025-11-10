@@ -269,7 +269,9 @@ struct ProfileTabView: View {
     private var thirtyDayImprovement: Double? {
         guard sessions.count >= 2 else { return nil }
         let calendar = Calendar.current
-        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: Date())!
+        guard let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: Date()) else {
+            return nil
+        }
 
         let oldScans = sessions.filter { $0.date <= thirtyDaysAgo }
         guard let oldestRelevant = oldScans.last,

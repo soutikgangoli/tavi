@@ -495,7 +495,7 @@ public class PDFReportGenerator {
 
         // Calculate height used - safely cast CTFrameGetLines result
         guard let lines = CTFrameGetLines(frame) as? [CTLine] else {
-            print("⚠️ Failed to extract lines from CTFrame - using fallback calculation")
+            AppLogger.export.warning("Failed to extract lines from CTFrame - using fallback calculation")
             // Fallback: estimate based on text length and font size
             let estimatedLines = (attributedString.length / 80) + 1 // ~80 chars per line
             return yPosition + CGFloat(estimatedLines) * (fontSize + 4)

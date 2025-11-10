@@ -36,7 +36,7 @@ public class ExportManager {
 
         try FileManager.default.createDirectory(at: exportDir, withIntermediateDirectories: true)
 
-        print("📁 Created export directory: \(exportDir.path)")
+        AppLogger.export.info("📁 Created export directory: \(exportDir.path)")
         return exportDir
     }
 
@@ -85,8 +85,8 @@ public class ExportManager {
         // - Or native compression APIs
         // ZIP URL would be: directory.deletingLastPathComponent().appendingPathComponent(directory.lastPathComponent + ".zip")
 
-        print("📦 Export directory ready: \(directory.path)")
-        print("   (ZIP compression requires additional implementation)")
+        AppLogger.export.info("📦 Export directory ready: \(directory.path)")
+        AppLogger.export.info("   (ZIP compression requires additional implementation)")
 
         return directory
     }
@@ -110,7 +110,7 @@ public class ExportManager {
             }.sorted { $0.lastPathComponent > $1.lastPathComponent }  // Newest first
 
         } catch {
-            print("⚠️ Failed to list export directories: \(error)")
+            AppLogger.export.error("⚠️ Failed to list export directories: \(error)")
             return []
         }
     }
@@ -118,7 +118,7 @@ public class ExportManager {
     /// Delete export directory
     public static func deleteExport(at url: URL) throws {
         try FileManager.default.removeItem(at: url)
-        print("🗑️ Deleted export: \(url.lastPathComponent)")
+        AppLogger.export.info("🗑️ Deleted export: \(url.lastPathComponent)")
     }
 
     /// Clean up old exports (keep only last N)
@@ -242,7 +242,7 @@ public struct ExportResultView: View {
                     showingShareSheet = true
                 }
             } catch {
-                print("⚠️ Failed to create ZIP: \(error)")
+                AppLogger.export.error("⚠️ Failed to create ZIP: \(error)")
                 await MainActor.run {
                     isZipping = false
                 }

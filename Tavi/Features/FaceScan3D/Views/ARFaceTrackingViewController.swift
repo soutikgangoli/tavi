@@ -51,9 +51,6 @@ public class ARFaceTrackingViewController: UIViewController {
 
     // MARK: - Performance Optimization Properties
 
-    /// Cached light estimation to avoid repeated allocations
-    private var cachedLightEstimation: LightEstimation?
-
     /// Previous frame count to detect changes
     private var previousFrameCount: Int = 0
 
@@ -216,7 +213,7 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
 
         // Safely unwrap Metal device
         guard let device = sceneView.device else {
-            print("ERROR: Metal device not available")
+            AppLogger.faceScan.error("ERROR: Metal device not available")
             viewModel?.sessionFailed(error: NSError(
                 domain: "ARFaceTracking",
                 code: -1,
@@ -227,7 +224,7 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
 
         // Safely create face geometry
         guard let faceGeometry = ARSCNFaceGeometry(device: device) else {
-            print("ERROR: Failed to create face geometry")
+            AppLogger.faceScan.error("ERROR: Failed to create face geometry")
             viewModel?.sessionFailed(error: NSError(
                 domain: "ARFaceTracking",
                 code: -2,
@@ -240,7 +237,7 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
 
         // Safely unwrap material
         guard let material = faceGeometry.firstMaterial else {
-            print("ERROR: Face geometry has no material")
+            AppLogger.faceScan.error("ERROR: Face geometry has no material")
             return nil
         }
         // Set visible wireframe color (white with some transparency)
@@ -311,20 +308,14 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
         // ARFrames are heavy objects (11-13 retained frames causes memory warnings)
         // The Task closure capturing frame strongly causes the retention leak
 
-        // OPTIMIZATION: Reuse cached light estimation object instead of creating new one each frame
-        if cachedLightEstimation == nil {
-            cachedLightEstimation = LightEstimation(frame: frame)
-        } else {
-            // Update existing object with new frame data (reduces allocations)
-            cachedLightEstimation = LightEstimation(frame: frame)
-        }
+        // Extract light estimation (lightweight struct, cheap to create)
+        let lightEstimation = LightEstimation(frame: frame)
 
-        guard let lightEstimation = cachedLightEstimation else { return }
-
-        // For actual capture operations, we DO need the frame (but NOT during guidance)
-        // OPTIMIZATION: Only pass frame during actual capture to reduce memory pressure
+        // For actual capture operations AND guidance mode (for quality checks), we DO need the frame
+        // OPTIMIZATION: Only pass frame during actual capture OR guidance, not during idle tracking
         let isCapturing = viewModel?.captureManager.isCaptureInProgress ?? false
-        let frameRef = isCapturing ? frame : nil  // Only during capture, NOT guidance
+        let isGuidanceActive = viewModel?.captureManager.isGuidanceActive ?? false
+        let frameRef = (isCapturing || isGuidanceActive) ? frame : nil  // Pass frame during capture OR guidance
 
         Task { [weak viewModel, faceAnchor, lightEstimation, frameRef] in
             await MainActor.run {

@@ -62,19 +62,19 @@ class HydrationEstimator {
         geometry: FaceMeshGeometry
     ) -> HydrationEstimate {
 
-        print("💧 Estimating skin hydration (multi-method ensemble)...")
+        AppLogger.metrics.info("💧 Estimating skin hydration (multi-method ensemble)...")
 
         // Method 1: Specularity analysis (hydrated skin reflects more light)
         let specularityScore = analyzeSpecularity(texture: texture)
-        print("   Method 1 (Specularity): \(String(format: "%.1f", specularityScore))/100")
+        AppLogger.metrics.info("   Method 1 (Specularity): \(String(format: "%.1f", specularityScore))/100")
 
         // Method 2: Texture frequency analysis (hydrated skin is smoother)
         let textureScore = analyzeTextureFrequency(texture: texture)
-        print("   Method 2 (Texture): \(String(format: "%.1f", textureScore))/100")
+        AppLogger.metrics.info("   Method 2 (Texture): \(String(format: "%.1f", textureScore))/100")
 
         // Method 3: Color variance analysis (hydrated skin is more uniform)
         let varianceScore = analyzeColorVariance(texture: texture)
-        print("   Method 3 (Variance): \(String(format: "%.1f", varianceScore))/100")
+        AppLogger.metrics.info("   Method 3 (Variance): \(String(format: "%.1f", varianceScore))/100")
 
         // Ensemble: Weighted average of all three methods
         // Weights: Specularity (40%), Texture (35%), Variance (25%)
@@ -109,10 +109,10 @@ class HydrationEstimator {
             )
         )
 
-        print("✅ Hydration estimate: \(level.rawValue) (\(String(format: "%.1f", score))/100)")
-        print("   Confidence: \(String(format: "%.0f", confidence))% (indirect measurement)")
-        print("   ⚠️  Note: Indirect estimate based on ensemble of 3 methods, not direct water content")
-        print("   Regional scores: \(regionalScores.count) regions")
+        AppLogger.metrics.info("✅ Hydration estimate: \(level.rawValue) (\(String(format: "%.1f", score))/100)")
+        AppLogger.metrics.info("   Confidence: \(String(format: "%.0f", confidence))% (indirect measurement)")
+        AppLogger.metrics.warning("   ⚠️  Note: Indirect estimate based on ensemble of 3 methods, not direct water content")
+        AppLogger.metrics.info("   Regional scores: \(regionalScores.count) regions")
 
         return HydrationEstimate(
             overallScore: score,

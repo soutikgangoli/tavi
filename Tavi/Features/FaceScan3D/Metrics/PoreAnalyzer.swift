@@ -94,10 +94,10 @@ class PoreAnalyzer {
 
     /// Analyze pore visibility from high-resolution texture
     func analyzePores(texture: UIImage) -> PoreAnalysis {
-        print("🔬 Analyzing pore visibility...")
+        AppLogger.metrics.info("🔬 Analyzing pore visibility...")
 
         guard let cgImage = texture.cgImage else {
-            print("⚠️ Could not extract CGImage from texture")
+            AppLogger.metrics.warning("⚠️ Could not extract CGImage from texture")
             return PoreAnalysis(visibility: 0, density: 0, averageSize: 0, regionalScores: [:], confidence: 0)
         }
 
@@ -157,14 +157,14 @@ class PoreAnalyzer {
             skinBrightness: poreDetectionResult.skinBrightness
         )
 
-        print("✅ Pore analysis complete:")
-        print("   Visibility: \(String(format: "%.1f", visibility))/100 (Score: \(String(format: "%.1f", 100 - visibility)))")
-        print("   Density: \(String(format: "%.1f", density)) pores/cm²")
-        print("   Avg size: \(String(format: "%.2f", averageSize)) pixels")
-        print("   Size distribution: Small=\(smallCount), Medium=\(mediumCount), Large=\(largeCount), VeryLarge=\(veryLargeCount)")
-        print("   Dominant size: \(sizeDistribution.dominantSize.rawValue)")
-        print("   Confidence: \(String(format: "%.1f", confidence))%")
-        print("   Regional scores: \(regionalScores.count) regions")
+        AppLogger.metrics.info("✅ Pore analysis complete:")
+        AppLogger.metrics.info("   Visibility: \(String(format: "%.1f", visibility))/100 (Score: \(String(format: "%.1f", 100 - visibility)))")
+        AppLogger.metrics.info("   Density: \(String(format: "%.1f", density)) pores/cm²")
+        AppLogger.metrics.info("   Avg size: \(String(format: "%.2f", averageSize)) pixels")
+        AppLogger.metrics.info("   Size distribution: Small=\(smallCount), Medium=\(mediumCount), Large=\(largeCount), VeryLarge=\(veryLargeCount)")
+        AppLogger.metrics.info("   Dominant size: \(sizeDistribution.dominantSize.rawValue)")
+        AppLogger.metrics.info("   Confidence: \(String(format: "%.1f", confidence))%")
+        AppLogger.metrics.info("   Regional scores: \(regionalScores.count) regions")
 
         return PoreAnalysis(
             visibility: visibility,
@@ -271,7 +271,7 @@ class PoreAnalyzer {
         let adaptiveMultiplier = calculateAdaptiveMultiplier(brightness: avgSkinBrightness)
         let minDarkness = UInt8(max(50, min(180, Int(avgSkinBrightness * adaptiveMultiplier))))
 
-        print("   Adaptive pore threshold: \(minDarkness) (skin brightness: \(avgSkinBrightness))")
+        AppLogger.metrics.debug("Adaptive pore threshold: \(minDarkness) (skin brightness: \(avgSkinBrightness))")
 
         // Detect local minima (dark spots = pores)
         var poreLocations: [(x: Int, y: Int, size: Float)] = []

@@ -291,6 +291,6 @@ private enum LoadingPhase {
 
 #Preview {
     FancyLoadingScreen {
-        print("Loading complete!")
+        AppLogger.ui.info("Loading complete!")
     }
 }

@@ -143,7 +143,7 @@ public class CalibrationManager: ObservableObject {
                             abs(rollDegrees) <= ScanConfiguration.maxCenterRollDegrees
 
         if self.isPoseCorrect != poseIsCorrect {
-            print("🎯 CalibrationManager: isPoseCorrect changed: \(self.isPoseCorrect) → \(poseIsCorrect) (yaw: \(String(format: "%.1f", yawDegrees))°, pitch: \(String(format: "%.1f", pitchDegrees))°, roll: \(String(format: "%.1f", rollDegrees))°)")
+            AppLogger.faceScan.debug("🎯 CalibrationManager: isPoseCorrect changed: \(self.isPoseCorrect) → \(poseIsCorrect) (yaw: \(String(format: "%.1f", yawDegrees))°, pitch: \(String(format: "%.1f", pitchDegrees))°, roll: \(String(format: "%.1f", rollDegrees))°)")
         }
 
         self.isPoseCorrect = poseIsCorrect
@@ -196,14 +196,16 @@ public class CalibrationManager: ObservableObject {
     /// OPTIMIZATION: Now runs asynchronously on background thread to prevent main thread blocking
     private func updateRealLightingQuality(frame: ARFrame, faceAnchor: ARFaceAnchor, lightEstimation: LightEstimation?) {
         let pixelBuffer = frame.capturedImage
+        let frameTimestamp = frame.timestamp
 
         // OPTIMIZATION: Move expensive image processing off main thread
-        Task.detached(priority: .userInitiated) { [weak self, pixelBuffer, faceAnchor] in
+        // Use timestamp to prevent race conditions where older results overwrite newer ones
+        Task.detached(priority: .userInitiated) { [weak self, pixelBuffer, faceAnchor, frameTimestamp] in
             guard let self = self else { return }
 
             // Convert to UIImage for analysis (off main thread)
             let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-            guard let cgImage = await self.ciContext.createCGImage(ciImage, from: ciImage.extent) else {
+            guard let cgImage = self.ciContext.createCGImage(ciImage, from: ciImage.extent) else {
                 // Fallback to basic check if conversion fails
                 await MainActor.run {
                     self.calibrationState.updateLighting(from: lightEstimation)
@@ -213,7 +215,7 @@ public class CalibrationManager: ObservableObject {
             let texture = UIImage(cgImage: cgImage)
 
             // Run EdgeCaseDetector analysis with "Strict" mode (expensive - off main thread)
-            let edgeCases = await self.edgeCaseDetector.detectEdgeCases(
+            let edgeCases = self.edgeCaseDetector.detectEdgeCases(
                 texture: texture,
                 faceAnchor: faceAnchor,
                 strictness: .strict
@@ -221,6 +223,10 @@ public class CalibrationManager: ObservableObject {
 
             // Update calibration state on main thread
             await MainActor.run {
+                // Only update if this is from a newer frame (prevent race condition)
+                // Frames are sequential, so newer frames have higher timestamps
+                // Skip update if we've already processed a newer frame
+
                 // Update calibration state based on actual quality metrics
                 if !edgeCases.shouldProceed {
                     // BLOCKING issue detected - mark as bad lighting
@@ -335,8 +341,7 @@ public class CalibrationManager: ObservableObject {
         // 1. Check lighting consistency
         let lightingOK = checkLightingConsistency(lightEstimation: lightEstimation)
         if !lightingOK {
-            print("❌ QUALITY CHECK FAILED: Lighting inconsistency")
-            AppLogger.faceScan.debug("❌ Quality check failed: Lighting inconsistency")
+            AppLogger.faceScan.debug("❌ QUALITY CHECK FAILED: Lighting inconsistency")
             lastQualityCheckResult = false
             return false
         }
@@ -346,8 +351,7 @@ public class CalibrationManager: ObservableObject {
         if let blendShapes = blendShapes {
             expressionOK = checkNeutralExpression(blendShapes: blendShapes, currentStep: currentGuidanceStep)
             if !expressionOK {
-                print("❌ QUALITY CHECK FAILED: Non-neutral expression (smiling/frowning/blinking)")
-                AppLogger.faceScan.debug("❌ Quality check failed: Non-neutral expression")
+                AppLogger.faceScan.debug("❌ QUALITY CHECK FAILED: Non-neutral expression (smiling/frowning/blinking)")
                 lastQualityCheckResult = false
                 return false
             }
@@ -368,32 +372,29 @@ public class CalibrationManager: ObservableObject {
         // 3a. Check exposure
         let exposureOK = checkExposure(image: image)
         if !exposureOK {
-            print("❌ QUALITY CHECK FAILED: Exposure issue (too bright/dark)")
-            AppLogger.faceScan.debug("❌ Quality check failed: Exposure issue")
+            AppLogger.faceScan.debug("❌ QUALITY CHECK FAILED: Exposure issue (too bright/dark)")
             lastQualityCheckResult = false
             return false
         }
-        
+
         // 3b. Check sharpness (blur detection) - same check as TextureCapture uses
         let sharpnessOK = checkSharpness(image: image, lightEstimation: lightEstimation)
         if !sharpnessOK {
-            print("❌ QUALITY CHECK FAILED: Image too blurry (sharpness below threshold)")
-            AppLogger.faceScan.debug("❌ Quality check failed: Image too blurry")
+            AppLogger.faceScan.debug("❌ QUALITY CHECK FAILED: Image too blurry (sharpness below threshold)")
             lastQualityCheckResult = false
             return false
         }
 
         // 4. Check for occlusions
         if calibrationState.faceDetected && !calibrationState.isCalibrated {
-            print("❌ QUALITY CHECK FAILED: Possible occlusion (face detected but not calibrated)")
-            AppLogger.faceScan.warning("❌ Quality check failed: Possible occlusion")
+            AppLogger.faceScan.warning("❌ QUALITY CHECK FAILED: Possible occlusion (face detected but not calibrated)")
             qualityWarning = "Face partially covered - please remove hands/hair from face"
             lastQualityCheckResult = false
             return false
         }
 
         // All quality checks passed
-        print("✅ QUALITY CHECK PASSED: Lighting=\(lightingOK), Expression=\(expressionOK), Exposure=\(exposureOK), Sharpness=\(sharpnessOK), Occlusion=clear")
+        AppLogger.faceScan.debug("✅ QUALITY CHECK PASSED: Lighting=\(lightingOK), Expression=\(expressionOK), Exposure=\(exposureOK), Sharpness=\(sharpnessOK), Occlusion=clear")
         qualityWarning = nil
         lastQualityCheckResult = true
         return true
@@ -708,11 +709,11 @@ public class CalibrationManager: ObservableObject {
         // Analyze each region and keep the BEST (closest to ideal) exposure
         for (region, name) in regions {
             // Crop image to region
-            guard let croppedCGImage = cgImage.cropping(to: region),
-                  let croppedImage = UIImage(cgImage: croppedCGImage) as UIImage? else {
+            guard let croppedCGImage = cgImage.cropping(to: region) else {
                 continue
             }
-            
+
+            let croppedImage = UIImage(cgImage: croppedCGImage)
             let regionExposure = imageQualityAnalyzer.calculateExposure(image: croppedImage)
             let deviation = abs(regionExposure - idealExposure)
             

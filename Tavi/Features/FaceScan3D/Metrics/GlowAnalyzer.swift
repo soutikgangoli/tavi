@@ -42,7 +42,7 @@ public class GlowAnalyzer {
         specularAnalyzer: SpecularAnalyzer
     ) -> GlowAnalysis {
 
-        print("✨ Analyzing skin glow and radiance...")
+        AppLogger.metrics.info("✨ Analyzing skin glow and radiance...")
 
         // PART 1: GLOW SCORE (Overall Health Index)
         // Uses existing computed metrics - no new computation needed
@@ -60,11 +60,11 @@ public class GlowAnalyzer {
             specular * Configuration.specularWeight
         )
 
-        print("   Glow Score (Health Index): \(String(format: "%.1f", glowScore))/100")
-        print("     - Smoothness contribution: \(String(format: "%.1f", smoothness * Configuration.smoothnessWeight))")
-        print("     - Evenness contribution: \(String(format: "%.1f", evenness * Configuration.evennessWeight))")
-        print("     - Discoloration contribution: \(String(format: "%.1f", discoloration * Configuration.discolorationWeight))")
-        print("     - Specular contribution: \(String(format: "%.1f", specular * Configuration.specularWeight))")
+        AppLogger.metrics.info("   Glow Score (Health Index): \(String(format: "%.1f", glowScore))/100")
+        AppLogger.metrics.info("     - Smoothness contribution: \(String(format: "%.1f", smoothness * Configuration.smoothnessWeight))")
+        AppLogger.metrics.info("     - Evenness contribution: \(String(format: "%.1f", evenness * Configuration.evennessWeight))")
+        AppLogger.metrics.info("     - Discoloration contribution: \(String(format: "%.1f", discoloration * Configuration.discolorationWeight))")
+        AppLogger.metrics.info("     - Specular contribution: \(String(format: "%.1f", specular * Configuration.specularWeight))")
 
         // PART 2: RADIANCE SCORE (Pure Luminosity)
         // Physics-based brightness measurement using LAB color space
@@ -79,9 +79,9 @@ public class GlowAnalyzer {
             specularRatio * Configuration.specularHighlightWeight
         ) * 100.0  // Scale to 0-100
 
-        print("   Radiance Score (Luminosity): \(String(format: "%.1f", radianceScore))/100")
-        print("     - LAB L* lightness: \(String(format: "%.1f", labLightness * 100))%")
-        print("     - Specular highlights: \(String(format: "%.1f", specularRatio * 100))%")
+        AppLogger.metrics.info("   Radiance Score (Luminosity): \(String(format: "%.1f", radianceScore))/100")
+        AppLogger.metrics.info("     - LAB L* lightness: \(String(format: "%.1f", labLightness * 100))%")
+        AppLogger.metrics.info("     - Specular highlights: \(String(format: "%.1f", specularRatio * 100))%")
 
         // PART 3: Regional Analysis
 
@@ -102,7 +102,7 @@ public class GlowAnalyzer {
             specularRatio: specularRatio
         )
 
-        print("✅ Glow and radiance analysis complete (confidence: \(String(format: "%.0f", confidence))%)")
+        AppLogger.metrics.info("✅ Glow and radiance analysis complete (confidence: \(String(format: "%.0f", confidence))%)")
 
         return GlowAnalysis(
             glowScore: glowScore,

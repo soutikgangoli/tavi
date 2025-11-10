@@ -280,7 +280,7 @@ public struct FullMeshPreviewView: View {
                     showingExportResult = true
                 }
 
-                print("✅ Export complete: \(url.path)")
+                AppLogger.export.info("✅ Export complete: \(url.path)")
 
             } catch {
                 await MainActor.run {

@@ -71,45 +71,15 @@ public class TextureCapture {
 
         // Extract camera image
         guard let textureImage = extractCameraImage(from: frame) else {
-            print("⚠️ TextureCapture: Failed to extract camera image")
+            AppLogger.faceScan.warning("⚠️ TextureCapture: Failed to extract camera image")
             return nil
         }
 
-        // Calculate quality metrics
+        // OPTIMIZATION FIX: Trust pre-capture validation from CalibrationManager
+        // Post-capture quality checks removed to prevent duplicate validation failures
+        // Quality was already validated during countdown - no need to re-check
         let quality = qualityAnalyzer.analyzeQuality(image: textureImage)
-
-        // ADAPTIVE SHARPNESS THRESHOLD: Adjust based on lighting conditions
-        // In poor lighting, we accept slightly lower sharpness to ensure capture success
-        var adaptiveSharpnessThreshold = configuration.minSharpness
-        if let lighting = lightEstimation {
-            let intensity = Float(lighting.ambientIntensity)
-            // Scale threshold based on lighting: 1000+ lux = optimal, <500 lux = poor
-            if intensity < 500 {
-                adaptiveSharpnessThreshold = configuration.minSharpnessPoorLight
-                print("💡 Low light detected (\(Int(intensity)) lux) - using relaxed sharpness threshold: \(adaptiveSharpnessThreshold)")
-            } else if intensity > 1000 {
-                adaptiveSharpnessThreshold = configuration.minSharpnessOptimal
-            } else {
-                // Linear interpolation between poor and optimal
-                let ratio = (intensity - 500) / 500
-                adaptiveSharpnessThreshold = configuration.minSharpnessPoorLight +
-                    (configuration.minSharpnessOptimal - configuration.minSharpnessPoorLight) * ratio
-            }
-        }
-
-        // ADAPTIVE ENFORCEMENT: Reject blurry or poorly exposed images
-        // Sharp textures are critical for accurate roughness/smoothness analysis
-        let isSharpEnough = quality.sharpness >= adaptiveSharpnessThreshold
-        if !quality.isWellExposed {
-            print("❌ TextureCapture: REJECTING - poor exposure: \(quality.exposure)")
-            return nil  // Reject and force recapture
-        }
-        if !isSharpEnough {
-            print("❌ TextureCapture: REJECTING - sharpness too low: \(quality.sharpness) (adaptive min: \(adaptiveSharpnessThreshold))")
-            return nil  // Reject and force recapture
-        }
-
-        print("✅ TextureCapture: Quality validated - sharpness: \(quality.sharpness), exposure: \(quality.exposure)")
+        AppLogger.faceScan.info("✅ TextureCapture: Quality metrics - sharpness: \(quality.sharpness), exposure: \(quality.exposure)")
 
         // Extract rotation angles
         let transform = faceAnchor.transform
@@ -157,92 +127,7 @@ public class TextureCapture {
             isFrontFacing: isFrontFacing
         )
 
-        print("✅ TextureCapture: Captured sample - step: \(step), sharpness: \(quality.sharpness), exposure: \(quality.exposure), front: \(isFrontFacing)")
-
-        return sample
-    }
-
-    /// Capture texture sample with significantly lowered threshold as fallback
-    /// Use this when normal capture fails to prevent complete bake failure
-    public func captureSampleWithLoweredThreshold(
-        step: String,
-        faceAnchor: ARFaceAnchor,
-        frame: ARFrame,
-        lightEstimation: LightEstimation?
-    ) -> PoseSample? {
-        // Extract camera image
-        guard let textureImage = extractCameraImage(from: frame) else {
-            #if DEBUG
-            print("⚠️ TextureCapture (fallback): Failed to extract camera image")
-            #endif
-            return nil
-        }
-
-        // Calculate quality metrics
-        let quality = qualityAnalyzer.analyzeQuality(image: textureImage)
-
-        // FALLBACK: Use much lower thresholds (50% of normal)
-        let fallbackSharpnessThreshold = configuration.minSharpnessPoorLight * 0.5
-        let fallbackMinExposure = configuration.minExposure * 0.8
-        let fallbackMaxExposure = configuration.maxExposure * 1.2
-
-        // Check if even with lowered thresholds this sample is acceptable
-        let isSharpEnough = quality.sharpness >= fallbackSharpnessThreshold
-        let exposureOk = quality.exposure >= fallbackMinExposure && quality.exposure <= fallbackMaxExposure
-
-        if !isSharpEnough || !exposureOk {
-            #if DEBUG
-            print("❌ TextureCapture (fallback): Still rejecting - sharpness: \(quality.sharpness) (min: \(fallbackSharpnessThreshold)), exposure: \(quality.exposure)")
-            #endif
-            return nil
-        }
-
-        #if DEBUG
-        print("⚠️ TextureCapture (fallback): Accepted with lowered thresholds - sharpness: \(quality.sharpness), exposure: \(quality.exposure)")
-        #endif
-
-        // Extract rotation angles
-        let transform = faceAnchor.transform
-        let eulerAngles = extractEulerAngles(from: transform)
-        let yaw = eulerAngles.y * 180 / .pi
-        let pitch = eulerAngles.x * 180 / .pi
-        let roll = eulerAngles.z * 180 / .pi
-
-        // Check if front-facing
-        let isFrontFacing = abs(yaw) < configuration.maxYawForFrontFacing &&
-                           abs(pitch) < configuration.maxPitchForFrontFacing
-
-        // Extract light direction
-        var lightDirection: SIMD3<Float>? = nil
-        if lightEstimation != nil {
-            lightDirection = SIMD3<Float>(0, 1, 0.5)
-            lightDirection = normalize(lightDirection!)
-        }
-
-        // Calculate distance from camera
-        let cameraPos = frame.camera.transform.columns.3
-        let facePos = transform.columns.3
-        let dx = cameraPos.x - facePos.x
-        let dy = cameraPos.y - facePos.y
-        let dz = cameraPos.z - facePos.z
-        let distance = sqrt(dx * dx + dy * dy + dz * dz)
-
-        // Create pose sample
-        let sample = PoseSample(
-            step: step,
-            textureImage: textureImage,
-            faceTransform: transform,
-            yaw: yaw,
-            pitch: pitch,
-            roll: roll,
-            ambientIntensity: lightEstimation?.ambientIntensity ?? 1000,
-            colorTemperature: lightEstimation?.ambientColorTemperature ?? 6500,
-            lightDirection: lightDirection,
-            distanceFromCamera: distance,
-            focusSharpness: quality.sharpness,
-            exposureScore: quality.exposure,
-            isFrontFacing: isFrontFacing
-        )
+        AppLogger.faceScan.info("✅ TextureCapture: Captured sample - step: \(step), sharpness: \(quality.sharpness), exposure: \(quality.exposure), front: \(isFrontFacing)")
 
         return sample
     }

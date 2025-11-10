@@ -562,10 +562,10 @@ public class FaceDetector {
                        !nose.normalizedPoints.isEmpty,
                        !leftEye.normalizedPoints.isEmpty,
                        !rightEye.normalizedPoints.isEmpty {
-                        
+
                         // DEBUG: Log that we're calculating angles
-                        print("🔍 DEBUG: Calculating angles from landmarks - nose points: \(nose.normalizedPoints.count), leftEye: \(leftEye.normalizedPoints.count), rightEye: \(rightEye.normalizedPoints.count)")
-                        
+                        AppLogger.metrics.debug("🔍 DEBUG: Calculating angles from landmarks - nose points: \(nose.normalizedPoints.count), leftEye: \(leftEye.normalizedPoints.count), rightEye: \(rightEye.normalizedPoints.count)")
+
                         // Calculate eye centers
                         let leftEyeSum = leftEye.normalizedPoints.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
                         let leftEyeCenter = CGPoint(
@@ -613,20 +613,20 @@ public class FaceDetector {
                         // Typical face: nose is ~0.1-0.15 below eye center when level
                         // Scale factor: ~30-40 degrees per 0.1 normalized units
                         pitch = CGFloat(verticalOffset * 40.0)
-                        
-                        print("🔍 DEBUG: Calculated angles - Yaw: \(yaw?.description ?? "nil")°, Pitch: \(pitch?.description ?? "nil")°, Roll: \(roll?.description ?? "nil")°")
+
+                        AppLogger.metrics.debug("🔍 DEBUG: Calculated angles - Yaw: \(yaw?.description ?? "nil")°, Pitch: \(pitch?.description ?? "nil")°, Roll: \(roll?.description ?? "nil")°")
                         break
                     } else {
-                        print("🔍 DEBUG: Landmarks missing or empty - nose: \(landmarks.nose != nil), leftEye: \(landmarks.leftEye != nil), rightEye: \(landmarks.rightEye != nil)")
+                        AppLogger.metrics.debug("🔍 DEBUG: Landmarks missing or empty - nose: \(landmarks.nose != nil), leftEye: \(landmarks.leftEye != nil), rightEye: \(landmarks.rightEye != nil)")
                     }
                 } else {
-                    print("🔍 DEBUG: No landmarks found in observation")
+                    AppLogger.metrics.debug("🔍 DEBUG: No landmarks found in observation")
                 }
             }
-            
+
             if yaw == nil && pitch == nil && roll == nil {
-                print("⚠️ DEBUG: No angles calculated - landmarksObservations count: \(landmarksObservations.count)")
-                print("⚠️ DEBUG: Vision framework angles unavailable. Use ARKit for accurate 3D angles.")
+                AppLogger.metrics.debug("⚠️ DEBUG: No angles calculated - landmarksObservations count: \(landmarksObservations.count)")
+                AppLogger.metrics.debug("⚠️ DEBUG: Vision framework angles unavailable. Use ARKit for accurate 3D angles.")
                 // Set to 0 as fallback to indicate face detected but angles unavailable
                 yaw = 0
                 pitch = 0

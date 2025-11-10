@@ -92,10 +92,15 @@ public class VolumeMetricsAnalyzer {
         let symmetry = analyzeFacialSymmetry(geometry: geometry)
 
         // Calculate volume changes if baseline exists
-        let volumeChanges = baseline != nil ? calculateVolumeChanges(
-            current: geometry,
-            baseline: baseline!
-        ) : nil
+        let volumeChanges: VolumeChanges?
+        if let baselineGeometry = baseline {
+            volumeChanges = calculateVolumeChanges(
+                current: geometry,
+                baseline: baselineGeometry
+            )
+        } else {
+            volumeChanges = nil
+        }
 
         // Overall score (average of components)
         let overallScore = (cheekHollowing.score + underEyeBags.score + symmetry.score) / 3.0

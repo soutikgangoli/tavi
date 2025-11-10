@@ -338,7 +338,10 @@ public struct SettingsView: View {
 
     private func clearUserDefaults() {
         // Get all keys
-        let domain = Bundle.main.bundleIdentifier!
+        guard let domain = Bundle.main.bundleIdentifier else {
+            AppLogger.storage.warning("⚠️ Could not get bundle identifier for clearing UserDefaults")
+            return
+        }
         UserDefaults.standard.removePersistentDomain(forName: domain)
         UserDefaults.standard.synchronize()
 

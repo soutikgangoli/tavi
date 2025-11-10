@@ -104,7 +104,7 @@ public class ColorTemperatureNormalizer {
 
         // Apply white balance filter
         guard let filter = CIFilter(name: "CITemperatureAndTint") else {
-            print("⚠️ Temperature filter not available")
+            AppLogger.metrics.warning("Temperature filter not available")
             return image
         }
 
@@ -117,11 +117,11 @@ public class ColorTemperatureNormalizer {
 
         guard let outputImage = filter.outputImage,
               let outputCG = context.createCGImage(outputImage, from: outputImage.extent) else {
-            print("⚠️ Failed to apply temperature correction")
+            AppLogger.metrics.warning("Failed to apply temperature correction")
             return image
         }
 
-        print("✅ Applied color temperature normalization: \(currentColorTemp)K → \(adaptiveTarget)K")
+        AppLogger.metrics.info("Applied color temperature normalization: \(Int(currentColorTemp))K → \(Int(adaptiveTarget))K")
         return UIImage(cgImage: outputCG)
     }
 

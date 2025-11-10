@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import StoreKit
 
 struct AboutView: View {
 
@@ -236,8 +237,13 @@ struct AboutView: View {
     }
 
     private func rateApp() {
-        // TODO: Open App Store rating page
-        AppLogger.ui.info("Rate app requested - not yet implemented")
+        // Request in-app review using StoreKit
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            SKStoreReviewController.requestReview(in: windowScene)
+            AppLogger.ui.info("Requested in-app review")
+        } else {
+            AppLogger.ui.warning("Could not present review - no window scene available")
+        }
     }
 }
 

@@ -60,8 +60,8 @@ class CrashReporter {
         #if canImport(Sentry)
         configureSentry()
         #else
-        print("📊 CrashReporter: Sentry SDK not available - using local logging only")
-        print("   To enable Sentry: Add package dependency https://github.com/getsentry/sentry-cocoa.git")
+        AppLogger.app.warning("📊 CrashReporter: Sentry SDK not available - using local logging only")
+        AppLogger.app.info("   To enable Sentry: Add package dependency https://github.com/getsentry/sentry-cocoa.git")
         isEnabled = true
         #endif
     }
@@ -72,14 +72,14 @@ class CrashReporter {
         let dsn = getSentryDSN()
 
         #if DEBUG
-        print("📊 CrashReporter: Development mode - crashes logged locally")
+        AppLogger.app.info("📊 CrashReporter: Development mode - crashes logged locally")
 
         if dsn.isEmpty {
-            print("⚠️ Sentry DSN not configured. Crash reporting disabled in DEBUG mode.")
-            print("   To enable:")
-            print("   1. Sign up at https://sentry.io")
-            print("   2. Create a new iOS project")
-            print("   3. Add SENTRY_DSN to environment variables or Info.plist")
+            AppLogger.app.warning("⚠️ Sentry DSN not configured. Crash reporting disabled in DEBUG mode.")
+            AppLogger.app.info("   To enable:")
+            AppLogger.app.info("   1. Sign up at https://sentry.io")
+            AppLogger.app.info("   2. Create a new iOS project")
+            AppLogger.app.info("   3. Add SENTRY_DSN to environment variables or Info.plist")
             isEnabled = false
             return
         }
@@ -101,15 +101,15 @@ class CrashReporter {
         // PRODUCTION BUILD
 
         if dsn.isEmpty {
-            print("❌ CRITICAL: Sentry DSN not configured in PRODUCTION build!")
-            print("   Crash reporting is DISABLED. This should not happen in production.")
-            print("   Add SENTRY_DSN to Info.plist before releasing to App Store.")
+            AppLogger.app.error("❌ CRITICAL: Sentry DSN not configured in PRODUCTION build!")
+            AppLogger.app.error("   Crash reporting is DISABLED. This should not happen in production.")
+            AppLogger.app.error("   Add SENTRY_DSN to Info.plist before releasing to App Store.")
             isEnabled = false
             return
         }
 
-        print("📊 CrashReporter: Production mode - Sentry enabled")
-        print("   DSN: \(dsn.prefix(20))...")
+        AppLogger.app.info("📊 CrashReporter: Production mode - Sentry enabled")
+        AppLogger.app.info("   DSN: \(dsn.prefix(20))...")
         isEnabled = true
 
         // Initialize Sentry for production

@@ -123,7 +123,7 @@ class TemporalTracker {
             let decoder = JSONDecoder()
             return try decoder.decode([ScanRecord].self, from: data)
         } catch {
-            print("⚠️ Failed to load scan history: \(error)")
+            AppLogger.metrics.error("⚠️ Failed to load scan history: \(error)")
             return []
         }
     }
@@ -134,7 +134,7 @@ class TemporalTracker {
             let data = try encoder.encode(history)
             userDefaults.set(data, forKey: scanHistoryKey)
         } catch {
-            print("⚠️ Failed to save scan history: \(error)")
+            AppLogger.metrics.error("⚠️ Failed to save scan history: \(error)")
         }
     }
 }

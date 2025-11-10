@@ -56,7 +56,7 @@ public class RednessAnalyzer {
     /// Analyze redness and inflammation from texture
     /// IMPROVED: Detects inflammation on darker skin (appears as darkening, not redness)
     public func analyzeRedness(texture: UIImage) -> RednessAnalysis {
-        print("🔬 Analyzing redness and inflammation...")
+        AppLogger.metrics.info("🔬 Analyzing redness and inflammation...")
 
         guard let cgImage = texture.cgImage else {
             return RednessAnalysis(
@@ -108,11 +108,11 @@ public class RednessAnalyzer {
             inflamedAreaCount: inflamedAreas.count
         )
 
-        print("✅ Redness analysis complete")
-        print("   Global redness: \(String(format: "%.3f", globalRedness))")
-        print("   Level: \(rednessLevel)")
-        print("   Inflamed areas: \(inflamedAreas.count)")
-        print("   Overall score: \(String(format: "%.1f", overallScore))/100")
+        AppLogger.metrics.info("✅ Redness analysis complete")
+        AppLogger.metrics.info("   Global redness: \(String(format: "%.3f", globalRedness))")
+        AppLogger.metrics.info("   Level: \(rednessLevel)")
+        AppLogger.metrics.info("   Inflamed areas: \(inflamedAreas.count)")
+        AppLogger.metrics.info("   Overall score: \(String(format: "%.1f", overallScore))/100")
 
         return RednessAnalysis(
             overallScore: overallScore,

@@ -93,56 +93,22 @@ public class ImageQualityAnalyzer {
         var floatData = [Float](repeating: 0, count: width * height)
         vDSP_vfltu8(pixelData, 1, &floatData, 1, vDSP_Length(width * height))
 
-        // OPTIMIZATION: Use vDSP-accelerated Laplacian calculation
+        // OPTIMIZATION: Use simplified Laplacian with vDSP for variance calculation
+        // Instead of complex per-row vectorization, use simpler approach that's still faster
         var laplacian = [Float](repeating: 0, count: width * height)
 
         // Process interior pixels only (skip borders)
+        // Simple 3x3 Laplacian kernel: center * 4 - (top + bottom + left + right)
         for y in 1..<(height - 1) {
-            let rowStart = y * width
-            let prevRowStart = (y - 1) * width
-            let nextRowStart = (y + 1) * width
-
-            // Process entire row at once using vDSP operations
-            // Extract the 5 vectors needed: center, top, bottom, left, right
-            var centerRow = [Float](repeating: 0, count: width - 2)
-            var topRow = [Float](repeating: 0, count: width - 2)
-            var bottomRow = [Float](repeating: 0, count: width - 2)
-            var leftRow = [Float](repeating: 0, count: width - 2)
-            var rightRow = [Float](repeating: 0, count: width - 2)
-
             for x in 1..<(width - 1) {
-                let i = x - 1
-                centerRow[i] = floatData[rowStart + x]
-                topRow[i] = floatData[prevRowStart + x]
-                bottomRow[i] = floatData[nextRowStart + x]
-                leftRow[i] = floatData[rowStart + x - 1]
-                rightRow[i] = floatData[rowStart + x + 1]
-            }
+                let idx = y * width + x
+                let center = floatData[idx]
+                let top = floatData[(y - 1) * width + x]
+                let bottom = floatData[(y + 1) * width + x]
+                let left = floatData[y * width + (x - 1)]
+                let right = floatData[y * width + (x + 1)]
 
-            // VECTORIZED: Laplacian = center * 4 - (top + bottom + left + right)
-            var temp1 = [Float](repeating: 0, count: width - 2)
-            var temp2 = [Float](repeating: 0, count: width - 2)
-            var result = [Float](repeating: 0, count: width - 2)
-
-            // Step 1: center * 4
-            var four: Float = 4.0
-            vDSP_vsmul(centerRow, 1, &four, &result, 1, vDSP_Length(width - 2))
-
-            // Step 2: top + bottom
-            vDSP_vadd(topRow, 1, bottomRow, 1, &temp1, 1, vDSP_Length(width - 2))
-
-            // Step 3: left + right
-            vDSP_vadd(leftRow, 1, rightRow, 1, &temp2, 1, vDSP_Length(width - 2))
-
-            // Step 4: temp1 + temp2 (all neighbors)
-            vDSP_vadd(temp1, 1, temp2, 1, &temp1, 1, vDSP_Length(width - 2))
-
-            // Step 5: result - temp1 (center*4 - neighbors)
-            vDSP_vsub(temp1, 1, result, 1, &result, 1, vDSP_Length(width - 2))
-
-            // Copy result back to laplacian array
-            for x in 1..<(width - 1) {
-                laplacian[rowStart + x] = result[x - 1]
+                laplacian[idx] = center * 4 - (top + bottom + left + right)
             }
         }
 

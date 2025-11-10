@@ -146,7 +146,7 @@ public class AlbedoEstimator {
         let height = cgImage.height
 
         guard normalMap.count == height, normalMap[0].count == width else {
-            print("⚠️ AlbedoEstimator: Normal map dimensions don't match image")
+            AppLogger.metrics.warning("AlbedoEstimator: Normal map dimensions don't match image")
             return processImage(image: image, lightDirection: lightDirection, lightIntensity: lightIntensity)
         }
 

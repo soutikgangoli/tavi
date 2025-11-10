@@ -218,11 +218,14 @@ struct InsightsTabView: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     baselineMetricRow(label: "Overall Score", value: session.overallScore)
-                    if let glow = session.skinMetrics?.glowScore {
-                        baselineMetricRow(label: "Glow", value: glow)
+                    if let glowAnalysis = session.skinMetrics?.glowAnalysis {
+                        baselineMetricRow(label: "Glow", value: Double(glowAnalysis.glowScore))
                     }
-                    if let hydration = session.skinMetrics?.hydrationScore {
-                        baselineMetricRow(label: "Hydration", value: hydration)
+                    // Calculate hydration from ROI moisture proxies
+                    if let metrics = session.skinMetrics {
+                        let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
+                        let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
+                        baselineMetricRow(label: "Hydration", value: avgMoisture)
                     }
                 }
                 .padding(.vertical, HeadspaceDesign.Spacing.sm)
@@ -272,14 +275,19 @@ struct InsightsTabView: View {
 
             if let session = sessions.first, let metrics = session.skinMetrics {
                 VStack(spacing: 12) {
-                    metricProgressBar(label: "Smoothness", score: metrics.smoothnessScore, color: .green)
-                    metricProgressBar(label: "Hydration", score: metrics.hydrationScore, color: .blue)
-                    metricProgressBar(label: "Glow", score: metrics.glowScore, color: .orange)
-                    metricProgressBar(label: "Pigmentation", score: metrics.pigmentationScore, color: .purple)
-                    metricProgressBar(label: "Acne", score: metrics.acneScore, color: .red)
-                    metricProgressBar(label: "Sun Damage", score: metrics.sunDamageScore, color: .yellow)
-                    metricProgressBar(label: "Redness", score: metrics.rednessScore, color: .pink)
-                    metricProgressBar(label: "Roughness", score: metrics.roughnessScore, color: .brown)
+                    metricProgressBar(label: "Smoothness", score: Double(metrics.globalRoughnessScore), color: .green)
+
+                    // Calculate hydration from ROI moisture proxies
+                    let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
+                    let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
+                    metricProgressBar(label: "Hydration", score: avgMoisture, color: .blue)
+
+                    metricProgressBar(label: "Glow", score: Double(metrics.glowAnalysis?.glowScore ?? 0), color: .orange)
+                    metricProgressBar(label: "Pigmentation", score: Double(metrics.globalPigmentationScore), color: .purple)
+                    metricProgressBar(label: "Acne", score: Double(metrics.acneAnalysis?.overallScore ?? 0), color: .red)
+                    metricProgressBar(label: "Sun Damage", score: Double(metrics.sunDamageAnalysis?.protectionScore ?? 0), color: .yellow)
+                    metricProgressBar(label: "Redness", score: Double(metrics.rednessAnalysis?.overallScore ?? 0), color: .pink)
+                    metricProgressBar(label: "Roughness", score: Double(metrics.globalRoughnessScore), color: .brown)
                 }
             }
         }
@@ -374,7 +382,7 @@ struct InsightsTabView: View {
             content: generateImprovementText(improvements),
             actionText: "View Details"
         ) {
-            // TODO: Navigate to detail
+            AppLogger.ui.info("View Details tapped for improvements: \(improvements.map { $0.0 }.joined(separator: ", "))")
         }
     }
 
@@ -388,7 +396,7 @@ struct InsightsTabView: View {
             content: recommendation.message,
             actionText: "Learn More"
         ) {
-            // TODO: Navigate to educational content
+            AppLogger.ui.info("Learn More tapped for metric: \(metric.0)")
         }
     }
 
@@ -403,7 +411,7 @@ struct InsightsTabView: View {
             tips: areaInfo.tips,
             actionText: "View Tips"
         ) {
-            // TODO: Navigate to tips
+            AppLogger.ui.info("View Tips tapped for declines: \(declines.map { $0.0 }.joined(separator: ", "))")
         }
     }
 
@@ -596,7 +604,7 @@ struct InsightsTabView: View {
 
     private func educationalArticleRow(icon: String, title: String) -> some View {
         Button {
-            // TODO: Navigate to article
+            AppLogger.ui.info("Educational article tapped: \(title)")
         } label: {
             HStack {
                 Image(systemName: icon)
@@ -632,22 +640,28 @@ struct InsightsTabView: View {
         let previous = sessions[1]
         var improvements: [(String, Double)] = []
 
-        // Check all 8 metrics
-        if let latestGlow = latest.skinMetrics?.glowScore,
-           let prevGlow = previous.skinMetrics?.glowScore {
-            let change = latestGlow - prevGlow
+        // Check glow
+        if let latestGlow = latest.skinMetrics?.glowAnalysis?.glowScore,
+           let prevGlow = previous.skinMetrics?.glowAnalysis?.glowScore {
+            let change = Double(latestGlow - prevGlow)
             if change > 2 { improvements.append(("Glow", change)) }
         }
 
-        if let latestHydration = latest.skinMetrics?.hydrationScore,
-           let prevHydration = previous.skinMetrics?.hydrationScore {
-            let change = latestHydration - prevHydration
+        // Check hydration (calculated from moisture proxies)
+        if let latestMetrics = latest.skinMetrics,
+           let prevMetrics = previous.skinMetrics {
+            let latestMoisture = latestMetrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
+            let prevMoisture = prevMetrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
+            let latestAvg = latestMoisture.reduce(0, +) / Double(latestMoisture.count)
+            let prevAvg = prevMoisture.reduce(0, +) / Double(prevMoisture.count)
+            let change = latestAvg - prevAvg
             if change > 2 { improvements.append(("Hydration", change)) }
         }
 
-        if let latestSmoothness = latest.skinMetrics?.smoothnessScore,
-           let prevSmoothness = previous.skinMetrics?.smoothnessScore {
-            let change = latestSmoothness - prevSmoothness
+        // Check smoothness (global roughness score)
+        if let latestMetrics = latest.skinMetrics,
+           let prevMetrics = previous.skinMetrics {
+            let change = Double(latestMetrics.globalRoughnessScore - prevMetrics.globalRoughnessScore)
             if change > 2 { improvements.append(("Smoothness", change)) }
         }
 
@@ -662,22 +676,24 @@ struct InsightsTabView: View {
         let previous = sessions[1]
         var declines: [(String, Double)] = []
 
-        // Check all 8 metrics
-        if let latestRoughness = latest.skinMetrics?.roughnessScore,
-           let prevRoughness = previous.skinMetrics?.roughnessScore {
-            let change = latestRoughness - prevRoughness
+        // Check roughness (global roughness score - lower is worse)
+        if let latestMetrics = latest.skinMetrics,
+           let prevMetrics = previous.skinMetrics {
+            let change = Double(latestMetrics.globalRoughnessScore - prevMetrics.globalRoughnessScore)
             if change < -3 { declines.append(("Roughness", abs(change))) }
         }
 
-        if let latestSunDamage = latest.skinMetrics?.sunDamageScore,
-           let prevSunDamage = previous.skinMetrics?.sunDamageScore {
-            let change = latestSunDamage - prevSunDamage
+        // Check sun damage
+        if let latestDamage = latest.skinMetrics?.sunDamageAnalysis?.protectionScore,
+           let prevDamage = previous.skinMetrics?.sunDamageAnalysis?.protectionScore {
+            let change = Double(latestDamage - prevDamage)
             if change < -3 { declines.append(("Sun Damage", abs(change))) }
         }
 
-        if let latestRedness = latest.skinMetrics?.rednessScore,
-           let prevRedness = previous.skinMetrics?.rednessScore {
-            let change = latestRedness - prevRedness
+        // Check redness
+        if let latestRedness = latest.skinMetrics?.rednessAnalysis?.overallScore,
+           let prevRedness = previous.skinMetrics?.rednessAnalysis?.overallScore {
+            let change = Double(latestRedness - prevRedness)
             if change < -3 { declines.append(("Redness", abs(change))) }
         }
 
@@ -690,16 +706,20 @@ struct InsightsTabView: View {
             return []
         }
 
+        // Calculate hydration from ROI moisture proxies
+        let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
+        let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
+
         var allMetrics: [(String, Double, String)] = [
             ("Overall", latest.overallScore, qualityLabel(latest.overallScore)),
-            ("Acne", metrics.acneScore, qualityLabel(metrics.acneScore)),
-            ("Smoothness", metrics.smoothnessScore, qualityLabel(metrics.smoothnessScore)),
-            ("Hydration", metrics.hydrationScore, qualityLabel(metrics.hydrationScore)),
-            ("Glow", metrics.glowScore, qualityLabel(metrics.glowScore)),
-            ("Pigmentation", metrics.pigmentationScore, qualityLabel(metrics.pigmentationScore)),
-            ("Sun Damage", metrics.sunDamageScore, qualityLabel(metrics.sunDamageScore)),
-            ("Redness", metrics.rednessScore, qualityLabel(metrics.rednessScore)),
-            ("Roughness", metrics.roughnessScore, qualityLabel(metrics.roughnessScore))
+            ("Acne", Double(metrics.acneAnalysis?.overallScore ?? 0), qualityLabel(Double(metrics.acneAnalysis?.overallScore ?? 0))),
+            ("Smoothness", Double(metrics.globalRoughnessScore), qualityLabel(Double(metrics.globalRoughnessScore))),
+            ("Hydration", avgMoisture, qualityLabel(avgMoisture)),
+            ("Glow", Double(metrics.glowAnalysis?.glowScore ?? 0), qualityLabel(Double(metrics.glowAnalysis?.glowScore ?? 0))),
+            ("Pigmentation", Double(metrics.globalPigmentationScore), qualityLabel(Double(metrics.globalPigmentationScore))),
+            ("Sun Damage", Double(metrics.sunDamageAnalysis?.protectionScore ?? 0), qualityLabel(Double(metrics.sunDamageAnalysis?.protectionScore ?? 0))),
+            ("Redness", Double(metrics.rednessAnalysis?.overallScore ?? 0), qualityLabel(Double(metrics.rednessAnalysis?.overallScore ?? 0))),
+            ("Roughness", Double(metrics.globalRoughnessScore), qualityLabel(Double(metrics.globalRoughnessScore)))
         ]
 
         return allMetrics.sorted { $0.1 > $1.1 }

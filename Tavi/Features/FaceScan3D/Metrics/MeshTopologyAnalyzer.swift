@@ -116,7 +116,7 @@ public class MeshTopologyAnalyzer {
 
     /// Analyze mesh topology quality
     public func analyzeTopology(geometry: FaceMeshGeometry) -> TopologyAnalysis {
-        print("🔬 MeshTopologyAnalyzer: Starting topology analysis...")
+        AppLogger.metrics.info("🔬 MeshTopologyAnalyzer: Starting topology analysis...")
 
         let vertices = geometry.vertices
         let triangles = geometry.triangleIndices
@@ -188,16 +188,16 @@ public class MeshTopologyAnalyzer {
             degenerateTriangles: degenerateTriangles
         )
 
-        print("   Topology Analysis Results:")
-        print("   - Overall Score: \(String(format: "%.1f", overallScore))/100 (\(analysis.qualityLevel))")
-        print("   - Manifold: \(isManifold) (non-manifold edges: \(nonManifoldEdges), vertices: \(nonManifoldVertices))")
-        print("   - Watertight: \(isWatertight)")
-        print("   - Valence: avg=\(String(format: "%.1f", valenceStats.averageValence)), ideal ratio=\(String(format: "%.1f%%", valenceStats.idealValenceRatio * 100))")
-        print("   - Triangle Quality: aspect ratio=\(String(format: "%.2f", triangleQuality.averageAspectRatio)), well-shaped=\(String(format: "%.1f%%", triangleQuality.wellShapedRatio * 100))")
-        print("   - Euler Characteristic: \(eulerCharacteristic) (expected: 2 for sphere)")
-        print("   - Curvature Discontinuities: \(curvatureDiscontinuities)")
-        print("   - Degenerate Triangles: \(degenerateTriangles)")
-        print("   - Self-Intersections: \(hasSelfIntersections)")
+        AppLogger.metrics.info("Topology Analysis Results:")
+        AppLogger.metrics.info("- Overall Score: \(String(format: "%.1f", overallScore))/100 (\(analysis.qualityLevel))")
+        AppLogger.metrics.info("- Manifold: \(isManifold) (non-manifold edges: \(nonManifoldEdges), vertices: \(nonManifoldVertices))")
+        AppLogger.metrics.info("- Watertight: \(isWatertight)")
+        AppLogger.metrics.info("- Valence: avg=\(String(format: "%.1f", valenceStats.averageValence)), ideal ratio=\(String(format: "%.1f%%", valenceStats.idealValenceRatio * 100))")
+        AppLogger.metrics.info("- Triangle Quality: aspect ratio=\(String(format: "%.2f", triangleQuality.averageAspectRatio)), well-shaped=\(String(format: "%.1f%%", triangleQuality.wellShapedRatio * 100))")
+        AppLogger.metrics.info("- Euler Characteristic: \(eulerCharacteristic) (expected: 2 for sphere)")
+        AppLogger.metrics.info("- Curvature Discontinuities: \(curvatureDiscontinuities)")
+        AppLogger.metrics.info("- Degenerate Triangles: \(degenerateTriangles)")
+        AppLogger.metrics.info("- Self-Intersections: \(hasSelfIntersections)")
 
         return analysis
     }
@@ -257,8 +257,11 @@ public class MeshTopologyAnalyzer {
                 if edgeData.edges[edge] == nil {
                     edgeData.edges[edge] = EdgeInfo()
                 }
-                edgeData.edges[edge]!.triangleCount += 1
-                edgeData.edges[edge]!.triangles.append(triangleIdx)
+                if var edgeInfo = edgeData.edges[edge] {
+                    edgeInfo.triangleCount += 1
+                    edgeInfo.triangles.append(triangleIdx)
+                    edgeData.edges[edge] = edgeInfo
+                }
             }
 
             // Build vertex neighbor lists

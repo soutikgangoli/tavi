@@ -43,7 +43,7 @@ public class SkinElasticityAnalyzer {
 
         // Require minimum 2 scans for temporal analysis
         guard historicalScans.count >= 2 else {
-            print("⚠️ Insufficient data for elasticity analysis (need 2+ scans)")
+            AppLogger.metrics.info("⚠️ Insufficient data for elasticity analysis (need 2+ scans)")
             return nil
         }
 
@@ -54,7 +54,7 @@ public class SkinElasticityAnalyzer {
 
         let timeDiff = abs(mostRecentScans[0].timestamp - mostRecentScans[1].timestamp)
         guard timeDiff >= minTimeDelta else {
-            print("⚠️ Scans too close together for elasticity analysis (need 3+ days apart)")
+            AppLogger.metrics.info("⚠️ Scans too close together for elasticity analysis (need 3+ days apart)")
             return nil
         }
 
@@ -86,7 +86,7 @@ public class SkinElasticityAnalyzer {
         roughnessScore: Float,
         texture: UIImage?
     ) -> ElasticityAnalysis? {
-        print("💡 Using single-scan elasticity proxy (first-time user)")
+        AppLogger.metrics.info("💡 Using single-scan elasticity proxy (first-time user)")
 
         // PROXY METHOD: Use roughness + wrinkle depth as elasticity indicator
         // Smoother skin + fewer wrinkles = better elasticity (correlation, not causation)
@@ -105,8 +105,8 @@ public class SkinElasticityAnalyzer {
 
         let level = classifyElasticity(score: proxyScore)
 
-        print("   Proxy score: \(String(format: "%.1f", proxyScore))/100 (\(level.rawValue))")
-        print("   ⚠️  Note: Proxy estimate for first-time users. Use temporal analysis after 3+ days for better accuracy.")
+        AppLogger.metrics.info("   Proxy score: \(String(format: "%.1f", proxyScore))/100 (\(level.rawValue))")
+        AppLogger.metrics.info("   ⚠️  Note: Proxy estimate for first-time users. Use temporal analysis after 3+ days for better accuracy.")
 
         return ElasticityAnalysis(
             overallScore: proxyScore,

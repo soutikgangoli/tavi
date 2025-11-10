@@ -176,7 +176,7 @@ public class CaptureSequenceManager: ObservableObject {
         // Start countdown if conditions are met
         // Log condition check every 30 frames to avoid spam but still be visible
         if frameCount % 30 == 0 {
-            print("🔍 COUNTDOWN CHECK [Frame \(frameCount)]: isPoseValid=\(isPoseValid), isCalibrated=\(isCalibrated), qualityGood=\(qualityGood), isCaptureInProgress=\(self.isCaptureInProgress), countdownTimer=\(self.countdownTimer), holdStableTimer=\(self.holdStableTimer != nil ? "exists" : "nil")")
+            AppLogger.faceScan.debug("🔍 COUNTDOWN CHECK [Frame \(frameCount)]: isPoseValid=\(isPoseValid), isCalibrated=\(isCalibrated), qualityGood=\(qualityGood), isCaptureInProgress=\(self.isCaptureInProgress), countdownTimer=\(self.countdownTimer), holdStableTimer=\(self.holdStableTimer != nil ? "exists" : "nil")")
         }
         #endif
 
@@ -193,14 +193,14 @@ public class CaptureSequenceManager: ObservableObject {
 
             if self.countdownTimer == 0 && self.holdStableTimer == nil {
                 #if DEBUG
-                print("✅✅✅ ALL CONDITIONS MET - STARTING COUNTDOWN!")
+                AppLogger.faceScan.debug("✅✅✅ ALL CONDITIONS MET - STARTING COUNTDOWN!")
                 #endif
                 AppLogger.faceScan.info("✅ All conditions met - starting countdown")
                 startCaptureCountdown(faceAnchor: faceAnchor, yaw: yaw, pitch: pitch, roll: roll)
             } else {
                 #if DEBUG
                 if frameCount % 30 == 0 {
-                    print("⚠️ Countdown blocked: countdownTimer=\(self.countdownTimer), holdStableTimer=\(self.holdStableTimer != nil ? "exists" : "nil")")
+                    AppLogger.faceScan.debug("⚠️ Countdown blocked: countdownTimer=\(self.countdownTimer), holdStableTimer=\(self.holdStableTimer != nil ? "exists" : "nil")")
                 }
                 #endif
             }
@@ -218,7 +218,6 @@ public class CaptureSequenceManager: ObservableObject {
                 if self.countdownTimer > 0 { reasons.append("countdown already running") }
                 if self.holdStableTimer != nil { reasons.append("timer exists") }
 
-                print("⏸️ COUNTDOWN NOT STARTING: \(reasons.joined(separator: ", "))")
                 AppLogger.faceScan.warning("⏸️ Countdown NOT starting: \(reasons.joined(separator: ", "))")
             }
             #endif
@@ -276,6 +275,8 @@ public class CaptureSequenceManager: ObservableObject {
             return
         }
 
+        // OPTIMIZATION FIX: No fallback needed - trust pre-capture validation
+        // If CalibrationManager validated quality before countdown, capture will succeed
         if let sample = self.textureCapture.captureSample(
             step: self.currentGuidanceStep.shortName,
             faceAnchor: faceAnchor,
@@ -287,25 +288,9 @@ public class CaptureSequenceManager: ObservableObject {
             AppLogger.faceScan.info("✅ Added texture sample (sharpness: \(sample.focusSharpness), exposure: \(sample.exposureScore)). Total: \(self.currentSequence!.textureSamples.count)")
             #endif
         } else {
-            // Texture capture failed quality checks (blur or exposure)
-            // FALLBACK: Accept the sample anyway with lower quality flag to prevent bake failure
-            let fallbackSample = self.textureCapture.captureSampleWithLoweredThreshold(
-                step: self.currentGuidanceStep.shortName,
-                faceAnchor: faceAnchor,
-                frame: frame,
-                lightEstimation: lightEstimation
-            )
-
-            if let fallbackSample = fallbackSample {
-                self.currentSequence!.addTextureSample(fallbackSample)
-                #if DEBUG
-                AppLogger.faceScan.warning("⚠️ Texture sample accepted with lowered threshold (sharpness: \(fallbackSample.focusSharpness), exposure: \(fallbackSample.exposureScore)). Total: \(self.currentSequence!.textureSamples.count)")
-                #endif
-            } else {
-                #if DEBUG
-                AppLogger.faceScan.error("❌ CRITICAL: Failed to capture texture sample even with lowered threshold for step '\(self.currentGuidanceStep.shortName)'")
-                #endif
-            }
+            #if DEBUG
+            AppLogger.faceScan.error("❌ Failed to extract camera image for texture sample - step '\(self.currentGuidanceStep.shortName)'")
+            #endif
         }
     }
 
@@ -383,8 +368,9 @@ public class CaptureSequenceManager: ObservableObject {
     // MARK: - Private Methods
 
     private func startCaptureCountdown(faceAnchor: ARFaceAnchor, yaw: Float, pitch: Float, roll: Float) {
-        AppLogger.faceScan.info("Starting capture countdown from 3")
-        self.countdownTimer = 3
+        // OPTIMIZATION FIX: Reduced from 3 to 1 second to minimize timing window
+        AppLogger.faceScan.info("Starting capture countdown from 1")
+        self.countdownTimer = 1
 
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] timer in
             Task { @MainActor [weak self] in

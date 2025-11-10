@@ -80,6 +80,7 @@ struct MetricDetailView: View {
 
     @State private var selectedTab: Tab = .overview
     @State private var selectedTimeRange: TimeRange = .oneMonth
+    @State private var showingInfo = false
 
     enum Tab: String, CaseIterable {
         case overview = "Overview"
@@ -155,6 +156,9 @@ struct MetricDetailView: View {
             }
         }
         .navigationBarHidden(true)
+        .sheet(isPresented: $showingInfo) {
+            MetricInfoSheet(metricType: metricType)
+        }
     }
 
     // MARK: - Scenic Background
@@ -202,7 +206,7 @@ struct MetricDetailView: View {
             Spacer()
 
             Button {
-                // TODO: Show info sheet
+                showingInfo = true
             } label: {
                 Image(systemName: "info.circle")
                     .font(.system(size: 20, weight: .medium))
@@ -854,6 +858,114 @@ struct ScoreRangeLegend: View {
             Text(range)
                 .font(.system(size: 14, weight: .regular, design: .rounded))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+        }
+    }
+}
+
+// MARK: - Metric Info Sheet
+
+struct MetricInfoSheet: View {
+    let metricType: MetricType
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+                    // What is this metric?
+                    sectionHeader("What is \(metricType.rawValue)?")
+                    Text(metricDescription)
+                        .font(.system(size: 16, weight: .regular, design: .rounded))
+                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+                    // What affects this?
+                    sectionHeader("What Affects This Metric?")
+                    VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+                        ForEach(affectingFactors, id: \.self) { factor in
+                            HStack(alignment: .top, spacing: 8) {
+                                Text("•")
+                                Text(factor)
+                            }
+                            .font(.system(size: 16, weight: .regular, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        }
+                    }
+
+                    // Normal Range
+                    sectionHeader("Normal Range")
+                    Text(metricType.normalRange)
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                }
+                .padding(HeadspaceDesign.Spacing.lg)
+            }
+            .background(HeadspaceDesign.Colors.background)
+            .navigationTitle("About \(metricType.rawValue)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func sectionHeader(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 18, weight: .bold, design: .rounded))
+            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+    }
+
+    private var metricDescription: String {
+        switch metricType {
+        case .overall:
+            return "Your overall skin health score is calculated by combining multiple metrics including smoothness, hydration, and evenness. This comprehensive score gives you a holistic view of your skin's condition."
+        case .smoothness:
+            return "Smoothness measures the texture quality of your skin surface, including fine lines, pores, and overall surface consistency. Higher scores indicate smoother, more refined skin texture."
+        case .hydration:
+            return "Hydration reflects your skin's moisture levels and water content. Well-hydrated skin appears plump, supple, and resilient, while dehydrated skin may look dull or feel tight."
+        case .pigmentation:
+            return "Evenness measures the uniformity of your skin tone and pigmentation. Higher scores indicate more consistent coloring without dark spots, redness, or uneven patches."
+        }
+    }
+
+    private var affectingFactors: [String] {
+        switch metricType {
+        case .overall:
+            return [
+                "Sleep quality and duration",
+                "Hydration and water intake",
+                "Sun exposure and protection",
+                "Skincare routine consistency",
+                "Diet and nutrition",
+                "Stress levels"
+            ]
+        case .smoothness:
+            return [
+                "Exfoliation frequency",
+                "Moisturizer usage",
+                "Sun damage and aging",
+                "Genetics",
+                "Skincare product quality"
+            ]
+        case .hydration:
+            return [
+                "Water intake",
+                "Environmental humidity",
+                "Weather conditions",
+                "Moisturizer effectiveness",
+                "Time of day"
+            ]
+        case .pigmentation:
+            return [
+                "Sun exposure",
+                "Skincare products with brightening ingredients",
+                "Genetics and skin type",
+                "Hormonal changes",
+                "Post-inflammatory response"
+            ]
         }
     }
 }

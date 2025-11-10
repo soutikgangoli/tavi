@@ -74,7 +74,9 @@ public final class CoreDataMigrationManager {
         self.modelBundle = bundle
 
         // Create backup directory in Caches (not backed up to iCloud)
-        let cachesURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        guard let cachesURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            fatalError("Unable to access Caches directory")
+        }
         self.backupDirectory = cachesURL.appendingPathComponent("CoreDataBackups", isDirectory: true)
 
         // Ensure backup directory exists

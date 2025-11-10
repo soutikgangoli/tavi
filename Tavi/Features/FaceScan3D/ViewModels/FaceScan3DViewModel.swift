@@ -375,9 +375,9 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Start guidance mode
     public func startGuidance() {
-        print("🚀 ViewModel.startGuidance() called - starting capture sequence")
+        AppLogger.faceScan.info("🚀 ViewModel.startGuidance() called - starting capture sequence")
         startCaptureSequence()
-        print("✅ Guidance started - isGuidanceActive: \(captureManager.isGuidanceActive), currentStep: \(captureManager.currentGuidanceStep.shortName)")
+        AppLogger.faceScan.info("✅ Guidance started - isGuidanceActive: \(captureManager.isGuidanceActive), currentStep: \(captureManager.currentGuidanceStep.shortName)")
     }
 
     /// Stop guidance mode
@@ -673,7 +673,7 @@ public class FaceScan3DViewModel: ObservableObject {
               let geometry = currentGeometry,
               let lightEstimation = lightEstimation else {
             if frameCount % 30 == 0 {
-                print("⚠️ checkGuidancePoseAndCapture: Missing required data - frame=\(currentFrame != nil), geometry=\(currentGeometry != nil), lightEstimation=\(lightEstimation != nil)")
+                AppLogger.faceScan.debug("⚠️ checkGuidancePoseAndCapture: Missing required data - frame=\(currentFrame != nil), geometry=\(currentGeometry != nil), lightEstimation=\(lightEstimation != nil)")
             }
             return
         }
@@ -770,7 +770,7 @@ public class FaceScan3DViewModel: ObservableObject {
         calibrationManager.$currentYaw
             .sink { [weak self] yaw in
                 guard let self = self, !self.isGuidanceActive else { return }
-                print("🔴 ViewModel received yaw from CalibrationManager: \(yaw)")
+                AppLogger.faceScan.debug("🔴 ViewModel received yaw from CalibrationManager: \(yaw)")
                 self.cachedYaw = yaw
             }
             .store(in: &cancellables)

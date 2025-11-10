@@ -111,6 +111,10 @@ public class EdgeCaseDetector {
         faceAnchor: ARFaceAnchor,
         strictness: LightingStrictnessLevel = .strict
     ) -> EdgeCaseAnalysis {
+        // OPTIMIZATION FIX: Clear cache at start of new analysis to prevent stale data
+        // Each detectEdgeCases call is for a new frame/image
+        cachedPixelBuffer = nil
+        cachedImageReference = nil
 
         var warnings: [String] = []
         var recommendations: [String] = []
@@ -382,9 +386,9 @@ public class EdgeCaseDetector {
         let shouldLog = (lastLoggedLightingQuality != quality) || (lightingCheckCount >= lightingLogInterval)
 
         if shouldLog {
-            print("💡 Lighting detected: \(quality.description)")
-            print("   Brightness: \(String(format: "%.0f", averageBrightness * 100))%, Range: \(String(format: "%.2f", dynamicRange)), Contrast: \(String(format: "%.2f", contrast))")
-            print("   Overexposed: \(String(format: "%.1f", overexposedRatio * 100))%, Underexposed: \(String(format: "%.1f", underexposedRatio * 100))%")
+            AppLogger.metrics.info("💡 Lighting detected: \(quality.description)")
+            AppLogger.metrics.info("Brightness: \(String(format: "%.0f", averageBrightness * 100))%, Range: \(String(format: "%.2f", dynamicRange)), Contrast: \(String(format: "%.2f", contrast))")
+            AppLogger.metrics.info("Overexposed: \(String(format: "%.1f", overexposedRatio * 100))%, Underexposed: \(String(format: "%.1f", underexposedRatio * 100))%")
 
             lastLoggedLightingQuality = quality
             lightingCheckCount = 0
@@ -556,9 +560,9 @@ public class EdgeCaseDetector {
         let glassesDetected = glassesScore > 8.0 && hasMultipleIndicators
 
         if glassesScore > 3.0 {
-            print("🕶️ Glasses check (score: \(String(format: "%.1f", glassesScore)), detected: \(glassesDetected))")
-            print("   Reflections: \(String(format: "%.1f", reflectionScore)), Edges: \(String(format: "%.1f", edgeScore)), Tracking issues: \(trackingIssues)")
-            print("   Multiple indicators: \(hasMultipleIndicators)")
+            AppLogger.metrics.debug("🕶️ Glasses check (score: \(String(format: "%.1f", glassesScore)), detected: \(glassesDetected))")
+            AppLogger.metrics.debug("Reflections: \(String(format: "%.1f", reflectionScore)), Edges: \(String(format: "%.1f", edgeScore)), Tracking issues: \(trackingIssues)")
+            AppLogger.metrics.debug("Multiple indicators: \(hasMultipleIndicators)")
         }
 
         return glassesDetected
@@ -596,7 +600,7 @@ public class EdgeCaseDetector {
         let handDetected = occlusionRatio > 0.25  // 25% of lower face vertices abnormally close
 
         if occlusionRatio > 0.10 {
-            print("✋ Hand check (occlusion ratio: \(String(format: "%.2f", occlusionRatio)), detected: \(handDetected))")
+            AppLogger.metrics.debug("✋ Hand check (occlusion ratio: \(String(format: "%.2f", occlusionRatio)), detected: \(handDetected))")
         }
 
         return handDetected
@@ -662,7 +666,7 @@ public class EdgeCaseDetector {
         let hairCoverageDetected = (hasHairTexture && isDark && hasSignificantDarkArea) || upperFaceQualityIssue
 
         if hairCoverageDetected {
-            print("💇 Hair coverage detected (variance: \(foreheadVariance), brightness: \(foreheadBrightness), dark ratio: \(darkPixelRatio))")
+            AppLogger.metrics.debug("💇 Hair coverage detected (variance: \(foreheadVariance), brightness: \(foreheadBrightness), dark ratio: \(darkPixelRatio))")
         }
 
         return hairCoverageDetected
@@ -835,7 +839,7 @@ public class EdgeCaseDetector {
         let hatDetected = (hasNonSkinColor && hasFabricTexture) || hasCrownCoverage || horizontalEdges > 0.3
 
         if hatDetected {
-            print("🎩 Hat/headband detected (color: \(hasNonSkinColor), fabric: \(hasFabricTexture), coverage: \(hasCrownCoverage), edges: \(String(format: "%.2f", horizontalEdges)))")
+            AppLogger.metrics.debug("🎩 Hat/headband detected (color: \(hasNonSkinColor), fabric: \(hasFabricTexture), coverage: \(hasCrownCoverage), edges: \(String(format: "%.2f", horizontalEdges)))")
         }
 
         return hatDetected
@@ -912,7 +916,7 @@ public class EdgeCaseDetector {
         let earringsDetected = hasBrightSpots || hasHighSaturation || hasNonSkinTone
 
         if earringsDetected {
-            print("💎 Earrings detected (bright: L=\(String(format: "%.2f", leftBrightRatio)), R=\(String(format: "%.2f", rightBrightRatio)), saturation: L=\(String(format: "%.2f", leftSaturation)), R=\(String(format: "%.2f", rightSaturation)))")
+            AppLogger.metrics.debug("💎 Earrings detected (bright: L=\(String(format: "%.2f", leftBrightRatio)), R=\(String(format: "%.2f", rightBrightRatio)), saturation: L=\(String(format: "%.2f", leftSaturation)), R=\(String(format: "%.2f", rightSaturation)))")
         }
 
         return earringsDetected

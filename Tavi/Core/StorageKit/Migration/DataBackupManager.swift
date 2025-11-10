@@ -54,7 +54,9 @@ public final class DataBackupManager: ObservableObject {
         self.storeURL = storeURL
 
         // Use Documents directory for user-initiated backups (backed up to iCloud)
-        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        guard let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            fatalError("Unable to access Documents directory")
+        }
         self.backupDirectory = documentsURL.appendingPathComponent("Backups", isDirectory: true)
 
         // Ensure backup directory exists
