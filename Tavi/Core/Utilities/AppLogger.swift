@@ -146,17 +146,10 @@ public enum LogLevel {
     case error
 }
 
-// MARK: - Conditional Compilation
+// MARK: - Debug Print Function
 
-#if DEBUG
-/// Debug-only print function
+/// Debug print function that logs to AppLogger
 public func debugPrint(_ items: Any..., separator: String = " ", terminator: String = "\n") {
     let message = items.map { "\($0)" }.joined(separator: separator)
     AppLogger.debug(message)
 }
-#else
-/// No-op in release builds
-public func debugPrint(_ items: Any..., separator: String = " ", terminator: String = "\n") {
-    // Do nothing in release
-}
-#endif

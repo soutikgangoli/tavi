@@ -16,6 +16,8 @@ public struct ElasticityAnalysis: Codable, Sendable {
     let elasticityLevel: ElasticityLevel
     let recoveryRate: Float  // How fast wrinkles recover (0-1)
     let regionalElasticity: [FaceRegion: Float]
+    let confidence: Float  // 0-100, measurement confidence
+    let isTemporal: Bool  // true if using temporal analysis (requires 2+ scans), false if using proxy method
 }
 
 public enum ElasticityLevel: String, Codable, Sendable {
@@ -70,11 +72,22 @@ public class SkinElasticityAnalyzer {
         // Regional analysis
         let regional = estimateRegionalElasticity(scans: historicalScans)
 
+        // Calculate confidence based on temporal data quality
+        let confidence: Float = {
+            var conf: Float = 70.0
+            if timeDiff > 7 * 24 * 3600 { conf += 20 }  // >7 days = higher confidence
+            else if timeDiff < 5 * 24 * 3600 { conf -= 15 }  // <5 days = lower confidence
+            if historicalScans.count >= 3 { conf += 5 }  // More data = better
+            return max(60, min(90, conf))
+        }()
+
         return ElasticityAnalysis(
             overallScore: score,
             elasticityLevel: level,
             recoveryRate: recoveryRate,
-            regionalElasticity: regional
+            regionalElasticity: regional,
+            confidence: confidence,
+            isTemporal: true
         )
     }
 
@@ -108,11 +121,16 @@ public class SkinElasticityAnalyzer {
         AppLogger.metrics.info("   Proxy score: \(String(format: "%.1f", proxyScore))/100 (\(level.rawValue))")
         AppLogger.metrics.info("   ⚠️  Note: Proxy estimate for first-time users. Use temporal analysis after 3+ days for better accuracy.")
 
+        // Lower confidence for proxy method (single-scan estimation)
+        let confidence: Float = 40.0  // Proxy method is less reliable than temporal analysis
+
         return ElasticityAnalysis(
             overallScore: proxyScore,
             elasticityLevel: level,
             recoveryRate: 0.5,  // Default (unknown without temporal data)
-            regionalElasticity: [:]
+            regionalElasticity: [:],
+            confidence: confidence,
+            isTemporal: false
         )
     }
 

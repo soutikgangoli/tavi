@@ -16,6 +16,8 @@ public struct RednessAnalysis: Codable, Sendable {
     let globalRedness: Float  // 0-1, average redness index
     let regionalRedness: [String: Float]  // Per-region redness (0-1)
     let inflamedAreas: [InflammedRegion]
+    let confidence: Float  // 0-100, measurement confidence
+    let detectionMethod: String  // "redness" or "darkening" (for dark skin)
 }
 
 /// Individual inflamed region
@@ -64,7 +66,9 @@ public class RednessAnalyzer {
                 rednessLevel: .mild,
                 globalRedness: 0.1,
                 regionalRedness: [:],
-                inflamedAreas: []
+                inflamedAreas: [],
+                confidence: 0,  // No confidence when image unavailable
+                detectionMethod: "none"
             )
         }
 
@@ -108,18 +112,49 @@ public class RednessAnalyzer {
             inflamedAreaCount: inflamedAreas.count
         )
 
+        // 6. Calculate confidence based on detection method and consistency
+        let useDarkeningDetection = (skinTone == .dark || skinTone == .veryDark || skinTone == .mediumDark)
+        let detectionMethodStr = useDarkeningDetection ? "darkening" : "redness"
+
+        let confidence: Float = {
+            var conf: Float = 65.0
+
+            // Darkening method (for dark skin) slightly less reliable
+            if useDarkeningDetection {
+                conf -= 10
+            }
+
+            // High consistency across regions = higher confidence
+            if !regionalRedness.isEmpty {
+                let values = Array(regionalRedness.values)
+                let avg = values.reduce(0, +) / Float(values.count)
+                let variance = values.map { pow($0 - avg, 2) }.reduce(0, +) / Float(values.count)
+                if variance < 0.01 { conf += 15 }  // Very consistent
+            }
+
+            // Inflamed area detection adds confidence
+            if inflamedAreas.count > 0 && inflamedAreas.count < 20 {
+                conf += 10  // Reasonable number of detections
+            }
+
+            return max(50, min(90, conf))
+        }()
+
         AppLogger.metrics.info("✅ Redness analysis complete")
         AppLogger.metrics.info("   Global redness: \(String(format: "%.3f", globalRedness))")
         AppLogger.metrics.info("   Level: \(rednessLevel)")
         AppLogger.metrics.info("   Inflamed areas: \(inflamedAreas.count)")
         AppLogger.metrics.info("   Overall score: \(String(format: "%.1f", overallScore))/100")
+        AppLogger.metrics.info("   Confidence: \(String(format: "%.1f", confidence))% (\(detectionMethodStr) method)")
 
         return RednessAnalysis(
             overallScore: overallScore,
             rednessLevel: rednessLevel,
             globalRedness: globalRedness,
             regionalRedness: regionalRedness,
-            inflamedAreas: inflamedAreas
+            inflamedAreas: inflamedAreas,
+            confidence: confidence,
+            detectionMethod: detectionMethodStr
         )
     }
 

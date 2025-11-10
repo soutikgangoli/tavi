@@ -274,20 +274,101 @@ struct InsightsTabView: View {
             }
 
             if let session = sessions.first, let metrics = session.skinMetrics {
-                VStack(spacing: 12) {
-                    metricProgressBar(label: "Smoothness", score: Double(metrics.globalRoughnessScore), color: .green)
+                VStack(spacing: 16) {
+                    // Skin Health Metrics (Included in Overall Score - 5 metrics)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Skin Health (In Overall Score)")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
-                    // Calculate hydration from ROI moisture proxies
-                    let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
-                    let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
-                    metricProgressBar(label: "Hydration", score: avgMoisture, color: .blue)
+                        VStack(spacing: 12) {
+                            // 1. Smoothness (22.4%)
+                            metricProgressBar(label: "Smoothness", score: Double(metrics.globalRoughnessScore), color: .green)
 
-                    metricProgressBar(label: "Glow", score: Double(metrics.glowAnalysis?.glowScore ?? 0), color: .orange)
-                    metricProgressBar(label: "Pigmentation", score: Double(metrics.globalPigmentationScore), color: .purple)
-                    metricProgressBar(label: "Acne", score: Double(metrics.acneAnalysis?.overallScore ?? 0), color: .red)
-                    metricProgressBar(label: "Sun Damage", score: Double(metrics.sunDamageAnalysis?.protectionScore ?? 0), color: .yellow)
-                    metricProgressBar(label: "Redness", score: Double(metrics.rednessAnalysis?.overallScore ?? 0), color: .pink)
-                    metricProgressBar(label: "Roughness", score: Double(metrics.globalRoughnessScore), color: .brown)
+                            // 2. Pigmentation (22.4%)
+                            metricProgressBar(label: "Pigmentation", score: Double(metrics.globalPigmentationScore), color: .purple)
+
+                            // 3. Pores (14.9%)
+                            if let pores = metrics.poreAnalysis {
+                                metricProgressBar(label: "Pores", score: Double(pores.visibilityScore), color: .gray)
+                            }
+
+                            // 4. Discoloration (14.9%)
+                            metricProgressBar(label: "Discoloration", score: Double(metrics.globalDiscolorationScore), color: .orange)
+
+                            // 5. Acne (14.9%)
+                            if let acne = metrics.acneAnalysis {
+                                metricProgressBar(label: "Acne", score: Double(acne.overallScore), color: .red)
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    // Additional Indicators (Not in Overall Score - 4 metrics)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Additional Indicators")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+                        VStack(spacing: 12) {
+                            // Elasticity (requires 2+ scans)
+                            if let elasticity = metrics.elasticityAnalysis {
+                                metricProgressBar(label: "Elasticity", score: Double(elasticity.overallScore), color: .blue)
+                            }
+
+                            // Hydration (proxy method, 65% confidence)
+                            let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
+                            let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
+                            metricProgressBar(label: "Hydration", score: avgMoisture, color: .cyan)
+
+                            // Redness (measurement limitations)
+                            if let redness = metrics.rednessAnalysis {
+                                metricProgressBar(label: "Redness", score: Double(redness.overallScore), color: .pink)
+                            }
+
+                            // Oil Control (disabled) - only show if available
+                            if let specularScore = metrics.globalSpecularScore {
+                                metricProgressBar(label: "Oil Control", score: Double(specularScore), color: .yellow)
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    // Aging Indicators
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Aging Indicators")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+                        VStack(spacing: 12) {
+                            if let wrinkles = metrics.wrinkleAnalysis {
+                                metricProgressBar(label: "Wrinkles", score: Double(wrinkles.overallScore), color: .purple)
+                            }
+
+                            if let volume = metrics.volumeAnalysis {
+                                metricProgressBar(label: "Volume", score: Double(volume.overallScore), color: .indigo)
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    // Other Indicators
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Other Indicators")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+                        VStack(spacing: 12) {
+                            metricProgressBar(label: "Glow", score: Double(metrics.glowAnalysis?.glowScore ?? 0), color: .yellow)
+
+                            if let sunDamage = metrics.sunDamageAnalysis {
+                                metricProgressBar(label: "Sun Protection", score: Double(sunDamage.protectionScore), color: .orange)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -464,20 +545,22 @@ struct InsightsTabView: View {
                     .lineStyle(StrokeStyle(lineWidth: 2.5))
 
                     // Glow score line
-                    if let glow = session.skinMetrics?.glowScore {
+                    if let glowAnalysis = session.skinMetrics?.glowAnalysis {
                         LineMark(
                             x: .value("Date", session.date),
-                            y: .value("Score", glow)
+                            y: .value("Score", Double(glowAnalysis.glowScore))
                         )
                         .foregroundStyle(Color.orange)
                         .lineStyle(StrokeStyle(lineWidth: 2.5))
                     }
 
-                    // Hydration score line
-                    if let hydration = session.skinMetrics?.hydrationScore {
+                    // Hydration score line (calculated from ROI moisture proxies)
+                    if let metrics = session.skinMetrics {
+                        let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
+                        let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
                         LineMark(
                             x: .value("Date", session.date),
-                            y: .value("Score", hydration)
+                            y: .value("Score", avgMoisture)
                         )
                         .foregroundStyle(Color.blue)
                         .lineStyle(StrokeStyle(lineWidth: 2.5))

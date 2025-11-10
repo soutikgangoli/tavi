@@ -230,8 +230,7 @@ struct ProfileTabView: View {
 
     @State private var showChallengeDetail = false
     @State private var showAchievementDetail: Achievement?
-    @State private var showAccountSettings = false
-    @State private var showScanSettings = false
+    @State private var showSettings = false
     @State private var showNotifications = false
     @State private var showPrivacy = false
     @State private var showAbout = false
@@ -350,12 +349,8 @@ struct ProfileTabView: View {
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     VStack(spacing: 0) {
-                        SettingsRow(icon: "person.fill", label: "Account Settings") {
-                            showAccountSettings = true
-                        }
-                        Divider().padding(.leading, 52)
-                        SettingsRow(icon: "camera.fill", label: "Scan Settings") {
-                            showScanSettings = true
+                        SettingsRow(icon: "gearshape.fill", label: "Settings") {
+                            showSettings = true
                         }
                         Divider().padding(.leading, 52)
                         SettingsRow(icon: "bell.fill", label: "Notifications") {
@@ -387,10 +382,7 @@ struct ProfileTabView: View {
         .sheet(item: $showAchievementDetail) { achievement in
             AchievementDetailView(achievement: achievement)
         }
-        .sheet(isPresented: $showAccountSettings) {
-            SettingsView()
-        }
-        .sheet(isPresented: $showScanSettings) {
+        .sheet(isPresented: $showSettings) {
             SettingsView()
         }
         .sheet(isPresented: $showNotifications) {

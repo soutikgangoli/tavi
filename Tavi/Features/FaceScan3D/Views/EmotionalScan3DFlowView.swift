@@ -744,9 +744,7 @@ public struct EmotionalScan3DFlowView: View {
                 CrashReporter.shared.setCustomKey("processing_step", value: "mesh_merge")
 
                 let adjustedMergeTimeout = timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.meshMergeTimeout)
-                #if DEBUG
-                AppLogger.faceScan.info("📊 Mesh merge timeout: \(Int(adjustedMergeTimeout))s (base: \(Int(ScanConfiguration.meshMergeTimeout))s, tier: \(timeEstimator.getPerformanceTier()))")
-                #endif
+                AppLogger.faceScan.debug("📊 Mesh merge timeout: \(Int(adjustedMergeTimeout))s (base: \(Int(ScanConfiguration.meshMergeTimeout))s, tier: \(timeEstimator.getPerformanceTier()))")
 
                 let merged = try await withTimeout(
                     seconds: adjustedMergeTimeout,
@@ -774,9 +772,7 @@ public struct EmotionalScan3DFlowView: View {
                 CrashReporter.shared.setCustomKey("processing_step", value: "texture_bake")
 
                 let adjustedBakeTimeout = timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.textureBakeTimeout)
-                #if DEBUG
-                AppLogger.faceScan.info("📊 Texture bake timeout: \(Int(adjustedBakeTimeout))s (base: \(Int(ScanConfiguration.textureBakeTimeout))s)")
-                #endif
+                AppLogger.faceScan.debug("📊 Texture bake timeout: \(Int(adjustedBakeTimeout))s (base: \(Int(ScanConfiguration.textureBakeTimeout))s)")
 
                 let bakeResult = try await withTimeout(
                     seconds: adjustedBakeTimeout,
@@ -803,9 +799,7 @@ public struct EmotionalScan3DFlowView: View {
                 AppLogger.faceScan.info("🔬 Starting metrics computation with timeout...")
 
                 let adjustedMetricsTimeout = timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.metricsComputationTimeout)
-                #if DEBUG
-                AppLogger.faceScan.info("📊 Metrics computation timeout: \(Int(adjustedMetricsTimeout))s (base: \(Int(ScanConfiguration.metricsComputationTimeout))s)")
-                #endif
+                AppLogger.faceScan.debug("📊 Metrics computation timeout: \(Int(adjustedMetricsTimeout))s (base: \(Int(ScanConfiguration.metricsComputationTimeout))s)")
 
                 let computedClinicalMetrics = try await withTimeout(
                     seconds: adjustedMetricsTimeout,
@@ -1162,12 +1156,9 @@ public struct EmotionalScan3DFlowView: View {
             // Save to Core Data
             do {
                 try context.save()
-                #if DEBUG
-                AppLogger.faceScan.info("✅ Session saved successfully to Core Data!")
-                #endif
+                AppLogger.faceScan.debug("✅ Session saved successfully to Core Data!")
                 return true
             } catch {
-                #if DEBUG
                 AppLogger.faceScan.error("❌ Failed to save session: \(error.localizedDescription)")
                 if let nserror = error as NSError? {
                     AppLogger.faceScan.error("   Domain: \(nserror.domain), Code: \(nserror.code)")
@@ -1186,7 +1177,6 @@ public struct EmotionalScan3DFlowView: View {
                         }
                     }
                 }
-                #endif
                 CrashReporter.shared.logError(error, context: [
                     "operation": "core_data_save",
                     "retry_count": "\(saveRetryCount)"

@@ -174,7 +174,6 @@ public enum GuidanceStep: Int, CaseIterable {
     /// Check if the current face pose matches this step
     /// STRICT validation using ScanConfiguration constants (matches documentation)
     func isPoseValid(yaw: Float, pitch: Float, roll: Float) -> Bool {
-        // DEBUG: Log pose validation to understand why Direction indicator stays red
         AppLogger.faceScan.debug("📐 isPoseValid(\(self.shortName)): yaw=\(String(format: "%.1f", yaw))° pitch=\(String(format: "%.1f", pitch))° roll=\(String(format: "%.1f", roll))°")
 
         switch self {
@@ -404,7 +403,6 @@ public struct CalibrationState {
         // Use ScanConfiguration constants for lighting thresholds
         let intensity = light.ambientIntensity
 
-        // DEBUG: Log actual ARKit values to understand what we're getting
         // ARKit ambientIntensity is in lumens - typical indoor range is 500-2000
         AppLogger.faceScan.debug("🔆 ARKit ambientIntensity: \(intensity) lumens (min: \(ScanConfiguration.minAmbientLighting), optimal: \(ScanConfiguration.optimalLightingMin)-\(ScanConfiguration.optimalLightingMax))")
 
@@ -472,7 +470,6 @@ public struct CalibrationState {
     public mutating func updateCenterPosition(yaw: Float) {
         let newPosition = CenterPosition.from(yaw: yaw)
 
-        // DEBUG: Log center position updates to diagnose Direction indicator
         if centerPosition != newPosition {
             AppLogger.faceScan.debug("🧭 Center Position changed: \(centerPosition.rawValue) → \(newPosition.rawValue) (yaw: \(String(format: "%.1f", yaw))°)")
         }

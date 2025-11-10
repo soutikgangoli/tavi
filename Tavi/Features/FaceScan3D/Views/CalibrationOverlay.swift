@@ -113,15 +113,13 @@ public struct CalibrationOverlay: View {
                 }
             }
 
-            // Debug info overlay - shows detailed scan information (only in debug builds)
-            #if DEBUG
+            // Debug info overlay - shows detailed scan information when debug mode is enabled
             if debugModeEnabled {
                 VStack {
                     Spacer()
                     CalibrationDebugInfoView(viewModel: viewModel)
                 }
             }
-            #endif
         }
     }
 }
@@ -527,7 +525,6 @@ struct StepIndicator: View {
 
 // MARK: - Calibration Debug Info View
 
-#if DEBUG
 struct CalibrationDebugInfoView: View {
     @ObservedObject var viewModel: FaceScan3DViewModel
 
@@ -611,7 +608,6 @@ struct CalibrationDebugInfoView: View {
         .padding(.bottom, 8)
     }
 }
-#endif
 
 // MARK: - Preview
 

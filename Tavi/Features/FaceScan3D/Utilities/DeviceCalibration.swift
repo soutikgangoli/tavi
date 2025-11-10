@@ -95,22 +95,15 @@ public class DeviceCalibrator {
     }
 
     /// Apply device-specific adjustments to metrics
+    /// TODO: Implement device-specific metric adjustments based on TrueDepth version
     public func applyCalibration(
         metrics: inout Face3DMetrics,
         device: DeviceInfo
     ) {
-        // Note: Device calibration adjustments are commented out
-        // Uncomment when implementing device-specific metric adjustments
-        // let profile = device.calibrationProfile
-
-        // Adjust wrinkle depth based on device accuracy
-        // (Newer devices have better accuracy)
-        // metrics.wrinkleDepth *= profile.wrinkleDepthMultiplier
-
-        // Adjust roughness score
-        // metrics.roughness *= profile.roughnessMultiplier
-
-        // Note: Would apply actual adjustments to metrics struct
+        // Future implementation: Apply calibration profile adjustments
+        // - Wrinkle depth multiplier based on device accuracy
+        // - Roughness score normalization for older devices
+        let _ = device.calibrationProfile
     }
 
     /// Check if device is supported

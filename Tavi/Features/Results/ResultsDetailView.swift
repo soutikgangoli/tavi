@@ -112,8 +112,13 @@ struct ResultsDetailView: View {
                 // Face Image with Heatmap Toggle
                 imageSection
 
-                // Overall Score Card
+                // Overall Score Card (Skin Health Score)
                 overallScoreCard
+
+                // Aging Indicators Section (Wrinkles & Volume - separate from health score)
+                if let metrics = clinicalMetrics {
+                    agingIndicatorsSection(metrics)
+                }
 
                 // Metrics Grid
                 metricsGrid
@@ -558,109 +563,53 @@ struct ResultsDetailView: View {
 
     // MARK: - Full Clinical Breakdown
 
+    /// Calculate hydration score from ROI metrics
+    private func calculateHydrationScore(from metrics: Face3DMetrics) -> Float {
+        let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex }
+        guard !moistureValues.isEmpty else { return 0 }
+        let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
+        return Float(avgMoisture * 100)  // Convert 0-1 to 0-100 score
+    }
+
     @ViewBuilder
     private func fullClinicalBreakdown(_ metrics: Face3DMetrics) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Clinical Breakdown")
-                .font(.title2)
-                .fontWeight(.bold)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 24) {
+            // MARK: - Skin Health Metrics (Included in Overall Score)
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Skin Health Metrics")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Acne Analysis
-            if let acne = metrics.acneAnalysis {
+                Text("These high-confidence metrics (70%+ confidence) are included in your Overall Score calculation.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.bottom, 4)
+
+                // 1. Smoothness (22.4% weight, 85% confidence)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Image(systemName: "circle.hexagongrid.fill")
-                            .foregroundColor(.red)
-                        Text("Acne Analysis")
+                        Image(systemName: "waveform.path")
+                            .foregroundColor(.green)
+                        Text("Smoothness")
                             .font(.headline)
                     }
 
-                    Text("Overall Score: \(Int(acne.overallScore))/100")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    if !acne.blemishes.isEmpty {
-                        Text("Detected: \(acne.blemishes.count) blemishes")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Text("Types: \(Set(acne.blemishes.map { $0.type.rawValue }).joined(separator: ", "))")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
-            }
-
-            // Pore Analysis
-            if let pores = metrics.poreAnalysis {
-                VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Image(systemName: "circle.grid.cross.fill")
-                            .foregroundColor(.gray)
-                        Text("Pore Analysis")
-                            .font(.headline)
+                        Text("Score: \(Int(metrics.globalRoughnessScore))/100")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("\(Int(metrics.smoothnessConfidence))% confidence")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
                     }
 
-                    Text("Visibility Score: \(Int(pores.visibilityScore))/100")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    Text("Dominant Size: \(pores.dominantSize.rawValue)")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Small")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("\(pores.sizeDistribution.smallCount)")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Medium")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("\(pores.sizeDistribution.mediumCount)")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Large")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("\(pores.sizeDistribution.largeCount)")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Very Large")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("\(pores.sizeDistribution.veryLargeCount)")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                        }
-                    }
-
-                    Text("Density: \(String(format: "%.1f", pores.density)) pores/cm²")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Text("Average Size: \(String(format: "%.2f", pores.averageSize)) pixels")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Text("Confidence: \(Int(pores.confidence))%")
+                    Text("Weight in Overall Score: 22.4%")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -668,7 +617,304 @@ struct ResultsDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
+
+                // 2. Pigmentation (22.4% weight, 80% confidence)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "circle.fill")
+                            .foregroundColor(.purple)
+                        Text("Pigmentation")
+                            .font(.headline)
+                    }
+
+                    HStack {
+                        Text("Score: \(Int(metrics.globalPigmentationScore))/100")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("\(Int(metrics.pigmentationConfidence))% confidence")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
+                    }
+
+                    Text("Weight in Overall Score: 22.4%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+
+                // 3. Pores (14.9% weight, 70-90% confidence)
+                if let pores = metrics.poreAnalysis {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "circle.grid.cross.fill")
+                                .foregroundColor(.gray)
+                            Text("Pores")
+                                .font(.headline)
+                        }
+
+                        HStack {
+                            Text("Score: \(Int(pores.visibilityScore))/100")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("\(Int(pores.confidence))% confidence")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+
+                        Text("Weight in Overall Score: 14.9%")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("Dominant Size: \(pores.dominantSize.rawValue) • Density: \(String(format: "%.1f", pores.density)) pores/cm²")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+
+                // 4. Discoloration (14.9% weight, 80% confidence)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "circle.hexagongrid")
+                            .foregroundColor(.orange)
+                        Text("Discoloration")
+                            .font(.headline)
+                    }
+
+                    HStack {
+                        Text("Score: \(Int(metrics.globalDiscolorationScore))/100")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("\(Int(metrics.discolorationConfidence))% confidence")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
+                    }
+
+                    Text("Weight in Overall Score: 14.9%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+
+                // 5. Acne (14.9% weight, 75-85% confidence)
+                if let acne = metrics.acneAnalysis {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "circle.hexagongrid.fill")
+                                .foregroundColor(.red)
+                            Text("Acne")
+                                .font(.headline)
+                        }
+
+                        HStack {
+                            Text("Score: \(Int(acne.overallScore))/100")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("\(Int(acne.confidence))% confidence")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+
+                        Text("Weight in Overall Score: 14.9%")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        if !acne.blemishes.isEmpty {
+                            Text("Detected: \(acne.blemishes.count) blemishes • Severity: \(acne.severity.rawValue)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
             }
+
+            Divider()
+                .padding(.vertical, 8)
+
+            // MARK: - Additional Indicators (Not in Overall Score)
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Additional Indicators")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text("These metrics provide supplementary insights but aren't included in the Overall Score calculation due to measurement limitations.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.bottom, 4)
+
+                // Elasticity
+                if let elasticity = metrics.elasticityAnalysis {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundColor(.blue)
+                            Text("Elasticity")
+                                .font(.headline)
+                        }
+
+                        Text("Score: \(Int(elasticity.overallScore))/100")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Text("Level: \(elasticity.elasticityLevel.rawValue) • Recovery Rate: \(String(format: "%.2f", elasticity.recoveryRate))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        if elasticity.isTemporal {
+                            Text("\(Int(elasticity.confidence))% confidence")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("Requires 2+ scans for temporal analysis")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundColor(.blue)
+                            Text("Elasticity")
+                                .font(.headline)
+                        }
+
+                        Text("Not yet available")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Text("Elasticity requires comparing multiple scans over time to measure skin firmness changes.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+
+                // Hydration
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "drop.fill")
+                            .foregroundColor(.cyan)
+                        Text("Hydration")
+                            .font(.headline)
+                    }
+
+                    Text("Score: \(Int(calculateHydrationScore(from: metrics)))/100")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Proxy method based on surface properties • \(Int(metrics.hydrationConfidence))% confidence")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+
+                // Redness
+                if let redness = metrics.rednessAnalysis {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "flame.fill")
+                                .foregroundColor(.pink)
+                            Text("Redness")
+                                .font(.headline)
+                        }
+
+                        Text("Score: \(Int(redness.overallScore))/100")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Text("Severity: \(redness.severity.rawValue) • Level: \(redness.rednessLevel.rawValue)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("\(Int(redness.confidence))% confidence")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+
+                // Oil Control
+                if let oilScore = metrics.globalSpecularScore {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.yellow)
+                            Text("Oil Control")
+                                .font(.headline)
+                        }
+
+                        Text("Score: \(Int(oilScore))/100")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Text("Sebum management and shine control")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+            }
+
+            Divider()
+                .padding(.vertical, 8)
+
+            // MARK: - Other Clinical Data (Wrinkles, Volume, Sun Damage, etc.)
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Other Clinical Data")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
             // Sun Damage Analysis
             if let sunDamage = metrics.sunDamageAnalysis {
@@ -739,6 +985,299 @@ struct ResultsDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
+            }
+
+            // Wrinkle Analysis (Expanded)
+            if let wrinkles = metrics.wrinkleAnalysis {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "waveform.path")
+                            .foregroundColor(.purple)
+                        Text("Wrinkle Analysis")
+                            .font(.headline)
+                    }
+
+                    Text("Overall Score: \(Int(wrinkles.overallScore))/100")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Wrinkle Depth: \(wrinkles.wrinkleDepth.rawValue)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Wrinkle Count: \(wrinkles.wrinkleCount) regions")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    if !wrinkles.regionalScores.isEmpty {
+                        Text("Regional Scores:")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .padding(.top, 4)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(wrinkles.regionalScores.keys.sorted()), id: \.self) { region in
+                                if let score = wrinkles.regionalScores[region] {
+                                    Text("• \(region.capitalized): \(Int(score))/100")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+
+                    Text("Confidence: \(Int(wrinkles.confidence))%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+
+            // Elasticity Analysis
+            if let elasticity = metrics.elasticityAnalysis {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "arrow.clockwise")
+                            .foregroundColor(.blue)
+                        Text("Skin Elasticity")
+                            .font(.headline)
+                    }
+
+                    Text("Overall Score: \(Int(elasticity.overallScore))/100")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Elasticity Level: \(elasticity.elasticityLevel.rawValue)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Recovery Rate: \(String(format: "%.2f", elasticity.recoveryRate))")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    if !elasticity.regionalElasticity.isEmpty {
+                        Text("Regional Elasticity:")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .padding(.top, 4)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(elasticity.regionalElasticity.keys.sorted()), id: \.self) { region in
+                                if let score = elasticity.regionalElasticity[region] {
+                                    Text("• \(region.rawValue): \(Int(score))/100")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+
+            // Volume Analysis
+            if let volume = metrics.volumeAnalysis {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "cube.fill")
+                            .foregroundColor(.cyan)
+                        Text("Facial Volume Analysis")
+                            .font(.headline)
+                    }
+
+                    Text("Overall Score: \(Int(volume.overallScore))/100")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Divider()
+
+                    // Cheek Hollowing
+                    Text("Cheek Hollowing")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+
+                    Text("• Severity: \(volume.cheekHollowing.severity.rawValue)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("• Score: \(Int(volume.cheekHollowing.score))/100")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("• Volume Loss: \(String(format: "%.1f", volume.cheekHollowing.volumeLoss))%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Divider()
+
+                    // Under-Eye Bags
+                    Text("Under-Eye Bags")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+
+                    Text("• Severity: \(volume.underEyeBags.severity.rawValue)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("• Score: \(Int(volume.underEyeBags.score))/100")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("• Protrusion: \(String(format: "%.2f", volume.underEyeBags.protrusion))mm")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Divider()
+
+                    // Facial Symmetry
+                    Text("Facial Symmetry")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+
+                    Text("• Score: \(Int(volume.facialSymmetry.score))/100")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("• Left-Right Deviation: \(String(format: "%.2f", volume.facialSymmetry.leftRightDeviation))mm")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+
+            // Topology Analysis (Scan Quality)
+            if let topology = metrics.topologyAnalysis {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "view.3d")
+                            .foregroundColor(.green)
+                        Text("Scan Quality")
+                            .font(.headline)
+                    }
+
+                    Text("Quality Score: \(String(format: "%.1f", topology.overallScore))/100")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Quality Level: \(topology.qualityLevel.rawValue)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Technical Details:")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .padding(.top, 4)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("• Manifold: \(topology.isManifold ? "Yes" : "No")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("• Watertight: \(topology.isWatertight ? "Yes" : "No")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("• Triangle Quality: \(String(format: "%.2f", topology.triangleQuality.averageAspectRatio))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+        }
+        .padding(.vertical)
+    }
+
+    // MARK: - Aging Indicators Section
+
+    @ViewBuilder
+    private func agingIndicatorsSection(_ metrics: Face3DMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Aging Indicators")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text("Separate from skin health score")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            HStack(spacing: 12) {
+                // Wrinkles Card
+                if let wrinkles = metrics.wrinkleAnalysis {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "line.3.horizontal.decrease")
+                                .foregroundColor(.purple)
+                                .font(.title3)
+
+                            Text("Wrinkles")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+
+                        Text("\(Int(wrinkles.overallScore))")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(.purple)
+
+                        Text(wrinkles.wrinkleDepth.rawValue)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("\(wrinkles.wrinkleCount) regions")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+
+                // Volume Card
+                if let volume = metrics.volumeAnalysis {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "cube.fill")
+                                .foregroundColor(.cyan)
+                                .font(.title3)
+
+                            Text("Volume")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+
+                        Text("\(Int(volume.overallScore))")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(.cyan)
+
+                        Text("Loss: \(String(format: "%.1f", volume.cheekHollowing.volumeLoss))%")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("\(volume.cheekHollowing.severity.rawValue) hollowing")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
             }
         }
         .padding(.vertical)

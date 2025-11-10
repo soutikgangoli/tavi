@@ -219,14 +219,69 @@ public class Scoring3D {
 
     // MARK: - Composite Scores
 
-    /// Compute overall skin quality score (weighted average)
+    /// Compute overall skin health score (weighted average of 5 high-confidence metrics)
+    /// This represents skin quality based on reliable measurements only
+    /// Excludes: Elasticity (requires 2+ scans), Hydration (proxy method), Oil Control (disabled), Redness (measurement limitations)
     public func computeOverallScore(
+        smoothnessScore: Float,
+        poresScore: Float?,
+        pigmentationScore: Float,
+        discolorationScore: Float,
+        acneScore: Float?
+    ) -> Float {
+
+        var totalWeight: Float = 0
+        var weightedSum: Float = 0
+
+        // New weights (normalized to 100%, based on importance and confidence):
+        // - Smoothness: 22.4% (most reliable, high impact)
+        // - Pigmentation: 22.4% (very reliable, high impact)
+        // - Pores: 14.9% (reliable with good texture)
+        // - Discoloration: 14.9% (reliable, moderate impact)
+        // - Acne: 14.9% (reliable detection, variable impact)
+
+        // Smoothness (22.4%) - Surface texture quality (85% confidence)
+        let smoothnessWeight: Float = 0.224
+        weightedSum += smoothnessScore * smoothnessWeight
+        totalWeight += smoothnessWeight
+
+        // Pores (14.9%) - Texture refinement (70-90% confidence)
+        if let poresScore = poresScore {
+            let poresWeight: Float = 0.149
+            weightedSum += poresScore * poresWeight
+            totalWeight += poresWeight
+        }
+
+        // Pigmentation (22.4%) - Even tone (80% confidence)
+        let pigmentationWeight: Float = 0.224
+        weightedSum += pigmentationScore * pigmentationWeight
+        totalWeight += pigmentationWeight
+
+        // Discoloration (14.9%) - Spots/hyperpigmentation (80% confidence)
+        let discolorationWeight: Float = 0.149
+        weightedSum += discolorationScore * discolorationWeight
+        totalWeight += discolorationWeight
+
+        // Acne (14.9%) - Active breakouts/blemishes (75-85% confidence)
+        if let acneScore = acneScore {
+            let acneWeight: Float = 0.149
+            weightedSum += acneScore * acneWeight
+            totalWeight += acneWeight
+        }
+
+        // Remaining 11% is redistributed proportionally when optional metrics are missing
+        return totalWeight > 0 ? weightedSum / totalWeight : 0
+    }
+
+    /// Legacy method for backward compatibility
+    /// @deprecated Use computeOverallScore with 9 metrics instead
+    public func computeOverallScoreLegacy(
         roughnessScore: Float,
         pigmentationScore: Float,
         discolorationScore: Float,
         specularScore: Float?
     ) -> Float {
-
+        // Map to new method (use old 4-metric formula)
         var totalWeight: Float = 0
         var weightedSum: Float = 0
 

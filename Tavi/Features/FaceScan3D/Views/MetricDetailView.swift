@@ -15,6 +15,9 @@ enum MetricType: String, CaseIterable, Identifiable {
     case smoothness = "Smoothness"
     case hydration = "Hydration"
     case pigmentation = "Evenness"
+    case wrinkles = "Wrinkles"
+    case elasticity = "Elasticity"
+    case volume = "Volume"
 
     var id: String { rawValue }
 
@@ -24,6 +27,9 @@ enum MetricType: String, CaseIterable, Identifiable {
         case .smoothness: return "75 - 100%"
         case .hydration: return "70 - 100%"
         case .pigmentation: return "75 - 100%"
+        case .wrinkles: return "80 - 100%"
+        case .elasticity: return "75 - 100%"
+        case .volume: return "N/A"
         }
     }
 
@@ -33,6 +39,9 @@ enum MetricType: String, CaseIterable, Identifiable {
         case .smoothness: return "waveform.path"
         case .hydration: return "drop.fill"
         case .pigmentation: return "circle.hexagongrid.fill"
+        case .wrinkles: return "line.3.horizontal.decrease"
+        case .elasticity: return "arrow.up.and.down.circle"
+        case .volume: return "cube.fill"
         }
     }
 
@@ -46,6 +55,12 @@ enum MetricType: String, CaseIterable, Identifiable {
             return [Color(red: 95/255, green: 158/255, blue: 255/255), Color(red: 142/255, green: 188/255, blue: 255/255)]
         case .pigmentation:
             return [Color(red: 252/255, green: 188/255, blue: 78/255), Color(red: 255/255, green: 199/255, blue: 95/255)]
+        case .wrinkles:
+            return [Color(red: 180/255, green: 140/255, blue: 200/255), Color(red: 200/255, green: 170/255, blue: 220/255)]
+        case .elasticity:
+            return [Color(red: 255/255, green: 150/255, blue: 100/255), Color(red: 255/255, green: 180/255, blue: 130/255)]
+        case .volume:
+            return [Color(red: 120/255, green: 180/255, blue: 255/255), Color(red: 150/255, green: 200/255, blue: 255/255)]
         }
     }
 }
@@ -584,68 +599,159 @@ struct MetricDetailView: View {
 
             // Try to use full Face3DMetrics first (contains ALL calculated metrics)
             if let metrics = session.face3DMetrics {
-                // Core Skin Health Metrics
+                // SKIN HEALTH METRICS (included in Overall Score - 5 metrics only)
+                Text("Skin Health Metrics (In Overall Score)")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .padding(.top, 8)
+
+                Text("These 5 high-confidence metrics (70%+ confidence) are included in your Overall Score.")
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .padding(.bottom, 4)
+
+                // 1. Smoothness (22.4%)
                 MetricBar(
-                    label: "Smoothness",
+                    label: "Smoothness (22.4%)",
                     score: Double(metrics.globalRoughnessScore),
                     color: Color(red: 101/255, green: 188/255, blue: 126/255)
                 )
 
-                // Calculate hydration from ROI moisture proxies
-                let hydrationScore: Double = {
-                    let roiScores = metrics.roiMetrics.values.map { Double($0.moistureProxy.moistureIndex) * 100 }
-                    guard !roiScores.isEmpty else { return 0 }
-                    return roiScores.reduce(0, +) / Double(roiScores.count)
-                }()
-
+                // 2. Pigmentation (22.4%)
                 MetricBar(
-                    label: "Hydration",
-                    score: hydrationScore,
-                    color: Color(red: 95/255, green: 158/255, blue: 255/255)
-                )
-
-                MetricBar(
-                    label: "Glow",
-                    score: Double(metrics.glowAnalysis?.glowScore ?? 0),
-                    color: Color(red: 252/255, green: 188/255, blue: 78/255)
-                )
-
-                MetricBar(
-                    label: "Evenness",
+                    label: "Pigmentation (22.4%)",
                     score: Double(metrics.globalPigmentationScore),
                     color: Color(red: 142/255, green: 218/255, blue: 176/255)
                 )
 
-                // Advanced Skin Analysis
+                // 3. Pores (14.9%)
+                if let pores = metrics.poreAnalysis {
+                    MetricBar(
+                        label: "Pores (14.9%)",
+                        score: Double(pores.visibilityScore),
+                        color: Color(red: 149/255, green: 165/255, blue: 166/255)
+                    )
+                }
+
+                // 4. Discoloration (14.9%)
+                MetricBar(
+                    label: "Discoloration (14.9%)",
+                    score: Double(metrics.globalDiscolorationScore),
+                    color: Color(red: 255/255, green: 179/255, blue: 102/255)
+                )
+
+                // 5. Acne (14.9%)
                 if let acne = metrics.acneAnalysis {
                     MetricBar(
-                        label: "Acne",
+                        label: "Acne (14.9%)",
                         score: Double(acne.overallScore),
                         color: Color(red: 255/255, green: 102/255, blue: 102/255)
                     )
                 }
 
-                if let sunDamage = metrics.sunDamageAnalysis {
+                // ADDITIONAL INDICATORS (Not in Overall Score)
+                Divider()
+                    .padding(.vertical, 8)
+
+                Text("Additional Indicators (Not in Overall Score)")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+                Text("These metrics provide supplementary insights but aren't included in the Overall Score due to measurement limitations.")
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .padding(.bottom, 4)
+
+                // Elasticity (requires 2+ scans)
+                if let elasticity = metrics.elasticityAnalysis {
                     MetricBar(
-                        label: "Sun Damage",
-                        score: Double(sunDamage.protectionScore),
-                        color: Color(red: 255/255, green: 199/255, blue: 95/255)
+                        label: "Elasticity (requires 2+ scans)",
+                        score: Double(elasticity.overallScore),
+                        color: Color(red: 30/255, green: 144/255, blue: 255/255)
                     )
                 }
 
+                // Hydration (proxy method, ~65% confidence)
+                let hydrationScore: Double = {
+                    let roiScores = metrics.roiMetrics.values.map { Double($0.moistureProxy.moistureIndex) * 100 }
+                    guard !roiScores.isEmpty else { return 0 }
+                    return roiScores.reduce(0, +) / Double(roiScores.count)
+                }()
+                MetricBar(
+                    label: "Hydration (proxy method)",
+                    score: hydrationScore,
+                    color: Color(red: 95/255, green: 158/255, blue: 255/255)
+                )
+
+                // Redness (measurement limitations)
                 if let redness = metrics.rednessAnalysis {
                     MetricBar(
-                        label: "Redness",
+                        label: "Redness (measurement limitations)",
                         score: Double(redness.overallScore),
                         color: Color(red: 255/255, green: 140/255, blue: 157/255)
                     )
                 }
 
-                if let pores = metrics.poreAnalysis {
+                // Oil Control (disabled)
+                if let specularScore = metrics.globalSpecularScore {
                     MetricBar(
-                        label: "Pores (\(pores.dominantSize.rawValue))",
-                        score: Double(pores.visibilityScore),
-                        color: Color(red: 149/255, green: 165/255, blue: 166/255)
+                        label: "Oil Control (disabled)",
+                        score: Double(specularScore),
+                        color: Color(red: 255/255, green: 215/255, blue: 0/255)
+                    )
+                }
+
+                // AGING INDICATORS (separate from Skin Health Score)
+                Divider()
+                    .padding(.vertical, 8)
+
+                Text("Aging Indicators")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+                if let wrinkles = metrics.wrinkleAnalysis {
+                    MetricBar(
+                        label: "Wrinkles",
+                        score: Double(wrinkles.overallScore),
+                        color: Color(red: 180/255, green: 140/255, blue: 200/255)
+                    )
+                }
+
+                if let volume = metrics.volumeAnalysis {
+                    MetricBar(
+                        label: "Volume",
+                        score: Double(volume.overallScore),
+                        color: Color(red: 120/255, green: 180/255, blue: 255/255)
+                    )
+                }
+
+                // OTHER INDICATORS
+                Divider()
+                    .padding(.vertical, 8)
+
+                Text("Other Indicators")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+                MetricBar(
+                    label: "Glow (Composite)",
+                    score: Double(metrics.glowAnalysis?.glowScore ?? 0),
+                    color: Color(red: 252/255, green: 188/255, blue: 78/255)
+                )
+
+                if let sunDamage = metrics.sunDamageAnalysis {
+                    MetricBar(
+                        label: "Sun Protection",
+                        score: Double(sunDamage.protectionScore),
+                        color: Color(red: 255/255, green: 199/255, blue: 95/255)
+                    )
+                }
+
+                if let topology = metrics.topologyAnalysis {
+                    MetricBar(
+                        label: "Mesh Quality",
+                        score: Double(topology.overallScore),
+                        color: Color(red: 60/255, green: 179/255, blue: 113/255)
                     )
                 }
 
@@ -921,13 +1027,19 @@ struct MetricInfoSheet: View {
     private var metricDescription: String {
         switch metricType {
         case .overall:
-            return "Your overall skin health score is calculated by combining multiple metrics including smoothness, hydration, and evenness. This comprehensive score gives you a holistic view of your skin's condition."
+            return "Your overall skin health score is calculated using 5 high-confidence metrics (70%+ confidence): Smoothness (22.4%), Pigmentation (22.4%), Pores (14.9%), Discoloration (14.9%), and Acne (14.9%). Additional indicators (Elasticity, Hydration, Oil Control, Redness) are displayed separately due to measurement limitations but aren't included in the Overall Score."
         case .smoothness:
             return "Smoothness measures the texture quality of your skin surface, including fine lines, pores, and overall surface consistency. Higher scores indicate smoother, more refined skin texture."
         case .hydration:
             return "Hydration reflects your skin's moisture levels and water content. Well-hydrated skin appears plump, supple, and resilient, while dehydrated skin may look dull or feel tight."
         case .pigmentation:
             return "Evenness measures the uniformity of your skin tone and pigmentation. Higher scores indicate more consistent coloring without dark spots, redness, or uneven patches."
+        case .wrinkles:
+            return "Wrinkles analysis measures the depth and distribution of lines on your face, categorized as fine lines, moderate wrinkles, or deep wrinkles. This metric uses 3D depth measurement to detect creases and folds. Higher scores indicate fewer or shallower wrinkles."
+        case .elasticity:
+            return "Elasticity measures your skin's ability to bounce back and recover from deformation. The recovery rate (0-1 scale) indicates how quickly your skin returns to its original shape. Higher scores suggest better collagen health and skin firmness."
+        case .volume:
+            return "Volume analysis measures facial structure changes including cheek protrusion (in mm), volume loss percentage, under-eye bags, and facial symmetry. These measurements track structural changes in your face over time, distinct from skin surface quality."
         }
     }
 
@@ -965,6 +1077,33 @@ struct MetricInfoSheet: View {
                 "Genetics and skin type",
                 "Hormonal changes",
                 "Post-inflammatory response"
+            ]
+        case .wrinkles:
+            return [
+                "Sun exposure and UV damage",
+                "Natural aging process",
+                "Facial expressions and muscle movement",
+                "Smoking and lifestyle factors",
+                "Collagen production",
+                "Retinol and anti-aging treatments"
+            ]
+        case .elasticity:
+            return [
+                "Collagen and elastin production",
+                "Age and natural degradation",
+                "UV exposure",
+                "Hydration levels",
+                "Nutrition (vitamin C, protein)",
+                "Facial massage and treatments"
+            ]
+        case .volume:
+            return [
+                "Natural aging and fat pad loss",
+                "Bone density changes",
+                "Weight fluctuations",
+                "Genetics and facial structure",
+                "Sleep position",
+                "Facial fillers or treatments"
             ]
         }
     }

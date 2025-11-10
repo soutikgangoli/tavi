@@ -57,7 +57,7 @@ public class Face3DMetricsAnalyzer {
 
     public struct Configuration {
         /// Whether to compute specular/oiliness metrics (requires raw RGB frames)
-        public var computeSpecular: Bool = false
+        public var computeSpecular: Bool = true
 
         /// Quality validation configuration
         public var qualityValidation: TextureQualityValidator.Configuration = TextureQualityValidator.Configuration()
@@ -455,12 +455,21 @@ public class Face3DMetricsAnalyzer {
         AppLogger.metrics.info("      Pigmentation: \(String(format: "%.1f", globalResults.pigmentationScore)) → \(String(format: "%.1f", normalizedPigmentationScore))")
         AppLogger.metrics.info("      Discoloration: \(String(format: "%.1f", globalResults.discolorationScore)) → \(String(format: "%.1f", normalizedDiscolorationScore))")
 
-        // Recalculate overall score with normalized values
+        // Calculate hydration score from ROI moisture proxies (for display only - not in overall score)
+        let moistureValues = roiMetrics.values.map { $0.moistureProxy.moistureIndex }
+        let avgMoisture = moistureValues.reduce(0, +) / Float(moistureValues.count)
+        let hydrationScore = avgMoisture * 100  // Convert 0-1 to 0-100 score
+
+        // Recalculate overall score with normalized values using new 5-metric formula
+        // ONLY includes high-confidence metrics (70%+ confidence):
+        // - Smoothness (85%), Pores (70-90%), Pigmentation (80%), Discoloration (80%), Acne (75-85%)
+        // Excluded: Elasticity (requires 2+ scans), Hydration (proxy method ~65%), Oil Control (disabled), Redness (measurement limitations)
         let normalizedOverallScore = scoring.computeOverallScore(
-            roughnessScore: globalResults.roughnessScore,
+            smoothnessScore: globalResults.roughnessScore,
+            poresScore: poreAnalysis?.visibilityScore,
             pigmentationScore: normalizedPigmentationScore,
             discolorationScore: normalizedDiscolorationScore,
-            specularScore: globalResults.specularScore
+            acneScore: acneAnalysis?.overallScore
         )
 
         // Calculate intermediate processing time (will be updated at the end with actual total)
@@ -741,8 +750,8 @@ public class Face3DMetricsAnalyzer {
             AppLogger.metrics.info("✅ Excellent smoothness score: \(String(format: "%.1f", Double(roughnessScore)))/100")
         }
 
-        // Compute overall score
-        let overallScore = scoring.computeOverallScore(
+        // Compute overall score using legacy 4-metric formula (for internal helper)
+        let overallScore = scoring.computeOverallScoreLegacy(
             roughnessScore: roughnessScore,
             pigmentationScore: pigmentationScore,
             discolorationScore: discolorationScore,
@@ -808,13 +817,6 @@ public class Face3DMetricsAnalyzer {
             transform: transform,
             timestamp: Date().timeIntervalSince1970
         )
-    }
-
-    /// TEMPORARY: Return nil to skip metrics - EmotionalMetricsGenerator will handle it
-    /// This bypasses the hanging parallel analyzers for testing
-    public func computeBasicMetrics(unifiedTexture: CGImage) async -> Face3DMetrics? {
-        AppLogger.metrics.warning("⚠️ SKIPPING METRICS COMPUTATION ENTIRELY - will use fallback values")
-        return nil
     }
 }
 
