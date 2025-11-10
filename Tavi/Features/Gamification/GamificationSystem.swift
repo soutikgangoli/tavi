@@ -71,16 +71,16 @@ public struct GlowChallenge: Codable, Identifiable {
 public struct ChallengeMilestone {
     let days: Int
     let title: String
-    let emoji: String
+    let iconName: String  // SF Symbol name
     let reward: String
 
     static let allMilestones: [ChallengeMilestone] = [
-        ChallengeMilestone(days: 1, title: "First Scan", emoji: "🌱", reward: "You've started your journey!"),
-        ChallengeMilestone(days: 3, title: "3-Day Streak", emoji: "🔥", reward: "Building the habit!"),
-        ChallengeMilestone(days: 7, title: "One Week", emoji: "⭐", reward: "One week strong!"),
-        ChallengeMilestone(days: 14, title: "Two Weeks", emoji: "💪", reward: "Halfway there!"),
-        ChallengeMilestone(days: 21, title: "Three Weeks", emoji: "🚀", reward: "Habit formed!"),
-        ChallengeMilestone(days: 30, title: "30-Day Glow", emoji: "🏆", reward: "Challenge Complete!"),
+        ChallengeMilestone(days: 1, title: "First Scan", iconName: "leaf.fill", reward: "You've started your journey!"),
+        ChallengeMilestone(days: 3, title: "3-Day Streak", iconName: "flame.fill", reward: "Building the habit!"),
+        ChallengeMilestone(days: 7, title: "One Week", iconName: "star.fill", reward: "One week strong!"),
+        ChallengeMilestone(days: 14, title: "Two Weeks", iconName: "bolt.fill", reward: "Halfway there!"),
+        ChallengeMilestone(days: 21, title: "Three Weeks", iconName: "rocket.fill", reward: "Habit formed!"),
+        ChallengeMilestone(days: 30, title: "30-Day Glow", iconName: "trophy.fill", reward: "Challenge Complete!"),
     ]
 }
 
@@ -98,20 +98,20 @@ public struct GlowStreak: Codable {
         return Calendar.current.isDateInToday(last)
     }
 
-    var streakEmoji: String {
+    var streakIconName: String {
         switch currentStreak {
         case 0:
-            return "💤"
+            return "zzz"
         case 1...2:
-            return "🌱"
+            return "leaf.fill"
         case 3...6:
-            return "🔥"
+            return "flame.fill"
         case 7...13:
-            return "⭐"
+            return "star.fill"
         case 14...29:
-            return "💪"
+            return "bolt.fill"
         default:
-            return "🏆"
+            return "trophy.fill"
         }
     }
 
@@ -124,13 +124,13 @@ public struct GlowStreak: Codable {
         case 2:
             return "Two days! Keep it going!"
         case 3...6:
-            return "\(currentStreak) day streak! You're on fire! 🔥"
+            return "\(currentStreak) day streak! You're on fire!"
         case 7...13:
-            return "One week+ streak! Amazing! ⭐"
+            return "One week+ streak! Amazing!"
         case 14...29:
-            return "\(currentStreak) days! You're unstoppable! 💪"
+            return "\(currentStreak) days! You're unstoppable!"
         default:
-            return "\(currentStreak) day streak! Legendary! 🏆"
+            return "\(currentStreak) day streak! Legendary!"
         }
     }
 
@@ -185,7 +185,7 @@ public struct Achievement: Codable, Identifiable {
     public let id: String
     let title: String
     let description: String
-    let emoji: String
+    let iconName: String  // SF Symbol name
     let category: AchievementCategory
     var isUnlocked: Bool
     var unlockedDate: Date?
@@ -196,7 +196,7 @@ public struct Achievement: Codable, Identifiable {
             id: "first_scan",
             title: "First Scan",
             description: "Complete your first skin scan",
-            emoji: "🌱",
+            iconName: "leaf.fill",
             category: .scanning,
             isUnlocked: false
         ),
@@ -204,7 +204,7 @@ public struct Achievement: Codable, Identifiable {
             id: "scan_10",
             title: "Regular User",
             description: "Complete 10 scans",
-            emoji: "⭐",
+            iconName: "star.fill",
             category: .scanning,
             isUnlocked: false
         ),
@@ -212,7 +212,7 @@ public struct Achievement: Codable, Identifiable {
             id: "scan_50",
             title: "Skin Expert",
             description: "Complete 50 scans",
-            emoji: "🏆",
+            iconName: "trophy.fill",
             category: .scanning,
             isUnlocked: false
         ),
@@ -222,7 +222,7 @@ public struct Achievement: Codable, Identifiable {
             id: "streak_3",
             title: "On Fire",
             description: "Maintain a 3-day streak",
-            emoji: "🔥",
+            iconName: "flame.fill",
             category: .streaks,
             isUnlocked: false
         ),
@@ -230,7 +230,7 @@ public struct Achievement: Codable, Identifiable {
             id: "streak_7",
             title: "Week Warrior",
             description: "Maintain a 7-day streak",
-            emoji: "💪",
+            iconName: "bolt.fill",
             category: .streaks,
             isUnlocked: false
         ),
@@ -238,7 +238,7 @@ public struct Achievement: Codable, Identifiable {
             id: "streak_30",
             title: "Dedication Master",
             description: "Maintain a 30-day streak",
-            emoji: "🏆",
+            iconName: "trophy.fill",
             category: .streaks,
             isUnlocked: false
         ),
@@ -248,7 +248,7 @@ public struct Achievement: Codable, Identifiable {
             id: "glow_up_10",
             title: "Glow Up",
             description: "Improve Skin Health Index by 10 points",
-            emoji: "✨",
+            iconName: "sparkles",
             category: .improvement,
             isUnlocked: false
         ),
@@ -256,7 +256,7 @@ public struct Achievement: Codable, Identifiable {
             id: "glow_up_25",
             title: "Transformation",
             description: "Improve Skin Health Index by 25 points",
-            emoji: "🌟",
+            iconName: "star.circle.fill",
             category: .improvement,
             isUnlocked: false
         ),
@@ -264,7 +264,7 @@ public struct Achievement: Codable, Identifiable {
             id: "glow_90",
             title: "Radiant Skin",
             description: "Achieve a Skin Health Index of 90+",
-            emoji: "💫",
+            iconName: "sparkle",
             category: .improvement,
             isUnlocked: false
         ),
@@ -274,7 +274,7 @@ public struct Achievement: Codable, Identifiable {
             id: "challenge_complete",
             title: "30-Day Glow Champion",
             description: "Complete the 30-day glow challenge",
-            emoji: "🏅",
+            iconName: "medal.fill",
             category: .challenges,
             isUnlocked: false
         ),

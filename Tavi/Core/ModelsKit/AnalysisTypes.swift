@@ -626,8 +626,13 @@ public class FaceDetector {
             
             if yaw == nil && pitch == nil && roll == nil {
                 print("⚠️ DEBUG: No angles calculated - landmarksObservations count: \(landmarksObservations.count)")
+                print("⚠️ DEBUG: Vision framework angles unavailable. Use ARKit for accurate 3D angles.")
+                // Set to 0 as fallback to indicate face detected but angles unavailable
+                yaw = 0
+                pitch = 0
+                roll = 0
             }
-            
+
             let faceResult = FaceDetectionResult(
                 faceFound: true,
                 boundingBox: boundingBox,

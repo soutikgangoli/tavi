@@ -10,6 +10,7 @@ import Combine
 import UIKit
 import CoreVideo
 import SwiftUI
+import ARKit
 
 @MainActor
 class DebugViewModel: ObservableObject {
@@ -32,6 +33,7 @@ class DebugViewModel: ObservableObject {
     @Published var detectedFaces: [FaceDetectionResult] = []
     @Published var showFaceBounds = true
     @Published var showLandmarks = true
+    @Published var usingARKitAngles = false // Indicates if angles are from ARKit (accurate) vs Vision (approximate)
 
     // ROI Data
     @Published var faceROIs: [FaceROISet] = []
@@ -110,7 +112,8 @@ class DebugViewModel: ObservableObject {
                 self.trackFPS()
 
                 // Process frame for face detection
-                self.processFrame(pixelBuffer)
+                // Note: ARFaceAnchor will be passed separately via updateFrame() from DebugScreen
+                self.processFrame(pixelBuffer, arFaceAnchor: nil)
             }
             .store(in: &cancellables)
     }
@@ -143,20 +146,36 @@ class DebugViewModel: ObservableObject {
 
     // MARK: - Frame Processing
 
-    private func processFrame(_ pixelBuffer: CVPixelBuffer) {
+    /// Process frame with optional ARFaceAnchor for accurate angle detection
+    /// - Parameters:
+    ///   - pixelBuffer: The camera frame buffer
+    ///   - arFaceAnchor: Optional ARFaceAnchor from ARKit session (provides accurate 3D angles)
+    func processFrame(_ pixelBuffer: CVPixelBuffer, arFaceAnchor: ARFaceAnchor? = nil) {
         let startTime = Date()
 
         Task {
-            // Detect faces
-            guard let cgImage = convertToCGImage(pixelBuffer: pixelBuffer) else {
-                await MainActor.run {
-                    self.detectedFaces = []
-                    self.faceROIs = []
-                }
-                return
-            }
+            var faces: [FaceDetectionResult] = []
+            var usingARKit = false
 
-            let faces = faceDetector.detectFaces(in: cgImage)
+            // Priority 1: Use ARKit if available (accurate 3D angles)
+            if let faceAnchor = arFaceAnchor {
+                let arFace = faceDetector.detectFaceFromARKit(faceAnchor: faceAnchor)
+                faces = [arFace]
+                usingARKit = true
+                AppLogger.capture.debug("Debug: Using ARKit angles - Yaw: \(arFace.yaw ?? 0)°, Pitch: \(arFace.pitch ?? 0)°, Roll: \(arFace.roll ?? 0)°")
+            }
+            // Priority 2: Fall back to Vision-based detection (approximate angles from landmarks)
+            else if let cgImage = convertToCGImage(pixelBuffer: pixelBuffer) {
+                faces = faceDetector.detectFaces(in: cgImage)
+                usingARKit = false
+                if let face = faces.first {
+                    if face.yaw != nil || face.pitch != nil || face.roll != nil {
+                        AppLogger.capture.debug("Debug: Using Vision approximate angles - Yaw: \(face.yaw ?? 0)°, Pitch: \(face.pitch ?? 0)°, Roll: \(face.roll ?? 0)°")
+                    } else {
+                        AppLogger.capture.debug("Debug: Vision angles unavailable (missing landmarks)")
+                    }
+                }
+            }
 
             // Compute ROIs
             var roiSets: [FaceROISet] = []
@@ -175,6 +194,7 @@ class DebugViewModel: ObservableObject {
             await MainActor.run {
                 self.detectedFaces = faces
                 self.faceROIs = roiSets
+                self.usingARKitAngles = usingARKit
                 self.trackLatency(latency)
             }
 
@@ -260,6 +280,14 @@ class DebugViewModel: ObservableObject {
     func dismissROIMetrics() {
         showROIMetrics = false
         selectedROI = nil
+    }
+
+    // MARK: - Public Update Methods
+
+    /// Update with ARFaceAnchor for accurate angle detection
+    /// Call this from DebugScreen when ARFaceAnchor is available
+    func updateWithARFaceAnchor(_ faceAnchor: ARFaceAnchor, pixelBuffer: CVPixelBuffer) {
+        processFrame(pixelBuffer, arFaceAnchor: faceAnchor)
     }
 
     // MARK: - Toggles

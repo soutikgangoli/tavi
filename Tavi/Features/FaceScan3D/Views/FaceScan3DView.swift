@@ -261,6 +261,26 @@ private struct DebugInfoView: View {
                 .font(.caption)
                 .foregroundStyle(.white)
 
+            Divider()
+                .background(.white.opacity(0.3))
+
+            Text("Face Angles (ARKit)")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.white)
+
+            Text("Yaw: \(String(format: "%.1f°", viewModel.cachedYaw))")
+                .font(.caption)
+                .foregroundStyle(.white)
+
+            Text("Pitch: \(String(format: "%.1f°", viewModel.cachedPitch))")
+                .font(.caption)
+                .foregroundStyle(.white)
+
+            Text("Roll: \(String(format: "%.1f°", viewModel.cachedRoll))")
+                .font(.caption)
+                .foregroundStyle(.white)
+
             if let geometry = viewModel.currentGeometry {
                 Text("Vertices: \(geometry.vertexCount)")
                     .font(.caption)

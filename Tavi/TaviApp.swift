@@ -42,12 +42,10 @@ struct TaviApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                // Main app content
-                NavigationStack {
-                    ContentView()
-                }
-                .environment(\.managedObjectContext, persistenceController.viewContext)
-                .opacity(showLoadingScreen ? 0 : 1)
+                // Main app content (MainTabView has its own NavigationStack per tab)
+                ContentView()
+                    .environment(\.managedObjectContext, persistenceController.viewContext)
+                    .opacity(showLoadingScreen ? 0 : 1)
 
                 // Fancy loading screen (shows on first launch)
                 if showLoadingScreen {

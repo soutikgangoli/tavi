@@ -272,12 +272,29 @@ public class CaptureSequenceManager: ObservableObject {
             lightEstimation: lightEstimation
         ) {
             self.currentSequence!.addTextureSample(sample)
+            #if DEBUG
             AppLogger.faceScan.info("✅ Added texture sample (sharpness: \(sample.focusSharpness), exposure: \(sample.exposureScore)). Total: \(self.currentSequence!.textureSamples.count)")
+            #endif
         } else {
             // Texture capture failed quality checks (blur or exposure)
-            AppLogger.faceScan.warning("⚠️ Texture capture rejected - quality below threshold (likely blur or exposure issue)")
-            AppLogger.faceScan.warning("⚠️ CRITICAL: No texture sample captured for step '\(self.currentGuidanceStep.shortName)' - this will cause bake to fail if no other samples exist!")
-            self.guidanceFeedback = "Hold phone steady for clearer focus"
+            // FALLBACK: Accept the sample anyway with lower quality flag to prevent bake failure
+            let fallbackSample = self.textureCapture.captureSampleWithLoweredThreshold(
+                step: self.currentGuidanceStep.shortName,
+                faceAnchor: faceAnchor,
+                frame: frame,
+                lightEstimation: lightEstimation
+            )
+
+            if let fallbackSample = fallbackSample {
+                self.currentSequence!.addTextureSample(fallbackSample)
+                #if DEBUG
+                AppLogger.faceScan.warning("⚠️ Texture sample accepted with lowered threshold (sharpness: \(fallbackSample.focusSharpness), exposure: \(fallbackSample.exposureScore)). Total: \(self.currentSequence!.textureSamples.count)")
+                #endif
+            } else {
+                #if DEBUG
+                AppLogger.faceScan.error("❌ CRITICAL: Failed to capture texture sample even with lowered threshold for step '\(self.currentGuidanceStep.shortName)'")
+                #endif
+            }
         }
     }
 

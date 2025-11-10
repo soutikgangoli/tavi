@@ -97,6 +97,11 @@ struct ResultsDetailView: View {
                     glowRadianceBreakdown(glowAnalysis)
                 }
 
+                // Full Clinical Breakdown (NEW - shows ALL metrics details)
+                if let metrics = clinicalMetrics {
+                    fullClinicalBreakdown(metrics)
+                }
+
                 // ROI Scores
                 roiScoresSection
 
@@ -508,16 +513,209 @@ struct ResultsDetailView: View {
             }
 
             // Explanation
-            Text("💡 **Glow** measures overall skin health (texture + tone + shine), while **Radiance** measures how much light your skin reflects (physics-based brightness).")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.top, 4)
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.caption)
+                    .foregroundColor(.yellow)
+                Text("**Glow** measures overall skin health (texture + tone + shine), while **Radiance** measures how much light your skin reflects (physics-based brightness).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.top, 4)
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(uiColor: .secondarySystemBackground))
         )
+    }
+
+    // MARK: - Full Clinical Breakdown
+
+    @ViewBuilder
+    private func fullClinicalBreakdown(_ metrics: Face3DMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Clinical Breakdown")
+                .font(.title2)
+                .fontWeight(.bold)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Acne Analysis
+            if let acne = metrics.acneAnalysis {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "circle.hexagongrid.fill")
+                            .foregroundColor(.red)
+                        Text("Acne Analysis")
+                            .font(.headline)
+                    }
+
+                    Text("Overall Score: \(Int(acne.overallScore))/100")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    if !acne.blemishes.isEmpty {
+                        Text("Detected: \(acne.blemishes.count) blemishes")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text("Types: \(Set(acne.blemishes.map { $0.type.rawValue }).joined(separator: ", "))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+
+            // Pore Analysis
+            if let pores = metrics.poreAnalysis {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "circle.grid.cross.fill")
+                            .foregroundColor(.gray)
+                        Text("Pore Analysis")
+                            .font(.headline)
+                    }
+
+                    Text("Visibility Score: \(Int(pores.visibilityScore))/100")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Dominant Size: \(pores.dominantSize.rawValue)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Small")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("\(pores.sizeDistribution.smallCount)")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Medium")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("\(pores.sizeDistribution.mediumCount)")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Large")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("\(pores.sizeDistribution.largeCount)")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Very Large")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("\(pores.sizeDistribution.veryLargeCount)")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                        }
+                    }
+
+                    Text("Density: \(String(format: "%.1f", pores.density)) pores/cm²")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("Average Size: \(String(format: "%.2f", pores.averageSize)) pixels")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("Confidence: \(Int(pores.confidence))%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+
+            // Sun Damage Analysis
+            if let sunDamage = metrics.sunDamageAnalysis {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "sun.max.fill")
+                            .foregroundColor(.orange)
+                        Text("Sun Damage Analysis")
+                            .font(.headline)
+                    }
+
+                    Text("Protection Score: \(Int(sunDamage.protectionScore))/100")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Damage Level: \(sunDamage.damageLevel.rawValue)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Components:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 4)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("• Pigmentation Health: \(Int(sunDamage.pigmentationHealth))%")
+                            .font(.caption)
+                        Text("• Photoaging Resistance: \(Int(sunDamage.photoagingResistance))%")
+                            .font(.caption)
+                        Text("• Texture Health: \(Int(sunDamage.textureHealth))%")
+                            .font(.caption)
+                        Text("• Vascular Health: \(Int(sunDamage.vascularHealth))%")
+                            .font(.caption)
+                        Text("• Pore Health: \(Int(sunDamage.poreHealth))%")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+
+            // Redness Analysis
+            if let redness = metrics.rednessAnalysis {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "flame.fill")
+                            .foregroundColor(.pink)
+                        Text("Redness Analysis")
+                            .font(.headline)
+                    }
+
+                    Text("Overall Score: \(Int(redness.overallScore))/100")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Severity: \(redness.severity.rawValue)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("Confidence: \(Int(redness.confidence))%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+            }
+        }
+        .padding(.vertical)
     }
 
     // MARK: - ROI Scores
@@ -677,17 +875,17 @@ struct ResultsDetailView: View {
 
         let topMetrics = metrics.sorted { $0.value > $1.value }.prefix(3)
 
-        var text = "📊 Tavi Skin Analysis Results\n"
+        var text = "Tavi Skin Analysis Results\n"
         text += "Date: \(session.formattedDate)\n\n"
-        text += "🏆 Overall Score: \(Int(session.overallScore))/100 (\(session.grade.rawValue))\n\n"
+        text += "Overall Score: \(Int(session.overallScore))/100 (\(session.grade.rawValue))\n\n"
         text += "Top Metrics:\n"
 
         for (index, metric) in topMetrics.enumerated() {
-            let emoji = ["🥇", "🥈", "🥉"][index]
-            text += "\(emoji) \(metric.name): \(Int(metric.value))%\n"
+            let prefix = ["1.", "2.", "3."][index]
+            text += "\(prefix) \(metric.name): \(Int(metric.value))%\n"
         }
 
-        text += "\n✨ Analyzed with Tavi - 3D Skin Analysis"
+        text += "\nAnalyzed with Tavi - 3D Skin Analysis"
 
         return text
     }

@@ -12,17 +12,21 @@ import SwiftUI
 public struct HomeView: View {
 
     private let capabilities = DeviceCapabilities.current
+    @Binding var selectedTab: MainTabView.Tab
     @State private var showOnboarding: Bool
-    @State private var showScanFlow = false
     @State private var showSettings = false
+    @State private var showChallengeDetail = false
     @State private var errorState: ErrorState?
+    @State private var selectedMetricType: MetricType?
+    @State private var selectedSessionForDetail: SessionResult?
     @AppStorage("skipOnboarding") private var skipOnboarding: Bool = false
 
     // Fallback storage support
     @StateObject private var fallbackStorage = FallbackStorage.shared
     @State private var fallbackSessions: [FallbackStorage.FallbackSession] = []
 
-    public init() {
+    public init(selectedTab: Binding<MainTabView.Tab>) {
+        self._selectedTab = selectedTab
         let hasCompleted = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         let skipEnabled = UserDefaults.standard.bool(forKey: "skipOnboarding")
         // Show onboarding only if not completed AND skip is not enabled
@@ -102,14 +106,18 @@ public struct HomeView: View {
             .navigationDestination(for: SessionResult.self) { session in
                 ResultsDetailView(session: session)
             }
+            .sheet(item: $selectedMetricType) { metricType in
+                MetricDetailView(metricType: metricType)
+            }
+            .sheet(item: $selectedSessionForDetail) { session in
+                ResultsDetailView(session: session)
+            }
+            .sheet(isPresented: $showChallengeDetail) {
+                ChallengeDetailView()
+            }
         }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingFlowView()
-        }
-        .sheet(isPresented: $showScanFlow) {
-            NavigationStack {
-                EmotionalScan3DFlowView()
-            }
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()
@@ -119,45 +127,60 @@ public struct HomeView: View {
     // MARK: - Content View
 
     private var contentView: some View {
-        ZStack(alignment: .bottom) {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: HeadspaceDesign.Spacing.xl) {
-                    // Greeting header
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: HeadspaceDesign.Spacing.lg) {
+                // Header: Show date header if has scans, greeting if empty
+                if hasCoreDataScans {
+                    dateHeaderSection
+                        .padding(.top, HeadspaceDesign.Spacing.md)
+                } else {
                     greetingSection
                         .padding(.top, HeadspaceDesign.Spacing.md)
-
-                    // Progress graph (shows if 2+ scans)
-                    if sessions.count >= 2 {
-                        ProgressGraphView(sessions: Array(sessions))
-                    } else if fallbackSessions.count >= 2 {
-                        fallbackProgressChart
-                    }
-
-                    // Active challenge card
-                    if let challenge = GamificationManager.shared.getCurrentChallenge(), challenge.isActive {
-                        activeChallengeCard(challenge)
-                    }
-
-                    // Recent scans - main content
-                    if sessions.count > 0 {
-                        recentScansSection
-                    } else if fallbackSessions.count > 0 {
-                        fallbackRecentScansSection
-                    } else {
-                        // Only show "first scan" card if NO scans exist
-                        firstScanCard
-                    }
-
-                    // Bottom padding for sticky button
-                    Spacer().frame(height: 100)
                 }
-                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
-            }
-            .background(HeadspaceDesign.Colors.background)
 
-            // Sticky scan button
-            stickyButton
+                // Status widgets row: Only show if has scans
+                if hasCoreDataScans {
+                    statusWidgetsRow
+                }
+
+                // Hero rings: Only show if has scans
+                if hasCoreDataScans {
+                    heroRingsSection
+                }
+
+                // Latest scan summary: Only show if has scans
+                if hasCoreDataScans {
+                    latestScanSummaryCard
+                }
+
+                // Progress graph: Only show if 2+ scans
+                if sessions.count >= 2 {
+                    ProgressGraphView(sessions: Array(sessions))
+                } else if fallbackSessions.count >= 2 {
+                    fallbackProgressChart
+                }
+
+                // Active challenge card (old implementation - kept for fallback)
+                if let challenge = GamificationManager.shared.getCurrentChallenge(), challenge.isActive, !hasCoreDataScans {
+                    activeChallengeCard(challenge)
+                }
+
+                // Recent scans - main content
+                if sessions.count > 0 {
+                    recentScansSection
+                } else if fallbackSessions.count > 0 {
+                    fallbackRecentScansSection
+                } else {
+                    // Only show "first scan" card if NO scans exist
+                    firstScanCard
+                }
+
+                // Bottom padding for tab bar
+                Spacer().frame(height: 100)
+            }
+            .padding(.horizontal, HeadspaceDesign.Spacing.lg)
         }
+        .background(HeadspaceDesign.Colors.background)
     }
 
     // MARK: - Error View
@@ -213,6 +236,297 @@ public struct HomeView: View {
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Date header for has-data state (replaces greeting)
+    private var dateHeaderSection: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.xs) {
+                Text("Today, \(formattedTodayDate)")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                Text("Track your skin health journey")
+                    .font(.system(size: 16, weight: .regular, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            }
+
+            Spacer()
+
+            // Profile icon
+            Button {
+                selectedTab = .profile
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(HeadspaceDesign.Colors.primary.opacity(0.15))
+                        .frame(width: 44, height: 44)
+
+                    if let userName = UserProfileManager.shared.loadProfile().name {
+                        Text(String(userName.prefix(1)).uppercased())
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                    } else {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Status widgets row (challenge + last scan info)
+    private var statusWidgetsRow: some View {
+        HStack(spacing: HeadspaceDesign.Spacing.md) {
+            // Left: Challenge status
+            challengeStatusWidget
+                .frame(maxWidth: .infinity)
+
+            // Right: Last scan info
+            lastScanWidget
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    /// Challenge status widget
+    private var challengeStatusWidget: some View {
+        Group {
+            if let challenge = GamificationManager.shared.getCurrentChallenge(), challenge.isActive {
+                // Active challenge
+                Button {
+                    showChallengeDetail = true
+                } label: {
+                    HStack(spacing: HeadspaceDesign.Spacing.sm) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(Color(red: 255/255, green: 159/255, blue: 64/255))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Active")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                            let progress = Int((Double(challenge.daysCompleted) / Double(challenge.goalDays)) * 100)
+                            Text("\(challenge.daysCompleted) days • \(progress)% done")
+                                .font(.system(size: 12, weight: .regular, design: .rounded))
+                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                    }
+                    .padding(HeadspaceDesign.Spacing.md)
+                    .background(HeadspaceDesign.Colors.elevatedCard)
+                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                }
+            } else {
+                // No active challenge - show start button
+                Button {
+                    startChallenge()
+                } label: {
+                    HStack(spacing: HeadspaceDesign.Spacing.sm) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(Color(red: 255/255, green: 159/255, blue: 64/255))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Start Challenge")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                            Text("30-Day Glow")
+                                .font(.system(size: 12, weight: .regular, design: .rounded))
+                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(HeadspaceDesign.Spacing.md)
+                    .background(HeadspaceDesign.Colors.elevatedCard)
+                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                }
+            }
+        }
+    }
+
+    /// Last scan info widget
+    private var lastScanWidget: some View {
+        HStack(spacing: HeadspaceDesign.Spacing.sm) {
+            Image(systemName: "calendar")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Last Scan")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                if let lastScan = latestSession {
+                    Text(formatRelativeDate(lastScan.date))
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                } else {
+                    Text("No scans yet")
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                }
+            }
+
+            Spacer()
+        }
+        .padding(HeadspaceDesign.Spacing.md)
+        .background(HeadspaceDesign.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+    }
+
+    /// 3 Hero rings section - using ACTUAL metrics from SessionResult
+    private var heroRingsSection: some View {
+        HStack(spacing: HeadspaceDesign.Spacing.lg) {
+            if let latest = latestSession {
+                // Ring 1: Texture/Smoothness (like Recovery in Fitness)
+                Button {
+                    selectedMetricType = .smoothness
+                } label: {
+                    heroRing(
+                        score: latest.textureAvg,
+                        label: "Smoothness",
+                        color: Color(red: 101/255, green: 188/255, blue: 126/255)  // Green
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // Ring 2: Hydration (like Sleep in Fitness)
+                Button {
+                    selectedMetricType = .hydration
+                } label: {
+                    heroRing(
+                        score: latest.moistureSpecular,
+                        label: "Hydration",
+                        color: Color(red: 95/255, green: 158/255, blue: 255/255)  // Blue
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // Ring 3: Pigmentation/Evenness (like Strain in Fitness)
+                Button {
+                    selectedMetricType = .pigmentation
+                } label: {
+                    heroRing(
+                        score: latest.pigmentationAvg,
+                        label: "Evenness",
+                        color: Color(red: 252/255, green: 188/255, blue: 78/255)  // Yellow
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .padding(.vertical, HeadspaceDesign.Spacing.md)
+    }
+
+    /// Individual hero ring
+    private func heroRing(score: Double, label: String, color: Color) -> some View {
+        VStack(spacing: HeadspaceDesign.Spacing.sm) {
+            ZStack {
+                // Background circle
+                Circle()
+                    .stroke(color.opacity(0.2), lineWidth: 8)
+                    .frame(width: 100, height: 100)
+
+                // Progress circle
+                Circle()
+                    .trim(from: 0, to: CGFloat(score / 100))
+                    .stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .frame(width: 100, height: 100)
+                    .rotationEffect(.degrees(-90))
+
+                // Score text
+                Text("\(Int(score))")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                Text("%")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .offset(x: 20, y: 10)
+            }
+
+            Text(label)
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Latest scan summary card
+    private var latestScanSummaryCard: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            if let latest = latestSession {
+                HStack {
+                    Text(generateSummaryTitle(latest))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                    Spacer()
+
+                    Button {
+                        selectedSessionForDetail = latest
+                    } label: {
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                    }
+                }
+
+                Text(generateSummaryText(latest))
+                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack {
+                    Text("Overall Score: \(Int(latest.overallScore))")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                    if let trend = calculateTrend(for: latest), trend != 0 {
+                        HStack(spacing: 4) {
+                            Image(systemName: trend > 0 ? "arrow.up.right" : "arrow.down.right")
+                                .font(.system(size: 11, weight: .bold))
+                            Text("\(trend > 0 ? "+" : "")\(Int(trend))")
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        }
+                        .foregroundColor(trend > 0 ? .green : .red)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background((trend > 0 ? Color.green : Color.red).opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                }
+            }
+        }
+        .padding(HeadspaceDesign.Spacing.lg)
+        .background(HeadspaceDesign.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+
+    /// Start challenge action
+    private func startChallenge() {
+        guard let latest = latestSession else {
+            return
+        }
+
+        // Use overall score as baseline for challenge
+        _ = GamificationManager.shared.startNewChallenge(baselineGlowScore: Int(latest.overallScore))
     }
 
     private func latestScanCard(_ session: SessionResult) -> some View {
@@ -594,6 +908,27 @@ public struct HomeView: View {
                     recentScanListItem(session)
                 }
             }
+
+            // View All button - only show if more than 5 scans
+            if sessions.count > 5 {
+                Button {
+                    selectedTab = .history
+                } label: {
+                    HStack {
+                        Text("View All Scans (\(sessions.count))")
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.primary)
+
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(HeadspaceDesign.Colors.primary.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                }
+            }
         }
     }
 
@@ -841,8 +1176,9 @@ public struct HomeView: View {
                                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                             HStack(spacing: 6) {
-                                Text(nextMilestone.emoji)
-                                    .font(.system(size: 16))
+                                Image(systemName: nextMilestone.iconName)
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(HeadspaceDesign.Colors.primary)
                                 Text(nextMilestone.title)
                                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
@@ -899,40 +1235,6 @@ public struct HomeView: View {
         )
     }
 
-    private var stickyButton: some View {
-        Button {
-            if capabilities.supportsTrueDepth {
-                AnalyticsManager.shared.trackAction("tap", target: "scan_now_button")
-                AnalyticsManager.shared.trackNavigation(from: "home", to: "scan_flow")
-                showScanFlow = true
-            }
-        } label: {
-            HStack(spacing: HeadspaceDesign.Spacing.md) {
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 20, weight: .semibold))
-
-                Text("Scan Now")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-            }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
-            .background(Color.green)
-            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
-            .shadow(
-                color: HeadspaceDesign.Shadows.button.color,
-                radius: HeadspaceDesign.Shadows.button.radius,
-                x: HeadspaceDesign.Shadows.button.x,
-                y: HeadspaceDesign.Shadows.button.y
-            )
-        }
-        .accessibilityLabel("Scan Now")
-        .accessibilityHint("Starts a new 3D facial scan to analyze your skin health")
-        .accessibilityAddTraits(.isButton)
-        .padding(.horizontal, HeadspaceDesign.Spacing.lg)
-        .padding(.bottom, HeadspaceDesign.Spacing.xxl)
-    }
-
     // MARK: - Helpers
 
     private func getTimeBasedGreeting() -> String {
@@ -987,9 +1289,128 @@ public struct HomeView: View {
 
         let previousSession = sessions[index + 1]
         let scoreDiff = session.overallScore - previousSession.overallScore
-        let percentChange = (scoreDiff / previousSession.overallScore) * 100
 
-        return percentChange
+        return scoreDiff // Return raw diff, not percentage
+    }
+
+    // Format relative date: "2 days ago", "Today", "Yesterday"
+    private func formatRelativeDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let now = Date()
+        let components = calendar.dateComponents([.day], from: date, to: now)
+
+        if calendar.isDateInToday(date) {
+            return "Today"
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday"
+        } else if let days = components.day, days > 0 {
+            if days == 1 {
+                return "Yesterday"
+            } else if days < 7 {
+                return "\(days) days ago"
+            } else if days < 30 {
+                let weeks = days / 7
+                return weeks == 1 ? "1 week ago" : "\(weeks) weeks ago"
+            } else {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "MMM d"
+                return formatter.string(from: date)
+            }
+        } else {
+            return "Today"
+        }
+    }
+
+    // Formatted today's date for header
+    private var formattedTodayDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMMM"
+        return formatter.string(from: Date())
+    }
+
+    // Generate summary title based on score change
+    private func generateSummaryTitle(_ session: SessionResult) -> String {
+        if sessions.count == 1 {
+            return "Baseline Scan"
+        }
+
+        guard let trend = calculateTrend(for: session) else {
+            return "Latest Scan"
+        }
+
+        if trend > 5 {
+            return "Great Progress!"
+        } else if trend > 0 {
+            return "Good Progress"
+        } else if trend == 0 {
+            return "Steady Progress"
+        } else if trend > -5 {
+            return "Minor Decline"
+        } else {
+            return "Needs Attention"
+        }
+    }
+
+    // Generate summary text based on metric changes
+    private func generateSummaryText(_ session: SessionResult) -> String {
+        // Special case: first scan (baseline)
+        if sessions.count == 1 {
+            return "This is your baseline scan. Complete another scan to track progress and see improvements over time."
+        }
+
+        // Get previous scan for comparison
+        guard let index = sessions.firstIndex(where: { $0.id == session.id }),
+              index < sessions.count - 1 else {
+            return "Your latest scan results are ready to review."
+        }
+
+        let previousSession = sessions[index + 1]
+
+        // Calculate changes for key metrics using ACTUAL SessionResult properties
+        var improvements: [String] = []
+        var declines: [String] = []
+
+        // Smoothness (textureAvg)
+        let smoothnessChange = session.textureAvg - previousSession.textureAvg
+        if smoothnessChange > 2 {
+            improvements.append("smoothness (+\(Int(smoothnessChange))%)")
+        } else if smoothnessChange < -2 {
+            declines.append("smoothness (\(Int(smoothnessChange))%)")
+        }
+
+        // Hydration (moistureSpecular)
+        let hydrationChange = session.moistureSpecular - previousSession.moistureSpecular
+        if hydrationChange > 2 {
+            improvements.append("hydration (+\(Int(hydrationChange))%)")
+        } else if hydrationChange < -2 {
+            declines.append("hydration (\(Int(hydrationChange))%)")
+        }
+
+        // Evenness (pigmentationAvg)
+        let evennessChange = session.pigmentationAvg - previousSession.pigmentationAvg
+        if evennessChange > 2 {
+            improvements.append("evenness (+\(Int(evennessChange))%)")
+        } else if evennessChange < -2 {
+            declines.append("evenness (\(Int(evennessChange))%)")
+        }
+
+        // Build summary text
+        let relativeDate = formatRelativeDate(session.date)
+
+        if !improvements.isEmpty {
+            let improvementText = improvements.joined(separator: " and ")
+            if !declines.isEmpty {
+                let declineText = declines.joined(separator: " and ")
+                return "Your latest scan from \(relativeDate) shows improvement in \(improvementText), but \(declineText) decreased."
+            } else {
+                return "Your latest scan from \(relativeDate) shows improvement in \(improvementText). Keep up your skincare routine!"
+            }
+        } else if !declines.isEmpty {
+            let declineText = declines.joined(separator: " and ")
+            return "Your latest scan from \(relativeDate) shows \(declineText) decreased. Consider adjusting your skincare routine."
+        } else {
+            return "Your skin metrics are stable from \(relativeDate). Maintain your current routine."
+        }
     }
 
     // MARK: - Fallback Storage Support

@@ -3,14 +3,14 @@
 //  Tavi
 //
 //  Created on 2025-10-27.
-//  Updated on 2025-10-28 with emotional design
+//  Updated on 2025-01-10 with tab navigation
 //
 
 import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        HomeView()
+        MainTabView()
     }
 }
 

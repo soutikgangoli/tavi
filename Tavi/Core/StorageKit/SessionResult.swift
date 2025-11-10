@@ -255,6 +255,47 @@ extension SessionResult {
             }
         }
     }
+
+    /// Decode the full Face3DMetrics from stored JSON
+    public var face3DMetrics: Face3DMetrics? {
+        guard let data = clinicalMetricsData else {
+            AppLogger.storage.debug("No clinicalMetricsData available for session \(id)")
+            return nil
+        }
+
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let versionedWrapper = try decoder.decode(VersionedFace3DMetrics.self, from: data)
+            let metrics = try versionedWrapper.extractMetrics()
+            AppLogger.storage.info("✅ Successfully decoded Face3DMetrics (version \(versionedWrapper.version.versionString))")
+            return metrics
+        } catch {
+            AppLogger.storage.error("❌ Failed to decode Face3DMetrics: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "decode_face3d_metrics", "session_id": id.uuidString])
+            return nil
+        }
+    }
+
+    /// Decode EmotionalMetrics from stored JSON
+    public var emotionalMetrics: EmotionalMetrics? {
+        guard let data = emotionalMetricsData else {
+            AppLogger.storage.debug("No emotionalMetricsData available for session \(id)")
+            return nil
+        }
+
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let metrics = try decoder.decode(EmotionalMetrics.self, from: data)
+            AppLogger.storage.info("✅ Successfully decoded EmotionalMetrics")
+            return metrics
+        } catch {
+            AppLogger.storage.error("❌ Failed to decode EmotionalMetrics: \(error)")
+            CrashReporter.shared.logError(error, context: ["operation": "decode_emotional_metrics", "session_id": id.uuidString])
+            return nil
+        }
+    }
 }
 
 // MARK: - Fetch Request

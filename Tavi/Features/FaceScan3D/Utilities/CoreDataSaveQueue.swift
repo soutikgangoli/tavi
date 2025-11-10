@@ -172,9 +172,18 @@ public class CoreDataSaveQueue: ObservableObject {
             // Attempt save
             do {
                 try context.save()
+                #if DEBUG
+                AppLogger.faceScan.info("✅ Core Data save successful (from retry queue)")
+                #endif
                 return true
             } catch {
-                AppLogger.faceScan.error("Failed to save to Core Data: \(error)")
+                #if DEBUG
+                AppLogger.faceScan.error("❌ Failed to save to Core Data (from retry queue): \(error.localizedDescription)")
+                if let nserror = error as NSError? {
+                    AppLogger.faceScan.error("   Domain: \(nserror.domain), Code: \(nserror.code)")
+                    AppLogger.faceScan.error("   UserInfo: \(nserror.userInfo)")
+                }
+                #endif
                 return false
             }
         }

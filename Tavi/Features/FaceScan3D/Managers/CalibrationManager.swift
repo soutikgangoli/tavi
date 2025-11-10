@@ -164,9 +164,10 @@ public class CalibrationManager: ObservableObject {
         state.faceDetected = true
 
         // CRITICAL FIX: Run real quality analysis instead of just ARKit intensity check
-        // Throttle expensive analysis to every 15 frames (0.25s at 60fps) for performance
+        // PERFORMANCE: Throttle expensive sharpness analysis to every 30 frames (0.5s at 60fps) to reduce lag
+        // Quality checks with image analysis are CPU-intensive and cause judder at higher frequencies
         qualityCheckFrameCounter += 1
-        if qualityCheckFrameCounter >= 15 {
+        if qualityCheckFrameCounter >= ScanConfiguration.qualityCheckInterval {
             qualityCheckFrameCounter = 0
             updateRealLightingQuality(frame: frame, faceAnchor: faceAnchor, lightEstimation: lightEstimation)
             // Note: updateRealLightingQuality mutates calibrationState directly, so we need to refresh

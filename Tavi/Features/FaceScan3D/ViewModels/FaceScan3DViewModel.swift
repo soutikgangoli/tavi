@@ -64,9 +64,9 @@ public class FaceScan3DViewModel: ObservableObject {
     @Published public var currentFPS: Double = 0
 
     /// Cached angle values for debug display (updated from managers)
-    @Published private var cachedYaw: Float = 0
-    @Published private var cachedPitch: Float = 0
-    @Published private var cachedRoll: Float = 0
+    @Published public var cachedYaw: Float = 0
+    @Published public var cachedPitch: Float = 0
+    @Published public var cachedRoll: Float = 0
 
     // MARK: - Manager State Passthrough Properties
     // These properties expose manager state for SwiftUI binding compatibility

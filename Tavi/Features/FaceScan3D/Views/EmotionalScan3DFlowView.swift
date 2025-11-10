@@ -36,6 +36,7 @@ public struct EmotionalScan3DFlowView: View {
     @State private var newAchievements: [Achievement] = []
     @State private var cyclingMessageIndex: Int = 0
     @State private var cyclingTimer: Timer?
+    @State private var countdownTimer: Timer?
 
     // Automatic retry state
     @State private var retryCount: Int = 0
@@ -742,8 +743,13 @@ public struct EmotionalScan3DFlowView: View {
                 updateTimeRemaining(from: .meshMerge)
                 CrashReporter.shared.setCustomKey("processing_step", value: "mesh_merge")
 
+                let adjustedMergeTimeout = timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.meshMergeTimeout)
+                #if DEBUG
+                AppLogger.faceScan.info("📊 Mesh merge timeout: \(Int(adjustedMergeTimeout))s (base: \(Int(ScanConfiguration.meshMergeTimeout))s, tier: \(timeEstimator.getPerformanceTier()))")
+                #endif
+
                 let merged = try await withTimeout(
-                    seconds: timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.meshMergeTimeout),
+                    seconds: adjustedMergeTimeout,
                     operation: "Mesh Merge"
                 ) {
                     guard let result = await viewModel.finalizeCapture() else {
@@ -767,8 +773,13 @@ public struct EmotionalScan3DFlowView: View {
                 updateTimeRemaining(from: .textureBake)
                 CrashReporter.shared.setCustomKey("processing_step", value: "texture_bake")
 
+                let adjustedBakeTimeout = timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.textureBakeTimeout)
+                #if DEBUG
+                AppLogger.faceScan.info("📊 Texture bake timeout: \(Int(adjustedBakeTimeout))s (base: \(Int(ScanConfiguration.textureBakeTimeout))s)")
+                #endif
+
                 let bakeResult = try await withTimeout(
-                    seconds: timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.textureBakeTimeout),
+                    seconds: adjustedBakeTimeout,
                     operation: "Texture Baking"
                 ) {
                     guard let result = await viewModel.bakeTextureFromSequence() else {
@@ -791,8 +802,13 @@ public struct EmotionalScan3DFlowView: View {
                 // Attempt metrics computation with timeout protection
                 AppLogger.faceScan.info("🔬 Starting metrics computation with timeout...")
 
+                let adjustedMetricsTimeout = timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.metricsComputationTimeout)
+                #if DEBUG
+                AppLogger.faceScan.info("📊 Metrics computation timeout: \(Int(adjustedMetricsTimeout))s (base: \(Int(ScanConfiguration.metricsComputationTimeout))s)")
+                #endif
+
                 let computedClinicalMetrics = try await withTimeout(
-                    seconds: timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.metricsComputationTimeout),
+                    seconds: adjustedMetricsTimeout,
                     operation: "Metrics Computation"
                 ) {
                     guard let result = await viewModel.compute3DMetrics() else {
@@ -898,8 +914,9 @@ public struct EmotionalScan3DFlowView: View {
                 CrashReporter.shared.setCustomKey("glow_score", value: emotional.glowScore)
                 CrashReporter.shared.setCustomKey("achievements_unlocked", value: unlockedAchievements.count)
 
-                // Stop cycling messages
+                // Stop timers
                 stopCyclingMessages()
+                stopTimeCountdown()
 
                 // Show achievement unlock if any
                 if !unlockedAchievements.isEmpty {
@@ -909,8 +926,9 @@ public struct EmotionalScan3DFlowView: View {
                 }
 
             } catch let scanError as ScanError {
-                // Stop cycling messages on error too
+                // Stop timers on error too
                 stopCyclingMessages()
+                stopTimeCountdown()
                 // Log scan error with full context
                 CrashReporter.shared.logScanError(
                     scanError,
@@ -1144,10 +1162,31 @@ public struct EmotionalScan3DFlowView: View {
             // Save to Core Data
             do {
                 try context.save()
+                #if DEBUG
                 AppLogger.faceScan.info("✅ Session saved successfully to Core Data!")
+                #endif
                 return true
             } catch {
+                #if DEBUG
                 AppLogger.faceScan.error("❌ Failed to save session: \(error.localizedDescription)")
+                if let nserror = error as NSError? {
+                    AppLogger.faceScan.error("   Domain: \(nserror.domain), Code: \(nserror.code)")
+                    AppLogger.faceScan.error("   UserInfo: \(nserror.userInfo)")
+                    // Check for common Core Data save errors
+                    if nserror.domain == NSCocoaErrorDomain {
+                        switch nserror.code {
+                        case 134030: // NSPersistentStoreSaveConflictsError
+                            AppLogger.faceScan.error("   Save conflict detected - another save may be in progress")
+                        case 134020: // NSManagedObjectValidationError
+                            AppLogger.faceScan.error("   Validation error - some required fields may be missing")
+                        case 134060: // NSPersistentStoreTimeoutError
+                            AppLogger.faceScan.error("   Timeout - Core Data took too long to respond")
+                        default:
+                            break
+                        }
+                    }
+                }
+                #endif
                 CrashReporter.shared.logError(error, context: [
                     "operation": "core_data_save",
                     "retry_count": "\(saveRetryCount)"
@@ -1213,8 +1252,9 @@ struct AchievementUnlockOverlay: View {
 
             // Achievement card
             VStack(spacing: 20) {
-                Text("🎉")
-                    .font(.system(size: 80))
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 80, weight: .light))
+                    .foregroundColor(.orange)
 
                 Text("Achievement Unlocked!")
                     .font(.title)
@@ -1222,8 +1262,9 @@ struct AchievementUnlockOverlay: View {
 
                 ForEach(achievements.prefix(1)) { achievement in
                     VStack(spacing: 12) {
-                        Text(achievement.emoji)
-                            .font(.system(size: 64))
+                        Image(systemName: achievement.iconName)
+                            .font(.system(size: 64, weight: .medium))
+                            .foregroundColor(.orange)
 
                         Text(achievement.title)
                             .font(.title2)
@@ -1406,7 +1447,11 @@ extension EmotionalScan3DFlowView {
 
     /// Start the real-time countdown timer
     private func startTimeCountdown() {
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+        // Invalidate any existing timer first
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak timer] _ in
             DispatchQueue.main.async { [self] in
                 // Only count down if we have time remaining
                 if timeRemainingSeconds > 0 {
@@ -1417,10 +1462,17 @@ extension EmotionalScan3DFlowView {
                 if case .processing = flowState {
                     // Continue
                 } else {
-                    timer.invalidate()
+                    timer?.invalidate()
+                    countdownTimer = nil
                 }
             }
         }
+    }
+
+    /// Stop the countdown timer
+    private func stopTimeCountdown() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
     }
 
     // MARK: - JSON Backup Functions

@@ -271,19 +271,19 @@ public struct SocialSharingView: View {
         switch selectedShareType {
         case .progress:
             return """
-            🌟 My Skin Health Index: \(emotionalMetrics.glowScore)/100!
+            My Skin Health Index: \(emotionalMetrics.glowScore)/100!
             \(emotionalMetrics.primaryInsight)
 
-            Tracking my skincare journey with Tavi ✨
+            Tracking my skincare journey with Tavi
             """
 
         case .achievement:
             if let achievement = recentAchievement {
                 return """
-                \(achievement.emoji) Achievement Unlocked!
+                Achievement Unlocked!
                 \(achievement.title): \(achievement.description)
 
-                Tracking my skincare journey with Tavi ✨
+                Tracking my skincare journey with Tavi
                 """
             }
             return "Tracking my skincare with Tavi!"
@@ -291,10 +291,10 @@ public struct SocialSharingView: View {
         case .streak:
             if let streak = streak {
                 return """
-                \(streak.streakEmoji) \(streak.currentStreak)-day streak!
+                \(streak.currentStreak)-day streak!
                 \(streak.streakMessage)
 
-                Consistency is key! 💪
+                Consistency is key!
                 """
             }
             return "Building healthy skincare habits!"
@@ -302,11 +302,11 @@ public struct SocialSharingView: View {
         case .challenge:
             if let challenge = challenge {
                 return """
-                🏆 30-Day Glow Challenge Progress!
+                30-Day Glow Challenge Progress!
                 Day \(challenge.daysCompleted)/\(challenge.goalDays)
                 Skin Health Index: \(challenge.baselineGlowScore) → \(challenge.currentGlowScore) (+\(challenge.glowImprovement))
 
-                Join me in the challenge! 🌟
+                Join me in the challenge!
                 """
             }
             return "Starting my 30-day glow challenge!"
@@ -355,11 +355,11 @@ struct ProgressShareCard: View {
 
                 // Mini sub-scores
                 HStack(spacing: 16) {
-                    MiniScore(emoji: "✨", value: metrics.radiance)
-                    MiniScore(emoji: "🧈", value: metrics.smoothness)
-                    MiniScore(emoji: "🌟", value: metrics.evenness)
-                    MiniScore(emoji: "🌸", value: metrics.youthfulness)
-                    MiniScore(emoji: "🌿", value: metrics.freshness)
+                    MiniScore(iconName: "sparkles", value: metrics.radiance)
+                    MiniScore(iconName: "waveform.path", value: metrics.smoothness)
+                    MiniScore(iconName: "circle.hexagongrid.fill", value: metrics.evenness)
+                    MiniScore(iconName: "leaf.fill", value: metrics.youthfulness)
+                    MiniScore(iconName: "drop.fill", value: metrics.freshness)
                 }
             }
             .padding(32)
@@ -563,13 +563,14 @@ struct ChallengeShareCard: View {
 // MARK: - Supporting Views
 
 struct MiniScore: View {
-    let emoji: String
+    let iconName: String
     let value: Int
 
     var body: some View {
         VStack(spacing: 2) {
-            Text(emoji)
+            Image(systemName: iconName)
                 .font(.caption)
+                .foregroundColor(.white.opacity(0.9))
             Text("\(value)")
                 .font(.caption2)
                 .fontWeight(.semibold)

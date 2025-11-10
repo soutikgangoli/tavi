@@ -22,7 +22,33 @@ struct ResultsHistoryView: View {
     @State private var sessionToDelete: SessionResult?
     @State private var showingDeleteAlert = false
     @State private var selectedSession: SessionResult?
+    @State private var selectedTimeFilter: TimeFilter = .all
     @State private var errorState: ErrorState?
+
+    enum TimeFilter: String, CaseIterable {
+        case all = "All"
+        case last30Days = "Last 30 Days"
+        case last3Months = "Last 3 Months"
+
+        var daysBack: Int? {
+            switch self {
+            case .all: return nil
+            case .last30Days: return 30
+            case .last3Months: return 90
+            }
+        }
+    }
+
+    private var filteredSessions: [SessionResult] {
+        guard let daysBack = selectedTimeFilter.daysBack else {
+            return Array(sessions)
+        }
+
+        let calendar = Calendar.current
+        let cutoffDate = calendar.date(byAdding: .day, value: -daysBack, to: Date())!
+
+        return sessions.filter { $0.date >= cutoffDate }
+    }
 
     var body: some View {
         Group {
@@ -99,20 +125,23 @@ struct ResultsHistoryView: View {
 
     private var sessionsList: some View {
         ScrollView {
-            LazyVStack(spacing: 16) {
-                ForEach(sessions) { session in
-                    SessionCard(session: session)
-                        .onTapGesture {
-                            selectedSession = session
-                        }
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                sessionToDelete = session
-                                showingDeleteAlert = true
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+                // Filter chips
+                filterChipsView
+
+                // Sessions list
+                LazyVStack(spacing: 16) {
+                    ForEach(filteredSessions, id: \.id) { session in
+                        enhancedSessionCard(session)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    sessionToDelete = session
+                                    showingDeleteAlert = true
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
-                        }
+                    }
                 }
             }
             .padding()
@@ -120,6 +149,152 @@ struct ResultsHistoryView: View {
         .refreshable {
             // Refresh all CoreData objects from persistent store
             viewContext.refreshAllObjects()
+        }
+    }
+
+    // MARK: - Filter Chips
+
+    private var filterChipsView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: HeadspaceDesign.Spacing.sm) {
+                ForEach(TimeFilter.allCases, id: \.self) { filter in
+                    filterChip(filter)
+                }
+            }
+        }
+    }
+
+    private func filterChip(_ filter: TimeFilter) -> some View {
+        Button {
+            selectedTimeFilter = filter
+        } label: {
+            Text(filter.rawValue)
+                .font(.system(size: 14, weight: selectedTimeFilter == filter ? .semibold : .medium, design: .rounded))
+                .foregroundColor(
+                    selectedTimeFilter == filter
+                    ? .white
+                    : HeadspaceDesign.Colors.textPrimary
+                )
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(
+                    selectedTimeFilter == filter
+                    ? HeadspaceDesign.Colors.primary
+                    : HeadspaceDesign.Colors.textSecondary.opacity(0.1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+    }
+
+    // MARK: - Enhanced Session Card
+
+    private func enhancedSessionCard(_ session: SessionResult) -> some View {
+        VStack(spacing: 0) {
+            // Main content
+            Button {
+                selectedSession = session
+            } label: {
+                HStack(spacing: 12) {
+                    // Score circle
+                    ZStack {
+                        Circle()
+                            .fill(scoreColor(session.overallScore).opacity(0.15))
+                            .frame(width: 50, height: 50)
+
+                        Text("\(Int(session.overallScore))")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(scoreColor(session.overallScore))
+                    }
+
+                    // Name, Date Time, Score% in one line
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(session.relativeDate)
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                        Text(formattedDateTime(session.date))
+                            .font(.system(size: 14, weight: .regular, design: .rounded))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    }
+
+                    Spacer()
+
+                    // Chevron
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                }
+                .padding(HeadspaceDesign.Spacing.md)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // Compare button (for non-latest scans)
+            if let latestSession = sessions.first, session.id != latestSession.id {
+                Divider()
+
+                NavigationLink {
+                    Comparison3DView(
+                        beforeSession: session,
+                        afterSession: latestSession
+                    )
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.left.arrow.right")
+                            .font(.system(size: 14, weight: .semibold))
+
+                        Text("Compare with Latest")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                    .padding(HeadspaceDesign.Spacing.sm)
+                    .padding(.horizontal, HeadspaceDesign.Spacing.xs)
+                }
+            }
+        }
+        .background(HeadspaceDesign.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color.opacity(0.5),
+            radius: HeadspaceDesign.Shadows.card.radius / 2,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+
+    private func scoreColor(_ score: Double) -> Color {
+        switch score {
+        case 90...100: return Color(red: 76/255, green: 217/255, blue: 100/255)
+        case 80..<90: return Color(red: 101/255, green: 188/255, blue: 126/255)
+        case 50..<80: return Color(red: 149/255, green: 218/255, blue: 176/255)
+        case 30..<50: return Color(red: 255/255, green: 204/255, blue: 0/255)
+        default: return Color(red: 255/255, green: 59/255, blue: 48/255)
+        }
+    }
+
+    private func formattedDateTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+
+        // Get day with ordinal suffix (1st, 2nd, 3rd, etc.)
+        let day = Calendar.current.component(.day, from: date)
+        let daySuffix = ordinalSuffix(for: day)
+
+        // Format: "19th May 3pm"
+        formatter.dateFormat = "d'\(daySuffix)' MMM ha"
+
+        return formatter.string(from: date).lowercased()
+    }
+
+    private func ordinalSuffix(for day: Int) -> String {
+        switch day {
+        case 1, 21, 31: return "st"
+        case 2, 22: return "nd"
+        case 3, 23: return "rd"
+        default: return "th"
         }
     }
 

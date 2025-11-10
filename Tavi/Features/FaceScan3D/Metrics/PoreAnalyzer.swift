@@ -9,18 +9,79 @@
 import UIKit
 import Accelerate
 
+/// Pore size classification
+public enum PoreSize: String, Codable, Sendable {
+    case small = "Small"     // < 3 pixels
+    case medium = "Medium"   // 3-6 pixels
+    case large = "Large"     // > 6 pixels
+    case veryLarge = "Very Large"  // > 10 pixels
+
+    public var score: Float {
+        switch self {
+        case .small: return 90
+        case .medium: return 70
+        case .large: return 50
+        case .veryLarge: return 30
+        }
+    }
+}
+
+/// Pore size distribution
+public struct PoreSizeDistribution: Codable, Sendable {
+    public let smallCount: Int       // Pores < 3 pixels
+    public let mediumCount: Int      // Pores 3-6 pixels
+    public let largeCount: Int       // Pores 6-10 pixels
+    public let veryLargeCount: Int   // Pores > 10 pixels
+
+    public var totalCount: Int {
+        smallCount + mediumCount + largeCount + veryLargeCount
+    }
+
+    public var smallPercentage: Float {
+        guard totalCount > 0 else { return 0 }
+        return Float(smallCount) / Float(totalCount) * 100
+    }
+
+    public var mediumPercentage: Float {
+        guard totalCount > 0 else { return 0 }
+        return Float(mediumCount) / Float(totalCount) * 100
+    }
+
+    public var largePercentage: Float {
+        guard totalCount > 0 else { return 0 }
+        return Float(largeCount) / Float(totalCount) * 100
+    }
+
+    public var veryLargePercentage: Float {
+        guard totalCount > 0 else { return 0 }
+        return Float(veryLargeCount) / Float(totalCount) * 100
+    }
+
+    public var dominantSize: PoreSize {
+        let counts = [(PoreSize.small, smallCount), (PoreSize.medium, mediumCount),
+                      (PoreSize.large, largeCount), (PoreSize.veryLarge, veryLargeCount)]
+        return counts.max(by: { $0.1 < $1.1 })?.0 ?? .medium
+    }
+}
+
 /// Pore analysis result
 public struct PoreAnalysis: Codable, Sendable {
-    public let visibility: Float  // 0-100, lower is better
+    public let visibility: Float  // 0-100, lower is better (inverse)
+    public let visibilityScore: Float  // 0-100, higher is better (for consistency with other metrics)
     public let density: Float     // pores per cm²
     public let averageSize: Float // in pixels
+    public let sizeDistribution: PoreSizeDistribution  // NEW: Size classification
+    public let dominantSize: PoreSize  // NEW: Most common pore size
     public let regionalScores: [String: Float]
     public let confidence: Float  // 0-100, reliability of detection
 
-    public init(visibility: Float, density: Float, averageSize: Float, regionalScores: [String: Float], confidence: Float) {
+    public init(visibility: Float, density: Float, averageSize: Float, sizeDistribution: PoreSizeDistribution, regionalScores: [String: Float], confidence: Float) {
         self.visibility = visibility
+        self.visibilityScore = 100 - visibility  // Inverse for consistency
         self.density = density
         self.averageSize = averageSize
+        self.sizeDistribution = sizeDistribution
+        self.dominantSize = sizeDistribution.dominantSize
         self.regionalScores = regionalScores
         self.confidence = confidence
     }
@@ -54,6 +115,31 @@ class PoreAnalyzer {
         // Calculate average pore size
         let averageSize = poreDetectionResult.averagePoreSize
 
+        // Classify pores by size
+        var smallCount = 0
+        var mediumCount = 0
+        var largeCount = 0
+        var veryLargeCount = 0
+
+        for pore in poreDetectionResult.poreLocations {
+            if pore.size < 3.0 {
+                smallCount += 1
+            } else if pore.size < 6.0 {
+                mediumCount += 1
+            } else if pore.size < 10.0 {
+                largeCount += 1
+            } else {
+                veryLargeCount += 1
+            }
+        }
+
+        let sizeDistribution = PoreSizeDistribution(
+            smallCount: smallCount,
+            mediumCount: mediumCount,
+            largeCount: largeCount,
+            veryLargeCount: veryLargeCount
+        )
+
         // Analyze regional pore distribution
         let regionalScores = analyzeRegionalPores(
             image: cgImage,
@@ -72,9 +158,11 @@ class PoreAnalyzer {
         )
 
         print("✅ Pore analysis complete:")
-        print("   Visibility: \(String(format: "%.1f", visibility))/100")
+        print("   Visibility: \(String(format: "%.1f", visibility))/100 (Score: \(String(format: "%.1f", 100 - visibility)))")
         print("   Density: \(String(format: "%.1f", density)) pores/cm²")
         print("   Avg size: \(String(format: "%.2f", averageSize)) pixels")
+        print("   Size distribution: Small=\(smallCount), Medium=\(mediumCount), Large=\(largeCount), VeryLarge=\(veryLargeCount)")
+        print("   Dominant size: \(sizeDistribution.dominantSize.rawValue)")
         print("   Confidence: \(String(format: "%.1f", confidence))%")
         print("   Regional scores: \(regionalScores.count) regions")
 
@@ -82,6 +170,7 @@ class PoreAnalyzer {
             visibility: visibility,
             density: density,
             averageSize: averageSize,
+            sizeDistribution: sizeDistribution,
             regionalScores: regionalScores,
             confidence: confidence
         )

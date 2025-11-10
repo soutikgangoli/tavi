@@ -30,8 +30,9 @@ public struct ClinicalInfoView: View {
                 }
             }) {
                 HStack {
-                    Text("🔬")
+                    Image(systemName: "flask.fill")
                         .font(.headline)
+                        .foregroundColor(.blue)
 
                     Text("The Science Behind Your Results")
                         .font(.headline)
@@ -61,8 +62,9 @@ public struct ClinicalInfoView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         // Header
                         HStack {
-                            Text("✨")
+                            Image(systemName: "sparkles")
                                 .font(.title2)
+                                .foregroundColor(.yellow)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Radiance: \(emotionalMetrics.radiance)/100")
                                     .font(.headline)
