@@ -22,6 +22,7 @@ struct ResultsDetailView: View {
     @State private var clinicalMetrics: Face3DMetrics?
     @State private var isGeneratingPDF = false
     @State private var isPreparingShare = false
+    @State private var showSocialSharing = false
     @State private var errorState: ErrorState?
 
     init(session: SessionResult) {
@@ -56,6 +57,14 @@ struct ResultsDetailView: View {
         .navigationTitle("Analysis Results")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    showSocialSharing = true
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+            }
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     showingDeleteAlert = true
@@ -72,6 +81,23 @@ struct ResultsDetailView: View {
             }
         } message: {
             Text("Are you sure you want to delete this analysis session?")
+        }
+        .sheet(isPresented: $showSocialSharing) {
+            // Decode emotional metrics from session data
+            if let emotionalData = session.emotionalMetricsData,
+               let decoded = try? JSONDecoder().decode(EmotionalMetrics.self, from: emotionalData) {
+                SocialSharingView(
+                    emotionalMetrics: decoded,
+                    streak: GamificationManager.shared.getStreak(),
+                    challenge: GamificationManager.shared.getCurrentChallenge(),
+                    recentAchievement: nil
+                )
+            } else {
+                // Fallback if no emotional metrics available
+                Text("Unable to load sharing options")
+                    .foregroundColor(.secondary)
+                    .padding()
+            }
         }
     }
 

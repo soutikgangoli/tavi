@@ -158,8 +158,9 @@ public class CaptureSequenceManager: ObservableObject {
             }
         }
 
+        // OPTIMIZATION: Debug logging only in debug builds to reduce overhead
+        #if DEBUG
         // Debug logging - shows angles and feedback EVERY 10 frames for troubleshooting
-        // TODO: Change back to % 30 after debugging Direction indicator issue
         if frameCount % 10 == 0 {
             let feedbackStr = feedback ?? "✓ Good"
             AppLogger.faceScan.info("""
@@ -177,27 +178,36 @@ public class CaptureSequenceManager: ObservableObject {
         if frameCount % 30 == 0 {
             print("🔍 COUNTDOWN CHECK [Frame \(frameCount)]: isPoseValid=\(isPoseValid), isCalibrated=\(isCalibrated), qualityGood=\(qualityGood), isCaptureInProgress=\(self.isCaptureInProgress), countdownTimer=\(self.countdownTimer), holdStableTimer=\(self.holdStableTimer != nil ? "exists" : "nil")")
         }
-        
+        #endif
+
         // PERFORMANCE: Reset any stuck timers if conditions are good
         if isPoseValid && isCalibrated && qualityGood && !self.isCaptureInProgress {
             // If timer exists but countdown is 0, something is stuck - reset it
             if self.holdStableTimer != nil && self.countdownTimer == 0 {
+                #if DEBUG
                 AppLogger.faceScan.warning("⚠️ Resetting stuck countdown timer")
+                #endif
                 self.holdStableTimer?.invalidate()
                 self.holdStableTimer = nil
             }
-            
+
             if self.countdownTimer == 0 && self.holdStableTimer == nil {
+                #if DEBUG
                 print("✅✅✅ ALL CONDITIONS MET - STARTING COUNTDOWN!")
+                #endif
                 AppLogger.faceScan.info("✅ All conditions met - starting countdown")
                 startCaptureCountdown(faceAnchor: faceAnchor, yaw: yaw, pitch: pitch, roll: roll)
             } else {
+                #if DEBUG
                 if frameCount % 30 == 0 {
                     print("⚠️ Countdown blocked: countdownTimer=\(self.countdownTimer), holdStableTimer=\(self.holdStableTimer != nil ? "exists" : "nil")")
                 }
+                #endif
             }
             self.countdownToleranceFrames = 0
         } else {
+            // OPTIMIZATION: Debug logging only in debug builds
+            #if DEBUG
             // DEBUG: Log why countdown isn't starting (throttled to every 30 frames)
             if frameCount % 30 == 0 {
                 var reasons: [String] = []
@@ -207,11 +217,12 @@ public class CaptureSequenceManager: ObservableObject {
                 if self.isCaptureInProgress { reasons.append("capture in progress") }
                 if self.countdownTimer > 0 { reasons.append("countdown already running") }
                 if self.holdStableTimer != nil { reasons.append("timer exists") }
-                
+
                 print("⏸️ COUNTDOWN NOT STARTING: \(reasons.joined(separator: ", "))")
                 AppLogger.faceScan.warning("⏸️ Countdown NOT starting: \(reasons.joined(separator: ", "))")
             }
-            
+            #endif
+
             // Handle countdown cancellation with tolerance
             // IMPORTANT: Cancel countdown if EITHER pose is invalid OR quality is bad
             let shouldCancelCountdown = !isPoseValid || !qualityGood

@@ -384,43 +384,77 @@ public struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
     }
 
-    /// 3 Hero rings section - using ACTUAL metrics from SessionResult
+    /// Hero rings section - 1 large overall ring + 3 smaller metric rings
     private var heroRingsSection: some View {
-        HStack(spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(spacing: HeadspaceDesign.Spacing.lg) {
             if let latest = latestSession {
-                // Ring 1: Texture/Smoothness (like Recovery in Fitness)
+                // Large Overall Score Ring
                 Button {
-                    selectedMetricType = .smoothness
+                    selectedMetricType = .overall
                 } label: {
-                    heroRing(
-                        score: latest.textureAvg,
-                        label: "Smoothness",
-                        color: Color(red: 101/255, green: 188/255, blue: 126/255)  // Green
+                    largeHeroRing(
+                        score: latest.overallScore,
+                        label: "Overall Health",
+                        color: HeadspaceDesign.Colors.primary
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
 
-                // Ring 2: Hydration (like Sleep in Fitness)
-                Button {
-                    selectedMetricType = .hydration
-                } label: {
-                    heroRing(
-                        score: latest.moistureSpecular,
-                        label: "Hydration",
-                        color: Color(red: 95/255, green: 158/255, blue: 255/255)  // Blue
-                    )
-                }
-                .buttonStyle(PlainButtonStyle())
+                // 3 Smaller Metric Rings
+                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                    // Ring 1: Smoothness
+                    Button {
+                        selectedMetricType = .smoothness
+                    } label: {
+                        smallHeroRing(
+                            score: latest.textureAvg,
+                            label: "Smoothness",
+                            color: Color(red: 101/255, green: 188/255, blue: 126/255)  // Green
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
 
-                // Ring 3: Pigmentation/Evenness (like Strain in Fitness)
+                    // Ring 2: Evenness
+                    Button {
+                        selectedMetricType = .pigmentation
+                    } label: {
+                        smallHeroRing(
+                            score: latest.pigmentationAvg,
+                            label: "Evenness",
+                            color: Color(red: 252/255, green: 188/255, blue: 78/255)  // Yellow
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    // Ring 3: Radiance (from clinical metrics)
+                    Button {
+                        selectedMetricType = .overall  // Will open overall detail for now
+                    } label: {
+                        smallHeroRing(
+                            score: getRadianceScore(from: latest),
+                            label: "Radiance",
+                            color: Color(red: 255/255, green: 159/255, blue: 243/255)  // Pink
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+
+                // View All Metrics Button
                 Button {
-                    selectedMetricType = .pigmentation
+                    selectedSessionForDetail = latest
                 } label: {
-                    heroRing(
-                        score: latest.pigmentationAvg,
-                        label: "Evenness",
-                        color: Color(red: 252/255, green: 188/255, blue: 78/255)  // Yellow
-                    )
+                    HStack {
+                        Text("View All Metrics")
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(HeadspaceDesign.Colors.primary.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.sm))
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -428,38 +462,86 @@ public struct HomeView: View {
         .padding(.vertical, HeadspaceDesign.Spacing.md)
     }
 
-    /// Individual hero ring
-    private func heroRing(score: Double, label: String, color: Color) -> some View {
+    /// Large hero ring for overall score
+    private func largeHeroRing(score: Double, label: String, color: Color) -> some View {
         VStack(spacing: HeadspaceDesign.Spacing.sm) {
             ZStack {
                 // Background circle
                 Circle()
-                    .stroke(color.opacity(0.2), lineWidth: 8)
-                    .frame(width: 100, height: 100)
+                    .stroke(color.opacity(0.2), lineWidth: 12)
+                    .frame(width: 140, height: 140)
 
                 // Progress circle
                 Circle()
                     .trim(from: 0, to: CGFloat(score / 100))
-                    .stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .frame(width: 100, height: 100)
+                    .stroke(color, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                    .frame(width: 140, height: 140)
                     .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 1.0), value: score)
 
                 // Score text
-                Text("\(Int(score))")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                VStack(spacing: 2) {
+                    Text("\(Int(score))")
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
-                Text("%")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-                    .offset(x: 20, y: 10)
+                    Text("%")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                }
             }
 
             Text(label)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+        }
+    }
+
+    /// Small hero ring for individual metrics
+    private func smallHeroRing(score: Double, label: String, color: Color) -> some View {
+        VStack(spacing: HeadspaceDesign.Spacing.xs) {
+            ZStack {
+                // Background circle
+                Circle()
+                    .stroke(color.opacity(0.2), lineWidth: 6)
+                    .frame(width: 70, height: 70)
+
+                // Progress circle
+                Circle()
+                    .trim(from: 0, to: CGFloat(score / 100))
+                    .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .frame(width: 70, height: 70)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.8), value: score)
+
+                // Score text
+                Text("\(Int(score))")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+            }
+
+            Text(label)
+                .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// Extract radiance score from clinical metrics
+    private func getRadianceScore(from session: SessionResult) -> Double {
+        // Try to extract radiance from clinical metrics
+        if let data = session.clinicalMetricsData {
+            let result = VersionedMetricsLoader.loadFace3DMetrics(from: data)
+            if let metrics = result.metrics,
+               let glowAnalysis = metrics.glowAnalysis {
+                return glowAnalysis.radianceScore
+            }
+        }
+
+        // Fallback: use moistureSpecular as proxy for radiance (specular = shininess/glow)
+        return session.moistureSpecular
     }
 
     /// Latest scan summary card

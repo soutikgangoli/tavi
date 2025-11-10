@@ -60,6 +60,15 @@ struct ResultsHistoryView: View {
         }
         .navigationTitle("Analysis History")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    InsightsTabView()
+                } label: {
+                    Label("Insights", systemImage: "chart.line.uptrend.xyaxis")
+                }
+            }
+        }
         .alert("Delete Session", isPresented: $showingDeleteAlert, presenting: sessionToDelete) { session in
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {

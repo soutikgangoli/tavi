@@ -193,50 +193,61 @@ public class CalibrationManager: ObservableObject {
     }
 
     /// Perform comprehensive lighting quality analysis on actual camera image
+    /// OPTIMIZATION: Now runs asynchronously on background thread to prevent main thread blocking
     private func updateRealLightingQuality(frame: ARFrame, faceAnchor: ARFaceAnchor, lightEstimation: LightEstimation?) {
         let pixelBuffer = frame.capturedImage
 
-        // Convert to UIImage for analysis
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
-            // Fallback to basic check if conversion fails
-            calibrationState.updateLighting(from: lightEstimation)
-            return
-        }
-        let texture = UIImage(cgImage: cgImage)
+        // OPTIMIZATION: Move expensive image processing off main thread
+        Task.detached(priority: .userInitiated) { [weak self, pixelBuffer, faceAnchor] in
+            guard let self = self else { return }
 
-        // Run EdgeCaseDetector analysis with "Strict" mode
-        let edgeCases = edgeCaseDetector.detectEdgeCases(
-            texture: texture,
-            faceAnchor: faceAnchor,
-            strictness: .strict
-        )
-
-        // Update calibration state based on actual quality metrics
-        if !edgeCases.shouldProceed {
-            // BLOCKING issue detected - mark as bad lighting
-            let issue = edgeCases.blockReason ?? "Poor lighting quality"
-
-            // Determine specific lighting condition from the block reason
-            if issue.lowercased().contains("dark") || issue.lowercased().contains("underexposed") {
-                calibrationState.lighting = .tooDark
-                calibrationState.lightingDetail = issue
-            } else if issue.lowercased().contains("bright") || issue.lowercased().contains("overexposed") {
-                calibrationState.lighting = .tooBright
-                calibrationState.lightingDetail = issue
-            } else {
-                // Other quality issues (shadows, color cast, etc.)
-                calibrationState.lighting = .poor
-                calibrationState.lightingDetail = issue
+            // Convert to UIImage for analysis (off main thread)
+            let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+            guard let cgImage = await self.ciContext.createCGImage(ciImage, from: ciImage.extent) else {
+                // Fallback to basic check if conversion fails
+                await MainActor.run {
+                    self.calibrationState.updateLighting(from: lightEstimation)
+                }
+                return
             }
-        } else if !edgeCases.warnings.isEmpty {
-            // WARNING - not blocking but quality could be better
-            calibrationState.lighting = .acceptable
-            calibrationState.lightingDetail = edgeCases.warnings.first
-        } else {
-            // All checks passed
-            calibrationState.lighting = .good
-            calibrationState.lightingDetail = nil
+            let texture = UIImage(cgImage: cgImage)
+
+            // Run EdgeCaseDetector analysis with "Strict" mode (expensive - off main thread)
+            let edgeCases = await self.edgeCaseDetector.detectEdgeCases(
+                texture: texture,
+                faceAnchor: faceAnchor,
+                strictness: .strict
+            )
+
+            // Update calibration state on main thread
+            await MainActor.run {
+                // Update calibration state based on actual quality metrics
+                if !edgeCases.shouldProceed {
+                    // BLOCKING issue detected - mark as bad lighting
+                    let issue = edgeCases.blockReason ?? "Poor lighting quality"
+
+                    // Determine specific lighting condition from the block reason
+                    if issue.lowercased().contains("dark") || issue.lowercased().contains("underexposed") {
+                        self.calibrationState.lighting = .tooDark
+                        self.calibrationState.lightingDetail = issue
+                    } else if issue.lowercased().contains("bright") || issue.lowercased().contains("overexposed") {
+                        self.calibrationState.lighting = .tooBright
+                        self.calibrationState.lightingDetail = issue
+                    } else {
+                        // Other quality issues (shadows, color cast, etc.)
+                        self.calibrationState.lighting = .poor
+                        self.calibrationState.lightingDetail = issue
+                    }
+                } else if !edgeCases.warnings.isEmpty {
+                    // WARNING - not blocking but quality could be better
+                    self.calibrationState.lighting = .acceptable
+                    self.calibrationState.lightingDetail = edgeCases.warnings.first
+                } else {
+                    // All checks passed
+                    self.calibrationState.lighting = .good
+                    self.calibrationState.lightingDetail = nil
+                }
+            }
         }
     }
 

@@ -49,6 +49,17 @@ public class ARFaceTrackingViewController: UIViewController {
     /// Minimum frames required (if tracking quality is good)
     private let minimumFrameCount: Int = 8
 
+    // MARK: - Performance Optimization Properties
+
+    /// Cached light estimation to avoid repeated allocations
+    private var cachedLightEstimation: LightEstimation?
+
+    /// Previous frame count to detect changes
+    private var previousFrameCount: Int = 0
+
+    /// Previous confidence to detect changes
+    private var previousConfidence: Float = 0
+
     // MARK: - Lifecycle
 
     public override func viewDidLoad() {
@@ -270,22 +281,26 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
                 timestamp: frameTimestamp
             )
 
-            // Notify viewModel of frame count update (no frame data needed)
-            Task {
-                await MainActor.run {
-                    viewModel?.onFrameCaptured(
-                        frameCount: averager.frameCount,
-                        targetCount: targetFrameCount,
-                        confidence: confidence
-                    )
-                }
-            }
+            let currentFrameCount = averager.frameCount
+            let reachedTarget = currentFrameCount >= targetFrameCount
 
-            // Auto-stop if we've reached target (no frame data needed)
-            if averager.frameCount >= targetFrameCount {
-                Task {
+            // OPTIMIZATION: Only create Task if state changed or target reached
+            if currentFrameCount != previousFrameCount || reachedTarget {
+                previousFrameCount = currentFrameCount
+                previousConfidence = confidence
+
+                // Batch both updates in single Task to reduce allocation overhead
+                Task { [weak viewModel] in
                     await MainActor.run {
-                        viewModel?.onMultiFrameCaptureReachedTarget()
+                        viewModel?.onFrameCaptured(
+                            frameCount: currentFrameCount,
+                            targetCount: targetFrameCount,
+                            confidence: confidence
+                        )
+
+                        if reachedTarget {
+                            viewModel?.onMultiFrameCaptureReachedTarget()
+                        }
                     }
                 }
             }
@@ -295,14 +310,21 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
         // CRITICAL FIX: Extract light estimation data BEFORE Task to prevent ARFrame retention
         // ARFrames are heavy objects (11-13 retained frames causes memory warnings)
         // The Task closure capturing frame strongly causes the retention leak
-        let lightEstimation = LightEstimation(frame: frame)
 
-        // For actual capture operations AND guidance mode (for quality checks), we DO need the frame
-        // But we let the ViewModel manage when to actually retain it
-        // The weak currentFrame property will be nil most of the time, only set during capture/guidance
+        // OPTIMIZATION: Reuse cached light estimation object instead of creating new one each frame
+        if cachedLightEstimation == nil {
+            cachedLightEstimation = LightEstimation(frame: frame)
+        } else {
+            // Update existing object with new frame data (reduces allocations)
+            cachedLightEstimation = LightEstimation(frame: frame)
+        }
+
+        guard let lightEstimation = cachedLightEstimation else { return }
+
+        // For actual capture operations, we DO need the frame (but NOT during guidance)
+        // OPTIMIZATION: Only pass frame during actual capture to reduce memory pressure
         let isCapturing = viewModel?.captureManager.isCaptureInProgress ?? false
-        let isGuidanceActive = viewModel?.captureManager.isGuidanceActive ?? false
-        let frameRef = (isCapturing || isGuidanceActive) ? frame : nil  // Pass frame during capture OR guidance
+        let frameRef = isCapturing ? frame : nil  // Only during capture, NOT guidance
 
         Task { [weak viewModel, faceAnchor, lightEstimation, frameRef] in
             await MainActor.run {

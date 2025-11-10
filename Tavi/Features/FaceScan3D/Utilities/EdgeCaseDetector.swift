@@ -10,6 +10,7 @@ import Foundation
 import UIKit
 import ARKit
 import SwiftUI
+import Accelerate
 
 /// Edge case severity levels
 public enum EdgeCaseSeverity {
@@ -97,6 +98,10 @@ public class EdgeCaseDetector {
     private var lastLoggedLightingQuality: LightingQuality?
     private var lightingCheckCount: Int = 0
     private let lightingLogInterval: Int = 30  // Log every 30 checks (~0.5 seconds at 60fps)
+
+    // OPTIMIZATION: Buffer reuse to avoid repeated allocations
+    private var cachedPixelBuffer: [(UInt8, UInt8, UInt8)]?
+    private var cachedImageReference: CGImage?
 
     // MARK: - Public API
 
@@ -950,7 +955,14 @@ public class EdgeCaseDetector {
 
     // MARK: - Helper Methods
 
+    /// OPTIMIZATION: Extract pixels with caching to avoid repeated allocations
+    /// If the same image is passed multiple times, returns cached result
     private func extractPixels(from image: CGImage) -> [(UInt8, UInt8, UInt8)] {
+        // Check if we have cached pixels for this image
+        if let cached = cachedPixelBuffer, cachedImageReference === image {
+            return cached
+        }
+
         guard let dataProvider = image.dataProvider,
               let data = dataProvider.data,
               let bytes = CFDataGetBytePtr(data) else {
@@ -959,59 +971,110 @@ public class EdgeCaseDetector {
 
         var pixels: [(UInt8, UInt8, UInt8)] = []
         let bytesPerPixel = 4
+        let dataLength = CFDataGetLength(data)
 
-        for i in stride(from: 0, to: CFDataGetLength(data), by: bytesPerPixel) {
+        // OPTIMIZATION: Pre-allocate array capacity
+        pixels.reserveCapacity(dataLength / bytesPerPixel)
+
+        for i in stride(from: 0, to: dataLength, by: bytesPerPixel) {
             let r = bytes[i]
             let g = bytes[i + 1]
             let b = bytes[i + 2]
             pixels.append((r, g, b))
         }
 
+        // Cache the result
+        cachedPixelBuffer = pixels
+        cachedImageReference = image
+
         return pixels
     }
 
-    private func calculateVariance(pixels: [(UInt8, UInt8, UInt8)]) -> Float {
-        // Fix: Convert to Float first to avoid UInt8 overflow (255+255+255 would overflow)
-        let grayscale = pixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }
-        let avg = grayscale.reduce(0, +) / Float(max(grayscale.count, 1))
+    /// OPTIMIZATION: Extract face region only (center 70% of image)
+    /// Reduces processing time by ignoring background
+    private func extractFaceRegion(from image: CGImage) -> CGImage? {
+        let width = CGFloat(image.width)
+        let height = CGFloat(image.height)
 
-        let variance = grayscale.map { pow($0 - avg, 2) }.reduce(0, +) / Float(max(grayscale.count, 1))
+        // Focus on center 70% of image (face area)
+        let faceRegion = CGRect(
+            x: width * 0.15,
+            y: height * 0.15,
+            width: width * 0.7,
+            height: height * 0.7
+        )
+
+        return image.cropping(to: faceRegion)
+    }
+
+    /// OPTIMIZATION: Calculate variance using vDSP for faster computation
+    private func calculateVariance(pixels: [(UInt8, UInt8, UInt8)]) -> Float {
+        guard !pixels.isEmpty else { return 0 }
+
+        // Convert to grayscale Float array
+        var grayscale = [Float](repeating: 0, count: pixels.count)
+        for (i, pixel) in pixels.enumerated() {
+            grayscale[i] = (Float(pixel.0) + Float(pixel.1) + Float(pixel.2)) / 3.0
+        }
+
+        // OPTIMIZATION: Use vDSP for mean and variance
+        var mean: Float = 0
+        vDSP_meanv(grayscale, 1, &mean, vDSP_Length(grayscale.count))
+
+        var normalized = [Float](repeating: 0, count: grayscale.count)
+        var negMean = -mean
+        vDSP_vsadd(grayscale, 1, &negMean, &normalized, 1, vDSP_Length(grayscale.count))
+
+        var squared = [Float](repeating: 0, count: grayscale.count)
+        vDSP_vsq(normalized, 1, &squared, 1, vDSP_Length(grayscale.count))
+
+        var variance: Float = 0
+        vDSP_meanv(squared, 1, &variance, vDSP_Length(grayscale.count))
+
         return variance
     }
 
+    /// OPTIMIZATION: Calculate saturation with reduced loop overhead
     private func calculateSaturation(pixels: [(UInt8, UInt8, UInt8)]) -> Float {
+        guard !pixels.isEmpty else { return 0 }
+
         var totalSaturation: Float = 0
 
-        for pixel in pixels {
-            let r = Float(pixel.0) / 255.0
-            let g = Float(pixel.1) / 255.0
-            let b = Float(pixel.2) / 255.0
-
-            let maxVal = max(r, g, b)
-            let minVal = min(r, g, b)
-
-            let saturation = maxVal > 0 ? (maxVal - minVal) / maxVal : 0
-            totalSaturation += saturation
-        }
-
-        return totalSaturation / Float(max(pixels.count, 1))
-    }
-
-    private func calculateRedness(pixels: [(UInt8, UInt8, UInt8)]) -> Float {
-        var totalRedness: Float = 0
-
+        // Process pixels with simplified calculations
         for pixel in pixels {
             let r = Float(pixel.0)
             let g = Float(pixel.1)
             let b = Float(pixel.2)
 
-            // Redness = R / (R + G + B)
-            let sum = r + g + b
-            let redness = sum > 0 ? r / sum : 0
-            totalRedness += redness
+            let maxVal = max(r, g, b)
+            let minVal = min(r, g, b)
+
+            // Avoid division by checking maxVal > 0
+            if maxVal > 0 {
+                totalSaturation += (maxVal - minVal) / maxVal
+            }
         }
 
-        return totalRedness / Float(max(pixels.count, 1))
+        return totalSaturation / Float(pixels.count)
+    }
+
+    /// OPTIMIZATION: Calculate redness with reduced loop overhead
+    private func calculateRedness(pixels: [(UInt8, UInt8, UInt8)]) -> Float {
+        guard !pixels.isEmpty else { return 0 }
+
+        var totalRedness: Float = 0
+
+        for pixel in pixels {
+            let r = Float(pixel.0)
+            let sum = r + Float(pixel.1) + Float(pixel.2)
+
+            // Redness = R / (R + G + B)
+            if sum > 0 {
+                totalRedness += r / sum
+            }
+        }
+
+        return totalRedness / Float(pixels.count)
     }
 }
 

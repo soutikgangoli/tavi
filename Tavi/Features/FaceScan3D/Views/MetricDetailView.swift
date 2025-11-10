@@ -602,7 +602,7 @@ struct MetricDetailView: View {
 
                 MetricBar(
                     label: "Glow",
-                    score: Double(metrics.glowAnalysis?.overallGlowScore ?? 0),
+                    score: Double(metrics.glowAnalysis?.glowScore ?? 0),
                     color: Color(red: 252/255, green: 188/255, blue: 78/255)
                 )
 

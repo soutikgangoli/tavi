@@ -21,6 +21,8 @@ struct PrivacySettingsView: View {
 
     @State private var showingDeleteAlert = false
     @State private var showingExportSheet = false
+    @State private var exportedFileURL: URL?
+    @State private var showingShareSheet = false
 
     var body: some View {
         NavigationStack {
@@ -172,6 +174,11 @@ struct PrivacySettingsView: View {
             .sheet(isPresented: $showingExportSheet) {
                 exportDataSheet
             }
+            .sheet(isPresented: $showingShareSheet) {
+                if let url = exportedFileURL {
+                    ActivityViewController(activityItems: [url])
+                }
+            }
         }
     }
 
@@ -260,11 +267,93 @@ struct PrivacySettingsView: View {
     }
 
     private func exportData() {
-        // TODO: Implement actual export functionality
-        // This would create a JSON file with all scan data and allow the user to save/share it
-        AppLogger.ui.info("Export data requested - not yet implemented")
-        showingExportSheet = false
+        Task {
+            do {
+                // Create export data structure
+                var exportData: [[String: Any]] = []
+
+                for session in sessions {
+                    var sessionData: [String: Any] = [
+                        "date": ISO8601DateFormatter().string(from: session.date),
+                        "deviceModel": session.deviceModel,
+                        "deviceOS": session.deviceOS,
+                        "overallScore": session.overallScore,
+                        "scores": [
+                            "texture": session.textureAvg,
+                            "pigmentation": session.pigmentationAvg,
+                            "discoloration": session.discolorationIndex,
+                            "moistureSpecular": session.moistureSpecular,
+                            "moistureSmoothness": session.moistureSmoothness,
+                            "blurQuality": session.blurQuality
+                        ],
+                        "regionalScores": [
+                            "leftCheek": session.leftCheekScore,
+                            "rightCheek": session.rightCheekScore,
+                            "forehead": session.foreheadScore,
+                            "chin": session.chinScore
+                        ]
+                    ]
+
+                    // Add emotional metrics if available
+                    if let emotionalData = session.emotionalMetricsData,
+                       let emotionalJSON = try? JSONSerialization.jsonObject(with: emotionalData) {
+                        sessionData["emotionalMetrics"] = emotionalJSON
+                    }
+
+                    // Add clinical metrics if available
+                    if let clinicalData = session.clinicalMetricsData,
+                       let clinicalJSON = try? JSONSerialization.jsonObject(with: clinicalData) {
+                        sessionData["clinicalMetrics"] = clinicalJSON
+                    }
+
+                    exportData.append(sessionData)
+                }
+
+                // Convert to JSON
+                let jsonData = try JSONSerialization.data(withJSONObject: exportData, options: [.prettyPrinted, .sortedKeys])
+
+                // Create temporary file
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd"
+                let fileName = "Tavi_Export_\(dateFormatter.string(from: Date())).json"
+
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+                try jsonData.write(to: tempURL)
+
+                // Store URL and show share sheet
+                await MainActor.run {
+                    exportedFileURL = tempURL
+                    showingExportSheet = false
+                    showingShareSheet = true
+                    AppLogger.ui.info("Successfully exported \(sessions.count) scans to \(fileName)")
+                }
+
+            } catch {
+                AppLogger.ui.error("Failed to export data: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "exportData"])
+                await MainActor.run {
+                    showingExportSheet = false
+                }
+            }
+        }
     }
+}
+
+// MARK: - Activity View Controller
+
+struct ActivityViewController: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(
+            activityItems: activityItems,
+            applicationActivities: applicationActivities
+        )
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {

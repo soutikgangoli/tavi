@@ -47,6 +47,13 @@ public class SessionResult: NSManagedObject {
     // Full metrics data (JSON encoded)
     @NSManaged public var emotionalMetricsData: Data?    // EmotionalMetrics as JSON
     @NSManaged public var clinicalMetricsData: Data?     // Face3DMetrics as JSON
+
+    /// Computed property to decode clinical metrics on-demand
+    public var skinMetrics: Face3DMetrics? {
+        guard let data = clinicalMetricsData else { return nil }
+        let result = VersionedMetricsLoader.loadFace3DMetrics(from: data)
+        return result.metrics
+    }
 }
 
 // MARK: - Convenience Init

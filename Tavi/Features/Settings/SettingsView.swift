@@ -199,11 +199,20 @@ public struct SettingsView: View {
 
                 // Developer Section
                 Section(header: Text("Developer"),
-                        footer: Text("Debug mode shows additional scan information and validation details.")) {
+                        footer: Text("Debug mode shows additional scan information. Verbose logging logs every 10 frames (vs 30) and may impact performance.")) {
                     Toggle("Debug Mode", isOn: $debugModeEnabled)
                         .accessibilityLabel("Enable debug mode for additional scan information")
                         .accessibilityHint("Shows technical details and validation information during scans")
                         .accessibilityValue(debugModeEnabled ? "On" : "Off")
+
+                    if debugModeEnabled {
+                        Toggle("Verbose Logging", isOn: Binding(
+                            get: { DebugSettings.isVerboseLoggingEnabled },
+                            set: { DebugSettings.setVerboseLogging($0) }
+                        ))
+                        .accessibilityLabel("Enable verbose logging")
+                        .accessibilityHint("Logs every 10 frames instead of 30. May impact performance.")
+                    }
                 }
 
                 // Data Management Section
@@ -218,8 +227,38 @@ public struct SettingsView: View {
                     .accessibilityHint("Permanently deletes all scan results, progress history, and settings. Requires confirmation.")
                 }
 
+                // Notifications Section
+                Section("Notifications") {
+                    NavigationLink {
+                        NotificationsSettingsView()
+                    } label: {
+                        Label("Notification Preferences", systemImage: "bell.fill")
+                    }
+                    .accessibilityLabel("Notification Preferences")
+                    .accessibilityHint("Configure scan reminders and notification settings")
+                }
+
+                // Privacy Section
+                Section("Privacy") {
+                    NavigationLink {
+                        PrivacySettingsView()
+                    } label: {
+                        Label("Privacy & Data", systemImage: "lock.fill")
+                    }
+                    .accessibilityLabel("Privacy & Data")
+                    .accessibilityHint("Manage your data and privacy settings")
+                }
+
                 // About Section
                 Section("About") {
+                    NavigationLink {
+                        AboutView()
+                    } label: {
+                        Label("About Tavi", systemImage: "info.circle.fill")
+                    }
+                    .accessibilityLabel("About Tavi")
+                    .accessibilityHint("Learn more about the app, features, and support")
+
                     HStack {
                         Text("Version")
                         Spacer()
