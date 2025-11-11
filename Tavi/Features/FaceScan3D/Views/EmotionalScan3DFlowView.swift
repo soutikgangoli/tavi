@@ -1441,7 +1441,7 @@ extension EmotionalScan3DFlowView {
         countdownTimer?.invalidate()
         countdownTimer = nil
 
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak timer] _ in
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
             DispatchQueue.main.async { [self] in
                 // Only count down if we have time remaining
                 if timeRemainingSeconds > 0 {
@@ -1452,7 +1452,7 @@ extension EmotionalScan3DFlowView {
                 if case .processing = flowState {
                     // Continue
                 } else {
-                    timer?.invalidate()
+                    timer.invalidate()
                     countdownTimer = nil
                 }
             }

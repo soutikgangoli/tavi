@@ -11,13 +11,17 @@ import UIKit
 import simd
 
 /// Detected skin tone category (simplified Fitzpatrick scale)
-public enum SkinToneCategory: String, Codable, Sendable {
+public enum SkinToneCategory: String, Codable, Sendable, CustomStringConvertible {
     case veryLight      // Fitzpatrick I
     case light          // Fitzpatrick II
     case medium         // Fitzpatrick III
     case mediumDark     // Fitzpatrick IV
     case dark           // Fitzpatrick V
     case veryDark       // Fitzpatrick VI
+
+    public var description: String {
+        return rawValue
+    }
 
     var referenceL: Float {
         // Reference L* values in LAB space for each skin tone

@@ -88,7 +88,7 @@ public struct MetricDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)],
+        sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)],
         animation: .default
     )
     private var sessions: FetchedResults<SessionResult>
@@ -859,6 +859,24 @@ public struct MetricDetailView: View {
             return session.moistureSpecular
         case .pigmentation:
             return session.pigmentationAvg
+        case .wrinkles:
+            // Get wrinkle score from Face3DMetrics if available
+            if let metrics = session.face3DMetrics, let wrinkles = metrics.wrinkleAnalysis {
+                return Double(wrinkles.overallScore)
+            }
+            return 0
+        case .elasticity:
+            // Get elasticity score from Face3DMetrics if available
+            if let metrics = session.face3DMetrics, let elasticity = metrics.elasticityAnalysis {
+                return Double(elasticity.overallScore)
+            }
+            return 0
+        case .volume:
+            // Get volume score from Face3DMetrics if available
+            if let metrics = session.face3DMetrics, let volume = metrics.volumeAnalysis {
+                return Double(volume.overallScore)
+            }
+            return 0
         }
     }
 

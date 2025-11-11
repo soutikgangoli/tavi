@@ -140,11 +140,15 @@ public enum ProcessingPhase: Int, CaseIterable {
 }
 
 /// Device performance tier for time estimation
-public enum DevicePerformanceTier {
+public enum DevicePerformanceTier: CustomStringConvertible {
     case flagship      // iPhone 15 Pro - fastest
     case high          // iPhone 14 Pro, 13 Pro
     case standard      // iPhone 12 Pro
     case legacy        // iPhone 11 Pro, X/XS/XR
+
+    public var description: String {
+        return deviceDescription
+    }
 
     /// Performance multiplier relative to baseline (iPhone 15 Pro = 1.0)
     var performanceMultiplier: Double {

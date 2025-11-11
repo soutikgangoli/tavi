@@ -223,9 +223,9 @@ struct ProfileTabView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(key: "date", ascending: false)],
-        animation: .default,
-        predicate: nil
+        sortDescriptors: [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)],
+        predicate: nil,
+        animation: .default
     )
     private var sessions: FetchedResults<SessionResult>
 

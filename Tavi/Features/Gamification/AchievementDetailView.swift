@@ -8,12 +8,16 @@
 
 import SwiftUI
 
-struct AchievementDetailView: View {
+public struct AchievementDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     let achievement: Achievement
 
-    var body: some View {
+    public init(achievement: Achievement) {
+        self.achievement = achievement
+    }
+
+    public var body: some View {
         VStack(spacing: HeadspaceDesign.Spacing.xl) {
             Spacer()
 

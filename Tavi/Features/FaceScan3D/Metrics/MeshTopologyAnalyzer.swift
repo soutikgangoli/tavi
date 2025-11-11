@@ -60,14 +60,14 @@ public struct TopologyAnalysis: Codable, Sendable {
 }
 
 /// Topology quality levels
-public enum TopologyQuality: String, Codable {
+public enum TopologyQuality: String, Codable, CustomStringConvertible {
     case excellent = "Excellent"
     case good = "Good"
     case acceptable = "Acceptable"
     case poor = "Poor"
     case invalid = "Invalid"
 
-    var description: String { rawValue }
+    public var description: String { rawValue }
 }
 
 /// Vertex valence statistics (number of edges per vertex)

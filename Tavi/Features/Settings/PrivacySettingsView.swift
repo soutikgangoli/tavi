@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-struct PrivacySettingsView: View {
+public struct PrivacySettingsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
@@ -24,7 +24,9 @@ struct PrivacySettingsView: View {
     @State private var exportedFileURL: URL?
     @State private var showingShareSheet = false
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         NavigationStack {
             List {
                 // Data storage info

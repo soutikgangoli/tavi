@@ -34,7 +34,7 @@ public struct ChallengeDetailView: View {
                         milestonesSection(challenge)
 
                         // Bottom padding
-                        Spacer().frame(height: 40)
+                        Spacer(minLength: 40)
                     } else {
                         emptyState
                     }
@@ -100,7 +100,7 @@ public struct ChallengeDetailView: View {
                 )
 
                 Divider()
-                    .frame(height: 60)
+                    .frame(maxHeight: 60)
                     .background(HeadspaceDesign.Colors.textSecondary.opacity(0.2))
 
                 statItem(
@@ -110,7 +110,7 @@ public struct ChallengeDetailView: View {
                 )
 
                 Divider()
-                    .frame(height: 60)
+                    .frame(maxHeight: 60)
                     .background(HeadspaceDesign.Colors.textSecondary.opacity(0.2))
 
                 statItem(

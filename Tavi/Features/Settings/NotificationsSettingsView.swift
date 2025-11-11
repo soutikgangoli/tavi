@@ -9,7 +9,7 @@
 import SwiftUI
 import UserNotifications
 
-struct NotificationsSettingsView: View {
+public struct NotificationsSettingsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @AppStorage("scanRemindersEnabled") private var scanRemindersEnabled = false
@@ -35,7 +35,9 @@ struct NotificationsSettingsView: View {
         scanReminderTimeData = (try? JSONEncoder().encode(newTime)) ?? Data()
     }
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         NavigationStack {
             List {
                 // Permissions section

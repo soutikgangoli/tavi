@@ -10,7 +10,7 @@
 import SwiftUI
 import Charts
 
-struct InsightsTabView: View {
+public struct InsightsTabView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     @FetchRequest(
@@ -21,7 +21,9 @@ struct InsightsTabView: View {
 
     @State private var selectedTimeRange: TimeRange = .oneMonth
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         ZStack {
             // Scenic background
             scenicBackground

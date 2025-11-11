@@ -151,7 +151,12 @@
 		FDF6CF2E4577FCA4D7981B1B /* ProcessingPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B591178BA8F83750059D6FF7 /* ProcessingPipeline.swift */; };
 		6C2F7D310DDA4BBB8ECF9377 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2A6FE8CD8F49DCB7AAF786 /* MainTabView.swift */; };
 		D23830C0C0334F758126FC9F /* MetricDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BA60C4A3B4F4ED6A7C67733 /* MetricDetailView.swift */; };
-		6BC510D407DE43C9BF4D91FF /* ChallengeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F05A6AAB0244D7A6E3B5FE /* ChallengeDetailView.swift */; };
+		6BC510D407DE43C9BF4D91FF /* ChallengeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F05A6AAB0244D7A6E3B5FE /* ChallengeDetailView.swift */; };		05F500DE04944802939B49A9 /* InsightsTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96A87A0DBC054D659B0DB8E2 /* InsightsTabView.swift */; };
+		642B0FDF1ECC4FC985ED8A79 /* AchievementDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566B8FC8E9F04EF4A2FA7651 /* AchievementDetailView.swift */; };
+		7DA93A8B2C994E4AB8B77D80 /* NotificationsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0EC67B34E542A5B1ECDDBF /* NotificationsSettingsView.swift */; };
+		8D9B6472508A45F8B640DD51 /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD6AAB9158A4E789D02EAF1 /* PrivacySettingsView.swift */; };
+		9AB3D2BD0F0747E08363488E /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AA6C0FB229431E83905FAD /* AboutView.swift */; };
+
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -303,7 +308,12 @@
 		FB2A6FE8CD8F49DCB7AAF786 /* MainTabView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MainTabView.swift; path = Tavi/Features/Navigation/MainTabView.swift; sourceTree = "<group>"; };
 		1BA60C4A3B4F4ED6A7C67733 /* MetricDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MetricDetailView.swift; path = Tavi/Features/FaceScan3D/Views/MetricDetailView.swift; sourceTree = "<group>"; };
 		18F05A6AAB0244D7A6E3B5FE /* ChallengeDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ChallengeDetailView.swift; path = Tavi/Features/Gamification/ChallengeDetailView.swift; sourceTree = "<group>"; };
-		TaviApp /* Tavi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tavi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		TaviApp /* Tavi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tavi.app; sourceTree = BUILT_PRODUCTS_DIR; };		96A87A0DBC054D659B0DB8E2 /* InsightsTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InsightsTabView.swift; path = Tavi/Features/FaceScan3D/Views/InsightsTabView.swift; sourceTree = "<group>"; };
+		566B8FC8E9F04EF4A2FA7651 /* AchievementDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AchievementDetailView.swift; path = Tavi/Features/Gamification/AchievementDetailView.swift; sourceTree = "<group>"; };
+		FE0EC67B34E542A5B1ECDDBF /* NotificationsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotificationsSettingsView.swift; path = Tavi/Features/Settings/NotificationsSettingsView.swift; sourceTree = "<group>"; };
+		9FD6AAB9158A4E789D02EAF1 /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PrivacySettingsView.swift; path = Tavi/Features/Settings/PrivacySettingsView.swift; sourceTree = "<group>"; };
+		52AA6C0FB229431E83905FAD /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AboutView.swift; path = Tavi/Features/Settings/AboutView.swift; sourceTree = "<group>"; };
+
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */

@@ -27,11 +27,15 @@ public struct InflammedRegion: Codable, Sendable {
     let area: Float      // in pixels
 }
 
-public enum RednessLevel: String, Codable, Sendable {
+public enum RednessLevel: String, Codable, Sendable, CustomStringConvertible {
     case minimal         // Very little redness
     case mild            // Some redness, normal
     case moderate        // Noticeable redness
     case severe          // Significant inflammation
+
+    public var description: String {
+        return rawValue
+    }
 
     var score: Float {
         switch self {
