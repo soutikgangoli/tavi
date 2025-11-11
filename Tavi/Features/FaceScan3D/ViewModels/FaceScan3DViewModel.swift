@@ -111,58 +111,58 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Current calibration state (from CalibrationManager)
     public var calibrationState: CalibrationState {
-        calibrationManager.calibrationState
+        self.calibrationManager.calibrationState
     }
 
     /// Quality warning message (from CalibrationManager)
     public var qualityWarning: String? {
-        calibrationManager.qualityWarning
+        self.calibrationManager.qualityWarning
     }
 
     // --- PATTERN 2: GETTER/SETTER (Mutable State for SwiftUI Bindings) ---
 
     /// Whether current pose matches guidance target (from CalibrationManager)
     public var isPoseCorrect: Bool {
-        get { calibrationManager.isPoseCorrect }
-        set { calibrationManager.isPoseCorrect = newValue }
+        get { self.calibrationManager.isPoseCorrect }
+        set { self.calibrationManager.isPoseCorrect = newValue }
     }
 
     /// Override to continue despite calibration warnings (from CalibrationManager)
     public var continueAnywayOverride: Bool {
-        get { calibrationManager.continueAnywayOverride }
-        set { calibrationManager.continueAnywayOverride = newValue }
+        get { self.calibrationManager.continueAnywayOverride }
+        set { self.calibrationManager.continueAnywayOverride = newValue }
     }
 
     // --- PATTERN 1: DIRECT PASSTHROUGH (Read-Only State) ---
 
     /// Current guidance step (from CaptureSequenceManager)
     public var currentGuidanceStep: GuidanceStep {
-        captureManager.currentGuidanceStep
+        self.captureManager.currentGuidanceStep
     }
 
     /// Whether guidance mode is active (from CaptureSequenceManager)
     public var isGuidanceActive: Bool {
-        captureManager.isGuidanceActive
+        self.captureManager.isGuidanceActive
     }
 
     /// Dictionary of captured poses by guidance step (from CaptureSequenceManager)
     public var capturedPoses: [GuidanceStep: CapturedPose] {
-        captureManager.capturedPoses
+        self.captureManager.capturedPoses
     }
 
     /// Countdown timer for auto-capture (from CaptureSequenceManager)
     public var countdownTimer: Int {
-        captureManager.countdownTimer
+        self.captureManager.countdownTimer
     }
 
     /// Whether capture is currently in progress (from CaptureSequenceManager)
     public var isCaptureInProgress: Bool {
-        captureManager.isCaptureInProgress
+        self.captureManager.isCaptureInProgress
     }
 
     /// Guidance feedback message for user (from CaptureSequenceManager)
     public var guidanceFeedback: String? {
-        captureManager.guidanceFeedback
+        self.captureManager.guidanceFeedback
     }
 
     // --- PATTERN 3: CACHED PROPERTIES (High-Frequency Access) ---
@@ -187,42 +187,42 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Current capture sequence (from CaptureSequenceManager)
     public var currentSequence: CaptureSequence? {
-        captureManager.currentSequence
+        self.captureManager.currentSequence
     }
 
     /// Merged mesh result (from ProcessingPipeline)
     public var mergedMesh: MergedFaceMesh? {
-        processingPipeline.mergedMesh
+        self.processingPipeline.mergedMesh
     }
 
     /// Whether mesh merging is in progress (from ProcessingPipeline)
     public var isMerging: Bool {
-        processingPipeline.isMerging
+        self.processingPipeline.isMerging
     }
 
     /// Texture bake result (from ProcessingPipeline)
     public var bakeResult: TextureBakeResult? {
-        processingPipeline.bakeResult
+        self.processingPipeline.bakeResult
     }
 
     /// Whether texture baking is in progress (from ProcessingPipeline)
     public var isBaking: Bool {
-        processingPipeline.isBaking
+        self.processingPipeline.isBaking
     }
 
     /// Computed 3D metrics (from MetricsOrchestrator)
     public var face3DMetrics: Face3DMetrics? {
-        metricsOrchestrator.face3DMetrics
+        self.metricsOrchestrator.face3DMetrics
     }
 
     /// Whether metrics computation is in progress (from MetricsOrchestrator)
     public var isComputingMetrics: Bool {
-        metricsOrchestrator.isComputingMetrics
+        self.metricsOrchestrator.isComputingMetrics
     }
 
     /// Available metric visualizations (from MetricsOrchestrator)
     public var metricVisualizations: [VisualizerMetricType: MetricVisualization] {
-        metricsOrchestrator.metricVisualizations
+        self.metricsOrchestrator.metricVisualizations
     }
 
     // MARK: - Private Properties
@@ -277,17 +277,17 @@ public class FaceScan3DViewModel: ObservableObject {
         self.isTracking = true
 
         // Update calibration through manager (uses extracted light data, no frame needed)
-        calibrationManager.updateCalibrationLightweight(
+        self.calibrationManager.updateCalibrationLightweight(
             faceAnchor: faceAnchor,
             lightEstimation: lightEstimation
         )
 
         // Calculate FPS
-        updateFPS()
+        self.updateFPS()
 
         // Check if we should auto-capture during guidance
-        if captureManager.isGuidanceActive && !captureManager.isCaptureInProgress {
-            checkGuidancePoseAndCapture(faceAnchor: faceAnchor)
+        if self.captureManager.isGuidanceActive && !self.captureManager.isCaptureInProgress {
+            self.checkGuidancePoseAndCapture(faceAnchor: faceAnchor)
         }
     }
 
@@ -309,7 +309,7 @@ public class FaceScan3DViewModel: ObservableObject {
         self.isTracking = false
 
         // Analyze error and provide recovery guidance
-        let hadPartialCaptures = !captureManager.capturedPoses.isEmpty
+        let hadPartialCaptures = !self.captureManager.capturedPoses.isEmpty
         let errorInfo = ARKitErrorAnalyzer.analyze(
             error: error,
             hadPartialCaptures: hadPartialCaptures
@@ -379,17 +379,17 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Check if there are partial captures that can be preserved
     public var hasPartialCaptures: Bool {
-        return !captureManager.capturedPoses.isEmpty
+        return !self.captureManager.capturedPoses.isEmpty
     }
 
     /// Get count of captured poses
     public var capturedPoseCount: Int {
-        return captureManager.capturedPoses.count
+        return self.captureManager.capturedPoses.count
     }
 
     /// Clear partial captures (user wants to start fresh)
     public func clearPartialCaptures() {
-        captureManager.capturedPoses = [:]
+        self.captureManager.capturedPoses = [:]
         AppLogger.faceScan.info("🗑️ Cleared partial captures")
     }
 
@@ -410,54 +410,54 @@ public class FaceScan3DViewModel: ObservableObject {
         AppLogger.faceScan.info("📋 Starting new capture sequence")
 
         // Clear errors
-        errorMessage = nil
+        self.errorMessage = nil
 
         // Delegate to capture manager
-        captureManager.startCaptureSequence()
+        self.captureManager.startCaptureSequence()
 
         // Pre-flight checks if strictness enabled
-        let strictness = getLightingStrictness()
+        let strictness = self.getLightingStrictness()
         if strictness != .off {
-            performPreflightChecks()
+            self.performPreflightChecks()
         }
     }
 
     /// Start guidance mode
     public func startGuidance() {
         AppLogger.faceScan.info("🚀 ViewModel.startGuidance() called - starting capture sequence")
-        startCaptureSequence()
-        AppLogger.faceScan.info("✅ Guidance started - isGuidanceActive: \(captureManager.isGuidanceActive), currentStep: \(captureManager.currentGuidanceStep.shortName)")
+        self.startCaptureSequence()
+        AppLogger.faceScan.info("✅ Guidance started - isGuidanceActive: \(self.captureManager.isGuidanceActive), currentStep: \(self.captureManager.currentGuidanceStep.shortName)")
     }
 
     /// Stop guidance mode
     public func stopGuidance() {
-        captureManager.stopGuidance()
+        self.captureManager.stopGuidance()
     }
 
     /// Reset calibration and scan data
     public func resetCalibration() {
-        calibrationManager.reset()
-        captureManager.resetSequence()
-        processingPipeline.reset()
-        metricsOrchestrator.reset()
-        errorMessage = nil
+        self.calibrationManager.reset()
+        self.captureManager.resetSequence()
+        self.processingPipeline.reset()
+        self.metricsOrchestrator.reset()
+        self.errorMessage = nil
         AppLogger.faceScan.info("✅ Full reset complete")
     }
 
     /// Finalize capture and merge meshes
     public func finalizeCapture() async -> MergedFaceMesh? {
-        guard let sequence = captureManager.currentSequence else {
-            errorMessage = "No capture sequence found"
+        guard let sequence = self.captureManager.currentSequence else {
+            self.errorMessage = "No capture sequence found"
             return nil
         }
 
-        let merged = await processingPipeline.finalizeCapture(sequence: sequence)
+        let merged = await self.processingPipeline.finalizeCapture(sequence: sequence)
 
         if merged != nil {
             // Complete the sequence
-            captureManager.completeSequence()
+            self.captureManager.completeSequence()
         } else {
-            errorMessage = "Merge failed - try scanning again"
+            self.errorMessage = "Merge failed - try scanning again"
         }
 
         return merged
@@ -465,25 +465,25 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Bake unified texture from captured samples
     public func bakeTextureFromSequence() async -> TextureBakeResult? {
-        guard let merged = processingPipeline.mergedMesh else {
-            errorMessage = "No merged mesh available"
+        guard let merged = self.processingPipeline.mergedMesh else {
+            self.errorMessage = "No merged mesh available"
             return nil
         }
 
-        guard let sequence = captureManager.currentSequence else {
-            errorMessage = "No capture sequence available"
+        guard let sequence = self.captureManager.currentSequence else {
+            self.errorMessage = "No capture sequence available"
             return nil
         }
 
         if sequence.textureSamples.isEmpty {
             AppLogger.faceScan.error("❌ bakeTextureFromSequence: No texture samples captured! Total captures: \(sequence.captures.count), but 0 texture samples.")
-            errorMessage = "No texture samples captured"
+            self.errorMessage = "No texture samples captured"
             return nil
         }
-        
+
         AppLogger.faceScan.info("🎨 bakeTextureFromSequence: Starting bake with \(sequence.textureSamples.count) texture samples from \(sequence.captures.count) captures")
 
-        return await processingPipeline.bakeUnifiedTexture(
+        return await self.processingPipeline.bakeUnifiedTexture(
             from: merged,
             samples: sequence.textureSamples
         )
@@ -491,20 +491,20 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Compute 3D metrics from baked result
     public func compute3DMetrics() async -> Face3DMetrics? {
-        guard let result = processingPipeline.bakeResult else {
-            errorMessage = "No baked result available - bake texture first"
+        guard let result = self.processingPipeline.bakeResult else {
+            self.errorMessage = "No baked result available - bake texture first"
             return nil
         }
 
-        return await metricsOrchestrator.compute3DMetrics(from: result)
+        return await self.metricsOrchestrator.compute3DMetrics(from: result)
     }
 
     /// Capture current step (manual capture trigger)
     public func captureStep() -> Bool {
-        guard let geometry = currentGeometry,
-              let lightEstimation = lightEstimation,
-              let faceAnchor = currentFaceAnchor,
-              let frame = currentFrame else {
+        guard let geometry = self.currentGeometry,
+              let lightEstimation = self.lightEstimation,
+              let faceAnchor = self.currentFaceAnchor,
+              let frame = self.currentFrame else {
             AppLogger.faceScan.warning("captureStep called but required data missing")
             return false
         }
@@ -515,7 +515,7 @@ public class FaceScan3DViewModel: ObservableObject {
         let pitch = eulerAngles.x * 180 / .pi
         let roll = eulerAngles.z * 180 / .pi
 
-        captureManager.capturePose(
+        self.captureManager.capturePose(
             faceAnchor: faceAnchor,
             frame: frame,
             geometry: geometry,
@@ -530,44 +530,44 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Bake unified texture directly (alternative API)
     public func bakeUnifiedTexture(from mesh: MergedFaceMesh, samples: [TextureSample]) async -> TextureBakeResult? {
-        return await processingPipeline.bakeUnifiedTexture(from: mesh, samples: samples)
+        return await self.processingPipeline.bakeUnifiedTexture(from: mesh, samples: samples)
     }
 
     /// Multi-frame capture started callback
     public func onMultiFrameCaptureStarted() {
         AppLogger.faceScan.info("📸 Multi-frame capture started")
-        captureManager.onMultiFrameCaptureStarted()
+        self.captureManager.onMultiFrameCaptureStarted()
     }
 
     /// Frame captured callback with progress
     public func onFrameCaptured(frameCount: Int, targetCount: Int, confidence: Float) {
         AppLogger.faceScan.info("📸 Frame \(frameCount)/\(targetCount) captured (confidence: \(confidence))")
-        captureManager.onFrameCaptured(frameCount: frameCount, targetCount: targetCount, confidence: confidence)
+        self.captureManager.onFrameCaptured(frameCount: frameCount, targetCount: targetCount, confidence: confidence)
     }
 
     /// Multi-frame capture reached target callback
     public func onMultiFrameCaptureReachedTarget() {
         AppLogger.faceScan.info("✅ Multi-frame capture reached target")
-        captureManager.onMultiFrameCaptureReachedTarget()
+        self.captureManager.onMultiFrameCaptureReachedTarget()
     }
 
     /// Multi-frame capture completed callback
     public func onMultiFrameCaptureCompleted(frameCount: Int) {
         AppLogger.faceScan.info("✅ Multi-frame capture completed with \(frameCount) frames")
-        captureManager.onMultiFrameCaptureCompleted(frameCount: frameCount)
+        self.captureManager.onMultiFrameCaptureCompleted(frameCount: frameCount)
     }
 
     /// Generate metadata from current scan
     public func generateMetadata() -> FaceScanMetadata? {
-        guard let sequence = captureManager.currentSequence else {
+        guard let sequence = self.captureManager.currentSequence else {
             return nil
         }
 
-        return metricsOrchestrator.generateMetadata(
+        return self.metricsOrchestrator.generateMetadata(
             sequence: sequence,
-            bakeResult: processingPipeline.bakeResult,
-            mergedMesh: processingPipeline.mergedMesh,
-            calibrationState: calibrationManager.calibrationState
+            bakeResult: self.processingPipeline.bakeResult,
+            mergedMesh: self.processingPipeline.mergedMesh,
+            calibrationState: self.calibrationManager.calibrationState
         )
     }
 
@@ -575,17 +575,17 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Export sequence to format
     public func exportSequence(format: MeshExporter.ExportFormat) throws -> Data {
-        guard let sequence = captureManager.currentSequence else {
+        guard let sequence = self.captureManager.currentSequence else {
             throw NSError(domain: "FaceScan3D", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: "No sequence to export"
             ])
         }
-        return try processingPipeline.exportSequence(sequence: sequence, format: format)
+        return try self.processingPipeline.exportSequence(sequence: sequence, format: format)
     }
 
     /// Export merged mesh to format
     public func exportMergedMesh(format: MeshExporter.ExportFormat) throws -> Data {
-        return try processingPipeline.exportMergedMesh(format: format)
+        return try self.processingPipeline.exportMergedMesh(format: format)
     }
 
     /// Export textured mesh as OBJ
@@ -594,7 +594,7 @@ public class FaceScan3DViewModel: ObservableObject {
         texture: CGImage,
         metadata: FaceScanMetadata
     ) throws -> URL {
-        return try processingPipeline.exportOBJ(
+        return try self.processingPipeline.exportOBJ(
             unifiedMesh: unifiedMesh,
             texture: texture,
             metadata: metadata
@@ -607,7 +607,7 @@ public class FaceScan3DViewModel: ObservableObject {
         texture: CGImage,
         metadata: FaceScanMetadata
     ) throws -> URL {
-        return try processingPipeline.exportGLTF(
+        return try self.processingPipeline.exportGLTF(
             unifiedMesh: unifiedMesh,
             texture: texture,
             metadata: metadata
@@ -620,7 +620,7 @@ public class FaceScan3DViewModel: ObservableObject {
         texture: CGImage,
         metadata: FaceScanMetadata
     ) throws -> URL {
-        return try processingPipeline.exportUSDZ(
+        return try self.processingPipeline.exportUSDZ(
             unifiedMesh: unifiedMesh,
             texture: texture,
             metadata: metadata
@@ -654,17 +654,17 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Get visualization for metric type
     public func getVisualization(for type: VisualizerMetricType) -> MetricVisualization? {
-        return metricsOrchestrator.getVisualization(for: type)
+        return self.metricsOrchestrator.getVisualization(for: type)
     }
 
     /// Get metrics for ROI
     public func getMetrics(for roi: Face3DROI) -> ROI3DMetrics? {
-        return metricsOrchestrator.getMetrics(for: roi)
+        return self.metricsOrchestrator.getMetrics(for: roi)
     }
 
     /// Export current geometry to OBJ format
     public func exportToOBJ() -> String? {
-        guard let geometry = currentGeometry else { return nil }
+        guard let geometry = self.currentGeometry else { return nil }
 
         var obj = "# Tavi Face Mesh Export\n"
         obj += "# Vertices: \(geometry.vertexCount)\n"
@@ -718,42 +718,42 @@ public class FaceScan3DViewModel: ObservableObject {
     }
 
     private func checkGuidancePoseAndCapture(faceAnchor: ARFaceAnchor) {
-        guard let frame = currentFrame,
-              let geometry = currentGeometry,
-              let lightEstimation = lightEstimation else {
-            if frameCount % 30 == 0 {
-                AppLogger.faceScan.debug("⚠️ checkGuidancePoseAndCapture: Missing required data - frame=\(currentFrame != nil), geometry=\(currentGeometry != nil), lightEstimation=\(lightEstimation != nil)")
+        guard let frame = self.currentFrame,
+              let geometry = self.currentGeometry,
+              let lightEstimation = self.lightEstimation else {
+            if self.frameCount % 30 == 0 {
+                AppLogger.faceScan.debug("⚠️ checkGuidancePoseAndCapture: Missing required data - frame=\(self.currentFrame != nil), geometry=\(self.currentGeometry != nil), lightEstimation=\(self.lightEstimation != nil)")
             }
             return
         }
 
         // Check image quality through calibration manager
-        let qualityGood = calibrationManager.checkImageQuality(
+        let qualityGood = self.calibrationManager.checkImageQuality(
             frame: frame,
             faceAnchor: faceAnchor,
-            blendShapes: blendShapes,
+            blendShapes: self.blendShapes,
             lightEstimation: lightEstimation,
-            currentGuidanceStep: captureManager.currentGuidanceStep
+            currentGuidanceStep: self.captureManager.currentGuidanceStep
         )
 
         // Check pose and handle countdown through capture manager
-        var isPoseCorrect = calibrationManager.isPoseCorrect
-        _ = captureManager.checkGuidancePoseAndCapture(
+        var isPoseCorrect = self.calibrationManager.isPoseCorrect
+        _ = self.captureManager.checkGuidancePoseAndCapture(
             faceAnchor: faceAnchor,
             frame: frame,
             isPoseCorrect: &isPoseCorrect,
-            isCalibrated: calibrationManager.calibrationState.isCalibrated,
+            isCalibrated: self.calibrationManager.calibrationState.isCalibrated,
             qualityGood: qualityGood,
-            frameCount: frameCount
+            frameCount: self.frameCount
         )
 
         // Update calibration manager's isPoseCorrect
-        calibrationManager.isPoseCorrect = isPoseCorrect
+        self.calibrationManager.isPoseCorrect = isPoseCorrect
 
         // Handle countdown completion - check the trigger flag
-        if captureManager.shouldTriggerCapture {
+        if self.captureManager.shouldTriggerCapture {
             // Reset the trigger flag
-            captureManager.shouldTriggerCapture = false
+            self.captureManager.shouldTriggerCapture = false
 
             // Trigger the capture
             AppLogger.faceScan.info("🎯 Triggering capture after countdown completion")
@@ -762,7 +762,7 @@ public class FaceScan3DViewModel: ObservableObject {
     }
 
     private func performCapture(faceAnchor: ARFaceAnchor, frame: ARFrame, geometry: FaceMeshGeometry) {
-        guard let lightEstimation = lightEstimation else { return }
+        guard let lightEstimation = self.lightEstimation else { return }
 
         // CRITICAL: Use camera-relative angles for accurate pose validation
         let eulerAngles = faceAnchor.eulerAnglesRelativeToCamera()
@@ -770,7 +770,7 @@ public class FaceScan3DViewModel: ObservableObject {
         let pitch = eulerAngles.x * 180 / .pi
         let roll = eulerAngles.z * 180 / .pi
 
-        captureManager.capturePose(
+        self.captureManager.capturePose(
             faceAnchor: faceAnchor,
             frame: frame,
             geometry: geometry,
@@ -942,12 +942,12 @@ public class FaceScan3DViewModel: ObservableObject {
         AppLogger.faceScan.warning("Handling memory warning - clearing caches")
 
         // Delegate memory cleanup to managers
-        processingPipeline.reset()
-        metricsOrchestrator.clearVisualizations()
+        self.processingPipeline.reset()
+        self.metricsOrchestrator.clearVisualizations()
 
         // Only clear sequence if not actively capturing
-        if !captureManager.isGuidanceActive {
-            captureManager.resetSequence()
+        if !self.captureManager.isGuidanceActive {
+            self.captureManager.resetSequence()
         }
 
         AppLogger.faceScan.info("Memory cleared successfully")

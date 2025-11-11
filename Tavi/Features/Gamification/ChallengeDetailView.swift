@@ -341,14 +341,11 @@ public struct ChallengeDetailView: View {
             ZStack(alignment: .bottom) {
                 RoundedRectangle(cornerRadius: 6)
                     .fill(HeadspaceDesign.Colors.textSecondary.opacity(0.1))
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: 150)
 
                 RoundedRectangle(cornerRadius: 6)
                     .fill(color)
-                    .frame(
-                        maxWidth: .infinity,
-                        height: CGFloat(value) / CGFloat(maxValue) * 150
-                    )
+                    .frame(maxWidth: .infinity, maxHeight: CGFloat(value) / CGFloat(maxValue) * 150)
             }
 
             Text("\(value)")

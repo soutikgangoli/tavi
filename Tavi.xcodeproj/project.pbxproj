@@ -40,6 +40,7 @@
 		38C9FE4255C3DF886CA62AFC /* DiscolorationAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F6E07AE05E9703275EAB2EA /* DiscolorationAnalyzer.swift */; };
 		3A48B0D4F028DB0628588E5B /* HydrationEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 703B66B295797703C86C1742 /* HydrationEstimator.swift */; };
 		3BAF4B137E998AC39FC93914 /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C440DF51BA6E61B8C86EC6 /* AppLogger.swift */; };
+		1F14CE1AB0714BB6802629CC943F7A26 /* DebugSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0555BBB92D646468DFB25B70793A3CF /* DebugSettings.swift */; };
 		3F77F4BCA626A0318C5F2FF3 /* CaptureSequenceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5351DE36795326F4EA1B4637 /* CaptureSequenceManager.swift */; };
 		41B169F722956B9A5C721643 /* SessionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = A209CEF37FE13726C21987A3 /* SessionResult.swift */; };
 		43F42B3D2C3B9F48A8194A6E /* WrinkleAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66E57E306EBBC57412EE495B /* WrinkleAnalyzer.swift */; };
@@ -167,6 +168,7 @@
 		07948E26B89D4CE590D0BA2F /* MemoryDiagnosticsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MemoryDiagnosticsView.swift; path = MemoryDiagnosticsView.swift; sourceTree = "<group>"; };
 		08F59CDE8E00DC3053590F61 /* PigmentationAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PigmentationAnalyzer.swift; path = PigmentationAnalyzer.swift; sourceTree = "<group>"; };
 		0D2FF3EF032AFC967799B42C /* InputValidator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = InputValidator.swift; path = Tavi/Core/Utilities/InputValidator.swift; sourceTree = "<group>"; };
+		D0555BBB92D646468DFB25B70793A3CF /* DebugSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DebugSettings.swift; path = Tavi/Core/Utilities/DebugSettings.swift; sourceTree = "<group>"; };
 		0D50E5227FC5623C8E7600E1 /* StreamingMeshMerger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StreamingMeshMerger.swift; path = StreamingMeshMerger.swift; sourceTree = "<group>"; };
 		13EAB1F6FDFDFC2C89790FDC /* CaptureSequence.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CaptureSequence.swift; path = CaptureSequence.swift; sourceTree = "<group>"; };
 		1551229E2CDA456D6F037D2E /* DataModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DataModels.swift; path = DataModels.swift; sourceTree = "<group>"; };
@@ -911,6 +913,7 @@
 				69C006580403A1E9E1372ADD /* DebugOverlayView.swift in Sources */,
 				1C658BEE51D229D61D605465 /* DebugScreen.swift in Sources */,
 				2239E8475491AF886CFD544A /* DebugViewModel.swift in Sources */,
+				1F14CE1AB0714BB6802629CC943F7A26 /* DebugSettings.swift in Sources */,
 				DF5EAB7606C6673E27B58D32 /* HistogramView.swift in Sources */,
 				DAAF2C13E6E63280BD05265F /* FaceScan3DAPI.swift in Sources */,
 				8A9D95CDCA52E6A1C7DA9F3C /* CalibrationState.swift in Sources */,
@@ -1045,6 +1048,11 @@
 				6C2F7D310DDA4BBB8ECF9377 /* MainTabView.swift in Sources */,
 				D23830C0C0334F758126FC9F /* MetricDetailView.swift in Sources */,
 				6BC510D407DE43C9BF4D91FF /* ChallengeDetailView.swift in Sources */,
+				05F500DE04944802939B49A9 /* InsightsTabView.swift in Sources */,
+				642B0FDF1ECC4FC985ED8A79 /* AchievementDetailView.swift in Sources */,
+				7DA93A8B2C994E4AB8B77D80 /* NotificationsSettingsView.swift in Sources */,
+				8D9B6472508A45F8B640DD51 /* PrivacySettingsView.swift in Sources */,
+				9AB3D2BD0F0747E08363488E /* AboutView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

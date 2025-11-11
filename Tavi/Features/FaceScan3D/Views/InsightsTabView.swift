@@ -795,7 +795,7 @@ public struct InsightsTabView: View {
         let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
         let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
 
-        var allMetrics: [(String, Double, String)] = [
+        let allMetrics: [(String, Double, String)] = [
             ("Overall", latest.overallScore, qualityLabel(latest.overallScore)),
             ("Acne", Double(metrics.acneAnalysis?.overallScore ?? 0), qualityLabel(Double(metrics.acneAnalysis?.overallScore ?? 0))),
             ("Smoothness", Double(metrics.globalRoughnessScore), qualityLabel(Double(metrics.globalRoughnessScore))),

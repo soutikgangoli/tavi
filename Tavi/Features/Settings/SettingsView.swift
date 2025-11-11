@@ -21,6 +21,13 @@ public struct SettingsView: View {
 
     @State private var showDeleteConfirmation = false
 
+    private var verboseLoggingBinding: Binding<Bool> {
+        Binding(
+            get: { DebugSettings.isVerboseLoggingEnabled },
+            set: { DebugSettings.setVerboseLogging($0) }
+        )
+    }
+
     public var body: some View {
         NavigationStack {
             Form {
@@ -206,12 +213,9 @@ public struct SettingsView: View {
                         .accessibilityValue(debugModeEnabled ? "On" : "Off")
 
                     if debugModeEnabled {
-                        Toggle("Verbose Logging", isOn: Binding(
-                            get: { DebugSettings.isVerboseLoggingEnabled },
-                            set: { DebugSettings.setVerboseLogging($0) }
-                        ))
-                        .accessibilityLabel("Enable verbose logging")
-                        .accessibilityHint("Logs every 10 frames instead of 30. May impact performance.")
+                        Toggle("Verbose Logging", isOn: verboseLoggingBinding)
+                            .accessibilityLabel("Enable verbose logging")
+                            .accessibilityHint("Logs every 10 frames instead of 30. May impact performance.")
                     }
                 }
 

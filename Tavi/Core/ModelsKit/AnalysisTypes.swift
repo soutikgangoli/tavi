@@ -532,12 +532,12 @@ public class FaceDetector {
         
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         try? handler.perform([rectangleRequest, landmarksRequest])
-        
-        guard let rectangleObservations = rectangleRequest.results as? [VNFaceObservation] else {
+
+        guard let rectangleObservations = rectangleRequest.results else {
             return []
         }
-        
-        let landmarksObservations = landmarksRequest.results as? [VNFaceObservation] ?? []
+
+        let landmarksObservations = landmarksRequest.results ?? []
         
         // Match observations by bounding box overlap
         for rectObservation in rectangleObservations {

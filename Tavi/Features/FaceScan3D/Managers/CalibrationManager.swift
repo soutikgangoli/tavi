@@ -49,7 +49,7 @@ public class CalibrationManager: ObservableObject {
 
     // Reusable instances to avoid expensive allocations
     private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
-    private let edgeCaseDetector = EdgeCaseDetector()
+    private nonisolated let edgeCaseDetector = EdgeCaseDetector()
     private let imageQualityAnalyzer = ImageQualityAnalyzer()
 
     // MARK: - Public Methods
@@ -196,11 +196,9 @@ public class CalibrationManager: ObservableObject {
     /// OPTIMIZATION: Now runs asynchronously on background thread to prevent main thread blocking
     private func updateRealLightingQuality(frame: ARFrame, faceAnchor: ARFaceAnchor, lightEstimation: LightEstimation?) {
         let pixelBuffer = frame.capturedImage
-        let frameTimestamp = frame.timestamp
 
         // OPTIMIZATION: Move expensive image processing off main thread
-        // Use timestamp to prevent race conditions where older results overwrite newer ones
-        Task.detached(priority: .userInitiated) { [weak self, pixelBuffer, faceAnchor, frameTimestamp] in
+        Task.detached(priority: .userInitiated) { [weak self, pixelBuffer, faceAnchor] in
             guard let self = self else { return }
 
             // Convert to UIImage for analysis (off main thread)
