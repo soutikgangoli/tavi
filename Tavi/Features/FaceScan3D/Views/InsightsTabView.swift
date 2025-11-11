@@ -438,6 +438,9 @@ public struct InsightsTabView: View {
             // Improvement card
             if !improvements.isEmpty {
                 improvementCard(improvements: improvements)
+                
+                // Add recommendations section right after improvement card
+                whatYouShouldBeDoingSection
             }
 
             // Recommendation card
@@ -535,9 +538,9 @@ public struct InsightsTabView: View {
             // Time range filters
             timeRangeFilters
 
-            // Chart
+            // Chart - sort sessions by date to prevent zig-zagging
             Chart {
-                ForEach(filteredSessions) { session in
+                ForEach(sortedFilteredSessions) { session in
                     // Overall score line
                     LineMark(
                         x: .value("Date", session.date),
@@ -545,38 +548,36 @@ public struct InsightsTabView: View {
                     )
                     .foregroundStyle(Color.green)
                     .lineStyle(StrokeStyle(lineWidth: 2.5))
+                    .interpolationMethod(.catmullRom)
 
-                    // Glow score line
-                    if let glowAnalysis = session.skinMetrics?.glowAnalysis {
-                        LineMark(
-                            x: .value("Date", session.date),
-                            y: .value("Score", Double(glowAnalysis.glowScore))
-                        )
-                        .foregroundStyle(Color.orange)
-                        .lineStyle(StrokeStyle(lineWidth: 2.5))
-                    }
-
-                    // Hydration score line (calculated from ROI moisture proxies)
-                    if let metrics = session.skinMetrics {
-                        let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
-                        let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
-                        LineMark(
-                            x: .value("Date", session.date),
-                            y: .value("Score", avgMoisture)
-                        )
-                        .foregroundStyle(Color.blue)
-                        .lineStyle(StrokeStyle(lineWidth: 2.5))
+                    // Glow score line (only if available)
+                    if let clinicalData = session.clinicalMetricsData {
+                        let result = VersionedMetricsLoader.loadFace3DMetrics(from: clinicalData)
+                        if let metrics = result.metrics, let glowAnalysis = metrics.glowAnalysis {
+                            LineMark(
+                                x: .value("Date", session.date),
+                                y: .value("Score", Double(glowAnalysis.glowScore))
+                            )
+                            .foregroundStyle(Color.orange)
+                            .lineStyle(StrokeStyle(lineWidth: 2.5))
+                            .interpolationMethod(.catmullRom)
+                        }
                     }
                 }
             }
             .chartYScale(domain: 0...100)
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 5)) { _ in
+                    AxisGridLine()
+                    AxisValueLabel(format: .dateTime.month().day())
+                }
+            }
             .frame(height: 200)
 
             // Legend
             HStack(spacing: HeadspaceDesign.Spacing.md) {
                 legendItem(color: .green, label: "Overall")
                 legendItem(color: .orange, label: "Glow")
-                legendItem(color: .blue, label: "Hydration")
             }
         }
         .padding(HeadspaceDesign.Spacing.lg)
@@ -625,6 +626,11 @@ public struct InsightsTabView: View {
         let calendar = Calendar.current
         let cutoffDate = calendar.date(byAdding: .day, value: -selectedTimeRange.days, to: Date()) ?? Date()
         return sessions.filter { $0.date >= cutoffDate }
+    }
+    
+    // Sorted sessions for chart (by date ascending to prevent zig-zagging)
+    private var sortedFilteredSessions: [SessionResult] {
+        filteredSessions.sorted { $0.date < $1.date }
     }
 
     private var topMetricsSection: some View {
@@ -910,6 +916,402 @@ public struct InsightsTabView: View {
                 ["Monitor this metric", "Consider adjusting your routine"]
             )
         }
+    }
+    
+    // MARK: - What You Should Be Doing Section
+    
+    private var whatYouShouldBeDoingSection: some View {
+        VStack(spacing: HeadspaceDesign.Spacing.md) {
+            // Pull recommendations from stored scan results (previous scan)
+            let recommendations = getStoredRecommendations()
+            let products = getStoredProductRecommendations()
+            
+            // Actionable recommendations card
+            if !recommendations.isEmpty {
+                recommendationsCard(recommendations: recommendations)
+            }
+            
+            // Product recommendations card
+            if !products.isEmpty {
+                productsCard(products: products)
+            }
+        }
+    }
+    
+    private func recommendationsCard(recommendations: [String]) -> some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            HStack {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                
+                Text("Your Personalized Action Plan")
+                    .font(.gilroy(size: 18, weight: .bold))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                
+                Spacer()
+            }
+            
+            Text("Based on your latest scan, here's what will help you achieve your best skin:")
+                .font(.gilroy(size: 14, weight: .regular))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .padding(.bottom, 4)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(Array(recommendations.enumerated()), id: \.offset) { index, rec in
+                    HStack(alignment: .top, spacing: 12) {
+                        Circle()
+                            .fill(HeadspaceDesign.Colors.primary)
+                            .frame(width: 6, height: 6)
+                            .padding(.top, 6)
+                        
+                        Text(rec)
+                            .font(.gilroy(size: 15, weight: .regular))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        
+                        Spacer()
+                    }
+                }
+            }
+        }
+        .padding(HeadspaceDesign.Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
+                .fill(HeadspaceDesign.Colors.elevatedCard)
+                .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
+        )
+    }
+    
+    private func productsCard(products: [(name: String, category: String)]) -> some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            HStack {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                
+                Text("Recommended Products")
+                    .font(.gilroy(size: 18, weight: .bold))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                
+                Spacer()
+            }
+            
+            Text("These products are specifically chosen to address your skin's unique needs:")
+                .font(.gilroy(size: 14, weight: .regular))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .padding(.bottom, 4)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(Array(products.enumerated()), id: \.offset) { index, product in
+                    HStack(alignment: .center, spacing: 12) {
+                        Circle()
+                            .fill(HeadspaceDesign.Colors.primary.opacity(0.2))
+                            .frame(width: 32, height: 32)
+                            .overlay {
+                                Text("\(index + 1)")
+                                    .font(.gilroy(size: 14, weight: .bold))
+                                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                            }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(product.name)
+                                .font(.gilroy(size: 15, weight: .semibold))
+                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            
+                            Text(product.category)
+                                .font(.gilroy(size: 13, weight: .regular))
+                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .padding(HeadspaceDesign.Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
+                .fill(HeadspaceDesign.Colors.elevatedCard)
+                .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
+        )
+    }
+    
+    // MARK: - Recommendation Generation (Pulled from Stored Scan Results)
+    
+    /// Pull recommendations from the previous scan's stored results
+    /// Only falls back to generation if no stored data is available
+    private func getStoredRecommendations() -> [String] {
+        // Always try to pull from stored results first
+        guard sessions.count >= 2 else {
+            // No previous scan available - use latest scan as fallback
+            AppLogger.ui.debug("⚠️ No previous scan found, using generated recommendations")
+            return generateActionableRecommendations()
+        }
+        
+        // Get the previous scan (second most recent) - this is where recommendations were stored
+        let previousSession = sessions[1]
+        var recommendations: [String] = []
+        
+        // Priority 1: Get nextSteps from EmotionalMetrics (stored in emotionalMetricsData)
+        if let emotionalData = previousSession.emotionalMetricsData, !emotionalData.isEmpty {
+            let result = VersionedMetricsLoader.loadEmotionalMetrics(from: emotionalData)
+            
+            switch result {
+            case .success(let metrics, _), .migrated(let metrics, _, _):
+                if !metrics.nextSteps.isEmpty {
+                    AppLogger.ui.info("✅ Loaded \(metrics.nextSteps.count) recommendations from previous scan's EmotionalMetrics")
+                    // Convert ActionableStep to recommendation strings
+                    for step in metrics.nextSteps.prefix(4) {
+                        let rec = "\(step.action) - \(step.frequency) (\(step.timing))"
+                        recommendations.append(rec)
+                    }
+                } else {
+                    AppLogger.ui.debug("⚠️ Previous scan has EmotionalMetrics but no nextSteps")
+                }
+            case .incompatible(let version, let reason):
+                AppLogger.ui.warning("⚠️ Cannot load EmotionalMetrics from previous scan: incompatible version \(version.versionString) - \(reason)")
+            case .corrupted(let error):
+                AppLogger.ui.warning("⚠️ Cannot load EmotionalMetrics from previous scan: corrupted data - \(error.localizedDescription)")
+            case .notFound:
+                AppLogger.ui.debug("⚠️ EmotionalMetrics not found in previous scan")
+            }
+        } else {
+            AppLogger.ui.debug("⚠️ Previous scan has no emotionalMetricsData")
+        }
+        
+        // Priority 2: Also check scanQuality recommendations from Face3DMetrics
+        if recommendations.count < 4, let clinicalData = previousSession.clinicalMetricsData, !clinicalData.isEmpty {
+            let result = VersionedMetricsLoader.loadFace3DMetrics(from: clinicalData)
+            
+            switch result {
+            case .success(let metrics, _), .migrated(let metrics, _, _):
+                if let scanQuality = metrics.scanQuality, !scanQuality.recommendations.isEmpty {
+                    AppLogger.ui.info("✅ Loaded \(scanQuality.recommendations.count) recommendations from previous scan's scanQuality")
+                    for rec in scanQuality.recommendations.prefix(4 - recommendations.count) {
+                        recommendations.append(rec)
+                    }
+                }
+            case .incompatible(let version, let reason):
+                AppLogger.ui.warning("⚠️ Cannot load Face3DMetrics from previous scan: incompatible version \(version.versionString) - \(reason)")
+            case .corrupted(let error):
+                AppLogger.ui.warning("⚠️ Cannot load Face3DMetrics from previous scan: corrupted data - \(error.localizedDescription)")
+            case .notFound:
+                AppLogger.ui.debug("⚠️ Face3DMetrics not found in previous scan")
+            }
+        }
+        
+        // Only fallback to generation if we truly have no stored recommendations
+        if recommendations.isEmpty {
+            AppLogger.ui.info("⚠️ No stored recommendations found, generating from latest scan metrics")
+            return generateActionableRecommendations()
+        }
+        
+        AppLogger.ui.info("✅ Using \(recommendations.count) stored recommendations from previous scan")
+        return recommendations
+    }
+    
+    /// Fallback: Generate recommendations based on latest scan metrics
+    private func generateActionableRecommendations() -> [String] {
+        guard let latest = sessions.first, let metrics = latest.skinMetrics else {
+            return []
+        }
+        
+        var recommendations: [String] = []
+        
+        // Check smoothness (roughness score - lower is worse)
+        if metrics.globalRoughnessScore < 70 {
+            recommendations.append("Add gentle exfoliation 2-3 times per week to improve skin texture")
+        }
+        
+        // Check hydration
+        let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
+        let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
+        if avgMoisture < 65 {
+            recommendations.append("Increase hydration with a daily moisturizer containing hyaluronic acid")
+        }
+        
+        // Check pigmentation
+        if metrics.globalPigmentationScore < 70 {
+            recommendations.append("Use vitamin C serum in the morning to even out skin tone")
+        }
+        
+        // Check sun damage
+        if let sunDamage = metrics.sunDamageAnalysis, sunDamage.protectionScore < 75 {
+            recommendations.append("Apply SPF 30+ daily and reapply every 2 hours when outdoors")
+        }
+        
+        // Check pores
+        if let pores = metrics.poreAnalysis, pores.visibilityScore < 70 {
+            recommendations.append("Use a BHA (salicylic acid) product 2-3 times weekly to minimize pore appearance")
+        }
+        
+        // Check acne
+        if let acne = metrics.acneAnalysis, acne.overallScore < 70 {
+            recommendations.append("Maintain a consistent cleansing routine with a gentle, non-comedogenic cleanser")
+        }
+        
+        // Check wrinkles
+        if let wrinkles = metrics.wrinkleAnalysis, wrinkles.overallScore < 75 {
+            recommendations.append("Start using retinol 2-3 times weekly at night to reduce fine lines")
+        }
+        
+        // If no specific issues, provide general maintenance
+        if recommendations.isEmpty {
+            recommendations.append("Continue your current skincare routine to maintain your skin health")
+            recommendations.append("Apply SPF daily to protect against future damage")
+        }
+        
+        return recommendations.prefix(4).map { $0 } // Limit to 4 recommendations
+    }
+    
+    private func getPointersFromPreviousResults() -> [String] {
+        guard sessions.count >= 2 else {
+            return []
+        }
+        
+        let latest = sessions[0]
+        let previous = sessions[1]
+        var pointers: [String] = []
+        
+        // Compare overall score
+        let overallChange = latest.overallScore - previous.overallScore
+        if overallChange > 5 {
+            pointers.append("Your overall skin health improved by \(Int(overallChange)) points since your last scan")
+        } else if overallChange < -5 {
+            pointers.append("Your overall score decreased by \(Int(abs(overallChange))) points - focus on consistency")
+        }
+        
+        // Compare glow
+        if let latestGlow = latest.skinMetrics?.glowAnalysis?.glowScore,
+           let prevGlow = previous.skinMetrics?.glowAnalysis?.glowScore {
+            let glowChange = latestGlow - prevGlow
+            if glowChange > 3 {
+                pointers.append("Your skin glow increased significantly - your routine is working!")
+            } else if glowChange < -3 {
+                pointers.append("Your glow decreased - consider adding antioxidants to your routine")
+            }
+        }
+        
+        // Compare smoothness
+        if let latestMetrics = latest.skinMetrics,
+           let prevMetrics = previous.skinMetrics {
+            let smoothnessChange = latestMetrics.globalRoughnessScore - prevMetrics.globalRoughnessScore
+            if smoothnessChange > 3 {
+                pointers.append("Your skin texture improved - exfoliation is showing results")
+            } else if smoothnessChange < -3 {
+                pointers.append("Your skin texture needs attention - consider adjusting your exfoliation routine")
+            }
+        }
+        
+        return pointers.prefix(3).map { $0 } // Limit to 3 pointers
+    }
+    
+    /// Pull product recommendations from stored scan results
+    /// Only falls back to generation if no stored data is available
+    private func getStoredProductRecommendations() -> [(name: String, category: String)] {
+        // Always try to pull from stored results first
+        guard sessions.count >= 2 else {
+            // No previous scan available - use latest scan as fallback
+            AppLogger.ui.debug("⚠️ No previous scan found, using generated product recommendations")
+            return generateProductRecommendations()
+        }
+        
+        // Get the previous scan (second most recent) - this is where recommendations were stored
+        let previousSession = sessions[1]
+        var products: [(name: String, category: String)] = []
+        
+        // Extract product info from EmotionalMetrics nextSteps (stored data)
+        if let emotionalData = previousSession.emotionalMetricsData, !emotionalData.isEmpty {
+            let result = VersionedMetricsLoader.loadEmotionalMetrics(from: emotionalData)
+            
+            switch result {
+            case .success(let metrics, _), .migrated(let metrics, _, _):
+                if !metrics.nextSteps.isEmpty {
+                    AppLogger.ui.info("✅ Extracting products from \(metrics.nextSteps.count) nextSteps in previous scan")
+                    // Extract product-like recommendations from nextSteps
+                    for step in metrics.nextSteps.prefix(4) {
+                        // Parse action to extract product name and category
+                        let action = step.action.lowercased()
+                        if action.contains("spf") || action.contains("sunscreen") {
+                            products.append(("Broad Spectrum SPF 50", "Sun Protection"))
+                        } else if action.contains("moisturizer") || action.contains("moisturizing") {
+                            products.append(("Daily Moisturizer", "Hydration"))
+                        } else if action.contains("retinol") {
+                            products.append(("Retinol Night Cream", "Anti-Aging"))
+                        } else if action.contains("vitamin c") {
+                            products.append(("Vitamin C Brightening Serum", "Brightening"))
+                        } else if action.contains("exfoliat") {
+                            products.append(("Gentle Exfoliating Serum", "Exfoliant"))
+                        } else if action.contains("cleanser") {
+                            products.append(("Gentle Cleanser", "Basic Care"))
+                        }
+                    }
+                }
+            case .incompatible(let version, let reason):
+                AppLogger.ui.warning("⚠️ Cannot load EmotionalMetrics for products: incompatible version \(version.versionString) - \(reason)")
+            case .corrupted(let error):
+                AppLogger.ui.warning("⚠️ Cannot load EmotionalMetrics for products: corrupted data - \(error.localizedDescription)")
+            case .notFound:
+                AppLogger.ui.debug("⚠️ EmotionalMetrics not found for products in previous scan")
+            }
+        }
+        
+        // Only fallback to generation if we truly have no stored products
+        if products.isEmpty {
+            AppLogger.ui.info("⚠️ No stored products found, generating from latest scan metrics")
+            return generateProductRecommendations()
+        }
+        
+        AppLogger.ui.info("✅ Using \(products.count) stored product recommendations from previous scan")
+        return Array(products.prefix(4)) // Limit to 4 products
+    }
+    
+    /// Fallback: Generate product recommendations based on latest scan metrics
+    private func generateProductRecommendations() -> [(name: String, category: String)] {
+        guard let latest = sessions.first, let metrics = latest.skinMetrics else {
+            return []
+        }
+        
+        var products: [(name: String, category: String)] = []
+        
+        // Recommend products based on needs
+        if metrics.globalRoughnessScore < 70 {
+            products.append(("Gentle Exfoliating Serum", "Exfoliant"))
+            products.append(("Retinol Night Cream", "Anti-Aging"))
+        }
+        
+        let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
+        let avgMoisture = moistureValues.reduce(0, +) / Double(moistureValues.count)
+        if avgMoisture < 65 {
+            products.append(("Hyaluronic Acid Moisturizer", "Hydration"))
+            products.append(("Hydrating Face Mask", "Treatment"))
+        }
+        
+        if metrics.globalPigmentationScore < 70 {
+            products.append(("Vitamin C Brightening Serum", "Brightening"))
+        }
+        
+        if let sunDamage = metrics.sunDamageAnalysis, sunDamage.protectionScore < 75 {
+            products.append(("Broad Spectrum SPF 50", "Sun Protection"))
+        }
+        
+        if let pores = metrics.poreAnalysis, pores.visibilityScore < 70 {
+            products.append(("Pore Minimizing Toner", "Pore Care"))
+        }
+        
+        if let acne = metrics.acneAnalysis, acne.overallScore < 70 {
+            products.append(("Salicylic Acid Cleanser", "Acne Treatment"))
+        }
+        
+        // If no specific needs, provide general recommendations
+        if products.isEmpty {
+            products.append(("Daily Moisturizer", "Basic Care"))
+            products.append(("SPF 30 Sunscreen", "Sun Protection"))
+        }
+        
+        return Array(products.prefix(4)) // Limit to 4 products
     }
 }
 

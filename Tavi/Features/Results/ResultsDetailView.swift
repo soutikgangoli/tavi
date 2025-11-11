@@ -30,20 +30,14 @@ struct ResultsDetailView: View {
         // Decode clinical metrics for confidence scores with versioned loader
         // Use a safe approach that won't crash if data is corrupted
         if let data = session.clinicalMetricsData, !data.isEmpty {
-            do {
-                let result = VersionedMetricsLoader.loadFace3DMetrics(from: data)
-                if let metrics = result.metrics {
-                    _clinicalMetrics = State(initialValue: metrics)
-                    if case .migrated(_, let from, let to) = result {
-                        AppLogger.ui.info("Migrated clinical metrics from v\(from.versionString) to v\(to.versionString)")
-                    }
-                } else {
-                    AppLogger.ui.warning("Failed to load clinical metrics in ResultsDetailView: \(result.userMessage)")
-                    _clinicalMetrics = State(initialValue: nil)
+            let result = VersionedMetricsLoader.loadFace3DMetrics(from: data)
+            if let metrics = result.metrics {
+                _clinicalMetrics = State(initialValue: metrics)
+                if case .migrated(_, let from, let to) = result {
+                    AppLogger.ui.info("Migrated clinical metrics from v\(from.versionString) to v\(to.versionString)")
                 }
-            } catch {
-                AppLogger.ui.error("Error decoding clinical metrics: \(error)")
-                CrashReporter.shared.logError(error, context: ["operation": "decode_clinical_metrics"])
+            } else {
+                AppLogger.ui.warning("Failed to load clinical metrics in ResultsDetailView: \(result.userMessage)")
                 _clinicalMetrics = State(initialValue: nil)
             }
         } else {
@@ -223,10 +217,16 @@ struct ResultsDetailView: View {
     var heatmapPicker: some View {
         Picker("Heatmap Type", selection: $selectedHeatmap) {
             ForEach(HeatmapType.allCases, id: \.self) { type in
-                Text(type.displayName).tag(type)
+                Text(type.displayName)
+                    .tag(type)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
         }
         .pickerStyle(.segmented)
+        .onChange(of: selectedHeatmap) { _ in
+            // Force view update when heatmap changes
+        }
     }
 
     @ViewBuilder
@@ -236,6 +236,7 @@ struct ResultsDetailView: View {
                 Image(uiImage: thumbnail)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .id("original-\(session.id)")
             } else {
                 placeholderImage
             }
@@ -244,8 +245,10 @@ struct ResultsDetailView: View {
                 Image(uiImage: heatmapImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .id("heatmap-\(selectedHeatmap.rawValue)-\(session.id)")
             } else {
                 placeholderImage
+                    .id("placeholder-\(selectedHeatmap.rawValue)")
             }
         }
     }

@@ -81,9 +81,9 @@ class WrinkleAnalyzer {
 
     // MARK: - Configuration
 
-    private let minWrinkleDepth: Float = 0.0003  // 0.3mm
-    private let deepWrinkleThreshold: Float = 0.0012  // 1.2mm
-    private let curvatureThreshold: Float = 50.0  // High curvature = wrinkle
+    private let minWrinkleDepth: Float = 0.0005  // 0.5mm (increased to reduce false positives)
+    private let deepWrinkleThreshold: Float = 0.0015  // 1.5mm (increased threshold)
+    private let curvatureThreshold: Float = 60.0  // Higher threshold to reduce noise
 
     // MARK: - Public API
 
@@ -257,21 +257,21 @@ class WrinkleAnalyzer {
     ) -> Set<Int> {
         var wrinkleVertices = Set<Int>()
 
-        // Stage 1: Initial detection with moderate threshold
-        // This catches potential wrinkles (including fine ones)
-        let initialThreshold: Float = 60.0  // Moderate, not too strict
+        // Stage 1: Initial detection with higher threshold to reduce false positives
+        // This catches significant wrinkles only
+        let initialThreshold: Float = 70.0  // Higher threshold to reduce noise
 
         for (index, curvature) in curvatures.enumerated() {
             // Only flag if curvature is high enough
             if curvature > initialThreshold {
                 // Stage 2: Quick depth check using scaling factor
-                let estimatedDepth = curvature * 0.00002  // Convert to depth
+                let estimatedDepth = curvature * 0.000015  // More conservative conversion
 
-                // Only include if depth would be significant (≥ 0.3mm)
+                // Only include if depth would be significant (≥ 0.5mm)
                 if estimatedDepth >= minWrinkleDepth {
                     wrinkleVertices.insert(index)
                 }
-                // If depth < 0.3mm, it's likely noise → skip it
+                // If depth < 0.5mm, it's likely noise → skip it
             }
         }
 
@@ -303,7 +303,7 @@ class WrinkleAnalyzer {
             )
 
             // VALIDATION: Only count if depth is significant
-            // Skip regions with depth < 0.3mm (likely noise)
+            // Skip regions with depth < 0.5mm (likely noise)
             guard depth >= minWrinkleDepth else {
                 continue
             }

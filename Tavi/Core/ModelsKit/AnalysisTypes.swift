@@ -228,9 +228,9 @@ public enum HeatmapType: String, Codable, CaseIterable, Hashable {
     public var displayName: String {
         switch self {
         case .composite: return "Overall"
-        case .sharpness: return "Sharpness"
+        case .sharpness: return "Sharp"
         case .texture: return "Texture"
-        case .pigmentation: return "Pigmentation"
+        case .pigmentation: return "Pigment"
         case .moisture: return "Moisture"
         }
     }

@@ -132,27 +132,60 @@ public class VolumeMetricsAnalyzer {
         // Average volume
         let avgVolume = (leftVolume + rightVolume) / 2.0
 
-        // Estimate volume loss (compared to ideal full cheeks)
-        let idealVolume: Float = 150.0  // cm³ (approximate)
-        let volumeLoss = max(0, (idealVolume - avgVolume) / idealVolume * 100)
-
-        // Score (inverse of volume loss)
-        let score = 100 - volumeLoss
-
-        // Classify severity
+        // Calculate volume score based on relative fullness (not compared to arbitrary ideal)
+        // Use baseline comparison if available, otherwise use relative scoring
+        let volumeScore: Float
+        let volumeLoss: Float
         let severity: HollowingSeverity
-        if volumeLoss < 10 {
-            severity = .none
-        } else if volumeLoss < 25 {
-            severity = .mild
-        } else if volumeLoss < 40 {
-            severity = .moderate
+        
+        if let baselineGeometry = baseline {
+            // Compare to baseline for accurate volume loss calculation
+            let baselineLeftIndices = getCheekIndices(side: .left, geometry: baselineGeometry)
+            let baselineRightIndices = getCheekIndices(side: .right, geometry: baselineGeometry)
+            let baselineLeftVolume = calculateRegionVolume(geometry: baselineGeometry, indices: baselineLeftIndices)
+            let baselineRightVolume = calculateRegionVolume(geometry: baselineGeometry, indices: baselineRightIndices)
+            let baselineAvgVolume = (baselineLeftVolume + baselineRightVolume) / 2.0
+            
+            // Calculate actual volume loss compared to baseline
+            volumeLoss = max(0, ((baselineAvgVolume - avgVolume) / max(baselineAvgVolume, 0.001)) * 100)
+            
+            // Score based on volume loss (0% loss = 100 score, 50% loss = 50 score)
+            volumeScore = max(0, 100 - volumeLoss)
+            
+            // Classify severity based on actual loss
+            if volumeLoss < 5 {
+                severity = .none
+            } else if volumeLoss < 15 {
+                severity = .mild
+            } else if volumeLoss < 30 {
+                severity = .moderate
+            } else {
+                severity = .severe
+            }
         } else {
-            severity = .severe
+            // No baseline - use relative scoring based on face geometry
+            // Calculate relative fullness based on face dimensions
+            let faceWidth = calculateFaceWidth(geometry: geometry)
+            let expectedVolume = faceWidth * 0.8  // Proportional to face width
+            volumeLoss = max(0, ((expectedVolume - avgVolume) / max(expectedVolume, 0.001)) * 100)
+            
+            // More lenient scoring without baseline
+            volumeScore = max(50, 100 - (volumeLoss * 0.5))  // Cap at 50 minimum
+            
+            // More lenient severity classification without baseline
+            if volumeLoss < 20 {
+                severity = .none
+            } else if volumeLoss < 35 {
+                severity = .mild
+            } else if volumeLoss < 50 {
+                severity = .moderate
+            } else {
+                severity = .severe
+            }
         }
 
         return CheekHollowingAnalysis(
-            score: score,
+            score: volumeScore,
             severity: severity,
             leftCheekVolume: leftVolume,
             rightCheekVolume: rightVolume,
@@ -413,6 +446,12 @@ public class VolumeMetricsAnalyzer {
         }
 
         return (minX, maxX, minY, maxY, minZ, maxZ)
+    }
+    
+    /// Calculate face width for proportional volume estimation
+    private func calculateFaceWidth(geometry: FaceMeshGeometry) -> Float {
+        let bounds = calculateFaceBounds(vertices: geometry.vertices)
+        return bounds.maxX - bounds.minX
     }
 
     private func calculateRegionVolume(geometry: FaceMeshGeometry, indices: [Int]) -> Float {
