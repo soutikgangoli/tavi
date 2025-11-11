@@ -79,7 +79,40 @@ struct ResultsHistoryView: View {
         }
         .sheet(item: $selectedSession) { session in
             NavigationStack {
-                ResultsDetailView(session: session)
+                // Verify session is still valid before showing detail view
+                if viewContext.registeredObject(for: session.objectID) != nil {
+                    ResultsDetailView(session: session)
+                        .environment(\.managedObjectContext, viewContext)
+                } else {
+                    VStack(spacing: 20) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 60))
+                            .foregroundColor(.orange)
+                        
+                        Text("Session Not Found")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("This session may have been deleted or is no longer available.")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        
+                        Button {
+                            selectedSession = nil
+                        } label: {
+                            Text("Close")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: 200)
+                                .padding(.vertical, 16)
+                                .background(Color.blue)
+                                .cornerRadius(12)
+                        }
+                    }
+                    .padding()
+                }
             }
         }
     }

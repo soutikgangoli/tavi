@@ -65,7 +65,29 @@ final class PersistenceController {
     // MARK: - Initialization
 
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "TaviModel")
+        // Try to load the model explicitly if automatic loading fails
+        var managedObjectModel: NSManagedObjectModel?
+        
+        // First try to find the compiled .momd file
+        if let modelURL = Bundle.main.url(forResource: "TaviModel", withExtension: "momd") {
+            managedObjectModel = NSManagedObjectModel(contentsOf: modelURL)
+        }
+        
+        // If that fails, try to find the source .xcdatamodeld (shouldn't happen in production but helps with debugging)
+        if managedObjectModel == nil,
+           let modelURL = Bundle.main.url(forResource: "TaviModel", withExtension: "xcdatamodeld") {
+            managedObjectModel = NSManagedObjectModel(contentsOf: modelURL)
+        }
+        
+        // Create container with explicit model if found, otherwise let it try automatic loading
+        if let model = managedObjectModel {
+            container = NSPersistentContainer(name: "TaviModel", managedObjectModel: model)
+            AppLogger.storage.info("✅ Loaded Core Data model explicitly from bundle")
+        } else {
+            container = NSPersistentContainer(name: "TaviModel")
+            AppLogger.storage.warning("⚠️ Could not find TaviModel in bundle - using automatic loading")
+            AppLogger.storage.warning("   Make sure TaviModel.xcdatamodeld is added to target's 'Copy Bundle Resources' in Xcode")
+        }
 
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")

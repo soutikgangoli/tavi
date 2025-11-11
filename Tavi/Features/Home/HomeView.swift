@@ -90,6 +90,7 @@ public struct HomeView: View {
                 // Load fallback sessions if Core Data is unavailable
                 loadFallbackSessionsIfNeeded()
             }
+            .navigationTitle("Ollvy")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -613,55 +614,55 @@ public struct HomeView: View {
     }
 
     private func latestScanCard(_ session: SessionResult) -> some View {
-        VStack(spacing: 0) {
-            // Gradient header
-            ZStack {
-                HeadspaceDesign.Colors.warmGradient
-                    .frame(height: 200)
+        NavigationLink(value: session) {
+            VStack(spacing: 0) {
+                // Gradient header
+                ZStack {
+                    HeadspaceDesign.Colors.warmGradient
+                        .frame(height: 200)
 
-                VStack(spacing: HeadspaceDesign.Spacing.lg) {
-                    // Score circle
-                    ZStack {
-                        Circle()
-                            .stroke(Color.white.opacity(0.2), lineWidth: 8)
-                            .frame(width: 120, height: 120)
+                    VStack(spacing: HeadspaceDesign.Spacing.lg) {
+                        // Score circle
+                        ZStack {
+                            Circle()
+                                .stroke(Color.white.opacity(0.2), lineWidth: 8)
+                                .frame(width: 120, height: 120)
 
-                        Circle()
-                            .trim(from: 0, to: CGFloat(session.overallScore / 100))
-                            .stroke(Color.white, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                            .frame(width: 120, height: 120)
-                            .rotationEffect(.degrees(-90))
+                            Circle()
+                                .trim(from: 0, to: CGFloat(session.overallScore / 100))
+                                .stroke(Color.white, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                                .frame(width: 120, height: 120)
+                                .rotationEffect(.degrees(-90))
 
-                        Text("\(Int(session.overallScore))")
-                            .font(.gilroy(size: 48, weight: .bold))
-                            .foregroundColor(.white)
+                            Text("\(Int(session.overallScore))")
+                                .font(.gilroy(size: 48, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .accessibilityLabel("Skin Health Score")
+                        .accessibilityValue("\(Int(session.overallScore)) out of 100, \(scoreDescription(session.overallScore))")
+
+                        Text("Your Skin Health Score")
+                            .font(.gilroy(size: 17, weight: .medium))
+                            .foregroundColor(.white.opacity(0.95))
+                            .accessibilityHidden(true)
                     }
-                    .accessibilityLabel("Skin Health Score")
-                    .accessibilityValue("\(Int(session.overallScore)) out of 100, \(scoreDescription(session.overallScore))")
-
-                    Text("Your Skin Health Score")
-                        .font(.gilroy(size: 17, weight: .medium))
-                        .foregroundColor(.white.opacity(0.95))
-                        .accessibilityHidden(true)
                 }
-            }
 
-            // White footer
-            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Last scanned")
-                            .font(.gilroy(size: 14, weight: .medium))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                // White footer
+                VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Last scanned")
+                                .font(.gilroy(size: 14, weight: .medium))
+                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
-                        Text(session.relativeDate)
-                            .font(.gilroy(size: 16, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                    }
+                            Text(session.relativeDate)
+                                .font(.gilroy(size: 16, weight: .semibold))
+                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        }
 
-                    Spacer()
+                        Spacer()
 
-                    NavigationLink(value: session) {
                         HStack(spacing: 6) {
                             Text("View details")
                                 .font(.gilroy(size: 16, weight: .semibold))
@@ -671,20 +672,30 @@ public struct HomeView: View {
                         }
                         .foregroundColor(HeadspaceDesign.Colors.primary)
                     }
-                    .accessibilityLabel("View scan details")
-                    .accessibilityHint("Shows complete results and metrics for your latest scan")
                 }
+                .padding(HeadspaceDesign.Spacing.xl)
+                .background(HeadspaceDesign.Colors.elevatedCard)
             }
-            .padding(HeadspaceDesign.Spacing.xl)
-            .background(HeadspaceDesign.Colors.elevatedCard)
+            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+            .shadow(
+                color: HeadspaceDesign.Shadows.card.color,
+                radius: HeadspaceDesign.Shadows.card.radius,
+                x: HeadspaceDesign.Shadows.card.x,
+                y: HeadspaceDesign.Shadows.card.y
+            )
         }
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
-        .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
-        )
+        .buttonStyle(PlainButtonStyle())
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                withAnimation {
+                    deleteSession(session)
+                }
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .accessibilityLabel("Latest scan from \(session.relativeDate)")
+        .accessibilityHint("Tap to view complete results. Swipe left to delete.")
     }
 
     private var firstScanCard: some View {
@@ -1010,71 +1021,78 @@ public struct HomeView: View {
 
     private func recentScanListItem(_ session: SessionResult) -> some View {
         NavigationLink(value: session) {
-            HStack(alignment: .center, spacing: HeadspaceDesign.Spacing.lg) {
-                // Date badge (left corner)
-                VStack(spacing: 4) {
+            HStack(alignment: .center, spacing: HeadspaceDesign.Spacing.md) {
+                // Date badge (left corner) - compact
+                VStack(spacing: 2) {
                     Text(formatDayMonth(session.date))
                         .font(.gilroy(size: 14, weight: .bold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
 
                     Text(formatYear(session.date))
                         .font(.gilroy(size: 10, weight: .medium))
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .lineLimit(1)
                 }
-                .frame(width: 48)
+                .frame(width: 50, alignment: .center)
                 .padding(.vertical, 8)
                 .background(HeadspaceDesign.Colors.background)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
-                // Score circle
-                ZStack {
-                    Circle()
-                        .fill(scoreColor(session.overallScore).opacity(0.12))
-                        .frame(width: 64, height: 64)
-
-                    Text("\(Int(session.overallScore))")
-                        .font(.gilroy(size: 24, weight: .bold))
-                        .foregroundColor(scoreColor(session.overallScore))
-                }
-                .frame(width: 64, height: 64)
-
-                // Info with trend indicator
+                // Main content area
                 VStack(alignment: .leading, spacing: 6) {
+                    // First line: "Skin Score" label on left, score number on right
                     HStack(spacing: 8) {
-                        Text(session.relativeDate)
-                            .font(.gilroy(size: 17, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-
-                        // Trend indicator
-                        if let trend = calculateTrend(for: session) {
-                            HStack(spacing: 4) {
-                                Image(systemName: trend > 0 ? "arrow.up.right" : "arrow.down.right")
-                                    .font(.system(size: 10, weight: .bold))
-                                Text("\(trend > 0 ? "+" : "")\(Int(trend))%")
-                                    .font(.gilroy(size: 11, weight: .semibold))
-                            }
-                            .foregroundColor(trend > 0 ? .green : .red)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background((trend > 0 ? Color.green : Color.red).opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                        }
+                        Text("Skin Score")
+                            .font(.gilroy(size: 14, weight: .medium))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        
+                        Spacer()
+                        
+                        Text("\(Int(session.overallScore))")
+                            .font(.gilroy(size: 32, weight: .bold))
+                            .foregroundColor(scoreColor(session.overallScore))
+                            .lineLimit(1)
                     }
 
-                    Text(scoreDescription(session.overallScore))
-                        .font(.gilroy(size: 15, weight: .regular))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    // Second line: Date (e.g., "Today") on left, percentage in box on right
+                    HStack(spacing: 8) {
+                        Text(session.relativeDate)
+                            .font(.gilroy(size: 15, weight: .semibold))
+                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            .lineLimit(1)
+                        
+                        Spacer()
+                        
+                        // Percentage in a box
+                        HStack(spacing: 4) {
+                            if let trend = calculateTrend(for: session), trend != 0 {
+                                Image(systemName: trend > 0 ? "arrow.up.right" : "arrow.down.right")
+                                    .font(.system(size: 9, weight: .bold))
+                                Text("\(trend > 0 ? "+" : "")\(Int(trend))%")
+                                    .font(.gilroy(size: 12, weight: .semibold))
+                            } else {
+                                Text("\(Int(session.overallScore))%")
+                                    .font(.gilroy(size: 12, weight: .semibold))
+                            }
+                        }
+                        .foregroundColor(scoreColor(session.overallScore))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(scoreColor(session.overallScore).opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
                 }
-
-                Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Chevron indicator
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.textTertiary)
             }
-            .frame(minHeight: 100)
-            .padding(HeadspaceDesign.Spacing.lg)
+            .frame(minHeight: 80)
+            .padding(HeadspaceDesign.Spacing.md)
             .background(HeadspaceDesign.Colors.elevatedCard)
             .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
             .shadow(

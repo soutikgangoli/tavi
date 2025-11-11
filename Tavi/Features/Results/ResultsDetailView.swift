@@ -28,21 +28,26 @@ struct ResultsDetailView: View {
     init(session: SessionResult) {
         self.session = session
         // Decode clinical metrics for confidence scores with versioned loader
-        if let data = session.clinicalMetricsData {
-            let result = VersionedMetricsLoader.loadFace3DMetrics(from: data)
-            if let metrics = result.metrics {
-                _clinicalMetrics = State(initialValue: metrics)
-                if case .migrated(_, let from, let to) = result {
-                    AppLogger.ui.info("Migrated clinical metrics from v\(from.versionString) to v\(to.versionString)")
+        // Use a safe approach that won't crash if data is corrupted
+        if let data = session.clinicalMetricsData, !data.isEmpty {
+            do {
+                let result = VersionedMetricsLoader.loadFace3DMetrics(from: data)
+                if let metrics = result.metrics {
+                    _clinicalMetrics = State(initialValue: metrics)
+                    if case .migrated(_, let from, let to) = result {
+                        AppLogger.ui.info("Migrated clinical metrics from v\(from.versionString) to v\(to.versionString)")
+                    }
+                } else {
+                    AppLogger.ui.warning("Failed to load clinical metrics in ResultsDetailView: \(result.userMessage)")
+                    _clinicalMetrics = State(initialValue: nil)
                 }
-            } else {
-                AppLogger.ui.error("Failed to load clinical metrics in ResultsDetailView: \(result.userMessage)")
-                CrashReporter.shared.logError(
-                    NSError(domain: "ResultsDetailView", code: -1, userInfo: ["message": result.userMessage]),
-                    context: ["operation": "versioned_load_clinical_results"]
-                )
+            } catch {
+                AppLogger.ui.error("Error decoding clinical metrics: \(error)")
+                CrashReporter.shared.logError(error, context: ["operation": "decode_clinical_metrics"])
                 _clinicalMetrics = State(initialValue: nil)
             }
+        } else {
+            _clinicalMetrics = State(initialValue: nil)
         }
     }
 
@@ -277,7 +282,7 @@ struct ResultsDetailView: View {
                     VStack(spacing: 4) {
                         Text("\(Int(session.overallScore))")
                             .font(.system(size: 40, weight: .bold))
-                            .foregroundColor(HeadspaceDesign.Colors.secondary)
+                            .foregroundColor(.yellow)
 
                         Text("/ 100")
                             .font(.caption)

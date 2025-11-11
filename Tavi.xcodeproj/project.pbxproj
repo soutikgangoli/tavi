@@ -157,6 +157,13 @@
 		7DA93A8B2C994E4AB8B77D80 /* NotificationsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0EC67B34E542A5B1ECDDBF /* NotificationsSettingsView.swift */; };
 		8D9B6472508A45F8B640DD51 /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD6AAB9158A4E789D02EAF1 /* PrivacySettingsView.swift */; };
 		9AB3D2BD0F0747E08363488E /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AA6C0FB229431E83905FAD /* AboutView.swift */; };
+		A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* TaviModel.xcdatamodeld in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */; };
+		C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8 /* Roboto-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9 /* Roboto-Black.ttf */; };
+		E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0 /* Roboto-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1 /* Roboto-Bold.ttf */; };
+		G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2 /* Roboto-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3 /* Roboto-Light.ttf */; };
+		I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4 /* Roboto-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5 /* Roboto-Medium.ttf */; };
+		K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6 /* Roboto-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7 /* Roboto-Regular.ttf */; };
+		M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8 /* Roboto-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9 /* Roboto-Thin.ttf */; };
 
 /* End PBXBuildFile section */
 
@@ -315,6 +322,13 @@
 		FE0EC67B34E542A5B1ECDDBF /* NotificationsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotificationsSettingsView.swift; path = Tavi/Features/Settings/NotificationsSettingsView.swift; sourceTree = "<group>"; };
 		9FD6AAB9158A4E789D02EAF1 /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PrivacySettingsView.swift; path = Tavi/Features/Settings/PrivacySettingsView.swift; sourceTree = "<group>"; };
 		52AA6C0FB229431E83905FAD /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AboutView.swift; path = Tavi/Features/Settings/AboutView.swift; sourceTree = "<group>"; };
+		B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "CoreData/TaviModel.xcdatamodeld"; sourceTree = "<group>"; };
+		D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9 /* Roboto-Black.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Black.ttf"; path = "Roboto-Black.ttf"; sourceTree = "<group>"; };
+		F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1 /* Roboto-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Bold.ttf"; path = "Roboto-Bold.ttf"; sourceTree = "<group>"; };
+		H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3 /* Roboto-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Light.ttf"; path = "Roboto-Light.ttf"; sourceTree = "<group>"; };
+		J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5 /* Roboto-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Medium.ttf"; path = "Roboto-Medium.ttf"; sourceTree = "<group>"; };
+		L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7 /* Roboto-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Regular.ttf"; path = "Roboto-Regular.ttf"; sourceTree = "<group>"; };
+		N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9 /* Roboto-Thin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Thin.ttf"; path = "Roboto-Thin.ttf"; sourceTree = "<group>"; };
 
 /* End PBXFileReference section */
 
@@ -834,9 +848,24 @@
 				D8B235600CEB8B02576410D8 /* Shared */,
 				384DC700FEA2E36C5C2DEEF6 /* TaviApp.swift */,
 				39D36200F591BF9382118EAA /* Assets.xcassets */,
+				B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */,
+				P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1 /* Fonts */,
 				7B0FA72460DB37D8AF2330DD /* Info.plist */,
 			);
 			path = Tavi;
+			sourceTree = "<group>";
+		};
+		P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9 /* Roboto-Black.ttf */,
+				F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1 /* Roboto-Bold.ttf */,
+				H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3 /* Roboto-Light.ttf */,
+				J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5 /* Roboto-Medium.ttf */,
+				L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7 /* Roboto-Regular.ttf */,
+				N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9 /* Roboto-Thin.ttf */,
+			);
+			path = "Resources/Fonts";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -893,6 +922,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				FDDAA531EBDE8B051AC04C7E /* Assets.xcassets in Resources */,
+				A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* TaviModel.xcdatamodeld in Resources */,
+				C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8 /* Roboto-Black.ttf in Resources */,
+				E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0 /* Roboto-Bold.ttf in Resources */,
+				G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2 /* Roboto-Light.ttf in Resources */,
+				I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4 /* Roboto-Medium.ttf in Resources */,
+				K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6 /* Roboto-Regular.ttf in Resources */,
+				M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8 /* Roboto-Thin.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

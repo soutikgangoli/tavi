@@ -191,7 +191,7 @@ public struct CelebratoryResultsView: View {
                 }
             }
 
-            // White description section - adaptive for dark mode
+            // YELLOW description section (was white-on-white!)
             VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
                 Text(scoreInterpretation)
                     .font(.gilroy(size: 16, weight: .medium))
@@ -200,7 +200,7 @@ public struct CelebratoryResultsView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(HeadspaceDesign.Spacing.xl)
-            .background(HeadspaceDesign.Colors.cardBackground)
+            .background(Color.yellow.opacity(0.15))
         }
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(

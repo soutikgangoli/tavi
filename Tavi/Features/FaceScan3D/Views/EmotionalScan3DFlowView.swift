@@ -13,14 +13,18 @@ import CoreData
 public struct EmotionalScan3DFlowView: View {
     @StateObject private var viewModel = FaceScan3DViewModel()
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.scenePhase) private var scenePhase
+    
+    // Use PersistenceController directly instead of reading from environment
+    private var viewContext: NSManagedObjectContext {
+        PersistenceController.shared.viewContext
+    }
 
     @State private var flowState: FlowState = .preparing(countdown: 3)
     @State private var showResults = false
     @State private var processingProgress: String = ""
-    @State private var processingStep: Int = 0
-    @State private var totalProcessingSteps: Int = 6
+    @State private var processingStep: Double = 0  // Changed to Double for smooth progress
+    @State private var totalProcessingSteps: Double = 6
     @State private var estimatedTimeRemaining: String = ""
     @State private var processingStartTime: Date?
     @State private var currentStepStartTime: Date?
@@ -363,12 +367,12 @@ public struct EmotionalScan3DFlowView: View {
 
                         // Percentage text
                         VStack(spacing: 2) {
-                            Text("\(Int((Double(processingStep) / Double(totalProcessingSteps)) * 100))%")
+                            Text("\(Int((processingStep / totalProcessingSteps) * 100))%")
                                 .font(.gilroy(size: 42, weight: .bold))
                                 .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255))
 
                             // Step indicator
-                            Text("\(processingStep)/\(totalProcessingSteps)")
+                            Text("\(Int(processingStep))/\(Int(totalProcessingSteps))")
                                 .font(.gilroy(size: 13, weight: .medium))
                                 .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255).opacity(0.7))
                         }
@@ -378,17 +382,17 @@ public struct EmotionalScan3DFlowView: View {
 
                 // Processing messages - white text like preparing screen
                 VStack(spacing: 12) {
-                    // Main message (white header)
+                    // Main message (white header) - REDUCED SIZE
                     Text(processingProgress)
-                        .font(.gilroy(size: 28, weight: .bold))
+                        .font(.gilroy(size: 20, weight: .bold))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
 
-                    // Detailed status (white subtext with slight transparency)
+                    // Detailed status (white subtext with slight transparency) - REDUCED SIZE + CYCLING
                     if let currentPhase = getCurrentProcessingPhase() {
                         Text(currentPhase.getCyclingMessage(index: cyclingMessageIndex))
-                            .font(.gilroy(size: 16, weight: .regular))
+                            .font(.gilroy(size: 14, weight: .regular))
                             .foregroundColor(.white.opacity(0.9))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
@@ -761,7 +765,7 @@ public struct EmotionalScan3DFlowView: View {
         Task {
             do {
                 // Step 1: Merge meshes (with timeout protection)
-                processingStep = 1
+                smoothlyUpdateProgress(to: 1)
                 processingProgress = ProcessingPhase.meshMerge.description
                 updateTimeRemaining(from: .meshMerge)
                 CrashReporter.shared.setCustomKey("processing_step", value: "mesh_merge")
@@ -789,7 +793,7 @@ public struct EmotionalScan3DFlowView: View {
                 try await Task.sleep(nanoseconds: 500_000_000)
 
                 // Step 2: Bake texture (with timeout protection)
-                processingStep = 2
+                smoothlyUpdateProgress(to: 2)
                 processingProgress = ProcessingPhase.textureBake.description
                 updateTimeRemaining(from: .textureBake)
                 CrashReporter.shared.setCustomKey("processing_step", value: "texture_bake")
@@ -813,7 +817,7 @@ public struct EmotionalScan3DFlowView: View {
                 try await Task.sleep(nanoseconds: 500_000_000)
 
                 // Step 3: Compute clinical metrics (with timeout protection)
-                processingStep = 3
+                smoothlyUpdateProgress(to: 3)
                 processingProgress = ProcessingPhase.metricsAnalysis.description
                 updateTimeRemaining(from: .metricsAnalysis)
                 CrashReporter.shared.setCustomKey("processing_step", value: "metrics_analysis")
@@ -837,7 +841,7 @@ public struct EmotionalScan3DFlowView: View {
                 try await Task.sleep(nanoseconds: 500_000_000)
 
                 // Step 4: Convert to emotional metrics
-                processingStep = 4
+                smoothlyUpdateProgress(to: 4)
                 processingProgress = ProcessingPhase.emotionalMetrics.description
                 updateTimeRemaining(from: .emotionalMetrics)
                 CrashReporter.shared.setCustomKey("processing_step", value: "emotional_metrics")
@@ -857,7 +861,7 @@ public struct EmotionalScan3DFlowView: View {
                 self.previousMetrics = loadedPreviousMetrics
 
                 // Step 5: Update gamification
-                processingStep = 5
+                smoothlyUpdateProgress(to: 5)
                 processingProgress = ProcessingPhase.gamification.description
                 updateTimeRemaining(from: .gamification)
                 CrashReporter.shared.setCustomKey("processing_step", value: "gamification")
@@ -880,14 +884,14 @@ public struct EmotionalScan3DFlowView: View {
                 )
 
                 // Step 6: Save to Core Data (with timeout protection)
-                processingStep = 6
+                smoothlyUpdateProgress(to: 6)
                 processingProgress = ProcessingPhase.coreDataSave.description
                 updateTimeRemaining(from: .coreDataSave)
                 CrashReporter.shared.setCustomKey("processing_step", value: "core_data_save")
 
                 // Try to save with timeout - saveToCoreData() handles its own errors and shows alerts
-                // CRITICAL: Capture viewContext BEFORE async to avoid Environment access warnings
-                let capturedContext = viewContext
+                // CRITICAL: Use PersistenceController directly to avoid Environment access warnings
+                let capturedContext = PersistenceController.shared.viewContext
                 do {
                     try await withTimeout(
                         seconds: timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.coreDataSaveTimeout),
@@ -989,8 +993,8 @@ public struct EmotionalScan3DFlowView: View {
     // MARK: - Data Helpers
 
     private func loadPreviousClinicalMetrics() async -> Face3DMetrics? {
-        // Check if Core Data is available - capture context early to avoid Environment access warnings
-        let context = viewContext
+        // Check if Core Data is available - use PersistenceController directly to avoid Environment access warnings
+        let context = PersistenceController.shared.viewContext
         guard context.persistentStoreCoordinator != nil else {
             return nil  // Silently skip if Core Data not available
         }
@@ -1050,8 +1054,8 @@ public struct EmotionalScan3DFlowView: View {
     }
 
     private func loadPreviousMetrics() async -> EmotionalMetrics? {
-        // Check if Core Data is available - capture context early to avoid Environment access warnings
-        let context = viewContext
+        // Check if Core Data is available - use PersistenceController directly to avoid Environment access warnings
+        let context = PersistenceController.shared.viewContext
         guard context.persistentStoreCoordinator != nil else {
             return nil  // Silently skip if Core Data not available
         }
@@ -1241,7 +1245,7 @@ public struct EmotionalScan3DFlowView: View {
         AppLogger.faceScan.info("🔄 Retrying Core Data save (attempt \(saveRetryCount))...")
 
         // Capture context before async
-        let capturedContext = viewContext
+        let capturedContext = PersistenceController.shared.viewContext
         Task {
             await saveToCoreData(emotionalMetrics: data.emotionalMetrics, clinicalMetrics: data.clinicalMetrics, context: capturedContext)
         }
@@ -1440,7 +1444,7 @@ extension EmotionalScan3DFlowView {
         guard processingStep >= 1 && processingStep <= totalProcessingSteps else {
             return nil
         }
-        return ProcessingPhase(rawValue: processingStep)
+        return ProcessingPhase(rawValue: Int(processingStep))
     }
 
     /// Format seconds into human-readable time string
@@ -1593,6 +1597,13 @@ extension EmotionalScan3DFlowView {
     private func stopCyclingMessages() {
         cyclingTimer?.invalidate()
         cyclingTimer = nil
+    }
+
+    /// Smoothly animate progress to target step with intermediate values
+    private func smoothlyUpdateProgress(to targetStep: Int) {
+        withAnimation(.linear(duration: 0.5)) {
+            processingStep = Double(targetStep)
+        }
     }
 }
 

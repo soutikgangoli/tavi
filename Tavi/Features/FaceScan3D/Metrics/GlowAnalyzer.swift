@@ -18,16 +18,14 @@ public class GlowAnalyzer {
     // MARK: - Configuration
 
     private struct Configuration {
-        // Glow formula weights - BALANCED to include ALL metrics
-        static let smoothnessWeight: Float = 0.20      // Texture smoothness
-        static let evennessWeight: Float = 0.15        // Skin tone evenness
-        static let radianceWeight: Float = 0.15        // Luminosity/glow
-        static let clarityWeight: Float = 0.10         // Discoloration (inverse - lower is better)
+        // Glow formula weights - HIGH CONFIDENCE METRICS ONLY
+        // EXCLUDES: Firmness/Wrinkles and Oil Control (age-related, low confidence)
+        static let smoothnessWeight: Float = 0.25      // Texture smoothness
+        static let evennessWeight: Float = 0.20        // Skin tone evenness
+        static let radianceWeight: Float = 0.20        // Luminosity/glow
+        static let clarityWeight: Float = 0.15         // Discoloration (inverse - lower is better)
         static let rednessWeight: Float = 0.10         // Redness control (inverse)
         static let acneWeight: Float = 0.10            // Acne score
-        static let firmnessWeight: Float = 0.10        // Skin firmness
-        static let oilControlWeight: Float = 0.05      // Oil control
-        static let specularWeight: Float = 0.05        // Specular highlights
 
         // Radiance formula weights
         static let labLightnessWeight: Float = 0.70
@@ -50,26 +48,39 @@ public class GlowAnalyzer {
         AppLogger.metrics.info("✨ Analyzing skin glow and radiance...")
 
         // PART 1: GLOW SCORE (Overall Health Index)
-        // Uses existing computed metrics - no new computation needed
+        // ONLY HIGH-CONFIDENCE METRICS - NO AGE-RELATED FEATURES
 
         let smoothness = existingMetrics.globalRoughnessScore
         let evenness = existingMetrics.globalPigmentationScore
-        let discoloration = existingMetrics.globalDiscolorationScore
-        let specular = existingMetrics.globalSpecularScore ?? computeDefaultSpecular(from: texture)
+        // TEST OVERRIDE: Set clarity to 76 for testing (TODO: Remove after testing)
+        let clarity: Float = 76.0  // Override: was 100.0 - existingMetrics.globalDiscolorationScore
 
-        // Compute glow score with weighted formula
+        // Get additional HIGH-CONFIDENCE metrics
+        let redness = 100.0 - (existingMetrics.rednessAnalysis?.overallScore ?? 50.0)  // Invert: lower redness = better
+        let acne = existingMetrics.acneAnalysis?.overallScore ?? 80.0
+
+        // Get radiance from LAB analysis
+        let radiancePreview = analyzeLABLightness(texture: texture) * 100.0
+
+        // Compute glow score with HIGH-CONFIDENCE metrics ONLY
+        // EXCLUDED: Firmness/Wrinkles (age-related) and Oil Control (low confidence)
         let glowScore = (
             smoothness * Configuration.smoothnessWeight +
             evenness * Configuration.evennessWeight +
-            discoloration * Configuration.discolorationWeight +
-            specular * Configuration.specularWeight
+            radiancePreview * Configuration.radianceWeight +
+            clarity * Configuration.clarityWeight +
+            redness * Configuration.rednessWeight +
+            acne * Configuration.acneWeight
         )
 
-        AppLogger.metrics.info("   Glow Score (Health Index): \(String(format: "%.1f", glowScore))/100")
-        AppLogger.metrics.info("     - Smoothness contribution: \(String(format: "%.1f", smoothness * Configuration.smoothnessWeight))")
-        AppLogger.metrics.info("     - Evenness contribution: \(String(format: "%.1f", evenness * Configuration.evennessWeight))")
-        AppLogger.metrics.info("     - Discoloration contribution: \(String(format: "%.1f", discoloration * Configuration.discolorationWeight))")
-        AppLogger.metrics.info("     - Specular contribution: \(String(format: "%.1f", specular * Configuration.specularWeight))")
+        AppLogger.metrics.info("   Glow Score (High-Confidence Metrics Only): \(String(format: "%.1f", glowScore))/100")
+        AppLogger.metrics.info("     - Smoothness (25%): \(String(format: "%.1f", smoothness)) → \(String(format: "%.1f", smoothness * Configuration.smoothnessWeight))")
+        AppLogger.metrics.info("     - Evenness (20%): \(String(format: "%.1f", evenness)) → \(String(format: "%.1f", evenness * Configuration.evennessWeight))")
+        AppLogger.metrics.info("     - Radiance (20%): \(String(format: "%.1f", radiancePreview)) → \(String(format: "%.1f", radiancePreview * Configuration.radianceWeight))")
+        AppLogger.metrics.info("     - Clarity (15%): \(String(format: "%.1f", clarity)) → \(String(format: "%.1f", clarity * Configuration.clarityWeight))")
+        AppLogger.metrics.info("     - Redness Control (10%): \(String(format: "%.1f", redness)) → \(String(format: "%.1f", redness * Configuration.rednessWeight))")
+        AppLogger.metrics.info("     - Acne (10%): \(String(format: "%.1f", acne)) → \(String(format: "%.1f", acne * Configuration.acneWeight))")
+        AppLogger.metrics.info("     ⚠️ EXCLUDED: Firmness/Wrinkles & Oil Control (age-related/low confidence)")
 
         // PART 2: RADIANCE SCORE (Pure Luminosity)
         // Physics-based brightness measurement using LAB color space
@@ -114,8 +125,8 @@ public class GlowAnalyzer {
             radianceScore: radianceScore,
             smoothnessContribution: smoothness * Configuration.smoothnessWeight,
             evennessContribution: evenness * Configuration.evennessWeight,
-            discolorationContribution: discoloration * Configuration.discolorationWeight,
-            specularContribution: specular * Configuration.specularWeight,
+            discolorationContribution: clarity * Configuration.clarityWeight,
+            specularContribution: specularRatio * Configuration.specularHighlightWeight,
             labLightness: labLightness,
             specularHighlightRatio: specularRatio,
             luminosityIndex: luminosityIndex,

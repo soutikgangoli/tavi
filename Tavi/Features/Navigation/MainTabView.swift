@@ -7,13 +7,18 @@
 //
 
 import SwiftUI
+import CoreData
 
 public struct MainTabView: View {
-    @Environment(\.managedObjectContext) private var viewContext
     @State private var selectedTab: Tab = .home
     @State private var showScanFlow = false
+    
+    // Use PersistenceController directly instead of reading from environment
+    private var viewContext: NSManagedObjectContext {
+        PersistenceController.shared.viewContext
+    }
 
-    public enum Tab {
+    public enum Tab: Hashable {
         case home
         case history
         case scan
@@ -23,47 +28,49 @@ public struct MainTabView: View {
 
     public var body: some View {
         ZStack(alignment: .bottom) {
-            // Tab content
-            TabView(selection: $selectedTab) {
-                // Tab 1: Home
-                NavigationStack {
-                    HomeView(selectedTab: $selectedTab)
+            // Tab content - use custom view switcher instead of TabView
+            Group {
+                switch selectedTab {
+                case .home:
+                    NavigationStack {
+                        HomeView(selectedTab: $selectedTab)
+                    }
+                    .environment(\.managedObjectContext, viewContext)
+                    
+                case .history:
+                    NavigationStack {
+                        ResultsHistoryView()
+                    }
+                    .environment(\.managedObjectContext, viewContext)
+                    
+                case .scan:
+                    Color.clear
+                    
+                case .insights:
+                    NavigationStack {
+                        InsightsTabView()
+                    }
+                    .environment(\.managedObjectContext, viewContext)
+                    
+                case .profile:
+                    NavigationStack {
+                        ProfileTabView()
+                    }
+                    .environment(\.managedObjectContext, viewContext)
                 }
-                .tag(Tab.home)
-
-                // Tab 2: History
-                NavigationStack {
-                    ResultsHistoryView()
-                }
-                .tag(Tab.history)
-
-                // Tab 3: Scan (handled by center button, no content needed)
-                Color.clear
-                    .tag(Tab.scan)
-
-                // Tab 4: Insights
-                NavigationStack {
-                    InsightsTabView()
-                }
-                .tag(Tab.insights)
-
-                // Tab 5: Profile
-                NavigationStack {
-                    ProfileTabView()
-                }
-                .tag(Tab.profile)
             }
-            .environment(\.managedObjectContext, viewContext)
-            .tabViewStyle(.automatic)
             .ignoresSafeArea(.keyboard) // Prevent tab bar from moving with keyboard
+            .animation(.easeInOut(duration: 0.2), value: selectedTab)
 
-            // Custom tab bar overlay
+            // Custom tab bar overlay (on top)
             CustomTabBar(selectedTab: $selectedTab, showScanFlow: $showScanFlow)
                 .ignoresSafeArea(.keyboard)
+                .allowsHitTesting(true)
         }
         .sheet(isPresented: $showScanFlow) {
             NavigationStack {
                 EmotionalScan3DFlowView()
+                    .environment(\.managedObjectContext, viewContext)
             }
         }
     }
@@ -93,7 +100,9 @@ struct CustomTabBar: View {
                 label: "History",
                 isSelected: selectedTab == .history
             ) {
-                selectedTab = .history
+                withAnimation {
+                    selectedTab = .history
+                }
             }
             .frame(maxWidth: .infinity)
 
@@ -110,7 +119,9 @@ struct CustomTabBar: View {
                 label: "Insights",
                 isSelected: selectedTab == .insights
             ) {
-                selectedTab = .insights
+                withAnimation {
+                    selectedTab = .insights
+                }
             }
             .frame(maxWidth: .infinity)
 
