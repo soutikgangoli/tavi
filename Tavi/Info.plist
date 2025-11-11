@@ -200,6 +200,17 @@
 
 	<!-- Privacy Accessed API Types -->
 	<!-- Required for APIs that access sensitive data -->
+	<!-- Custom Fonts -->
+	<key>UIAppFonts</key>
+	<array>
+		<string>Resources/Fonts/Roboto-Thin.ttf</string>
+		<string>Resources/Fonts/Roboto-Light.ttf</string>
+		<string>Resources/Fonts/Roboto-Regular.ttf</string>
+		<string>Resources/Fonts/Roboto-Medium.ttf</string>
+		<string>Resources/Fonts/Roboto-Bold.ttf</string>
+		<string>Resources/Fonts/Roboto-Black.ttf</string>
+	</array>
+
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 

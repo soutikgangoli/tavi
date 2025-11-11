@@ -388,4 +388,5 @@ public struct SettingsView: View {
 
 #Preview {
     SettingsView()
+        .environment(\.managedObjectContext, PersistenceController.preview.viewContext)
 }

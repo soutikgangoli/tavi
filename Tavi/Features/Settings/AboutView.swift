@@ -51,15 +51,15 @@ public struct AboutView: View {
 
                         VStack(spacing: HeadspaceDesign.Spacing.sm) {
                             Text("Tavi")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .font(.gilroy(size: 28, weight: .bold))
                                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                             Text("Version \(appVersion) (\(buildNumber))")
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 14, weight: .medium))
                                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                             Text("Skin Health Analysis")
-                                .font(.system(size: 16, weight: .regular, design: .rounded))
+                                .font(.gilroy(size: 16, weight: .regular))
                                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                         }
                     }
@@ -68,11 +68,11 @@ public struct AboutView: View {
                     // About section
                     VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
                         Text("About")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 18, weight: .bold))
                             .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                         Text("Tavi uses advanced 3D face scanning technology to analyze your skin health. Track your progress, unlock achievements, and get personalized recommendations for better skin care.")
-                            .font(.system(size: 15, weight: .regular, design: .rounded))
+                            .font(.gilroy(size: 15, weight: .regular))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -84,7 +84,7 @@ public struct AboutView: View {
                     // Features section
                     VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
                         Text("Features")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 18, weight: .bold))
                             .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                         VStack(spacing: HeadspaceDesign.Spacing.md) {
@@ -109,7 +109,7 @@ public struct AboutView: View {
                                     .font(.system(size: 18))
 
                                 Text("Contact Support")
-                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .font(.gilroy(size: 16, weight: .semibold))
 
                                 Spacer()
 
@@ -131,7 +131,7 @@ public struct AboutView: View {
                                     .font(.system(size: 18))
 
                                 Text("Rate Tavi")
-                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .font(.gilroy(size: 16, weight: .semibold))
 
                                 Spacer()
 
@@ -151,7 +151,7 @@ public struct AboutView: View {
                                     .font(.system(size: 18))
 
                                 Text("FAQ")
-                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .font(.gilroy(size: 16, weight: .semibold))
 
                                 Spacer()
 
@@ -169,15 +169,15 @@ public struct AboutView: View {
                     // Credits section
                     VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
                         Text("Credits")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 18, weight: .bold))
                             .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                         Text("Developed with ❤️ using SwiftUI and ARKit")
-                            .font(.system(size: 14, weight: .regular, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .regular))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                         Text("© 2025 Tavi. All rights reserved.")
-                            .font(.system(size: 13, weight: .regular, design: .rounded))
+                            .font(.gilroy(size: 13, weight: .regular))
                             .foregroundColor(HeadspaceDesign.Colors.textTertiary)
                     }
                     .padding(HeadspaceDesign.Spacing.lg)
@@ -218,11 +218,11 @@ public struct AboutView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 15, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text(description)
-                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 13, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 

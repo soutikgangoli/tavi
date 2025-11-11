@@ -50,11 +50,11 @@ public struct NotificationsSettingsView: View {
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(permissionTitle)
-                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .font(.gilroy(size: 16, weight: .semibold))
                                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                                 Text(permissionSubtitle)
-                                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                                    .font(.gilroy(size: 14, weight: .regular))
                                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                             }
                         }
@@ -64,7 +64,7 @@ public struct NotificationsSettingsView: View {
                                 requestNotificationPermission()
                             } label: {
                                 Text("Enable Notifications")
-                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                    .font(.gilroy(size: 15, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 12)
@@ -84,10 +84,10 @@ public struct NotificationsSettingsView: View {
                     Toggle(isOn: $scanRemindersEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Scan Reminders")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 16, weight: .medium))
 
                             Text("Get reminded to scan regularly")
-                                .font(.system(size: 13, weight: .regular, design: .rounded))
+                                .font(.gilroy(size: 13, weight: .regular))
                                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                         }
                     }
@@ -117,10 +117,10 @@ public struct NotificationsSettingsView: View {
                     Toggle(isOn: $challengeNotificationsEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Challenge Updates")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 16, weight: .medium))
 
                             Text("Get notified about challenge milestones")
-                                .font(.system(size: 13, weight: .regular, design: .rounded))
+                                .font(.gilroy(size: 13, weight: .regular))
                                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                         }
                     }
@@ -134,10 +134,10 @@ public struct NotificationsSettingsView: View {
                     Toggle(isOn: $achievementNotificationsEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Achievements")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 16, weight: .medium))
 
                             Text("Get notified when you unlock achievements")
-                                .font(.system(size: 13, weight: .regular, design: .rounded))
+                                .font(.gilroy(size: 13, weight: .regular))
                                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                         }
                     }
@@ -149,10 +149,10 @@ public struct NotificationsSettingsView: View {
                     Toggle(isOn: $progressReportsEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Progress Reports")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 16, weight: .medium))
 
                             Text("Receive weekly summaries of your skin progress")
-                                .font(.system(size: 13, weight: .regular, design: .rounded))
+                                .font(.gilroy(size: 13, weight: .regular))
                                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                         }
                     }

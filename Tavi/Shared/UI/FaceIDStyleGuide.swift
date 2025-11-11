@@ -425,7 +425,7 @@ struct FaceOutlineView: View {
             // Countdown timer when holding
             if allChecksPassed && holdTimer > 0 {
                 Text("\(holdTimer)")
-                    .font(.system(size: 72, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 72, weight: .bold))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.3), radius: 4)
             }

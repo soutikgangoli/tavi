@@ -68,8 +68,8 @@ public struct ChallengeDetailView: View {
             // Gradient header
             LinearGradient(
                 colors: [
-                    Color(red: 255/255, green: 159/255, blue: 64/255),  // Orange
-                    Color(red: 255/255, green: 102/255, blue: 102/255)  // Red-orange
+                    HeadspaceDesign.Colors.accent,  // Orange
+                    HeadspaceDesign.Colors.primary  // Red-orange
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -82,11 +82,11 @@ public struct ChallengeDetailView: View {
                         .foregroundColor(.white)
 
                     Text("30-Day Glow Challenge")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 24, weight: .bold))
                         .foregroundColor(.white)
 
                     Text("Started \(formatDate(challenge.startDate))")
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .font(.gilroy(size: 14, weight: .medium))
                         .foregroundColor(.white.opacity(0.9))
                 }
             )
@@ -134,15 +134,15 @@ public struct ChallengeDetailView: View {
     private func statItem(title: String, value: String, subtitle: String) -> some View {
         VStack(spacing: 4) {
             Text(title)
-                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 12, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
             Text(value)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 28, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             Text(subtitle)
-                .font(.system(size: 11, weight: .regular, design: .rounded))
+                .font(.gilroy(size: 11, weight: .regular))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity)
@@ -152,7 +152,7 @@ public struct ChallengeDetailView: View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             HStack {
                 Text("\(challenge.daysRemaining) days remaining")
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 18, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Spacer()
@@ -162,7 +162,7 @@ public struct ChallengeDetailView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 16, weight: .semibold))
                         Text("Completed!")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .semibold))
                     }
                     .foregroundColor(.green)
                 }
@@ -179,8 +179,8 @@ public struct ChallengeDetailView: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color(red: 255/255, green: 159/255, blue: 64/255),
-                                    Color(red: 255/255, green: 102/255, blue: 102/255)
+                                    HeadspaceDesign.Colors.accent,
+                                    HeadspaceDesign.Colors.primary
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
@@ -208,7 +208,7 @@ public struct ChallengeDetailView: View {
     private func calendarSection(_ challenge: GlowChallenge) -> some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             Text("Daily Check-Ins")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 20, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             // Calendar grid (30 days)
@@ -239,8 +239,8 @@ public struct ChallengeDetailView: View {
                     isCheckedIn
                     ? LinearGradient(
                         colors: [
-                            Color(red: 255/255, green: 159/255, blue: 64/255),
-                            Color(red: 255/255, green: 102/255, blue: 102/255)
+                            HeadspaceDesign.Colors.accent,
+                            HeadspaceDesign.Colors.primary
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -280,7 +280,7 @@ public struct ChallengeDetailView: View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             HStack {
                 Text("Glow Improvement")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 20, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Spacer()
@@ -297,7 +297,7 @@ public struct ChallengeDetailView: View {
                     }
 
                     Text("\(challenge.glowImprovement > 0 ? "+" : "")\(challenge.glowImprovement)")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 20, weight: .bold))
                         .foregroundColor(
                             challenge.glowImprovement > 0 ? .green :
                             challenge.glowImprovement < 0 ? .red :
@@ -319,7 +319,7 @@ public struct ChallengeDetailView: View {
                     label: "Current",
                     value: challenge.currentGlowScore,
                     maxValue: 100,
-                    color: Color(red: 252/255, green: 188/255, blue: 78/255)
+                    color: HeadspaceDesign.Colors.secondary
                 )
             }
             .frame(height: 150)
@@ -349,11 +349,11 @@ public struct ChallengeDetailView: View {
             }
 
             Text("\(value)")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 18, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             Text(label)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 14, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity)
@@ -362,7 +362,7 @@ public struct ChallengeDetailView: View {
     private func milestonesSection(_ challenge: GlowChallenge) -> some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             Text("Milestones")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 20, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             VStack(spacing: HeadspaceDesign.Spacing.md) {
@@ -394,8 +394,8 @@ public struct ChallengeDetailView: View {
                         isUnlocked
                         ? LinearGradient(
                             colors: [
-                                Color(red: 255/255, green: 159/255, blue: 64/255),
-                                Color(red: 255/255, green: 102/255, blue: 102/255)
+                                HeadspaceDesign.Colors.accent,
+                                HeadspaceDesign.Colors.primary
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -424,11 +424,11 @@ public struct ChallengeDetailView: View {
             // Title and subtitle
             VStack(alignment: .leading, spacing: 4) {
                 Text(milestone.title)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text("Day \(milestone.days) • \(milestone.reward)")
-                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 
@@ -436,7 +436,7 @@ public struct ChallengeDetailView: View {
 
             if isNext {
                 Text("Next")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 12, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.primary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
@@ -460,11 +460,11 @@ public struct ChallengeDetailView: View {
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
             Text("No Active Challenge")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 24, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             Text("Complete your first scan to start the 30-day glow challenge")
-                .font(.system(size: 16, weight: .regular, design: .rounded))
+                .font(.gilroy(size: 16, weight: .regular))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)

@@ -21,7 +21,7 @@ public enum ProcessingPhase: Int, CaseIterable {
         switch self {
         case .meshMerge: return "Merging your 3D face scan... ✨"
         case .textureBake: return "Creating your skin texture map... 🎨"
-        case .metricsAnalysis: return "Analyzing your skin... 🔬"
+        case .metricsAnalysis: return "Analyzing your skin 🔬"
         case .emotionalMetrics: return "Calculating your Skin Health Index... 🌟"
         case .gamification: return "Updating your progress... 🎉"
         case .coreDataSave: return "Saving your results... 💾"
@@ -190,12 +190,12 @@ public class ProcessingTimeEstimator {
 
     /// Baseline processing times in seconds for each phase (iPhone 15 Pro)
     private let baselineTimes: [ProcessingPhase: Int] = [
-        .meshMerge: 25,           // Mesh merging (30s timeout, expect ~25s)
-        .textureBake: 20,         // Texture baking (30s timeout, expect ~20s)
-        .metricsAnalysis: 60,     // Metrics computation (150s timeout, expect ~60s)
-        .emotionalMetrics: 8,     // Emotional metrics calculation
-        .gamification: 5,         // Gamification updates
-        .coreDataSave: 4          // Core Data save
+        .meshMerge: 35,           // Mesh merging (30s timeout, but actual takes ~35s)
+        .textureBake: 30,         // Texture baking (30s timeout, but actual takes ~30s)
+        .metricsAnalysis: 90,     // Metrics computation (150s timeout, actual takes ~90s)
+        .emotionalMetrics: 12,    // Emotional metrics calculation
+        .gamification: 8,         // Gamification updates
+        .coreDataSave: 10         // Core Data save
     ]
 
     private let deviceCalibrator = DeviceCalibrator()

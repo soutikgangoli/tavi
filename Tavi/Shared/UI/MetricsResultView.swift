@@ -121,7 +121,7 @@ public struct MetricsResultView: View {
                 // Score text
                 VStack(spacing: 4) {
                     Text("\(Int(metrics.overallQualityScore * 100))")
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 48, weight: .bold))
                         .foregroundStyle(qualityColor(metrics.overallQualityScore))
 
                     Text("Quality Score")

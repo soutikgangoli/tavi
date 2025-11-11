@@ -39,16 +39,16 @@ public struct PrivacySettingsView: View {
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Privacy First")
-                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .font(.gilroy(size: 16, weight: .semibold))
 
                                 Text("All your data stays on your device")
-                                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                                    .font(.gilroy(size: 13, weight: .regular))
                                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                             }
                         }
 
                         Text("Tavi stores all scan data locally on your device. We never upload your face images or analysis results to any server.")
-                            .font(.system(size: 14, weight: .regular, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .regular))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -87,7 +87,7 @@ public struct PrivacySettingsView: View {
                                 .foregroundColor(HeadspaceDesign.Colors.primary)
 
                             Text("Export My Data")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 16, weight: .medium))
                                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                             Spacer()
@@ -113,7 +113,7 @@ public struct PrivacySettingsView: View {
                                 .font(.system(size: 18))
 
                             Text("Delete All Data")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 16, weight: .medium))
 
                             Spacer()
                         }
@@ -130,7 +130,7 @@ public struct PrivacySettingsView: View {
                     Link(destination: URL(string: "https://example.com/privacy")!) {
                         HStack {
                             Text("Privacy Policy")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 16, weight: .medium))
 
                             Spacer()
 
@@ -143,7 +143,7 @@ public struct PrivacySettingsView: View {
                     Link(destination: URL(string: "https://example.com/terms")!) {
                         HStack {
                             Text("Terms of Service")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 16, weight: .medium))
 
                             Spacer()
 
@@ -195,10 +195,10 @@ public struct PrivacySettingsView: View {
 
                 VStack(spacing: HeadspaceDesign.Spacing.md) {
                     Text("Export Your Data")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 24, weight: .bold))
 
                     Text("Your scan data will be exported as a JSON file that you can save or share.")
-                        .font(.system(size: 16, weight: .regular, design: .rounded))
+                        .font(.gilroy(size: 16, weight: .regular))
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                         .multilineTextAlignment(.center)
                 }
@@ -216,7 +216,7 @@ public struct PrivacySettingsView: View {
                     exportData()
                 } label: {
                     Text("Export Data")
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .font(.gilroy(size: 17, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
@@ -228,7 +228,7 @@ public struct PrivacySettingsView: View {
                     showingExportSheet = false
                 } label: {
                     Text("Cancel")
-                        .font(.system(size: 17, weight: .medium, design: .rounded))
+                        .font(.gilroy(size: 17, weight: .medium))
                         .foregroundColor(HeadspaceDesign.Colors.primary)
                 }
             }
@@ -245,7 +245,7 @@ public struct PrivacySettingsView: View {
                 .frame(width: 28)
 
             Text(text)
-                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 15, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
         }
     }

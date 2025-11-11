@@ -109,7 +109,7 @@ struct FancyLoadingScreen: View {
 
                         // App icon content - slightly larger
                         Text("T")
-                            .font(.system(size: 72, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 72, weight: .bold))
                             .foregroundStyle(
                                 LinearGradient(
                                     colors: [.white, Color.white.opacity(0.9)],
@@ -123,7 +123,7 @@ struct FancyLoadingScreen: View {
 
                     // App name - better spacing
                     Text("Tavi")
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 48, weight: .bold))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [
@@ -146,7 +146,7 @@ struct FancyLoadingScreen: View {
                 VStack(spacing: 32) {
                     // Loading phase text - better hierarchy
                     Text(currentPhase.message)
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .font(.gilroy(size: 15, weight: .medium))
                         .foregroundColor(.white.opacity(0.75))
                         .animation(.easeInOut(duration: 0.3), value: currentPhase)
 
@@ -201,7 +201,7 @@ struct FancyLoadingScreen: View {
 
                         // Percentage text - larger, more readable
                         Text("\(Int(progress))%")
-                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 20, weight: .semibold))
                             .foregroundColor(.white.opacity(0.95))
                             .monospacedDigit()
                     }

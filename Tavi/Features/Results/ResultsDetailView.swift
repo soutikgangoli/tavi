@@ -258,50 +258,59 @@ struct ResultsDetailView: View {
     // MARK: - Overall Score Card
 
     var overallScoreCard: some View {
-        CardView {
-            VStack(spacing: 12) {
-                Text("Overall Skin Health")
-                    .font(.headline)
+        VStack(spacing: 12) {
+            Text("Overall Skin Health")
+                .font(.headline)
+                .foregroundColor(HeadspaceDesign.Colors.secondary)
 
-                HStack(spacing: 16) {
-                    // Circular Progress
-                    ZStack {
-                        Circle()
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 12)
+            HStack(spacing: 16) {
+                // Circular Progress
+                ZStack {
+                    Circle()
+                        .stroke(HeadspaceDesign.Colors.secondary.opacity(0.3), lineWidth: 12)
 
-                        Circle()
-                            .trim(from: 0, to: session.overallScore / 100)
-                            .stroke(scoreColor(for: session.overallScore), lineWidth: 12)
-                            .rotationEffect(.degrees(-90))
+                    Circle()
+                        .trim(from: 0, to: session.overallScore / 100)
+                        .stroke(HeadspaceDesign.Colors.secondary, lineWidth: 12)
+                        .rotationEffect(.degrees(-90))
 
-                        VStack(spacing: 4) {
-                            Text("\(Int(session.overallScore))")
-                                .font(.system(size: 40, weight: .bold))
+                    VStack(spacing: 4) {
+                        Text("\(Int(session.overallScore))")
+                            .font(.system(size: 40, weight: .bold))
+                            .foregroundColor(HeadspaceDesign.Colors.secondary)
 
-                            Text("/ 100")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .frame(width: 120, height: 120)
-
-                    // Grade
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Grade")
+                        Text("/ 100")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        Text(session.grade.rawValue)
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundColor(gradeColor(for: session.grade))
-
-                        Text(session.grade.description)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(HeadspaceDesign.Colors.secondary.opacity(0.8))
                     }
+                }
+                .frame(width: 120, height: 120)
+
+                // Grade
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Grade")
+                        .font(.caption)
+                        .foregroundColor(HeadspaceDesign.Colors.secondary.opacity(0.8))
+
+                    Text(session.grade.rawValue)
+                        .font(.system(size: 48, weight: .bold))
+                        .foregroundColor(HeadspaceDesign.Colors.secondary)
+
+                    Text(session.grade.description)
+                        .font(.caption)
+                        .foregroundColor(HeadspaceDesign.Colors.secondary.opacity(0.8))
                 }
             }
         }
+        .padding(HeadspaceDesign.Spacing.lg)
+        .background(HeadspaceDesign.Colors.primary)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
     }
 
     // MARK: - Metrics Grid
@@ -1291,7 +1300,7 @@ struct ResultsDetailView: View {
                         }
 
                         Text("\(Int(wrinkles.overallScore))")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 32, weight: .bold))
                             .foregroundColor(.purple)
 
                         Text(wrinkles.wrinkleDepth.rawValue)
@@ -1322,7 +1331,7 @@ struct ResultsDetailView: View {
                         }
 
                         Text("\(Int(volume.overallScore))")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 32, weight: .bold))
                             .foregroundColor(.cyan)
 
                         Text("Loss: \(String(format: "%.1f", volume.cheekHollowing.volumeLoss))%")

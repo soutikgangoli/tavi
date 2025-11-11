@@ -39,11 +39,11 @@ public struct ScanPreparationView: View {
                 // Title
                 VStack(spacing: HeadspaceDesign.Spacing.md) {
                     Text(isReady ? "Ready to begin" : "Preparing scan")
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 30, weight: .bold))
                         .foregroundColor(.white)
 
                     Text(isReady ? "Find a comfortable position" : "Take a deep breath")
-                        .font(.system(size: 18, weight: .medium, design: .rounded))
+                        .font(.gilroy(size: 18, weight: .medium))
                         .foregroundColor(.white.opacity(0.95))
                 }
 
@@ -79,7 +79,7 @@ public struct ScanPreparationView: View {
                         onStart()
                     } label: {
                         Text("Start scan")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 18, weight: .bold))
                             .foregroundColor(HeadspaceDesign.Colors.secondary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 20)
@@ -139,7 +139,7 @@ public struct ScanPreparationView: View {
             // Counter or checkmark
             if !isReady {
                 Text("\(countdown)")
-                    .font(.system(size: 72, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 72, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.secondary)
             } else {
                 Image(systemName: "checkmark")
@@ -170,7 +170,7 @@ public struct ScanPreparationView: View {
 
             // Text
             Text(text)
-                .font(.system(size: 17, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 17, weight: .medium))
                 .foregroundColor(.white.opacity(isComplete ? 1.0 : 0.8))
 
             Spacer()

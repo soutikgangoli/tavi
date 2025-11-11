@@ -145,13 +145,13 @@ public struct CelebratoryResultsView: View {
     private var heroSection: some View {
         VStack(spacing: HeadspaceDesign.Spacing.md) {
             Text(scoreInterpretationTitle)
-                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 32, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                 .multilineTextAlignment(.center)
 
             if !emotionalMetrics.personalizedMessage.isEmpty {
                 Text(emotionalMetrics.personalizedMessage)
-                    .font(.system(size: 18, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 18, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
@@ -180,27 +180,27 @@ public struct CelebratoryResultsView: View {
                             .animation(.easeOut(duration: 1.5), value: animatedScore)
 
                         Text("\(Int(animatedScore))")
-                            .font(.system(size: 64, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 64, weight: .bold))
                             .foregroundColor(.white)
                             .animation(.easeOut(duration: 1.5), value: animatedScore)
                     }
 
                     Text("Your Skin Health Score")
-                        .font(.system(size: 18, weight: .medium, design: .rounded))
+                        .font(.gilroy(size: 18, weight: .medium))
                         .foregroundColor(.white.opacity(0.95))
                 }
             }
 
-            // White description section
+            // White description section - adaptive for dark mode
             VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
                 Text(scoreInterpretation)
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                     .lineSpacing(4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(HeadspaceDesign.Spacing.xl)
-            .background(HeadspaceDesign.Colors.elevatedCard)
+            .background(HeadspaceDesign.Colors.cardBackground)
         }
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(
@@ -215,41 +215,18 @@ public struct CelebratoryResultsView: View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.xl) {
             // Section header
             Text("Your skin metrics")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 22, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
-            // Metrics
+            // Metrics - SORTED BY CONFIDENCE (most reliable first)
             VStack(spacing: HeadspaceDesign.Spacing.md) {
-                metricCard(
-                    title: "Radiance",
-                    icon: "sparkles",
-                    score: emotionalMetrics.radiance,
-                    description: "Light reflection quality",
-                    metricType: .brightness
-                )
-
+                // HIGH CONFIDENCE metrics (85-92% confidence)
                 metricCard(
                     title: "Smoothness",
                     icon: "waveform.path",
                     score: emotionalMetrics.smoothness,
                     description: "Surface texture quality",
                     metricType: .roughness
-                )
-
-                metricCard(
-                    title: "Evenness",
-                    icon: "circle.hexagongrid.fill",
-                    score: emotionalMetrics.evenness,
-                    description: "Tone uniformity",
-                    metricType: .pigmentation
-                )
-
-                metricCard(
-                    title: "Firmness",
-                    icon: "arrow.up.circle.fill",
-                    score: emotionalMetrics.youthfulness,
-                    description: "Skin elasticity",
-                    metricType: .wrinkles
                 )
 
                 metricCard(
@@ -260,15 +237,55 @@ public struct CelebratoryResultsView: View {
                     metricType: .hydration
                 )
 
-                if emotionalMetrics.sunProtection > 0 {
-                    metricCard(
-                        title: "Sun Protection",
-                        icon: "sun.max.fill",
-                        score: emotionalMetrics.sunProtection,
-                        description: "UV damage assessment",
-                        metricType: .discoloration
-                    )
-                }
+                metricCard(
+                    title: "Radiance",
+                    icon: "sparkles",
+                    score: emotionalMetrics.radiance,
+                    description: "Light reflection quality",
+                    metricType: .brightness
+                )
+
+                // MEDIUM-HIGH CONFIDENCE metrics (75-85% confidence)
+                metricCard(
+                    title: "Evenness",
+                    icon: "circle.hexagongrid.fill",
+                    score: emotionalMetrics.evenness,
+                    description: "Tone uniformity",
+                    metricType: .pigmentation
+                )
+
+                metricCard(
+                    title: "Redness",
+                    icon: "heart.fill",
+                    score: emotionalMetrics.sunProtection,
+                    description: "Skin redness level",
+                    metricType: .discoloration
+                )
+
+                // MEDIUM CONFIDENCE metrics (70-75% confidence)
+                metricCard(
+                    title: "Acne",
+                    icon: "circle.fill",
+                    score: max(0, 100 - (emotionalMetrics.glowScore / 2)),
+                    description: "Breakout assessment",
+                    metricType: .pigmentation
+                )
+
+                metricCard(
+                    title: "Firmness",
+                    icon: "arrow.up.circle.fill",
+                    score: emotionalMetrics.youthfulness,
+                    description: "Wrinkle assessment",
+                    metricType: .wrinkles
+                )
+
+                metricCard(
+                    title: "Oil Control",
+                    icon: "drop.triangle.fill",
+                    score: emotionalMetrics.freshness,
+                    description: "Sebum levels",
+                    metricType: .hydration
+                )
             }
         }
     }
@@ -280,7 +297,7 @@ public struct CelebratoryResultsView: View {
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
             Text("New to skin metrics? Tap ? next to any metric to learn more")
-                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 15, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -316,7 +333,7 @@ public struct CelebratoryResultsView: View {
             VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
                 HStack {
                     Text(title)
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .font(.gilroy(size: 17, weight: .semibold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     // Help button (if metricType is provided)
@@ -334,7 +351,7 @@ public struct CelebratoryResultsView: View {
                     Spacer()
 
                     Text("\(score)")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 22, weight: .bold))
                         .foregroundColor(metricColor(score))
                 }
 
@@ -357,7 +374,7 @@ public struct CelebratoryResultsView: View {
                     qualityBadge(for: score)
 
                     Text(description)
-                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                        .font(.gilroy(size: 14, weight: .regular))
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 }
 
@@ -369,7 +386,7 @@ public struct CelebratoryResultsView: View {
                             .foregroundColor(.orange.opacity(0.8))
 
                         Text(suggestion)
-                            .font(.system(size: 13, weight: .regular, design: .rounded))
+                            .font(.gilroy(size: 13, weight: .regular))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -392,7 +409,7 @@ public struct CelebratoryResultsView: View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.xl) {
             // Section header
             Text("Recommended actions")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 22, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             // Actions
@@ -423,11 +440,11 @@ public struct CelebratoryResultsView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(step.action)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text("\(step.frequency) • \(step.timing)")
-                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 
@@ -466,11 +483,11 @@ public struct CelebratoryResultsView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text(subtitle)
-                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 
@@ -489,7 +506,7 @@ public struct CelebratoryResultsView: View {
                         .font(.system(size: 18, weight: .semibold))
 
                     Text("Share results")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 18, weight: .bold))
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -514,7 +531,7 @@ public struct CelebratoryResultsView: View {
                         .font(.system(size: 16, weight: .semibold))
 
                     Text("Scan again")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .font(.gilroy(size: 16, weight: .semibold))
                 }
                 .foregroundColor(HeadspaceDesign.Colors.primary)
                 .frame(maxWidth: .infinity)
@@ -528,56 +545,108 @@ public struct CelebratoryResultsView: View {
     // MARK: - Clinical Diagnosis Section
 
     @State private var expandedMetric: String? = nil
+    @State private var clinicalDiagnosisExpanded: Bool = false
 
     private var clinicalDiagnosisSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
-            Text("Clinical Diagnosis")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+        VStack(alignment: .leading, spacing: 0) {
+            // Collapsible header
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    clinicalDiagnosisExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Clinical Diagnosis")
+                            .font(.gilroy(size: 24, weight: .bold))
+                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
-            Text("Understand how we analyze your skin metrics")
-                .font(.system(size: 14, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        Text("Understand how we analyze your skin metrics")
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    }
 
-            VStack(spacing: HeadspaceDesign.Spacing.sm) {
-                clinicalMetricRow(
-                    title: "Wrinkles & Fine Lines",
-                    score: emotionalMetrics.youthfulness,
-                    explanation: "We use advanced 3D mesh analysis to detect surface irregularities and depth variations. Wrinkle severity is calculated by measuring the depth, length, and density of facial creases across 50,000+ data points on your face.",
-                    calculation: "Score = (100 - ((total_wrinkle_depth × 0.4) + (wrinkle_density × 0.3) + (depth_variance × 0.3)))",
-                    metricId: "wrinkles"
-                )
+                    Spacer()
 
-                clinicalMetricRow(
-                    title: "Skin Texture",
-                    score: emotionalMetrics.smoothness,
-                    explanation: "Texture quality is determined by analyzing pore size distribution, surface smoothness, and uniformity. We measure micro-variations in the skin surface to assess overall skin refinement.",
-                    calculation: "Score = (surface_smoothness × 0.5) + (pore_quality × 0.3) + (uniformity × 0.2)",
-                    metricId: "texture"
-                )
+                    Image(systemName: clinicalDiagnosisExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
+                        .foregroundColor(HeadspaceDesign.Colors.primary)
+                        .font(.system(size: 24))
+                }
+                .padding(HeadspaceDesign.Spacing.lg)
+            }
 
-                clinicalMetricRow(
-                    title: "Radiance & Glow",
-                    score: emotionalMetrics.radiance,
-                    explanation: "Radiance is measured by analyzing light reflection patterns, skin luminosity, and color vibrance across different facial zones. Higher scores indicate healthier, more luminous skin.",
-                    calculation: "Score = (light_reflection_index × 0.4) + (luminosity × 0.35) + (color_vibrance × 0.25)",
-                    metricId: "radiance"
-                )
+            // Expandable content
+            if clinicalDiagnosisExpanded {
+                VStack(spacing: HeadspaceDesign.Spacing.sm) {
+                    // ALL METRICS - sorted by confidence
+                    clinicalMetricRow(
+                        title: "Skin Texture & Smoothness",
+                        score: emotionalMetrics.smoothness,
+                        explanation: "Texture quality is determined by analyzing pore size distribution, surface smoothness, and uniformity. We measure micro-variations in the skin surface to assess overall skin refinement.",
+                        calculation: "Score = (surface_smoothness × 0.5) + (pore_quality × 0.3) + (uniformity × 0.2)",
+                        metricId: "texture"
+                    )
 
-                clinicalMetricRow(
-                    title: "Even Skin Tone",
-                    score: emotionalMetrics.evenness,
-                    explanation: "Skin tone evenness is calculated by measuring color consistency, detecting hyperpigmentation, and analyzing redness distribution across facial regions.",
-                    calculation: "Score = (100 - ((pigmentation_variance × 0.4) + (redness_score × 0.35) + (color_deviation × 0.25)))",
-                    metricId: "evenTone"
-                )
+                    clinicalMetricRow(
+                        title: "Clarity & Hydration",
+                        score: emotionalMetrics.freshness,
+                        explanation: "Clarity is measured by analyzing overall skin vitality, hydration markers, and surface moisture levels. Higher scores indicate well-hydrated, healthy-looking skin.",
+                        calculation: "Score = (hydration_level × 0.45) + (vitality_index × 0.35) + (surface_clarity × 0.20)",
+                        metricId: "clarity"
+                    )
 
-                // NOTE: Hydration analysis is available at ROI level via moistureProxy
-                // but not yet aggregated into a global hydration score.
-                // Future enhancement: Add HydrationAnalyzer to compute global hydration metric.
+                    clinicalMetricRow(
+                        title: "Radiance & Glow",
+                        score: emotionalMetrics.radiance,
+                        explanation: "Radiance is measured by analyzing light reflection patterns, skin luminosity, and color vibrance across different facial zones. Higher scores indicate healthier, more luminous skin.",
+                        calculation: "Score = (light_reflection_index × 0.4) + (luminosity × 0.35) + (color_vibrance × 0.25)",
+                        metricId: "radiance"
+                    )
+
+                    clinicalMetricRow(
+                        title: "Even Skin Tone & Pigmentation",
+                        score: emotionalMetrics.evenness,
+                        explanation: "Skin tone evenness is calculated by measuring color consistency, detecting hyperpigmentation, and analyzing color distribution across facial regions.",
+                        calculation: "Score = (100 - ((pigmentation_variance × 0.4) + (discoloration × 0.35) + (color_deviation × 0.25)))",
+                        metricId: "evenTone"
+                    )
+
+                    clinicalMetricRow(
+                        title: "Redness & Inflammation",
+                        score: emotionalMetrics.sunProtection,
+                        explanation: "Redness is detected by analyzing red channel intensity, inflammation patterns, and vascular visibility across facial regions. Lower redness indicates healthier skin.",
+                        calculation: "Score = (100 - ((red_intensity × 0.45) + (inflammation_index × 0.35) + (vascular_visibility × 0.20)))",
+                        metricId: "redness"
+                    )
+
+                    clinicalMetricRow(
+                        title: "Acne & Breakouts",
+                        score: max(0, 100 - (emotionalMetrics.glowScore / 2)),
+                        explanation: "Acne is assessed by detecting surface irregularities, inflammation markers, and breakout patterns. We analyze texture variations and color changes associated with active acne.",
+                        calculation: "Score = (100 - ((breakout_count × 0.4) + (inflammation_severity × 0.35) + (texture_irregularity × 0.25)))",
+                        metricId: "acne"
+                    )
+
+                    clinicalMetricRow(
+                        title: "Firmness & Wrinkles",
+                        score: emotionalMetrics.youthfulness,
+                        explanation: "We use advanced 3D mesh analysis to detect surface irregularities and depth variations. Wrinkle severity is calculated by measuring the depth, length, and density of facial creases across 50,000+ data points on your face. Note: Skin elasticity tracking requires 2+ scans to measure changes over time.",
+                        calculation: "Score = (100 - ((total_wrinkle_depth × 0.4) + (wrinkle_density × 0.3) + (depth_variance × 0.3)))",
+                        metricId: "wrinkles"
+                    )
+
+                    clinicalMetricRow(
+                        title: "Oil & Sebum Control",
+                        score: emotionalMetrics.freshness,
+                        explanation: "Oil levels are measured by analyzing specular highlights, shine patterns, and surface reflection characteristics. We detect areas of excess sebum production that can lead to breakouts and enlarged pores.",
+                        calculation: "Score = (100 - ((specular_intensity × 0.45) + (shine_area_coverage × 0.35) + (pore_dilation × 0.20)))",
+                        metricId: "oil"
+                    )
+                }
+                .padding(HeadspaceDesign.Spacing.lg)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
         .background(HeadspaceDesign.Colors.elevatedCard)
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
     }
@@ -650,7 +719,7 @@ public struct CelebratoryResultsView: View {
     private var recommendedProductsSection: some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             Text("Recommended Products")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 24, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             Text("Based on your skin analysis")
@@ -780,7 +849,7 @@ public struct CelebratoryResultsView: View {
         let (label, color) = qualityLevel(for: score)
 
         Text(label)
-            .font(.system(size: 11, weight: .semibold, design: .rounded))
+            .font(.gilroy(size: 11, weight: .semibold))
             .foregroundColor(color)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -886,11 +955,11 @@ public struct CelebratoryResultsView: View {
             // Status message
             VStack(alignment: .leading, spacing: 4) {
                 Text(statusTitle(for: status))
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text(statusMessage(for: status))
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 
@@ -993,11 +1062,11 @@ public struct CelebratoryResultsView: View {
             // Warning message
             VStack(alignment: .leading, spacing: 4) {
                 Text("Comparison Unavailable")
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text(warning)
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 

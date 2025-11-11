@@ -13,15 +13,15 @@ public struct HeadspaceDesign {
 
     // MARK: - Colors
 
-    /// Primary brand colors - professional and calming
+    /// ACTUAL Bumble colors - their real brand palette
     public struct Colors {
-        // Primary palette - warm, inviting tones (from real Headspace)
-        public static let primary = Color(red: 242/255, green: 118/255, blue: 74/255) // Warm orange
-        public static let secondary = Color(red: 95/255, green: 111/255, blue: 230/255) // Royal blue
-        public static let accent = Color(red: 252/255, green: 188/255, blue: 78/255) // Warm yellow
+        // BUMBLE's ACTUAL brand colors
+        public static let primary = Color(red: 255/255, green: 199/255, blue: 0/255) // Bumble Yellow - THE iconic color
+        public static let secondary = Color(red: 30/255, green: 30/255, blue: 30/255) // Bumble Dark Gray/Black
+        public static let accent = Color(red: 255/255, green: 199/255, blue: 0/255) // Bumble Yellow (same as primary)
 
         // Success and positive
-        public static let success = Color(red: 101/255, green: 188/255, blue: 126/255) // Soft green
+        public static let success = Color(red: 0/255, green: 201/255, blue: 167/255) // Teal accent
 
         // Backgrounds - adaptive for light/dark mode
         public static let background = Color(uiColor: .systemBackground) // Adapts to dark mode
@@ -36,29 +36,30 @@ public struct HeadspaceDesign {
         // Border color
         public static let border = Color(uiColor: .separator)
 
-        // Gradients - subtle and warm
-        public static let warmGradient = LinearGradient(
-            colors: [
-                Color(red: 255/255, green: 199/255, blue: 95/255),
-                Color(red: 252/255, green: 163/255, blue: 84/255)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        // Card colors - Bumble style with yellow and neutrals
+        public static let cardYellow = Color(red: 255/255, green: 199/255, blue: 0/255) // Bumble Yellow
+        public static let cardWhite = Color(red: 255/255, green: 255/255, blue: 255/255) // White cards
+        public static let cardGray = Color(red: 246/255, green: 246/255, blue: 246/255) // Light gray
+        public static let cardDark = Color(red: 30/255, green: 30/255, blue: 30/255) // Dark accent
 
+        // Solid "gradients" (single color wrapped in LinearGradient for API compatibility)
         public static let peachGradient = LinearGradient(
-            colors: [
-                Color(red: 255/255, green: 184/255, blue: 140/255),
-                Color(red: 255/255, green: 149/255, blue: 119/255)
-            ],
+            colors: [cardGray, cardGray],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
 
         public static let coolGradient = LinearGradient(
+            colors: [cardYellow, cardYellow],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+
+        // Legacy gradients (kept for compatibility)
+        public static let warmGradient = LinearGradient(
             colors: [
-                Color(red: 142/255, green: 158/255, blue: 255/255),
-                Color(red: 118/255, green: 135/255, blue: 240/255)
+                Color(red: 255/255, green: 199/255, blue: 95/255),
+                Color(red: 252/255, green: 163/255, blue: 84/255)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -86,37 +87,64 @@ public struct HeadspaceDesign {
     // MARK: - Typography
 
     public struct Typography {
-        // Font definitions
-        public static let bodyMedium = Font.system(size: 16, weight: .medium, design: .rounded)
+        // Roboto font helper - Google's Material Design font
+        // Clean, modern, and widely used in professional apps
+        public static func gilroy(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+            // Try to use Roboto font, fallback to SF Pro if not available
+            let fontName: String
+            switch weight {
+            case .ultraLight: fontName = "Roboto-Thin"
+            case .thin: fontName = "Roboto-Light"
+            case .light: fontName = "Roboto-Light"
+            case .regular: fontName = "Roboto-Regular"
+            case .medium: fontName = "Roboto-Medium"
+            case .semibold: fontName = "Roboto-Medium"
+            case .bold: fontName = "Roboto-Bold"
+            case .heavy: fontName = "Roboto-Bold"
+            case .black: fontName = "Roboto-Black"
+            default: fontName = "Roboto-Regular"
+            }
 
-        // Headings - rounded, friendly
+            // Try custom font first, fallback to system font
+            if let customFont = UIFont(name: fontName, size: size) {
+                return Font(customFont)
+            } else {
+                // Fallback to SF Pro if Roboto not installed
+                return Font.system(size: size, weight: weight, design: .default)
+            }
+        }
+
+        // Font definitions
+        public static let bodyMedium = gilroy(size: 16, weight: .medium)
+
+        // Headings - Gilroy, friendly
         public static func hero(_ text: String) -> some View {
             Text(text)
-                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .font(gilroy(size: 34, weight: .bold))
                 .foregroundColor(Colors.textPrimary)
         }
 
         public static func title(_ text: String) -> some View {
             Text(text)
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(gilroy(size: 24, weight: .bold))
                 .foregroundColor(Colors.textPrimary)
         }
 
         public static func headline(_ text: String) -> some View {
             Text(text)
-                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                .font(gilroy(size: 18, weight: .semibold))
                 .foregroundColor(Colors.textPrimary)
         }
 
         public static func body(_ text: String) -> some View {
             Text(text)
-                .font(.system(size: 16, weight: .regular, design: .rounded))
+                .font(gilroy(size: 16, weight: .regular))
                 .foregroundColor(Colors.textSecondary)
         }
 
         public static func caption(_ text: String) -> some View {
             Text(text)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .font(gilroy(size: 14, weight: .medium))
                 .foregroundColor(Colors.textTertiary)
         }
     }
@@ -257,7 +285,7 @@ public struct HeadspacePrimaryButton: View {
                 }
 
                 Text(title)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 18, weight: .bold))
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
@@ -315,7 +343,7 @@ public struct HeadspaceStickyButton: View {
                         .font(.system(size: 22, weight: .semibold))
 
                     Text(title)
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 18, weight: .bold))
                 }
                 .foregroundColor(.white)
                 .padding(.horizontal, 32)
@@ -363,7 +391,7 @@ public struct HeadspaceBadge: View {
 
     public var body: some View {
         Text(text)
-            .font(.system(size: 12, weight: .semibold, design: .rounded))
+            .font(.gilroy(size: 12, weight: .semibold))
             .foregroundColor(color)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
@@ -371,5 +399,15 @@ public struct HeadspaceBadge: View {
                 Capsule()
                     .fill(color.opacity(0.15))
             )
+    }
+}
+
+// MARK: - Font Extension for Gilroy
+
+extension Font {
+    /// Creates a Gilroy font with the specified size and weight
+    /// Falls back to system rounded font if Gilroy is not available
+    public static func gilroy(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        return HeadspaceDesign.Typography.gilroy(size: size, weight: weight)
     }
 }

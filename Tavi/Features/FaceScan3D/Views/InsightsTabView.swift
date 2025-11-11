@@ -73,7 +73,7 @@ public struct InsightsTabView: View {
     private var titleSection: some View {
         HStack {
             Text("Insights")
-                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 34, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             Spacer()
@@ -92,11 +92,11 @@ public struct InsightsTabView: View {
                     .foregroundColor(HeadspaceDesign.Colors.primary)
 
                 Text("Start Your Skin Journey")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 24, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text("Complete your first scan to get personalized insights and recommendations tailored to your skin health.")
-                    .font(.system(size: 16, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -104,14 +104,14 @@ public struct InsightsTabView: View {
             .padding(HeadspaceDesign.Spacing.xxl)
             .background(
                 RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                    .fill(Color.white.opacity(0.7))
+                    .fill(HeadspaceDesign.Colors.elevatedCard)
                     .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
             )
 
             // Feature preview cards
             VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
                 Text("What You'll Get")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 20, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 featurePreviewCard(
@@ -144,11 +144,11 @@ public struct InsightsTabView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text(description)
-                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 
@@ -157,7 +157,7 @@ public struct InsightsTabView: View {
         .padding(HeadspaceDesign.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
-                .fill(Color.white.opacity(0.7))
+                .fill(HeadspaceDesign.Colors.elevatedCard)
         )
     }
 
@@ -185,7 +185,7 @@ public struct InsightsTabView: View {
                 .foregroundColor(HeadspaceDesign.Colors.primary)
 
             Text("For You")
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 16, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             Spacer()
@@ -206,7 +206,7 @@ public struct InsightsTabView: View {
                     .foregroundColor(.green)
 
                 Text("Baseline Established")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 20, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Spacer()
@@ -214,7 +214,7 @@ public struct InsightsTabView: View {
 
             if let session = sessions.first {
                 Text("Your first scan is complete! We've established your baseline metrics:")
-                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 15, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -233,14 +233,14 @@ public struct InsightsTabView: View {
                 .padding(.vertical, HeadspaceDesign.Spacing.sm)
 
                 Text("Complete another scan to see progress.")
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
         }
         .padding(HeadspaceDesign.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(Color.white.opacity(0.7))
+                .fill(HeadspaceDesign.Colors.elevatedCard)
                 .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
         )
     }
@@ -252,13 +252,13 @@ public struct InsightsTabView: View {
                 .frame(width: 6, height: 6)
 
             Text(label)
-                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 15, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             Spacer()
 
             Text("\(Int(value))%")
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .font(.gilroy(size: 15, weight: .semibold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
         }
     }
@@ -271,7 +271,7 @@ public struct InsightsTabView: View {
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                 Text("Your Metrics")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 18, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
             }
 
@@ -280,7 +280,7 @@ public struct InsightsTabView: View {
                     // Skin Health Metrics (Included in Overall Score - 5 metrics)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Skin Health (In Overall Score)")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .semibold))
                             .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                         VStack(spacing: 12) {
@@ -310,7 +310,7 @@ public struct InsightsTabView: View {
                     // Additional Indicators (Not in Overall Score - 4 metrics)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Additional Indicators")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .semibold))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                         VStack(spacing: 12) {
@@ -341,7 +341,7 @@ public struct InsightsTabView: View {
                     // Aging Indicators
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Aging Indicators")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .semibold))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                         VStack(spacing: 12) {
@@ -360,7 +360,7 @@ public struct InsightsTabView: View {
                     // Other Indicators
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Other Indicators")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .semibold))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                         VStack(spacing: 12) {
@@ -377,7 +377,7 @@ public struct InsightsTabView: View {
         .padding(HeadspaceDesign.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(Color.white.opacity(0.7))
+                .fill(HeadspaceDesign.Colors.elevatedCard)
                 .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
         )
     }
@@ -385,7 +385,7 @@ public struct InsightsTabView: View {
     private func metricProgressBar(label: String, score: Double, color: Color) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 14, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                 .frame(width: 100, alignment: .leading)
 
@@ -402,7 +402,7 @@ public struct InsightsTabView: View {
             .frame(height: 8)
 
             Text("\(Int(score))%")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .font(.gilroy(size: 14, weight: .semibold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                 .frame(width: 45, alignment: .trailing)
         }
@@ -474,7 +474,7 @@ public struct InsightsTabView: View {
 
         return InsightCard(
             icon: "star.fill",
-            iconColor: Color(red: 95/255, green: 111/255, blue: 230/255),
+            iconColor: HeadspaceDesign.Colors.primary,
             title: "Recommendation",
             content: recommendation.message,
             actionText: "Learn More"
@@ -511,20 +511,20 @@ public struct InsightsTabView: View {
     private var progressTrendsSection: some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             Text("Progress Trends")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 20, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             if filteredSessions.count >= 2 {
                 progressChart
             } else {
                 Text("Not enough data in selected time range")
-                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 15, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     .padding(HeadspaceDesign.Spacing.lg)
                     .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                            .fill(Color.white.opacity(0.7))
+                            .fill(HeadspaceDesign.Colors.elevatedCard)
                     )
             }
         }
@@ -582,7 +582,7 @@ public struct InsightsTabView: View {
         .padding(HeadspaceDesign.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(Color.white.opacity(0.7))
+                .fill(HeadspaceDesign.Colors.elevatedCard)
                 .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
         )
     }
@@ -602,7 +602,7 @@ public struct InsightsTabView: View {
                         .padding(.vertical, 6)
                         .background(
                             Capsule()
-                                .fill(selectedTimeRange == range ? HeadspaceDesign.Colors.primary : Color.white.opacity(0.5))
+                                .fill(selectedTimeRange == range ? HeadspaceDesign.Colors.primary : HeadspaceDesign.Colors.elevatedCard)
                         )
                 }
             }
@@ -616,7 +616,7 @@ public struct InsightsTabView: View {
                 .frame(width: 16, height: 3)
 
             Text(label)
-                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 12, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
         }
     }
@@ -632,10 +632,10 @@ public struct InsightsTabView: View {
             HStack {
                 Image(systemName: "crown.fill")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Color(red: 252/255, green: 188/255, blue: 78/255))
+                    .foregroundColor(HeadspaceDesign.Colors.secondary)
 
                 Text("Top 3 Metrics")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 18, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
             }
 
@@ -644,22 +644,22 @@ public struct InsightsTabView: View {
             ForEach(Array(topMetrics.enumerated()), id: \.element.0) { index, metric in
                 HStack {
                     Text("\(index + 1).")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 16, weight: .bold))
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                         .frame(width: 30, alignment: .leading)
 
                     Text(metric.0)
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .font(.gilroy(size: 16, weight: .medium))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     Spacer()
 
                     Text("\(Int(metric.1))%")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 16, weight: .bold))
                         .foregroundColor(scoreColor(metric.1))
 
                     Text("[\(metric.2)]")
-                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                        .font(.gilroy(size: 14, weight: .regular))
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 }
             }
@@ -667,7 +667,7 @@ public struct InsightsTabView: View {
         .padding(HeadspaceDesign.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(Color.white.opacity(0.7))
+                .fill(HeadspaceDesign.Colors.elevatedCard)
                 .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
         )
     }
@@ -677,7 +677,7 @@ public struct InsightsTabView: View {
     private var educationalContentSection: some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             Text("Educational Content")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 20, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             educationalArticleRow(icon: "book.fill", title: "Understanding Your Baseline")
@@ -698,7 +698,7 @@ public struct InsightsTabView: View {
                     .frame(width: 32)
 
                 Text(title)
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Spacer()
@@ -710,7 +710,7 @@ public struct InsightsTabView: View {
             .padding(HeadspaceDesign.Spacing.md)
             .background(
                 RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
-                    .fill(Color.white.opacity(0.7))
+                    .fill(HeadspaceDesign.Colors.elevatedCard)
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -932,7 +932,7 @@ struct InsightCard: View {
                     .foregroundColor(iconColor)
 
                 Text(title)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 18, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Spacer()
@@ -943,7 +943,7 @@ struct InsightCard: View {
             }
 
             Text(content)
-                .font(.system(size: 15, weight: .regular, design: .rounded))
+                .font(.gilroy(size: 15, weight: .regular))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -957,7 +957,7 @@ struct InsightCard: View {
                                 .padding(.top, 6)
 
                             Text(tip)
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 14, weight: .medium))
                                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -969,7 +969,7 @@ struct InsightCard: View {
             if let actionText = actionText {
                 Button(action: action) {
                     Text(actionText)
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .font(.gilroy(size: 15, weight: .semibold))
                         .foregroundColor(HeadspaceDesign.Colors.primary)
                 }
                 .padding(.top, HeadspaceDesign.Spacing.sm)
@@ -978,7 +978,7 @@ struct InsightCard: View {
         .padding(HeadspaceDesign.Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(Color.white.opacity(0.7))
+                .fill(HeadspaceDesign.Colors.elevatedCard)
                 .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
         )
     }

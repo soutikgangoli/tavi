@@ -11,6 +11,7 @@ import SwiftUI
 /// Professional home screen matching Headspace's clean design
 public struct HomeView: View {
 
+    @Environment(\.managedObjectContext) private var viewContext
     private let capabilities = DeviceCapabilities.current
     @Binding var selectedTab: MainTabView.Tab
     @State private var showOnboarding: Bool
@@ -132,10 +133,10 @@ public struct HomeView: View {
                 // Header: Show date header if has scans, greeting if empty
                 if hasCoreDataScans {
                     dateHeaderSection
-                        .padding(.top, HeadspaceDesign.Spacing.md)
+                        .padding(.top, HeadspaceDesign.Spacing.sm)
                 } else {
                     greetingSection
-                        .padding(.top, HeadspaceDesign.Spacing.md)
+                        .padding(.top, HeadspaceDesign.Spacing.sm)
                 }
 
                 // Status widgets row: Only show if has scans
@@ -225,14 +226,14 @@ public struct HomeView: View {
             let greeting = getTimeBasedGreeting()
 
             Text("\(greeting), \(userName)")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 32, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text("Track your skin health journey")
-                .font(.system(size: 18, weight: .regular, design: .rounded))
+                .font(.gilroy(size: 18, weight: .regular))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -243,11 +244,11 @@ public struct HomeView: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.xs) {
                 Text("Today, \(formattedTodayDate)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 28, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text("Track your skin health journey")
-                    .font(.system(size: 16, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 
@@ -264,7 +265,7 @@ public struct HomeView: View {
 
                     if let userName = UserProfileManager.shared.loadProfile().name {
                         Text(String(userName.prefix(1)).uppercased())
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 18, weight: .semibold))
                             .foregroundColor(HeadspaceDesign.Colors.primary)
                     } else {
                         Image(systemName: "person.fill")
@@ -301,16 +302,16 @@ public struct HomeView: View {
                     HStack(spacing: HeadspaceDesign.Spacing.sm) {
                         Image(systemName: "flame.fill")
                             .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(Color(red: 255/255, green: 159/255, blue: 64/255))
+                            .foregroundColor(HeadspaceDesign.Colors.secondary)
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Active")
-                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .font(.gilroy(size: 14, weight: .semibold))
                                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                             let progress = Int((Double(challenge.daysCompleted) / Double(challenge.goalDays)) * 100)
                             Text("\(challenge.daysCompleted) days • \(progress)% done")
-                                .font(.system(size: 12, weight: .regular, design: .rounded))
+                                .font(.gilroy(size: 12, weight: .regular))
                                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                         }
 
@@ -332,15 +333,15 @@ public struct HomeView: View {
                     HStack(spacing: HeadspaceDesign.Spacing.sm) {
                         Image(systemName: "flame.fill")
                             .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(Color(red: 255/255, green: 159/255, blue: 64/255))
+                            .foregroundColor(HeadspaceDesign.Colors.secondary)
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Start Challenge")
-                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .font(.gilroy(size: 14, weight: .semibold))
                                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                             Text("30-Day Glow")
-                                .font(.system(size: 12, weight: .regular, design: .rounded))
+                                .font(.gilroy(size: 12, weight: .regular))
                                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                         }
 
@@ -363,16 +364,16 @@ public struct HomeView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Last Scan")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 if let lastScan = latestSession {
                     Text(formatRelativeDate(lastScan.date))
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .font(.gilroy(size: 12, weight: .regular))
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 } else {
                     Text("No scans yet")
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .font(.gilroy(size: 12, weight: .regular))
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 }
             }
@@ -421,7 +422,7 @@ public struct HomeView: View {
                         smallHeroRing(
                             score: latest.pigmentationAvg,
                             label: "Evenness",
-                            color: Color(red: 252/255, green: 188/255, blue: 78/255)  // Yellow
+                            color: HeadspaceDesign.Colors.secondary  // Yellow
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -445,7 +446,7 @@ public struct HomeView: View {
                 } label: {
                     HStack {
                         Text("View All Metrics")
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 15, weight: .semibold))
 
                         Image(systemName: "arrow.right")
                             .font(.system(size: 13, weight: .semibold))
@@ -482,17 +483,17 @@ public struct HomeView: View {
                 // Score text
                 VStack(spacing: 2) {
                     Text("\(Int(score))")
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 48, weight: .bold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     Text("%")
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .font(.gilroy(size: 18, weight: .semibold))
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 }
             }
 
             Text(label)
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .font(.gilroy(size: 16, weight: .semibold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
         }
     }
@@ -516,12 +517,12 @@ public struct HomeView: View {
 
                 // Score text
                 Text("\(Int(score))")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 20, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
             }
 
             Text(label)
-                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 12, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -550,7 +551,7 @@ public struct HomeView: View {
             if let latest = latestSession {
                 HStack {
                     Text(generateSummaryTitle(latest))
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 18, weight: .bold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     Spacer()
@@ -565,13 +566,13 @@ public struct HomeView: View {
                 }
 
                 Text(generateSummaryText(latest))
-                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 15, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack {
                     Text("Overall Score: \(Int(latest.overallScore))")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .font(.gilroy(size: 16, weight: .semibold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     if let trend = calculateTrend(for: latest), trend != 0 {
@@ -579,7 +580,7 @@ public struct HomeView: View {
                             Image(systemName: trend > 0 ? "arrow.up.right" : "arrow.down.right")
                                 .font(.system(size: 11, weight: .bold))
                             Text("\(trend > 0 ? "+" : "")\(Int(trend))")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .font(.gilroy(size: 13, weight: .semibold))
                         }
                         .foregroundColor(trend > 0 ? .green : .red)
                         .padding(.horizontal, 8)
@@ -632,14 +633,14 @@ public struct HomeView: View {
                             .rotationEffect(.degrees(-90))
 
                         Text("\(Int(session.overallScore))")
-                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 48, weight: .bold))
                             .foregroundColor(.white)
                     }
                     .accessibilityLabel("Skin Health Score")
                     .accessibilityValue("\(Int(session.overallScore)) out of 100, \(scoreDescription(session.overallScore))")
 
                     Text("Your Skin Health Score")
-                        .font(.system(size: 17, weight: .medium, design: .rounded))
+                        .font(.gilroy(size: 17, weight: .medium))
                         .foregroundColor(.white.opacity(0.95))
                         .accessibilityHidden(true)
                 }
@@ -650,11 +651,11 @@ public struct HomeView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Last scanned")
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .medium))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                         Text(session.relativeDate)
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 16, weight: .semibold))
                             .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                     }
 
@@ -663,7 +664,7 @@ public struct HomeView: View {
                     NavigationLink(value: session) {
                         HStack(spacing: 6) {
                             Text("View details")
-                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .font(.gilroy(size: 16, weight: .semibold))
 
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 13, weight: .bold))
@@ -687,14 +688,20 @@ public struct HomeView: View {
     }
 
     private var firstScanCard: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(spacing: HeadspaceDesign.Spacing.sm) {
+            // FIRST SCREEN - Only these 2 cards are visible initially (compact for iPhone 15 Pro screen)
             // Benefits Hero Card (COMPACT - fits on first screen)
             benefitsHeroCard
 
-            // Challenge Invitation Card (NEW - fits on first screen)
+            // Challenge Invitation Card (fits on first screen)
             challengeInvitationCard
 
-            // 8 Metrics Feature Cards
+            // Add spacer to fill screen and ensure user must scroll for rest
+            Spacer()
+                .frame(height: 200)
+
+            // SCROLLABLE CONTENT BELOW - User must scroll to see these
+            // 8 Metrics Feature Cards - ONLY SHOWN BEFORE FIRST SCAN
             metricsFeatureCards
 
             // Technology Card
@@ -708,18 +715,18 @@ public struct HomeView: View {
     /// Benefits Hero Card - highlights key user benefits (COMPACT for first screen)
     private var benefitsHeroCard: some View {
         VStack(spacing: 0) {
-            // Gradient header (compact)
-            HeadspaceDesign.Colors.peachGradient
+            // Yellow header (Bumble style)
+            HeadspaceDesign.Colors.primary
                 .frame(height: 100)
                 .overlay(
                     VStack(spacing: HeadspaceDesign.Spacing.sm) {
                         Image(systemName: "sparkles")
                             .font(.system(size: 28, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(HeadspaceDesign.Colors.secondary)
 
                         Text("Discover Your Skin Health")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
+                            .font(.gilroy(size: 20, weight: .bold))
+                            .foregroundColor(HeadspaceDesign.Colors.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(HeadspaceDesign.Spacing.lg)
@@ -728,7 +735,7 @@ public struct HomeView: View {
             // Benefits list (compact - 2 benefits inline)
             HStack(spacing: HeadspaceDesign.Spacing.md) {
                 compactBenefitBadge(icon: "chart.line.uptrend.xyaxis", text: "Track Progress")
-                compactBenefitBadge(icon: "star.fill", text: "Personalized")
+                compactBenefitBadge(icon: "star.fill", text: "Accurate")
             }
             .padding(HeadspaceDesign.Spacing.lg)
             .background(HeadspaceDesign.Colors.elevatedCard)
@@ -750,7 +757,7 @@ public struct HomeView: View {
                 .foregroundColor(HeadspaceDesign.Colors.primary)
 
             Text(text)
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .font(.gilroy(size: 14, weight: .semibold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
         }
         .frame(maxWidth: .infinity)
@@ -763,29 +770,22 @@ public struct HomeView: View {
     /// Challenge Invitation Card - encourages users to start 30-day challenge
     private var challengeInvitationCard: some View {
         VStack(spacing: 0) {
-            // Gradient header with flame icon
-            LinearGradient(
-                colors: [
-                    Color(red: 255/255, green: 159/255, blue: 64/255),  // Orange
-                    Color(red: 255/255, green: 102/255, blue: 102/255)  // Red-orange
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .frame(height: 90)
-            .overlay(
-                VStack(spacing: HeadspaceDesign.Spacing.sm) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
+            // Yellow header with black text
+            HeadspaceDesign.Colors.primary  // Bumble yellow
+                .frame(height: 90)
+                .overlay(
+                    VStack(spacing: HeadspaceDesign.Spacing.sm) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(HeadspaceDesign.Colors.secondary)
 
-                    Text("30-Day Glow Challenge")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(HeadspaceDesign.Spacing.lg)
-            )
+                        Text("30-Day Glow Challenge")
+                            .font(.gilroy(size: 20, weight: .bold))
+                            .foregroundColor(HeadspaceDesign.Colors.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(HeadspaceDesign.Spacing.lg)
+                )
 
             // Benefits and CTA
             VStack(spacing: HeadspaceDesign.Spacing.md) {
@@ -798,7 +798,7 @@ public struct HomeView: View {
 
                 // CTA Button
                 Text("Complete your first scan to start")
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.top, HeadspaceDesign.Spacing.sm)
@@ -820,10 +820,10 @@ public struct HomeView: View {
         HStack(spacing: HeadspaceDesign.Spacing.sm) {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(Color(red: 255/255, green: 159/255, blue: 64/255))
+                .foregroundColor(HeadspaceDesign.Colors.secondary)
 
             Text(text)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 14, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             Spacer()
@@ -845,11 +845,11 @@ public struct HomeView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text(description)
-                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 
@@ -857,88 +857,74 @@ public struct HomeView: View {
         }
     }
 
-    /// 8 Metrics Feature Cards - grid showing what the app measures
+    /// 8 Metrics Feature Cards - compact grid in 2 rows of 4
     private var metricsFeatureCards: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
             Text("8 Skin Health Metrics")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 18, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
-            VStack(spacing: HeadspaceDesign.Spacing.md) {
-                // Row 1
-                HStack(spacing: HeadspaceDesign.Spacing.md) {
+            VStack(spacing: 8) {
+                // Row 1 - 4 metrics
+                HStack(spacing: 8) {
                     metricCard(icon: "waveform.path", title: "Smoothness", color: HeadspaceDesign.Colors.primary)
-                    metricCard(icon: "drop.fill", title: "Hydration", color: Color(red: 95/255, green: 158/255, blue: 255/255))
+                    metricCard(icon: "drop.fill", title: "Hydration", color: HeadspaceDesign.Colors.accent)
+                    metricCard(icon: "sparkles", title: "Glow", color: HeadspaceDesign.Colors.primary)
+                    metricCard(icon: "circle.hexagongrid.fill", title: "Pigmentation", color: HeadspaceDesign.Colors.primary)
                 }
 
-                // Row 2
-                HStack(spacing: HeadspaceDesign.Spacing.md) {
-                    metricCard(icon: "sparkles", title: "Glow", color: Color(red: 252/255, green: 188/255, blue: 78/255))
-                    metricCard(icon: "circle.hexagongrid.fill", title: "Pigmentation", color: Color(red: 200/255, green: 140/255, blue: 100/255))
-                }
-
-                // Row 3
-                HStack(spacing: HeadspaceDesign.Spacing.md) {
-                    metricCard(icon: "circle.fill", title: "Acne", color: Color(red: 255/255, green: 102/255, blue: 102/255))
-                    metricCard(icon: "sun.max.fill", title: "Sun Damage", color: Color(red: 255/255, green: 159/255, blue: 64/255))
-                }
-
-                // Row 4
-                HStack(spacing: HeadspaceDesign.Spacing.md) {
-                    metricCard(icon: "heart.fill", title: "Redness", color: Color(red: 255/255, green: 82/255, blue: 82/255))
-                    metricCard(icon: "square.grid.3x3.fill", title: "Roughness", color: Color(red: 149/255, green: 165/255, blue: 166/255))
+                // Row 2 - 4 metrics
+                HStack(spacing: 8) {
+                    metricCard(icon: "circle.fill", title: "Acne", color: HeadspaceDesign.Colors.accent)
+                    metricCard(icon: "sun.max.fill", title: "Sun Damage", color: HeadspaceDesign.Colors.primary)
+                    metricCard(icon: "heart.fill", title: "Redness", color: HeadspaceDesign.Colors.primary)
+                    metricCard(icon: "square.grid.3x3.fill", title: "Roughness", color: HeadspaceDesign.Colors.accent)
                 }
             }
         }
     }
 
-    /// Individual metric card
+    /// Individual metric card - compact version
     private func metricCard(icon: String, title: String, color: Color) -> some View {
-        VStack(spacing: HeadspaceDesign.Spacing.sm) {
+        VStack(spacing: 6) {
             ZStack {
                 Circle()
                     .fill(color.opacity(0.15))
-                    .frame(width: 56, height: 56)
+                    .frame(width: 40, height: 40)
 
                 Image(systemName: icon)
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(color)
             }
 
             Text(title)
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .font(.gilroy(size: 12, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, HeadspaceDesign.Spacing.lg)
+        .padding(.vertical, 12)
         .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
-        .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
-        )
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
     }
 
     /// Technology/Features Card
     private var technologyCard: some View {
         VStack(spacing: 0) {
             // Gradient header
-            HeadspaceDesign.Colors.coolGradient
+            HeadspaceDesign.Colors.primary
                 .frame(height: 120)
                 .overlay(
                     VStack(spacing: HeadspaceDesign.Spacing.sm) {
                         Image(systemName: "camera.metering.center.weighted")
                             .font(.system(size: 36, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(HeadspaceDesign.Colors.secondary)
 
                         Text("Advanced 3D Face Scanning")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
+                            .font(.gilroy(size: 20, weight: .bold))
+                            .foregroundColor(HeadspaceDesign.Colors.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(HeadspaceDesign.Spacing.xl)
@@ -964,30 +950,38 @@ public struct HomeView: View {
 
     /// Individual feature highlight
     private func featureHighlight(icon: String, text: String) -> some View {
-        HStack(spacing: HeadspaceDesign.Spacing.md) {
+        HStack(alignment: .top, spacing: HeadspaceDesign.Spacing.md) {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(HeadspaceDesign.Colors.secondary)
+                .foregroundColor(HeadspaceDesign.Colors.primary)
                 .frame(width: 28)
 
             Text(text)
-                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 15, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-
-            Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
     private var recentScansSection: some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
             Text("Recent scans")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 22, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             VStack(spacing: HeadspaceDesign.Spacing.md) {
                 ForEach(Array(sessions.prefix(5)), id: \.id) { session in
                     recentScanListItem(session)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                withAnimation {
+                                    deleteSession(session)
+                                }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                 }
             }
 
@@ -998,7 +992,7 @@ public struct HomeView: View {
                 } label: {
                     HStack {
                         Text("View All Scans (\(sessions.count))")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 16, weight: .semibold))
                             .foregroundColor(HeadspaceDesign.Colors.primary)
 
                         Image(systemName: "arrow.right")
@@ -1015,143 +1009,90 @@ public struct HomeView: View {
     }
 
     private func recentScanListItem(_ session: SessionResult) -> some View {
-        HStack(alignment: .center, spacing: HeadspaceDesign.Spacing.lg) {
-            // Date badge (left corner)
-            VStack(spacing: 4) {
-                Text(formatDayMonth(session.date))
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-
-                Text(formatYear(session.date))
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-            }
-            .frame(width: 48)
-            .padding(.vertical, 8)
-            .background(HeadspaceDesign.Colors.background)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-
-            // Score circle
-            ZStack {
-                Circle()
-                    .fill(scoreColor(session.overallScore).opacity(0.12))
-                    .frame(width: 64, height: 64)
-
-                Text("\(Int(session.overallScore))")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(scoreColor(session.overallScore))
-            }
-            .frame(width: 64, height: 64)
-
-            // Info with trend indicator
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    Text(session.relativeDate)
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+        NavigationLink(value: session) {
+            HStack(alignment: .center, spacing: HeadspaceDesign.Spacing.lg) {
+                // Date badge (left corner)
+                VStack(spacing: 4) {
+                    Text(formatDayMonth(session.date))
+                        .font(.gilroy(size: 14, weight: .bold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
-                    // Trend indicator
-                    if let trend = calculateTrend(for: session) {
-                        HStack(spacing: 4) {
-                            Image(systemName: trend > 0 ? "arrow.up.right" : "arrow.down.right")
-                                .font(.system(size: 10, weight: .bold))
-                            Text("\(trend > 0 ? "+" : "")\(Int(trend))%")
-                                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        }
-                        .foregroundColor(trend > 0 ? .green : .red)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background((trend > 0 ? Color.green : Color.red).opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                    }
+                    Text(formatYear(session.date))
+                        .font(.gilroy(size: 10, weight: .medium))
+                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 }
+                .frame(width: 48)
+                .padding(.vertical, 8)
+                .background(HeadspaceDesign.Colors.background)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
 
-                Text(scoreDescription(session.overallScore))
-                    .font(.system(size: 15, weight: .regular, design: .rounded))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-            }
+                // Score circle
+                ZStack {
+                    Circle()
+                        .fill(scoreColor(session.overallScore).opacity(0.12))
+                        .frame(width: 64, height: 64)
 
-            Spacer()
+                    Text("\(Int(session.overallScore))")
+                        .font(.gilroy(size: 24, weight: .bold))
+                        .foregroundColor(scoreColor(session.overallScore))
+                }
+                .frame(width: 64, height: 64)
 
-            // Action buttons (Compare or View)
-            if session != latestSession {
-                // For older scans: show Compare button
-                HStack(spacing: 8) {
-                    // Compare button (always compares with latest scan)
-                    if let latest = latestSession {
-                        NavigationLink {
-                            Comparison3DView(
-                                beforeSession: session,
-                                afterSession: latest
-                            )
-                        } label: {
-                            VStack(spacing: 2) {
-                                Image(systemName: "arrow.left.arrow.right")
-                                    .font(.system(size: 14, weight: .semibold))
-                                Text("Compare")
-                                    .font(.system(size: 10, weight: .medium))
+                // Info with trend indicator
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Text(session.relativeDate)
+                            .font(.gilroy(size: 17, weight: .semibold))
+                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                        // Trend indicator
+                        if let trend = calculateTrend(for: session) {
+                            HStack(spacing: 4) {
+                                Image(systemName: trend > 0 ? "arrow.up.right" : "arrow.down.right")
+                                    .font(.system(size: 10, weight: .bold))
+                                Text("\(trend > 0 ? "+" : "")\(Int(trend))%")
+                                    .font(.gilroy(size: 11, weight: .semibold))
                             }
-                            .foregroundColor(HeadspaceDesign.Colors.primary)
-                            .frame(width: 60, height: 48)
-                            .background(HeadspaceDesign.Colors.primary.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .foregroundColor(trend > 0 ? .green : .red)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background((trend > 0 ? Color.green : Color.red).opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
                         }
-                        .accessibilityLabel("Compare with latest scan")
-                        .accessibilityHint("Shows side-by-side comparison of this scan with your most recent scan")
                     }
 
-                    // View button
-                    NavigationLink(value: session) {
-                        VStack(spacing: 2) {
-                            Image(systemName: "eye")
-                                .font(.system(size: 14, weight: .semibold))
-                            Text("View")
-                                .font(.system(size: 10, weight: .medium))
-                        }
-                        .foregroundColor(HeadspaceDesign.Colors.secondary)
-                        .frame(width: 60, height: 48)
-                        .background(HeadspaceDesign.Colors.secondary.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    .accessibilityLabel("View scan details")
-                    .accessibilityHint("Opens detailed results for this scan")
+                    Text(scoreDescription(session.overallScore))
+                        .font(.gilroy(size: 15, weight: .regular))
+                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 }
-            } else {
-                // For latest scan: just show arrow to view
-                NavigationLink(value: session) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(HeadspaceDesign.Colors.textTertiary)
-                }
-                .accessibilityLabel("View latest scan")
-                .accessibilityHint("Opens detailed results for your most recent scan")
+
+                Spacer()
+
+                // Chevron indicator
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
             }
+            .frame(minHeight: 100)
+            .padding(HeadspaceDesign.Spacing.lg)
+            .background(HeadspaceDesign.Colors.elevatedCard)
+            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+            .shadow(
+                color: HeadspaceDesign.Shadows.card.color,
+                radius: HeadspaceDesign.Shadows.card.radius,
+                x: HeadspaceDesign.Shadows.card.x,
+                y: HeadspaceDesign.Shadows.card.y
+            )
         }
-        .frame(minHeight: 100)
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
-        .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
-        )
+        .buttonStyle(PlainButtonStyle())
     }
 
     private func activeChallengeCard(_ challenge: GlowChallenge) -> some View {
         VStack(spacing: 0) {
-            // Gradient header with progress
+            // Yellow header with black text and progress
             ZStack {
-                LinearGradient(
-                    colors: [
-                        Color(red: 255/255, green: 159/255, blue: 64/255),  // Orange
-                        Color(red: 255/255, green: 102/255, blue: 102/255)  // Red-orange
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .frame(height: 140)
+                HeadspaceDesign.Colors.primary  // Bumble yellow
+                    .frame(height: 140)
 
                 VStack(spacing: HeadspaceDesign.Spacing.md) {
                     // Title
@@ -1159,29 +1100,29 @@ public struct HomeView: View {
                         Image(systemName: "flame.fill")
                             .font(.system(size: 20, weight: .bold))
                         Text("30-Day Glow Challenge")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 18, weight: .bold))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(HeadspaceDesign.Colors.secondary)
 
                     // Progress circle
                     ZStack {
                         Circle()
-                            .stroke(Color.white.opacity(0.3), lineWidth: 8)
+                            .stroke(HeadspaceDesign.Colors.secondary.opacity(0.3), lineWidth: 8)
                             .frame(width: 70, height: 70)
 
                         Circle()
                             .trim(from: 0, to: CGFloat(challenge.progressPercentage) / 100)
-                            .stroke(Color.white, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                            .stroke(HeadspaceDesign.Colors.secondary, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                             .frame(width: 70, height: 70)
                             .rotationEffect(.degrees(-90))
 
                         VStack(spacing: 2) {
                             Text("\(challenge.daysCompleted)")
-                                .font(.system(size: 24, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
+                                .font(.gilroy(size: 24, weight: .bold))
+                                .foregroundColor(HeadspaceDesign.Colors.secondary)
                             Text("days")
-                                .font(.system(size: 10, weight: .medium, design: .rounded))
-                                .foregroundColor(.white.opacity(0.9))
+                                .font(.gilroy(size: 10, weight: .medium))
+                                .foregroundColor(HeadspaceDesign.Colors.secondary.opacity(0.9))
                         }
                     }
                 }
@@ -1193,13 +1134,13 @@ public struct HomeView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("\(challenge.daysRemaining) days remaining")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .semibold))
                             .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                         Spacer()
 
                         Text("\(Int(challenge.progressPercentage))%")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .bold))
                             .foregroundColor(HeadspaceDesign.Colors.primary)
                     }
 
@@ -1211,16 +1152,7 @@ public struct HomeView: View {
                                 .frame(height: 8)
 
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Color(red: 255/255, green: 159/255, blue: 64/255),
-                                            Color(red: 255/255, green: 102/255, blue: 102/255)
-                                        ],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .fill(HeadspaceDesign.Colors.accent)  // Lavender
                                 .frame(width: geometry.size.width * CGFloat(challenge.progressPercentage) / 100, height: 8)
                         }
                     }
@@ -1232,7 +1164,7 @@ public struct HomeView: View {
                     // Glow improvement
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Glow Improvement")
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .font(.gilroy(size: 12, weight: .medium))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                         HStack(spacing: 4) {
@@ -1242,7 +1174,7 @@ public struct HomeView: View {
                                     .foregroundColor(.green)
                             }
                             Text("\(challenge.glowImprovement > 0 ? "+" : "")\(challenge.glowImprovement)")
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .font(.gilroy(size: 18, weight: .bold))
                                 .foregroundColor(challenge.glowImprovement > 0 ? .green : HeadspaceDesign.Colors.textPrimary)
                         }
                     }
@@ -1254,7 +1186,7 @@ public struct HomeView: View {
                     if let nextMilestone = challenge.nextMilestone {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Next Milestone")
-                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 12, weight: .medium))
                                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                             HStack(spacing: 6) {
@@ -1262,7 +1194,7 @@ public struct HomeView: View {
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(HeadspaceDesign.Colors.primary)
                                 Text(nextMilestone.title)
-                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .font(.gilroy(size: 14, weight: .semibold))
                                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                             }
                         }
@@ -1296,11 +1228,11 @@ public struct HomeView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Pro tip")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                 Text("Scan in bright, natural light for best results")
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
             }
 
@@ -1551,15 +1483,15 @@ public struct HomeView: View {
 
                 VStack(spacing: 8) {
                     Text("Latest Scan")
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .font(.gilroy(size: 14, weight: .medium))
                         .foregroundColor(.white.opacity(0.9))
 
                     Text("\(Int(session.overallScore))")
-                        .font(.system(size: 56, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 56, weight: .bold))
                         .foregroundColor(.white)
 
                     Text(scoreDescription(session.overallScore))
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .font(.gilroy(size: 16, weight: .medium))
                         .foregroundColor(.white.opacity(0.9))
                 }
             }
@@ -1587,7 +1519,7 @@ public struct HomeView: View {
     private var fallbackProgressChart: some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             Text("Your Progress")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 22, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             // Simple line chart
@@ -1650,7 +1582,7 @@ public struct HomeView: View {
     private var fallbackRecentScansSection: some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
             Text("Recent scans")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 22, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             VStack(spacing: HeadspaceDesign.Spacing.md) {
@@ -1666,11 +1598,11 @@ public struct HomeView: View {
             // Date badge - always show day/month number
             VStack(spacing: 4) {
                 Text(formatDayNumber(session.date))
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text(formatMonthShort(session.date))
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 10, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
             .frame(width: 48)
@@ -1685,7 +1617,7 @@ public struct HomeView: View {
                     .frame(width: 64, height: 64)
 
                 Text("\(Int(session.overallScore))")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 24, weight: .bold))
                     .foregroundColor(scoreColor(session.overallScore))
             }
             .frame(width: 64, height: 64)
@@ -1693,11 +1625,11 @@ public struct HomeView: View {
             // Info - show date and time
             VStack(alignment: .leading, spacing: 4) {
                 Text(formatRelativeDateForFallback(session.date))
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 17, weight: .semibold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Text(formatTime(session.date))
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 13, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
             }
 
@@ -1755,6 +1687,20 @@ public struct HomeView: View {
             default: suffix = "th"
             }
             return "\(day)\(suffix) \(monthName)"
+        }
+    }
+
+    // MARK: - Session Management
+
+    private func deleteSession(_ session: SessionResult) {
+        withAnimation {
+            viewContext.delete(session)
+            do {
+                try viewContext.save()
+            } catch {
+                AppLogger.ui.error("HomeView: Failed to delete session - \(error)")
+                CrashReporter.shared.logError(error, context: ["view": "HomeView", "operation": "deleteSession"])
+            }
         }
     }
 }

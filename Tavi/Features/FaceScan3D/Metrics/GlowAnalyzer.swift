@@ -18,11 +18,16 @@ public class GlowAnalyzer {
     // MARK: - Configuration
 
     private struct Configuration {
-        // Glow formula weights
-        static let smoothnessWeight: Float = 0.40
-        static let evennessWeight: Float = 0.30
-        static let discolorationWeight: Float = 0.20
-        static let specularWeight: Float = 0.10
+        // Glow formula weights - BALANCED to include ALL metrics
+        static let smoothnessWeight: Float = 0.20      // Texture smoothness
+        static let evennessWeight: Float = 0.15        // Skin tone evenness
+        static let radianceWeight: Float = 0.15        // Luminosity/glow
+        static let clarityWeight: Float = 0.10         // Discoloration (inverse - lower is better)
+        static let rednessWeight: Float = 0.10         // Redness control (inverse)
+        static let acneWeight: Float = 0.10            // Acne score
+        static let firmnessWeight: Float = 0.10        // Skin firmness
+        static let oilControlWeight: Float = 0.05      // Oil control
+        static let specularWeight: Float = 0.05        // Specular highlights
 
         // Radiance formula weights
         static let labLightnessWeight: Float = 0.70

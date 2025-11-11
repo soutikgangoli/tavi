@@ -48,7 +48,7 @@ public struct CaptureProgressView: View {
                             .foregroundStyle(.green)
                     } else {
                         Text("\(Int(progress.progressPercentage * 100))%")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 28, weight: .bold))
                             .foregroundStyle(.white)
                     }
                 }

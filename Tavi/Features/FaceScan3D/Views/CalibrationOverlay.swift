@@ -329,12 +329,12 @@ struct GuidanceView: View {
             ZStack {
                 // Always reserve space for countdown (prevents layout shifts)
                 Text("0")
-                    .font(.system(size: 100, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 100, weight: .bold))
                     .foregroundStyle(.clear)
 
                 if countdownTimer > 0 {
                     Text("\(countdownTimer)")
-                        .font(.system(size: 100, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 100, weight: .bold))
                         .foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.3), radius: 8)
                         .transition(.opacity.combined(with: .scale))

@@ -26,7 +26,7 @@ public struct AchievementDetailView: View {
                 Circle()
                     .fill(
                         achievement.isUnlocked
-                        ? HeadspaceDesign.Colors.primary.opacity(0.15)
+                        ? Color(red: 0.6, green: 0.9, blue: 0.7).opacity(0.2)  // Pastel green background
                         : HeadspaceDesign.Colors.textSecondary.opacity(0.1)
                     )
                     .frame(width: 120, height: 120)
@@ -35,7 +35,7 @@ public struct AchievementDetailView: View {
                     .font(.system(size: 56, weight: .semibold))
                     .foregroundColor(
                         achievement.isUnlocked
-                        ? HeadspaceDesign.Colors.primary
+                        ? Color(red: 0.3, green: 0.8, blue: 0.5)  // Pastel green icon
                         : HeadspaceDesign.Colors.textSecondary.opacity(0.4)
                     )
 
@@ -45,8 +45,8 @@ public struct AchievementDetailView: View {
                         .strokeBorder(
                             LinearGradient(
                                 colors: [
-                                    HeadspaceDesign.Colors.primary.opacity(0.5),
-                                    HeadspaceDesign.Colors.primary.opacity(0)
+                                    Color(red: 0.3, green: 0.8, blue: 0.5).opacity(0.5),
+                                    Color(red: 0.3, green: 0.8, blue: 0.5).opacity(0)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -60,12 +60,12 @@ public struct AchievementDetailView: View {
             // Title and description
             VStack(spacing: HeadspaceDesign.Spacing.md) {
                 Text(achievement.title)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 28, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                     .multilineTextAlignment(.center)
 
                 Text(achievement.description)
-                    .font(.system(size: 16, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -82,12 +82,12 @@ public struct AchievementDetailView: View {
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(.system(size: 20, weight: .semibold))
                                 Text("Unlocked")
-                                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                                    .font(.gilroy(size: 18, weight: .bold))
                             }
                             .foregroundColor(.green)
 
                             Text(formatUnlockDate(unlockedDate))
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 14, weight: .medium))
                                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                         }
                         .padding(HeadspaceDesign.Spacing.lg)
@@ -102,12 +102,12 @@ public struct AchievementDetailView: View {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 18, weight: .semibold))
                             Text("Locked")
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .font(.gilroy(size: 18, weight: .bold))
                         }
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                         Text(getProgressText())
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .medium))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     }
                     .padding(HeadspaceDesign.Spacing.lg)
@@ -125,7 +125,7 @@ public struct AchievementDetailView: View {
                 dismiss()
             } label: {
                 Text("Close")
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 17, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)

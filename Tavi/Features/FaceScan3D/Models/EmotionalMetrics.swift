@@ -165,7 +165,8 @@ public class EmotionalMetricsGenerator {
 
         // 2. Calculate emotional sub-scores
         let radiance = calculateRadiance(from: clinicalMetrics)
-        var smoothness = Int(clinicalMetrics.globalRoughnessScore)
+        // TESTING: Hardcoded smoothness score for development
+        var smoothness = 83  // TODO: Revert to Int(clinicalMetrics.globalRoughnessScore) after testing
         let evenness = Int(clinicalMetrics.globalPigmentationScore)
         var youthfulness = calculateYouthfulness(from: clinicalMetrics)
         let freshness = calculateFreshness(from: clinicalMetrics)

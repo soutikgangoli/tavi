@@ -65,7 +65,7 @@ public struct ProgressGraphView: View {
             VStack(spacing: HeadspaceDesign.Spacing.md) {
                 HStack {
                     Text("Progress Over Time")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 20, weight: .bold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     Spacer()
@@ -80,7 +80,7 @@ public struct ProgressGraphView: View {
                                 }
                             } label: {
                                 Text(period.rawValue)
-                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                    .font(.gilroy(size: 12, weight: .semibold))
                                     .foregroundColor(selectedPeriod == period ? .white : HeadspaceDesign.Colors.textSecondary)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
@@ -131,7 +131,7 @@ public struct ProgressGraphView: View {
             // Trend
             VStack(alignment: .leading, spacing: 4) {
                 Text("Trend")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 12, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                 HStack(spacing: 4) {
@@ -141,7 +141,7 @@ public struct ProgressGraphView: View {
                             .foregroundColor(trend > 0 ? .green : .red)
 
                         Text("\(trend > 0 ? "+" : "")\(String(format: "%.1f", trend))%")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 16, weight: .bold))
                             .foregroundColor(trend > 0 ? .green : .red)
                     }
                 }
@@ -153,11 +153,11 @@ public struct ProgressGraphView: View {
             // Average score
             VStack(alignment: .leading, spacing: 4) {
                 Text("Average")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 12, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                 Text("\(Int(averageScore))")
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .bold))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
             }
 
@@ -167,7 +167,7 @@ public struct ProgressGraphView: View {
             // Best score
             VStack(alignment: .leading, spacing: 4) {
                 Text("Best")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .font(.gilroy(size: 12, weight: .medium))
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                 HStack(spacing: 4) {
@@ -176,7 +176,7 @@ public struct ProgressGraphView: View {
                         .foregroundColor(.yellow)
 
                     Text("\(Int(bestScore))")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 16, weight: .bold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
                 }
             }
@@ -232,11 +232,11 @@ public struct ProgressGraphView: View {
                         if selectedSession?.id == session.id {
                             VStack(spacing: 4) {
                                 Text("\(Int(session.overallScore))")
-                                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .font(.gilroy(size: 16, weight: .bold))
                                     .foregroundColor(.white)
 
                                 Text(formatDate(session.date))
-                                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                                    .font(.gilroy(size: 11, weight: .medium))
                                     .foregroundColor(.white.opacity(0.9))
                             }
                             .padding(.horizontal, 12)
@@ -371,11 +371,11 @@ public struct ProgressGraphView: View {
                 .foregroundColor(HeadspaceDesign.Colors.textTertiary)
 
             Text("Not enough data yet")
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .font(.gilroy(size: 16, weight: .semibold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             Text("Complete at least 2 scans to see your progress")
-                .font(.system(size: 14, weight: .regular, design: .rounded))
+                .font(.gilroy(size: 14, weight: .regular))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 .multilineTextAlignment(.center)
         }

@@ -44,7 +44,6 @@ public struct MainTabView: View {
                 // Tab 4: Insights
                 NavigationStack {
                     InsightsTabView()
-                        .environment(\.managedObjectContext, viewContext)
                 }
                 .tag(Tab.insights)
 
@@ -54,6 +53,7 @@ public struct MainTabView: View {
                 }
                 .tag(Tab.profile)
             }
+            .environment(\.managedObjectContext, viewContext)
             .tabViewStyle(.automatic)
             .ignoresSafeArea(.keyboard) // Prevent tab bar from moving with keyboard
 
@@ -176,16 +176,7 @@ struct CenterScanButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                HeadspaceDesign.Colors.primary,
-                                Color(red: 255/255, green: 140/255, blue: 90/255)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(HeadspaceDesign.Colors.primary)
                     .frame(width: 56, height: 56)
                     .shadow(
                         color: HeadspaceDesign.Colors.primary.opacity(0.4),
@@ -194,9 +185,9 @@ struct CenterScanButton: View {
                         y: isPressed ? 4 : 6
                     )
 
-                Image(systemName: "plus")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundColor(.white)
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.secondary)
             }
             .scaleEffect(isPressed ? 0.92 : 1.0)
         }
@@ -293,17 +284,17 @@ struct ProfileTabView: View {
                             .frame(width: 80, height: 80)
 
                         Text(String(userName.prefix(1)).uppercased())
-                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 36, weight: .bold))
                             .foregroundColor(HeadspaceDesign.Colors.primary)
                     }
 
                     Text(userName)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 24, weight: .bold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     if !userEmail.isEmpty {
                         Text(userEmail)
-                            .font(.system(size: 14, weight: .regular, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .regular))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     }
                 }
@@ -320,12 +311,12 @@ struct ProfileTabView: View {
                 // Stats section
                 VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
                     Text("Stats")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 18, weight: .bold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     VStack(spacing: HeadspaceDesign.Spacing.sm) {
                         StatRow(label: "Total Scans", value: "\(totalScans)")
-                        StatRow(label: "Current Streak", value: currentStreak > 0 ? "\(currentStreak) days" : "-", icon: "flame.fill", iconColor: Color(red: 255/255, green: 159/255, blue: 64/255))
+                        StatRow(label: "Current Streak", value: currentStreak > 0 ? "\(currentStreak) days" : "-", icon: "flame.fill", iconColor: HeadspaceDesign.Colors.secondary)
                         StatRow(label: "Longest Streak", value: longestStreak > 0 ? "\(longestStreak) days" : "-")
                         StatRow(label: "Average Score", value: totalScans > 0 ? "\(Int(averageScore))" : "-")
                         StatRow(label: "Best Score", value: totalScans > 0 ? "\(Int(bestScore))" : "-")
@@ -346,7 +337,7 @@ struct ProfileTabView: View {
                 // Settings section
                 VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
                     Text("Settings")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 18, weight: .bold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     VStack(spacing: 0) {
@@ -404,16 +395,9 @@ struct ProfileTabView: View {
             showChallengeDetail = true
         } label: {
             VStack(spacing: 0) {
-                // Gradient header
-                LinearGradient(
-                    colors: [
-                        Color(red: 255/255, green: 159/255, blue: 64/255),
-                        Color(red: 255/255, green: 102/255, blue: 102/255)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .frame(height: 100)
+                // Solid lavender header
+                HeadspaceDesign.Colors.accent
+                    .frame(height: 100)
                 .overlay(
                     HStack(spacing: HeadspaceDesign.Spacing.md) {
                         Image(systemName: "flame.fill")
@@ -422,11 +406,11 @@ struct ProfileTabView: View {
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text("30-Day Glow Challenge")
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .font(.gilroy(size: 18, weight: .bold))
                                 .foregroundColor(.white)
 
                             Text("Day \(challenge.daysCompleted) of 30")
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .font(.gilroy(size: 14, weight: .medium))
                                 .foregroundColor(.white.opacity(0.9))
                         }
 
@@ -445,16 +429,7 @@ struct ProfileTabView: View {
                                 .frame(height: 8)
 
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Color(red: 255/255, green: 159/255, blue: 64/255),
-                                            Color(red: 255/255, green: 102/255, blue: 102/255)
-                                        ],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .fill(HeadspaceDesign.Colors.accent)
                                 .frame(
                                     width: geometry.size.width * CGFloat(challenge.progressPercentage) / 100,
                                     height: 8
@@ -465,7 +440,7 @@ struct ProfileTabView: View {
 
                     HStack {
                         Text("\(Int(challenge.progressPercentage))% complete")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .semibold))
                             .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                         Spacer()
@@ -475,7 +450,7 @@ struct ProfileTabView: View {
                                 Image(systemName: "arrow.up.right")
                                     .font(.system(size: 11, weight: .bold))
                                 Text("+\(challenge.glowImprovement) glow")
-                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .font(.gilroy(size: 13, weight: .semibold))
                             }
                             .foregroundColor(.green)
                         }
@@ -500,7 +475,7 @@ struct ProfileTabView: View {
     private var achievementsGrid: some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             Text("Achievements")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(.gilroy(size: 18, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
             let achievements = GamificationManager.shared.getAchievements()
@@ -525,7 +500,7 @@ struct ProfileTabView: View {
                     Circle()
                         .fill(
                             achievement.isUnlocked
-                            ? HeadspaceDesign.Colors.primary.opacity(0.15)
+                            ? Color(red: 0.6, green: 0.9, blue: 0.7).opacity(0.2)  // Pastel green background
                             : HeadspaceDesign.Colors.textSecondary.opacity(0.1)
                         )
                         .frame(width: 64, height: 64)
@@ -534,13 +509,13 @@ struct ProfileTabView: View {
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundColor(
                             achievement.isUnlocked
-                            ? HeadspaceDesign.Colors.primary
+                            ? Color(red: 0.3, green: 0.8, blue: 0.5)  // Pastel green icon
                             : HeadspaceDesign.Colors.textSecondary.opacity(0.4)
                         )
                 }
 
                 Text(achievement.title)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 14, weight: .semibold))
                     .foregroundColor(
                         achievement.isUnlocked
                         ? HeadspaceDesign.Colors.textPrimary
@@ -552,11 +527,11 @@ struct ProfileTabView: View {
 
                 if achievement.isUnlocked, let date = achievement.unlockedDate {
                     Text(formatUnlockDate(date))
-                        .font(.system(size: 11, weight: .regular, design: .rounded))
+                        .font(.gilroy(size: 11, weight: .regular))
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 } else {
                     Text("Locked")
-                        .font(.system(size: 11, weight: .regular, design: .rounded))
+                        .font(.gilroy(size: 11, weight: .regular))
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 }
             }
@@ -586,7 +561,7 @@ private struct StatRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.system(size: 15, weight: .regular, design: .rounded))
+                .font(.gilroy(size: 15, weight: .regular))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
             Spacer()
@@ -599,7 +574,7 @@ private struct StatRow: View {
                 }
 
                 Text(value)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .semibold))
                     .foregroundColor(iconColor ?? HeadspaceDesign.Colors.textPrimary)
             }
         }
@@ -620,7 +595,7 @@ struct SettingsRow: View {
                     .frame(width: 28)
 
                 Text(label)
-                    .font(.system(size: 16, weight: .regular, design: .rounded))
+                    .font(.gilroy(size: 16, weight: .regular))
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                 Spacer()

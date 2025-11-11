@@ -249,19 +249,21 @@ public struct ScanConfiguration {
     // MARK: - Async Operation Timeouts
 
     /// Timeout for mesh merge operation (seconds)
-    public static let meshMergeTimeout: TimeInterval = 30.0
+    /// Increased to 60s for iPhone 15 Pro to handle complex meshes
+    public static let meshMergeTimeout: TimeInterval = 60.0
 
     /// Timeout for texture baking operation (seconds)
-    public static let textureBakeTimeout: TimeInterval = 30.0
+    /// Increased to 60s for iPhone 15 Pro to handle high-res textures
+    public static let textureBakeTimeout: TimeInterval = 60.0
 
     /// Timeout for metrics computation (seconds)
-    /// Increased to 150s to accommodate full analysis pipeline including parallel analyzers
-    /// Breakdown: ROI processing ~40s + Parallel analysis ~65s + Glow/Sun damage ~10s + overhead = ~120s
-    /// Setting to 150s for safety margin
-    public static let metricsComputationTimeout: TimeInterval = 150.0
+    /// Increased to 240s (4 minutes) to accommodate full analysis pipeline on iPhone 15 Pro
+    /// Breakdown: ROI processing ~60s + Parallel analysis ~90s + Glow/Sun damage ~20s + overhead = ~170s
+    /// Setting to 240s for safety margin
+    public static let metricsComputationTimeout: TimeInterval = 240.0
 
     /// Timeout for CoreData save operation (seconds)
-    public static let coreDataSaveTimeout: TimeInterval = 10.0
+    public static let coreDataSaveTimeout: TimeInterval = 20.0
 
     // MARK: - UI Animation
 

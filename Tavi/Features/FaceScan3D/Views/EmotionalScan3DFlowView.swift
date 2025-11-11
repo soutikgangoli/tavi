@@ -289,126 +289,149 @@ public struct EmotionalScan3DFlowView: View {
     // MARK: - Processing View
 
     private var processingView: some View {
-        VStack(spacing: 40) {
-            Spacer()
+        ZStack {
+            // Blue gradient background - matching preparing screen
+            LinearGradient(
+                colors: [
+                    Color(red: 95/255, green: 111/255, blue: 230/255),  // #5F6FE6
+                    Color(red: 80/255, green: 200/255, blue: 220/255)   // Cyan
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
-            // Processing circle - fills radially like a clock/pie chart
-            ZStack {
-                // Background circle (light gray)
-                Circle()
-                    .fill(Color.gray.opacity(0.15))
-                    .frame(width: 160, height: 160)
+            VStack(spacing: 0) {
+                Spacer()
 
-                // Progress pie fill (like clock hand sweeping) - using a custom shape
-                PieSlice(progress: CGFloat(processingStep) / CGFloat(totalProcessingSteps))
-                    .fill(
-                        AngularGradient(
-                            colors: [.blue, .cyan, .blue],
-                            center: .center,
-                            startAngle: .degrees(0),
-                            endAngle: .degrees(360)
+                // Processing circle - matching preparing screen style
+                ZStack {
+                    // Outer glow rings (breathing effect)
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [Color.white.opacity(0.15), Color.clear],
+                                center: .center,
+                                startRadius: 80,
+                                endRadius: 120
+                            )
                         )
-                    )
-                    .frame(width: 160, height: 160)
-                    .animation(.easeInOut(duration: 0.5), value: processingStep)
+                        .frame(width: 240, height: 240)
+                        .scaleEffect(1.0 + sin(Double(processingStep) * 0.5) * 0.1)
+                        .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: processingStep)
 
-                // White background circle for percentage text
-                Circle()
-                    .fill(Color(uiColor: .systemBackground))
-                    .frame(width: 120, height: 120)
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [Color.white.opacity(0.08), Color.clear],
+                                center: .center,
+                                startRadius: 120,
+                                endRadius: 160
+                            )
+                        )
+                        .frame(width: 320, height: 320)
+                        .scaleEffect(1.0 + sin(Double(processingStep) * 0.5) * 0.08)
+                        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: processingStep)
 
-                // Percentage text in center
-                Text("\(Int((Double(processingStep) / Double(totalProcessingSteps)) * 100))%")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.blue)
-            }
+                    // Main white breathing circle
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [Color.white, Color.white.opacity(0.85)],
+                                center: .center,
+                                startRadius: 0,
+                                endRadius: 80
+                            )
+                        )
+                        .frame(width: 160, height: 160)
+                        .scaleEffect(1.0 + sin(Double(processingStep) * 0.3) * 0.08)
+                        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: processingStep)
+                        .shadow(color: Color.white.opacity(0.3), radius: 20, x: 0, y: 0)
 
-            VStack(spacing: 16) {
-                // Main processing message
-                Text(processingProgress)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+                    // Center content - percentage with progress ring overlay
+                    ZStack {
+                        // Progress ring behind
+                        Circle()
+                            .trim(from: 0, to: CGFloat(processingStep) / CGFloat(totalProcessingSteps))
+                            .stroke(
+                                Color(red: 95/255, green: 111/255, blue: 230/255),
+                                style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                            )
+                            .frame(width: 120, height: 120)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: processingStep)
 
-                // Detailed info - what's actually happening (cycles every 3 seconds)
-                if let currentPhase = getCurrentProcessingPhase() {
-                    Text(currentPhase.getCyclingMessage(index: cyclingMessageIndex))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        // Percentage text
+                        VStack(spacing: 2) {
+                            Text("\(Int((Double(processingStep) / Double(totalProcessingSteps)) * 100))%")
+                                .font(.gilroy(size: 42, weight: .bold))
+                                .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255))
+
+                            // Step indicator
+                            Text("\(processingStep)/\(totalProcessingSteps)")
+                                .font(.gilroy(size: 13, weight: .medium))
+                                .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255).opacity(0.7))
+                        }
+                    }
+                }
+                .padding(.bottom, 32)
+
+                // Processing messages - white text like preparing screen
+                VStack(spacing: 12) {
+                    // Main message (white header)
+                    Text(processingProgress)
+                        .font(.gilroy(size: 28, weight: .bold))
+                        .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
-                        .animation(.easeInOut(duration: 0.3), value: cyclingMessageIndex)
-                        .transition(.opacity)
-                }
 
-                // Time remaining
-                if timeRemainingSeconds > 0 {
-                    HStack(spacing: 6) {
-                        Image(systemName: "clock.fill")
-                            .font(.subheadline)
-                        Text(formatTimeRemaining(timeRemainingSeconds))
-                            .font(.subheadline)
-                            .monospacedDigit()
-                    }
-                    .foregroundStyle(.secondary)
-                } else if timeRemainingSeconds < 0 {
-                    // Show "Almost done" when time estimate is exceeded
-                    HStack(spacing: 6) {
-                        Image(systemName: "clock.fill")
-                            .font(.subheadline)
-                        Text("Almost done...")
-                            .font(.subheadline)
-                    }
-                    .foregroundStyle(.secondary)
-                }
-
-                // Quality explanation - why it takes time (only for slow steps)
-                if let currentPhase = getCurrentProcessingPhase(),
-                   let explanation = currentPhase.qualityExplanation {
-                    Text(explanation)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                        .padding(.top, 4)
-                }
-
-                // Device-specific warning (if applicable)
-                if let warning = deviceWarningMessage {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-
-                        Text(warning)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    // Detailed status (white subtext with slight transparency)
+                    if let currentPhase = getCurrentProcessingPhase() {
+                        Text(currentPhase.getCyclingMessage(index: cyclingMessageIndex))
+                            .font(.gilroy(size: 16, weight: .regular))
+                            .foregroundColor(.white.opacity(0.9))
                             .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                            .animation(.easeInOut(duration: 0.3), value: cyclingMessageIndex)
+                            .transition(.opacity)
                     }
-                    .padding(.horizontal, 32)
-                    .padding(.top, 4)
+
+                    // Time remaining (white subtext)
+                    if timeRemainingSeconds > 0 {
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock.fill")
+                                .font(.system(size: 14))
+                            Text(formatTimeRemaining(timeRemainingSeconds))
+                                .font(.gilroy(size: 14, weight: .medium))
+                                .monospacedDigit()
+                        }
+                        .foregroundColor(.white.opacity(0.85))
+                        .padding(.top, 8)
+                    } else if timeRemainingSeconds < 0 {
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 14))
+                            Text("Almost done...")
+                                .font(.gilroy(size: 14, weight: .medium))
+                        }
+                        .foregroundColor(.white.opacity(0.85))
+                        .padding(.top, 8)
+                    }
                 }
+                .padding(.bottom, 24)
 
-                // Background processing warning
-                HStack(spacing: 8) {
-                    Image(systemName: "info.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.blue)
+                Spacer()
 
-                    Text("Please keep the app open during processing")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                // Bottom checklist - white circles and text like preparing screen
+                VStack(spacing: 12) {
+                    prepChecklistItem(icon: "checkmark.circle.fill", text: "Please keep your phone on for the analysis")
+                    prepChecklistItem(icon: "wand.and.stars", text: "Analyzing your skin")
+                    prepChecklistItem(icon: "iphone", text: "Keep the app open")
                 }
                 .padding(.horizontal, 32)
-                .padding(.top, 8)
+                .padding(.bottom, 24)
             }
-
-            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(uiColor: .systemBackground))
         .onAppear {
             startTimeCountdown()
         }
@@ -459,11 +482,11 @@ public struct EmotionalScan3DFlowView: View {
 
     private func preparingView(countdown: Int) -> some View {
         ZStack {
-            // Beautiful gradient background (matching HTML preview)
+            // OLD DESIGN - Gradient background (blue to cyan)
             LinearGradient(
                 colors: [
-                    Color(red: 142/255, green: 158/255, blue: 255/255),  // #8E9EFF
-                    Color(red: 118/255, green: 135/255, blue: 240/255)   // #7687F0
+                    Color(red: 95/255, green: 111/255, blue: 230/255),  // #5F6FE6
+                    Color(red: 80/255, green: 200/255, blue: 220/255)   // Cyan
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -521,7 +544,7 @@ public struct EmotionalScan3DFlowView: View {
 
                     // Countdown number
                     Text("\(countdown)")
-                        .font(.system(size: 72, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 72, weight: .bold))
                         .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255))  // #5F6FE6
                 }
                 .padding(.vertical, 20)
@@ -529,11 +552,11 @@ public struct EmotionalScan3DFlowView: View {
                 // Title and subtitle
                 VStack(spacing: 12) {
                     Text("Preparing scan")
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .font(.gilroy(size: 30, weight: .bold))
                         .foregroundColor(.white)
 
                     Text("Take a deep breath")
-                        .font(.system(size: 18, weight: .regular, design: .rounded))
+                        .font(.gilroy(size: 18, weight: .regular))
                         .foregroundColor(.white.opacity(0.95))
                 }
                 .padding(.bottom, 24)
@@ -555,7 +578,7 @@ public struct EmotionalScan3DFlowView: View {
                     viewModel.startGuidance()
                 } label: {
                     Text("Skip")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .font(.gilroy(size: 16, weight: .semibold))
                         .foregroundColor(.white.opacity(0.8))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
@@ -585,7 +608,7 @@ public struct EmotionalScan3DFlowView: View {
             }
 
             Text(text)
-                .font(.system(size: 17, weight: .medium, design: .rounded))
+                .font(.gilroy(size: 17, weight: .medium))
                 .foregroundColor(.white)
 
             Spacer()
@@ -1157,6 +1180,7 @@ public struct EmotionalScan3DFlowView: View {
             do {
                 try context.save()
                 AppLogger.faceScan.debug("✅ Session saved successfully to Core Data!")
+
                 return true
             } catch {
                 AppLogger.faceScan.error("❌ Failed to save session: \(error.localizedDescription)")
@@ -1189,6 +1213,13 @@ public struct EmotionalScan3DFlowView: View {
         saveSuccessful = success
 
         if success {
+            // CRITICAL FIX: Process pending changes to ensure @FetchRequest in other views updates immediately
+            // Without this, saved sessions won't appear in history/insights until app restart
+            await MainActor.run {
+                context.processPendingChanges()
+                AppLogger.faceScan.debug("✅ Context changes processed - new session should be visible in all views")
+            }
+
             // Clear any pending save data and reset retry count on success
             pendingSaveData = nil
             saveRetryCount = 0
@@ -1432,7 +1463,13 @@ extension EmotionalScan3DFlowView {
     /// Update time remaining estimate when moving to a new step
     private func updateTimeRemaining(from phase: ProcessingPhase) {
         // Calculate time remaining from this phase onwards
+        // Don't include current phase if timer is already counting down
         timeRemainingSeconds = timeEstimator.estimateTimeRemaining(from: phase, includeCurrentPhase: true)
+
+        // Add a buffer to prevent negative time
+        if timeRemainingSeconds < 5 {
+            timeRemainingSeconds = 5
+        }
     }
 
     /// Start the real-time countdown timer

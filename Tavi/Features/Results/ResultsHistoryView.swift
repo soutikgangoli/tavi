@@ -138,10 +138,19 @@ struct ResultsHistoryView: View {
                 // Filter chips
                 filterChipsView
 
-                // Sessions list
+                // Sessions list with swipe-to-delete
                 LazyVStack(spacing: 16) {
                     ForEach(filteredSessions, id: \.id) { session in
                         enhancedSessionCard(session)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    withAnimation {
+                                        deleteSession(session)
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                             .contextMenu {
                                 Button(role: .destructive) {
                                     sessionToDelete = session
@@ -211,18 +220,18 @@ struct ResultsHistoryView: View {
                             .frame(width: 50, height: 50)
 
                         Text("\(Int(session.overallScore))")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .font(.gilroy(size: 18, weight: .bold))
                             .foregroundColor(scoreColor(session.overallScore))
                     }
 
                     // Name, Date Time, Score% in one line
                     VStack(alignment: .leading, spacing: 4) {
                         Text(session.relativeDate)
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 16, weight: .semibold))
                             .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                         Text(formattedDateTime(session.date))
-                            .font(.system(size: 14, weight: .regular, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .regular))
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                     }
 
@@ -252,7 +261,7 @@ struct ResultsHistoryView: View {
                             .font(.system(size: 14, weight: .semibold))
 
                         Text("Compare with Latest")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .font(.gilroy(size: 14, weight: .semibold))
 
                         Spacer()
 
