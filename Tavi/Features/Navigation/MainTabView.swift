@@ -33,7 +33,7 @@ public struct MainTabView: View {
                 switch selectedTab {
                 case .home:
                     NavigationStack {
-                        HomeView(selectedTab: $selectedTab)
+                        HomeView(selectedTab: $selectedTab, showScanFlow: $showScanFlow)
                     }
                     .environment(\.managedObjectContext, viewContext)
                     
@@ -300,7 +300,7 @@ struct ProfileTabView: View {
                     }
 
                     Text(userName)
-                        .font(.gilroy(size: 24, weight: .bold))
+                        .font(.gilroy(size: 28, weight: .bold))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     if !userEmail.isEmpty {

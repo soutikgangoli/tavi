@@ -14,6 +14,7 @@ public struct HomeView: View {
     @Environment(\.managedObjectContext) private var viewContext
     private let capabilities = DeviceCapabilities.current
     @Binding var selectedTab: MainTabView.Tab
+    @Binding var showScanFlow: Bool
     @State private var showOnboarding: Bool
     @State private var showSettings = false
     @State private var showChallengeDetail = false
@@ -26,8 +27,9 @@ public struct HomeView: View {
     @StateObject private var fallbackStorage = FallbackStorage.shared
     @State private var fallbackSessions: [FallbackStorage.FallbackSession] = []
 
-    public init(selectedTab: Binding<MainTabView.Tab>) {
+    public init(selectedTab: Binding<MainTabView.Tab>, showScanFlow: Binding<Bool>) {
         self._selectedTab = selectedTab
+        self._showScanFlow = showScanFlow
         let hasCompleted = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         let skipEnabled = UserDefaults.standard.bool(forKey: "skipOnboarding")
         // Show onboarding only if not completed AND skip is not enabled
@@ -138,6 +140,7 @@ public struct HomeView: View {
                 } else {
                     greetingSection
                         .padding(.top, HeadspaceDesign.Spacing.sm)
+                        .padding(.bottom, HeadspaceDesign.Spacing.md)
                 }
 
                 // Status widgets row: Only show if has scans
@@ -222,20 +225,22 @@ public struct HomeView: View {
     // MARK: - Components
 
     private var greetingSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             let userName = UserProfileManager.shared.loadProfile().name ?? "there"
             let greeting = getTimeBasedGreeting()
 
-            Text("\(greeting), \(userName)")
-                .font(.gilroy(size: 32, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("\(greeting), \(userName)! 👋")
+                    .font(.gilroy(size: 34, weight: .bold))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            Text("Track your skin health journey")
-                .font(.gilroy(size: 18, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                Text("Ready to discover your skin's true health?")
+                    .font(.gilroy(size: 18, weight: .medium))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -699,58 +704,122 @@ public struct HomeView: View {
     }
 
     private var firstScanCard: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.sm) {
-            // FIRST SCREEN - Only these 2 cards are visible initially (compact for iPhone 15 Pro screen)
-            // Benefits Hero Card (COMPACT - fits on first screen)
-            benefitsHeroCard
-
-            // Challenge Invitation Card (fits on first screen)
-            challengeInvitationCard
-
-            // Add spacer to fill screen and ensure user must scroll for rest
-            Spacer()
-                .frame(height: 200)
-
-            // SCROLLABLE CONTENT BELOW - User must scroll to see these
-            // 8 Metrics Feature Cards - ONLY SHOWN BEFORE FIRST SCAN
+        VStack(spacing: HeadspaceDesign.Spacing.lg) {
+            // Hero CTA Card - Most prominent, first thing they see
+            heroCTACard
+                .padding(.top, HeadspaceDesign.Spacing.md)
+            
+            // Quick Benefits Card - Compact, shows value
+            quickBenefitsCard
+            
+            // How It Works Card
+            howItWorksCard
+            
+            // 8 Metrics Preview
             metricsFeatureCards
-
+            
             // Technology Card
             technologyCard
-
-            // Pro Tips Card
-            tipsCard
         }
     }
 
-    /// Benefits Hero Card - highlights key user benefits (COMPACT for first screen)
-    private var benefitsHeroCard: some View {
-        VStack(spacing: 0) {
-            // Yellow header (Bumble style)
-            HeadspaceDesign.Colors.primary
-                .frame(height: 100)
-                .overlay(
-                    VStack(spacing: HeadspaceDesign.Spacing.sm) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.secondary)
-
-                        Text("Discover Your Skin Health")
-                            .font(.gilroy(size: 20, weight: .bold))
-                            .foregroundColor(HeadspaceDesign.Colors.secondary)
-                            .multilineTextAlignment(.center)
+    /// Hero CTA Card - Prominent call-to-action for first scan
+    private var heroCTACard: some View {
+        Button {
+            showScanFlow = true
+        } label: {
+            VStack(spacing: 0) {
+                // White background with yellow border
+                ZStack {
+                    // White background
+                    Color.white
+                    
+                    // Thick yellow border
+                    RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
+                        .stroke(HeadspaceDesign.Colors.primary, lineWidth: 4)
+                    
+                    VStack(spacing: HeadspaceDesign.Spacing.lg) {
+                        ZStack {
+                            // White circle with yellow border
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 100, height: 100)
+                                .overlay(
+                                    Circle()
+                                        .stroke(HeadspaceDesign.Colors.primary, lineWidth: 4)
+                                )
+                            
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 44, weight: .semibold))
+                                .foregroundColor(HeadspaceDesign.Colors.primary)
+                        }
+                        
+                        VStack(spacing: 8) {
+                            Text("Start Your First Scan")
+                                .font(.gilroy(size: 24, weight: .bold))
+                                .foregroundColor(.black)
+                                .multilineTextAlignment(.center)
+                            
+                            Text("Get your complete skin health analysis in just 1 minute")
+                                .font(.gilroy(size: 15, weight: .medium))
+                                .foregroundColor(.black.opacity(0.7))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, HeadspaceDesign.Spacing.md)
+                        }
                     }
-                    .padding(HeadspaceDesign.Spacing.lg)
+                    .padding(HeadspaceDesign.Spacing.xl)
+                }
+                .frame(height: 220)
+                
+                // CTA Button section with yellow border
+                HStack {
+                    Text("Begin Scan")
+                        .font(.gilroy(size: 18, weight: .bold))
+                    
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(Color.white)
+                .overlay(
+                    Rectangle()
+                        .frame(height: 4)
+                        .foregroundColor(HeadspaceDesign.Colors.primary),
+                    alignment: .top
                 )
-
-            // Benefits list (compact - 2 benefits inline)
-            HStack(spacing: HeadspaceDesign.Spacing.md) {
-                compactBenefitBadge(icon: "chart.line.uptrend.xyaxis", text: "Track Progress")
-                compactBenefitBadge(icon: "star.fill", text: "Accurate")
             }
-            .padding(HeadspaceDesign.Spacing.lg)
-            .background(HeadspaceDesign.Colors.elevatedCard)
         }
+        .buttonStyle(PlainButtonStyle())
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .overlay(
+            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
+                .stroke(HeadspaceDesign.Colors.primary, lineWidth: 4)
+        )
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+    
+    /// Quick Benefits Card - Shows key value propositions
+    private var quickBenefitsCard: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            Text("What You'll Get")
+                .font(.gilroy(size: 20, weight: .bold))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+            
+            VStack(spacing: HeadspaceDesign.Spacing.md) {
+                benefitRow(icon: "checkmark.circle.fill", title: "8 Skin Health Metrics", description: "Comprehensive analysis of your skin")
+                benefitRow(icon: "checkmark.circle.fill", title: "Progress Tracking", description: "See improvements over time")
+                benefitRow(icon: "checkmark.circle.fill", title: "Personalized Insights", description: "Get recommendations tailored to you")
+            }
+        }
+        .padding(HeadspaceDesign.Spacing.lg)
+        .background(HeadspaceDesign.Colors.elevatedCard)
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .shadow(
             color: HeadspaceDesign.Shadows.card.color,
@@ -758,6 +827,62 @@ public struct HomeView: View {
             x: HeadspaceDesign.Shadows.card.x,
             y: HeadspaceDesign.Shadows.card.y
         )
+    }
+    
+    /// How It Works Card
+    private var howItWorksCard: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            HStack {
+                Image(systemName: "play.circle.fill")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                
+                Text("How It Works")
+                    .font(.gilroy(size: 20, weight: .bold))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+            }
+            
+            VStack(spacing: HeadspaceDesign.Spacing.lg) {
+                howItWorksStep(number: 1, title: "Follow the Poses", description: "We'll guide you through 5 simple head poses")
+                howItWorksStep(number: 2, title: "3D Analysis", description: "Advanced technology captures your skin in detail")
+                howItWorksStep(number: 3, title: "Get Results", description: "Receive your complete skin health report")
+            }
+        }
+        .padding(HeadspaceDesign.Spacing.lg)
+        .background(HeadspaceDesign.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+    
+    private func howItWorksStep(number: Int, title: String, description: String) -> some View {
+        HStack(alignment: .top, spacing: HeadspaceDesign.Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(HeadspaceDesign.Colors.primary.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                
+                Text("\(number)")
+                    .font(.gilroy(size: 18, weight: .bold))
+                    .foregroundColor(HeadspaceDesign.Colors.primary)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.gilroy(size: 16, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                
+                Text(description)
+                    .font(.gilroy(size: 14, weight: .regular))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            }
+            
+            Spacer()
+        }
     }
 
     /// Compact benefit badge for inline display
@@ -844,15 +969,10 @@ public struct HomeView: View {
     /// Individual benefit row with icon and text
     private func benefitRow(icon: String, title: String, description: String) -> some View {
         HStack(spacing: HeadspaceDesign.Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(HeadspaceDesign.Colors.primary.opacity(0.12))
-                    .frame(width: 44, height: 44)
-
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
-            }
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(HeadspaceDesign.Colors.primary)
+                .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
