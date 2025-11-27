@@ -624,7 +624,11 @@ struct SocialButton: View {
             evenness: 82,
             youthfulness: 90,
             freshness: 86,
-            sunProtection: 78
+            sunProtection: 78,
+            acneScore: 85,
+            rednessScore: 80,
+            oilControlScore: 75,
+            poreScore: 82
         ),
         streak: GlowStreak(currentStreak: 7, longestStreak: 12, lastScanDate: Date(), totalScans: 25),
         challenge: GlowChallenge(baselineGlowScore: 75),

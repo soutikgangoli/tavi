@@ -1528,7 +1528,11 @@ struct ClinicalInfoView_Previews: PreviewProvider {
             evenness: 79,
             youthfulness: 75,
             freshness: 81,
-            sunProtection: 78
+            sunProtection: 78,
+            acneScore: 80,
+            rednessScore: 75,
+            oilControlScore: 70,
+            poreScore: 75
         )
     }
 

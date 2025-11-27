@@ -1174,55 +1174,61 @@ struct ResultsDetailView: View {
                     Divider()
 
                     // Cheek Hollowing
-                    Text("Cheek Hollowing")
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                    if let cheekHollowing = volume.cheekHollowing {
+                        Text("Cheek Hollowing")
+                            .font(.caption)
+                            .fontWeight(.semibold)
 
-                    Text("• Severity: \(volume.cheekHollowing.severity.rawValue)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        Text("• Severity: \(cheekHollowing.severity.rawValue)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
 
-                    Text("• Score: \(Int(volume.cheekHollowing.score))/100")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        Text("• Score: \(Int(cheekHollowing.score))/100")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
 
-                    Text("• Volume Loss: \(String(format: "%.1f", volume.cheekHollowing.volumeLoss))%")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        Text("• Volume Loss: \(String(format: "%.1f", cheekHollowing.volumeLoss))%")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
 
-                    Divider()
+                        Divider()
+                    }
 
                     // Under-Eye Bags
-                    Text("Under-Eye Bags")
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                    if let underEyeBags = volume.underEyeBags {
+                        Text("Under-Eye Bags")
+                            .font(.caption)
+                            .fontWeight(.semibold)
 
-                    Text("• Severity: \(volume.underEyeBags.severity.rawValue)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        Text("• Severity: \(underEyeBags.severity.rawValue)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
 
-                    Text("• Score: \(Int(volume.underEyeBags.score))/100")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        Text("• Score: \(Int(underEyeBags.score))/100")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
 
-                    Text("• Protrusion: \(String(format: "%.2f", volume.underEyeBags.protrusion))mm")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        Text("• Protrusion: \(String(format: "%.2f", underEyeBags.protrusion))mm")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
 
-                    Divider()
+                        Divider()
+                    }
 
                     // Facial Symmetry
-                    Text("Facial Symmetry")
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                    if let facialSymmetry = volume.facialSymmetry {
+                        Text("Facial Symmetry")
+                            .font(.caption)
+                            .fontWeight(.semibold)
 
-                    Text("• Score: \(Int(volume.facialSymmetry.score))/100")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        Text("• Score: \(Int(facialSymmetry.score))/100")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
 
-                    Text("• Left-Right Deviation: \(String(format: "%.2f", volume.facialSymmetry.leftRightDeviation))mm")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        Text("• Left-Right Deviation: \(String(format: "%.2f", facialSymmetry.leftRightDeviation))mm")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1342,13 +1348,15 @@ struct ResultsDetailView: View {
                             .font(.scoreFont(size: 32))
                             .foregroundColor(.cyan)
 
-                        Text("Loss: \(String(format: "%.1f", volume.cheekHollowing.volumeLoss))%")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if let cheekHollowing = volume.cheekHollowing {
+                            Text("Loss: \(String(format: "%.1f", cheekHollowing.volumeLoss))%")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
 
-                        Text("\(volume.cheekHollowing.severity.rawValue) hollowing")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            Text("\(cheekHollowing.severity.rawValue) hollowing")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()

@@ -464,7 +464,7 @@ public struct CelebratoryResultsView: View {
                     score: emotionalMetrics.poreScore,
                     diagnosis: "Pore size and visibility measured using high-frequency texture analysis. We detect enlarged pores, pore density, and size distribution across different facial zones. Higher scores indicate smaller, less visible pores.",
                     metricId: "profile_pores",
-                    metricType: .texture
+                    metricType: .pores
                 )
             }
             .padding(.bottom, HeadspaceDesign.Spacing.md)

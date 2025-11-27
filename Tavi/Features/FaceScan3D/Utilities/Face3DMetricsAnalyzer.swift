@@ -327,8 +327,6 @@ public class Face3DMetricsAnalyzer {
         let parallelStartTime = Date().timeIntervalSince1970
 
         // Capture values outside TaskGroup to avoid Sendable issues
-        let roughnessScore = globalResults.roughnessScore
-        let specularValue = globalResults.specular ?? 0
         let baselineMesh = configuration.baselineMesh
 
         // Run all independent analyzers concurrently
@@ -576,7 +574,7 @@ public class Face3DMetricsAnalyzer {
                 roughnessProxy: roiMetric.roughnessProxy,
                 pigmentationIndex: roiMetric.pigmentationIndex,
                 specularProxy: roiMetric.specularProxy,
-                discolorationIndex: roiMetric.discolorationIndex,
+                blurScore: roiMetric.blurScore,
                 textureEnergy: roiMetric.textureEnergy,
                 labVariance: roiMetric.labVariance,
                 qualityScore: roiMetric.qualityScore,
@@ -627,10 +625,10 @@ public class Face3DMetricsAnalyzer {
             poreAnalysis: metrics.poreAnalysis,
             acneAnalysis: metrics.acneAnalysis,
             rednessAnalysis: metrics.rednessAnalysis,
+            hydrationEstimate: hydrationEstimate,
             topologyAnalysis: metrics.topologyAnalysis,
             sunDamageAnalysis: sunDamageAnalysis,
-            glowAnalysis: glowAnalysis,
-            hydrationEstimate: hydrationEstimate
+            glowAnalysis: glowAnalysis
         )
 
         AppLogger.metrics.info("✅ Face3DMetricsAnalyzer: Complete in \(actualProcessingTime)s")
