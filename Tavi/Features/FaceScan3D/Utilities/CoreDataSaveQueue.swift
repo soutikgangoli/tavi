@@ -145,7 +145,7 @@ public class CoreDataSaveQueue: ObservableObject {
             session.deviceOS = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
 
             // Save overall and sub-scores
-            session.overallScore = Double(emotionalMetrics.glowScore)
+            session.overallScore = Double(emotionalMetrics.skinHealthScore)
             session.textureAvg = Double(emotionalMetrics.smoothness)
             session.pigmentationAvg = Double(emotionalMetrics.evenness)
             session.blurQuality = Double(emotionalMetrics.youthfulness)

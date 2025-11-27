@@ -17,9 +17,9 @@ import simd
 public struct GlowAnalysis: Codable, Sendable {
     // MARK: - Overall Scores
 
-    /// Overall skin health glow score (0-100)
+    /// Overall skin health score (0-100)
     /// Formula: 40% smoothness + 30% evenness + 20% discoloration + 10% specular
-    public let glowScore: Float
+    public let skinHealthScore: Float
 
     /// Pure luminosity/radiance score (0-100)
     /// Formula: LAB L* lightness + specular highlights (physics-based brightness)
@@ -64,7 +64,7 @@ public struct GlowAnalysis: Codable, Sendable {
     public let confidence: Float
 
     public init(
-        glowScore: Float,
+        skinHealthScore: Float,
         radianceScore: Float,
         smoothnessContribution: Float,
         evennessContribution: Float,
@@ -77,7 +77,7 @@ public struct GlowAnalysis: Codable, Sendable {
         regionalRadiance: [Face3DROI: Float],
         confidence: Float
     ) {
-        self.glowScore = glowScore
+        self.skinHealthScore = skinHealthScore
         self.radianceScore = radianceScore
         self.smoothnessContribution = smoothnessContribution
         self.evennessContribution = evennessContribution

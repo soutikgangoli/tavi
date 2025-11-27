@@ -271,7 +271,7 @@ public struct SocialSharingView: View {
         switch selectedShareType {
         case .progress:
             return """
-            My Skin Health Index: \(emotionalMetrics.glowScore)/100!
+            My Skin Health Index: \(emotionalMetrics.skinHealthScore)/100!
             \(emotionalMetrics.primaryInsight)
 
             Tracking my skincare journey with Tavi
@@ -304,7 +304,7 @@ public struct SocialSharingView: View {
                 return """
                 30-Day Glow Challenge Progress!
                 Day \(challenge.daysCompleted)/\(challenge.goalDays)
-                Skin Health Index: \(challenge.baselineGlowScore) → \(challenge.currentGlowScore) (+\(challenge.glowImprovement))
+                Skin Health Index: \(challenge.baselineSkinHealthScore) → \(challenge.currentSkinHealthScore) (+\(challenge.skinHealthImprovement))
 
                 Join me in the challenge!
                 """
@@ -337,7 +337,7 @@ struct ProgressShareCard: View {
 
                 // Big score
                 VStack(spacing: 8) {
-                    Text("\(metrics.glowScore)")
+                    Text("\(metrics.skinHealthScore)")
                         .font(.system(size: 72, weight: .bold))
                         .foregroundColor(scoreColor)
 
@@ -369,7 +369,7 @@ struct ProgressShareCard: View {
     }
 
     private var scoreColor: Color {
-        switch metrics.glowScore {
+        switch metrics.skinHealthScore {
         case 90...100: return .green
         case 80..<90: return .blue
         case 70..<80: return .cyan
@@ -531,7 +531,7 @@ struct ChallengeShareCard: View {
                 // Improvement
                 HStack(spacing: 32) {
                     VStack(spacing: 4) {
-                        Text("\(challenge.baselineGlowScore)")
+                        Text("\(challenge.baselineSkinHealthScore)")
                             .font(.title2)
                             .fontWeight(.bold)
                         Text("Started")
@@ -543,7 +543,7 @@ struct ChallengeShareCard: View {
                         .foregroundColor(.purple)
 
                     VStack(spacing: 4) {
-                        Text("\(challenge.currentGlowScore)")
+                        Text("\(challenge.currentSkinHealthScore)")
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(.purple)
@@ -611,7 +611,7 @@ struct SocialButton: View {
 #Preview {
     SocialSharingView(
         emotionalMetrics: EmotionalMetrics(
-            glowScore: 87,
+            skinHealthScore: 87,
             primaryInsight: "Your skin looks amazing today! 🌟",
             celebration: "Amazing progress! Up 12 points! 🎉",
             improvements: [],
@@ -631,7 +631,7 @@ struct SocialButton: View {
             poreScore: 82
         ),
         streak: GlowStreak(currentStreak: 7, longestStreak: 12, lastScanDate: Date(), totalScans: 25),
-        challenge: GlowChallenge(baselineGlowScore: 75),
+        challenge: GlowChallenge(baselineSkinHealthScore: 75),
         recentAchievement: Achievement(
             id: "streak_7",
             title: "Week Warrior",

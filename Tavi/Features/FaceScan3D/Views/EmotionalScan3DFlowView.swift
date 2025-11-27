@@ -872,7 +872,7 @@ public struct EmotionalScan3DFlowView: View {
                 let glowImprovement: Int
                 if let previousClinicalMetrics = previousClinicalMetrics,
                    let previousEmotional = EmotionalMetricsGenerator.generate(from: previousClinicalMetrics) {
-                    glowImprovement = emotional.glowScore - previousEmotional.glowScore
+                    glowImprovement = emotional.skinHealthScore - previousEmotional.skinHealthScore
                 } else {
                     glowImprovement = 0
                 }
@@ -880,8 +880,8 @@ public struct EmotionalScan3DFlowView: View {
                 let unlockedAchievements = GamificationManager.shared.checkAndUnlockAchievements(
                     totalScans: updatedStreak.totalScans,
                     currentStreak: updatedStreak.currentStreak,
-                    glowScore: emotional.glowScore,
-                    glowImprovement: glowImprovement,
+                    skinHealthScore: emotional.skinHealthScore,
+                    skinHealthImprovement: glowImprovement,
                     challengeComplete: challenge?.isCompleted ?? false
                 )
 
@@ -929,12 +929,12 @@ public struct EmotionalScan3DFlowView: View {
                 AnalyticsManager.shared.trackScanCompleted(
                     duration: duration,
                     poseCount: viewModel.capturedPoses.count,
-                    score: Double(emotional.glowScore)
+                    score: Double(emotional.skinHealthScore)
                 )
 
                 // Log success with metrics
                 CrashReporter.shared.logUserAction("scan_completed_successfully")
-                CrashReporter.shared.setCustomKey("glow_score", value: emotional.glowScore)
+                CrashReporter.shared.setCustomKey("skin_health_score", value: emotional.skinHealthScore)
                 CrashReporter.shared.setCustomKey("achievements_unlocked", value: unlockedAchievements.count)
 
                 // Stop timers
@@ -1149,7 +1149,7 @@ public struct EmotionalScan3DFlowView: View {
             session.deviceOS = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
 
             // Save overall and sub-scores
-            session.overallScore = Double(emotionalMetrics.glowScore)
+            session.overallScore = Double(emotionalMetrics.skinHealthScore)
             session.textureAvg = Double(emotionalMetrics.smoothness)
             session.pigmentationAvg = Double(emotionalMetrics.evenness)
             session.blurQuality = Double(emotionalMetrics.youthfulness)
@@ -1255,7 +1255,7 @@ public struct EmotionalScan3DFlowView: View {
 
     private func startChallenge() {
         if let metrics = emotionalMetrics {
-            _ = GamificationManager.shared.startNewChallenge(baselineGlowScore: metrics.glowScore)
+            _ = GamificationManager.shared.startNewChallenge(baselineSkinHealthScore: metrics.skinHealthScore)
         }
     }
 }

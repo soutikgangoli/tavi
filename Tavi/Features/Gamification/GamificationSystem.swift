@@ -17,8 +17,8 @@ public struct GlowChallenge: Codable, Identifiable {
     let startDate: Date
     let goalDays: Int                     // Usually 30
     let checkIns: [Date]                  // Days user scanned
-    let baselineGlowScore: Int            // Starting score
-    let currentGlowScore: Int             // Latest score
+    let baselineSkinHealthScore: Int      // Starting score
+    let currentSkinHealthScore: Int       // Latest score
     let isActive: Bool
     let completedDate: Date?
 
@@ -34,8 +34,8 @@ public struct GlowChallenge: Codable, Identifiable {
         Double(daysCompleted) / Double(goalDays) * 100
     }
 
-    var glowImprovement: Int {
-        currentGlowScore - baselineGlowScore
+    var skinHealthImprovement: Int {
+        currentSkinHealthScore - baselineSkinHealthScore
     }
 
     var isCompleted: Bool {
@@ -51,8 +51,8 @@ public struct GlowChallenge: Codable, Identifiable {
         startDate: Date = Date(),
         goalDays: Int = 30,
         checkIns: [Date] = [],
-        baselineGlowScore: Int,
-        currentGlowScore: Int? = nil,
+        baselineSkinHealthScore: Int,
+        currentSkinHealthScore: Int? = nil,
         isActive: Bool = true,
         completedDate: Date? = nil
     ) {
@@ -60,8 +60,8 @@ public struct GlowChallenge: Codable, Identifiable {
         self.startDate = startDate
         self.goalDays = goalDays
         self.checkIns = checkIns
-        self.baselineGlowScore = baselineGlowScore
-        self.currentGlowScore = currentGlowScore ?? baselineGlowScore
+        self.baselineSkinHealthScore = baselineSkinHealthScore
+        self.currentSkinHealthScore = currentSkinHealthScore ?? baselineSkinHealthScore
         self.isActive = isActive
         self.completedDate = completedDate
     }
@@ -351,13 +351,13 @@ public class GamificationManager {
         }
     }
 
-    public func startNewChallenge(baselineGlowScore: Int) -> GlowChallenge {
-        let challenge = GlowChallenge(baselineGlowScore: baselineGlowScore)
+    public func startNewChallenge(baselineSkinHealthScore: Int) -> GlowChallenge {
+        let challenge = GlowChallenge(baselineSkinHealthScore: baselineSkinHealthScore)
         saveChallenge(challenge)
         return challenge
     }
 
-    public func recordChallengeCheckIn(glowScore: Int) {
+    public func recordChallengeCheckIn(skinHealthScore: Int) {
         guard let challenge = getCurrentChallenge() else { return }
 
         // Create updated challenge with new check-in
@@ -375,8 +375,8 @@ public class GamificationManager {
             startDate: challenge.startDate,
             goalDays: challenge.goalDays,
             checkIns: newCheckIns,
-            baselineGlowScore: challenge.baselineGlowScore,
-            currentGlowScore: glowScore,
+            baselineSkinHealthScore: challenge.baselineSkinHealthScore,
+            currentSkinHealthScore: skinHealthScore,
             isActive: challenge.isActive,
             completedDate: newCheckIns.count >= challenge.goalDays ? Date() : challenge.completedDate
         )
@@ -444,8 +444,8 @@ public class GamificationManager {
     public func checkAndUnlockAchievements(
         totalScans: Int,
         currentStreak: Int,
-        glowScore: Int,
-        glowImprovement: Int,
+        skinHealthScore: Int,
+        skinHealthImprovement: Int,
         challengeComplete: Bool
     ) -> [Achievement] {
         var achievements = getAchievements()
@@ -462,9 +462,9 @@ public class GamificationManager {
             case "streak_3": shouldUnlock = currentStreak >= 3
             case "streak_7": shouldUnlock = currentStreak >= 7
             case "streak_30": shouldUnlock = currentStreak >= 30
-            case "glow_up_10": shouldUnlock = glowImprovement >= 10
-            case "glow_up_25": shouldUnlock = glowImprovement >= 25
-            case "glow_90": shouldUnlock = glowScore >= 90
+            case "glow_up_10": shouldUnlock = skinHealthImprovement >= 10
+            case "glow_up_25": shouldUnlock = skinHealthImprovement >= 25
+            case "glow_90": shouldUnlock = skinHealthScore >= 90
             case "challenge_complete": shouldUnlock = challengeComplete
             default: shouldUnlock = false
             }

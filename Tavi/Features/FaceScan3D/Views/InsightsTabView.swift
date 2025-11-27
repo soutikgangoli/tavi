@@ -218,7 +218,7 @@ public struct InsightsTabView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     baselineMetricRow(label: "Overall Score", value: session.overallScore)
                     if let glowAnalysis = session.skinMetrics?.glowAnalysis {
-                        baselineMetricRow(label: "Glow", value: Double(glowAnalysis.glowScore))
+                        baselineMetricRow(label: "Skin Health", value: Double(glowAnalysis.skinHealthScore))
                     }
                     // Calculate hydration from ROI moisture proxies
                     if let metrics = session.skinMetrics {
@@ -361,7 +361,7 @@ public struct InsightsTabView: View {
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                         VStack(spacing: 12) {
-                            metricProgressBar(label: "Glow", score: Double(metrics.glowAnalysis?.glowScore ?? 0), color: .yellow)
+                            metricProgressBar(label: "Skin Health", score: Double(metrics.glowAnalysis?.skinHealthScore ?? 0), color: .yellow)
 
                             if let sunDamage = metrics.sunDamageAnalysis {
                                 metricProgressBar(label: "Sun Protection", score: Double(sunDamage.protectionScore), color: .orange)
@@ -576,7 +576,7 @@ public struct InsightsTabView: View {
                         if let metrics = result.metrics, let glowAnalysis = metrics.glowAnalysis {
                             LineMark(
                                 x: .value("Date", session.date),
-                                y: .value("Score", Double(glowAnalysis.glowScore))
+                                y: .value("Score", Double(glowAnalysis.skinHealthScore))
                             )
                             .foregroundStyle(Color.orange)
                             .lineStyle(StrokeStyle(lineWidth: 2.5))
@@ -751,11 +751,11 @@ public struct InsightsTabView: View {
         let previous = sessions[1]
         var improvements: [(String, Double)] = []
 
-        // Check glow
-        if let latestGlow = latest.skinMetrics?.glowAnalysis?.glowScore,
-           let prevGlow = previous.skinMetrics?.glowAnalysis?.glowScore {
+        // Check skin health
+        if let latestGlow = latest.skinMetrics?.glowAnalysis?.skinHealthScore,
+           let prevGlow = previous.skinMetrics?.glowAnalysis?.skinHealthScore {
             let change = Double(latestGlow - prevGlow)
-            if change > 2 { improvements.append(("Glow", change)) }
+            if change > 2 { improvements.append(("Skin Health", change)) }
         }
 
         // Check hydration (calculated from moisture proxies)
@@ -826,7 +826,7 @@ public struct InsightsTabView: View {
             ("Acne", Double(metrics.acneAnalysis?.overallScore ?? 0), qualityLabel(Double(metrics.acneAnalysis?.overallScore ?? 0))),
             ("Smoothness", Double(metrics.globalRoughnessScore), qualityLabel(Double(metrics.globalRoughnessScore))),
             ("Hydration", avgMoisture, qualityLabel(avgMoisture)),
-            ("Glow", Double(metrics.glowAnalysis?.glowScore ?? 0), qualityLabel(Double(metrics.glowAnalysis?.glowScore ?? 0))),
+            ("Skin Health", Double(metrics.glowAnalysis?.skinHealthScore ?? 0), qualityLabel(Double(metrics.glowAnalysis?.skinHealthScore ?? 0))),
             ("Pigmentation", Double(metrics.globalPigmentationScore), qualityLabel(Double(metrics.globalPigmentationScore))),
             ("Sun Damage", Double(metrics.sunDamageAnalysis?.protectionScore ?? 0), qualityLabel(Double(metrics.sunDamageAnalysis?.protectionScore ?? 0))),
             ("Redness", Double(metrics.rednessAnalysis?.overallScore ?? 0), qualityLabel(Double(metrics.rednessAnalysis?.overallScore ?? 0))),
@@ -1255,8 +1255,8 @@ public struct InsightsTabView: View {
         }
         
         // Compare glow
-        if let latestGlow = latest.skinMetrics?.glowAnalysis?.glowScore,
-           let prevGlow = previous.skinMetrics?.glowAnalysis?.glowScore {
+        if let latestGlow = latest.skinMetrics?.glowAnalysis?.skinHealthScore,
+           let prevGlow = previous.skinMetrics?.glowAnalysis?.skinHealthScore {
             let glowChange = latestGlow - prevGlow
             if glowChange > 3 {
                 pointers.append("Your skin glow increased significantly - your routine is working!")

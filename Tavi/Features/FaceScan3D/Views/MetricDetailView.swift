@@ -734,8 +734,8 @@ public struct MetricDetailView: View {
                     .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                 MetricBar(
-                    label: "Glow (Composite)",
-                    score: Double(metrics.glowAnalysis?.glowScore ?? 0),
+                    label: "Skin Health (Composite)",
+                    score: Double(metrics.glowAnalysis?.skinHealthScore ?? 0),
                     color: HeadspaceDesign.Colors.secondary
                 )
 

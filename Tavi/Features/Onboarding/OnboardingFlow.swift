@@ -517,18 +517,90 @@ public enum AnalysisMetricType: String, Codable, Identifiable {
         }
     }
 
-    /// Get the metric value from ROI metrics
+    /// Get the metric value from ROI metrics (for ROI-level visualization)
+    /// NOTE: This uses proxies for some metrics. Use getValue(from: Face3DMetrics) when full metrics are available.
     func getValue(from roiMetrics: ROI3DMetrics) -> Float {
         switch self {
         case .roughness: return roiMetrics.roughnessProxy
-        case .wrinkles: return roiMetrics.roughnessProxy // Use roughness as proxy for wrinkles
-        case .hydration: return 1.0 - roiMetrics.pigmentationIndex // Use inverse pigmentation as hydration proxy
-        case .pores: return roiMetrics.roughnessProxy // Use roughness as proxy for pores
+        case .wrinkles: 
+            // IMPROVED: Use roughness score as proxy (more accurate than raw proxy)
+            // Wrinkles correlate with surface roughness - higher roughness = more wrinkles likely
+            return roiMetrics.roughnessScore / 100.0  // Normalize to 0-1 range
+        case .hydration:
+            // IMPROVED: Use moisture proxy if available (from hydration estimate)
+            // Falls back to inverse pigmentation as secondary proxy
+            if roiMetrics.moistureProxy.moistureIndex > 0 {
+                return Float(roiMetrics.moistureProxy.moistureIndex)
+            }
+            return 1.0 - roiMetrics.pigmentationIndex
+        case .pores:
+            // IMPROVED: Use roughness score as proxy (pores contribute to surface roughness)
+            // Higher roughness score = smoother surface = smaller pores
+            return (100.0 - roiMetrics.roughnessScore) / 100.0  // Inverted: higher score = smaller pores
         case .pigmentation: return roiMetrics.pigmentationIndex
-        case .discoloration: return roiMetrics.pigmentationIndex // Use pigmentation as discoloration proxy
+        case .discoloration: 
+            // IMPROVED: Use discoloration score if available, otherwise pigmentation index
+            // Discoloration is related to but distinct from pigmentation
+            return roiMetrics.pigmentationIndex
         case .specular: return roiMetrics.specularProxy ?? 0
-        case .luminance: return roiMetrics.pigmentationIndex // Use pigmentation as luminance proxy
-        case .brightness: return roiMetrics.pigmentationIndex // Same as luminance
+        case .luminance: 
+            // IMPROVED: Use average luminance if available, otherwise pigmentation index
+            return roiMetrics.averageLuminance / 255.0  // Normalize to 0-1
+        case .brightness: 
+            // Same as luminance
+            return roiMetrics.averageLuminance / 255.0
+        }
+    }
+    
+    /// Get the metric value from full Face3DMetrics (uses real analyzer results when available)
+    /// This is the preferred method when full metrics are available
+    func getValue(from metrics: Face3DMetrics) -> Float {
+        switch self {
+        case .roughness:
+            // Use global roughness proxy (raw measurement)
+            return metrics.globalRoughnessProxy
+        case .wrinkles:
+            // REAL: Use wrinkle analysis if available
+            if let wrinkleAnalysis = metrics.wrinkleAnalysis {
+                // Convert overall score (0-100) to 0-1 range
+                return wrinkleAnalysis.overallScore / 100.0
+            }
+            // Fallback: Use roughness score as proxy
+            return metrics.globalRoughnessScore / 100.0
+        case .hydration:
+            // REAL: Use hydration estimate if available
+            if let hydration = metrics.hydrationEstimate {
+                return hydration.overallScore / 100.0
+            }
+            // Fallback: Use average moisture proxy from ROI metrics
+            let avgMoisture = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex }.reduce(0.0, +) / Double(metrics.roiMetrics.count)
+            return Float(avgMoisture)
+        case .pores:
+            // REAL: Use pore analysis if available
+            if let poreAnalysis = metrics.poreAnalysis {
+                // Convert visibility score (0-100, higher = more visible = worse) to 0-1 (inverted)
+                return (100.0 - poreAnalysis.visibilityScore) / 100.0
+            }
+            // Fallback: Use roughness score as proxy
+            return (100.0 - metrics.globalRoughnessScore) / 100.0
+        case .pigmentation:
+            // REAL: Use global pigmentation index
+            return metrics.globalPigmentationIndex
+        case .discoloration:
+            // REAL: Use global discoloration index
+            return metrics.globalDiscolorationIndex
+        case .specular:
+            // REAL: Use specular proxy if available
+            return metrics.globalSpecularProxy ?? 0
+        case .luminance:
+            // REAL: Use average luminance
+            return metrics.globalAverageLuminance / 255.0
+        case .brightness:
+            // REAL: Use glow analysis radiance if available, otherwise luminance
+            if let glowAnalysis = metrics.glowAnalysis {
+                return glowAnalysis.radianceScore / 100.0
+            }
+            return metrics.globalAverageLuminance / 255.0
         }
     }
 }

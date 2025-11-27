@@ -11,7 +11,7 @@ import SwiftUI
 
 /// Emotional metrics that consumers actually understand and care about
 public struct EmotionalMetrics: Codable, Sendable {
-    let glowScore: Int                    // 0-100 unified "how good does my skin look" score (Skin Health Index)
+    let skinHealthScore: Int              // 0-100 unified "how good does my skin look" score (Skin Health Index)
     let primaryInsight: String            // Main message: "Your skin looks AMAZING! ✨"
     let celebration: String               // Emoji-rich celebration message
     let improvements: [EmotionalImprovement]
@@ -36,7 +36,7 @@ public struct EmotionalMetrics: Codable, Sendable {
 
     // Memberwise initializer for direct instantiation
     public init(
-        glowScore: Int,
+        skinHealthScore: Int,
         primaryInsight: String,
         celebration: String,
         improvements: [EmotionalImprovement],
@@ -55,7 +55,7 @@ public struct EmotionalMetrics: Codable, Sendable {
         oilControlScore: Int,
         poreScore: Int
     ) {
-        self.glowScore = glowScore
+        self.skinHealthScore = skinHealthScore
         self.primaryInsight = primaryInsight
         self.celebration = celebration
         self.improvements = improvements
@@ -78,7 +78,9 @@ public struct EmotionalMetrics: Codable, Sendable {
     // Custom decoder to handle backward compatibility with old saved data
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        glowScore = try container.decode(Int.self, forKey: .glowScore)
+        // Support both old "glowScore" and new "skinHealthScore" for backward compatibility
+        skinHealthScore = try container.decodeIfPresent(Int.self, forKey: .skinHealthScore) ?? 
+                         (try? container.decode(Int.self, forKey: .glowScore)) ?? 75
         primaryInsight = try container.decode(String.self, forKey: .primaryInsight)
         celebration = try container.decode(String.self, forKey: .celebration)
         improvements = try container.decode([EmotionalImprovement].self, forKey: .improvements)
@@ -99,9 +101,33 @@ public struct EmotionalMetrics: Codable, Sendable {
         oilControlScore = try container.decodeIfPresent(Int.self, forKey: .oilControlScore) ?? 75
         poreScore = try container.decodeIfPresent(Int.self, forKey: .poreScore) ?? 75
     }
+    
+    // Custom encoder to always save with new "skinHealthScore" key
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(skinHealthScore, forKey: .skinHealthScore)
+        try container.encode(primaryInsight, forKey: .primaryInsight)
+        try container.encode(celebration, forKey: .celebration)
+        try container.encode(improvements, forKey: .improvements)
+        try container.encode(concerns, forKey: .concerns)
+        try container.encode(personalizedMessage, forKey: .personalizedMessage)
+        try container.encode(nextSteps, forKey: .nextSteps)
+        try container.encode(timeEstimate, forKey: .timeEstimate)
+        try container.encode(radiance, forKey: .radiance)
+        try container.encode(smoothness, forKey: .smoothness)
+        try container.encode(evenness, forKey: .evenness)
+        try container.encode(youthfulness, forKey: .youthfulness)
+        try container.encode(freshness, forKey: .freshness)
+        try container.encode(sunProtection, forKey: .sunProtection)
+        try container.encode(acneScore, forKey: .acneScore)
+        try container.encode(rednessScore, forKey: .rednessScore)
+        try container.encode(oilControlScore, forKey: .oilControlScore)
+        try container.encode(poreScore, forKey: .poreScore)
+    }
 
     private enum CodingKeys: String, CodingKey {
-        case glowScore, primaryInsight, celebration, improvements, concerns
+        case glowScore, skinHealthScore  // Support both for backward compatibility
+        case primaryInsight, celebration, improvements, concerns
         case personalizedMessage, nextSteps, timeEstimate, radiance, smoothness
         case evenness, youthfulness, freshness, sunProtection
         case acneScore, rednessScore, oilControlScore, poreScore
@@ -181,7 +207,7 @@ public class EmotionalMetricsGenerator {
         }
 
         // 1. Calculate Skin Health Index (unified 0-100)
-        let glowScore = calculateGlowScore(from: clinicalMetrics)
+        let skinHealthScore = calculateSkinHealthScore(from: clinicalMetrics)
 
         // 2. Calculate emotional sub-scores
         let radiance = calculateRadiance(from: clinicalMetrics)
@@ -218,13 +244,13 @@ public class EmotionalMetricsGenerator {
             AppLogger.metrics.info("✅ Recalculated youthfulness after smoothness recovery: \(youthfulness)")
         }
 
-        // 3. Generate primary insight
-        let primaryInsight = generatePrimaryInsight(glowScore: glowScore)
+        // 3. Generate primary insight (now metric-specific)
+        let primaryInsight = generatePrimaryInsight(skinHealthScore: skinHealthScore, metrics: clinicalMetrics)
 
         // 4. Generate celebration message
         let celebration = generateCelebration(
-            glowScore: glowScore,
-            previousScore: previousMetrics.map { calculateGlowScore(from: $0) }
+            skinHealthScore: skinHealthScore,
+            previousScore: previousMetrics.map { calculateSkinHealthScore(from: $0) }
         )
 
         // 5. Identify improvements
@@ -233,21 +259,24 @@ public class EmotionalMetricsGenerator {
             previous: previousMetrics
         )
 
-        // 6. Identify concerns (framed positively)
+        // 6. Identify concerns (framed positively, now with specific solutions)
         let concerns = identifyConcerns(from: clinicalMetrics, userProfile: userProfile)
 
-        // 7. Generate personalized message
+        // 7. Generate personalized message (now metric-specific)
         let personalizedMessage = generatePersonalizedMessage(
-            glowScore: glowScore,
+            skinHealthScore: skinHealthScore,
+            metrics: clinicalMetrics,
             improvements: improvements,
             concerns: concerns,
             userProfile: userProfile
         )
 
-        // 8. Generate next steps
+        // 8. Generate next steps (now score-specific)
         let nextSteps = generateNextSteps(
             concerns: concerns,
-            glowScore: glowScore
+            metrics: clinicalMetrics,
+            skinHealthScore: skinHealthScore,
+            userProfile: userProfile
         )
 
         // 9. Time estimate
@@ -260,7 +289,7 @@ public class EmotionalMetricsGenerator {
         let poreScore = Int(clinicalMetrics.poreAnalysis?.visibilityScore ?? 75.0)
 
         return EmotionalMetrics(
-            glowScore: glowScore,
+            skinHealthScore: skinHealthScore,
             primaryInsight: primaryInsight,
             celebration: celebration,
             improvements: improvements,
@@ -284,10 +313,10 @@ public class EmotionalMetricsGenerator {
 
     // MARK: - Calculators
 
-    private static func calculateGlowScore(from metrics: Face3DMetrics) -> Int {
+    private static func calculateSkinHealthScore(from metrics: Face3DMetrics) -> Int {
         // Use GlowAnalyzer results if available (preferred method)
         if let glowAnalysis = metrics.glowAnalysis {
-            return Int(glowAnalysis.glowScore.rounded())
+            return Int(glowAnalysis.skinHealthScore.rounded())
         }
 
         // Fallback: Calculate manually if glowAnalysis not available (legacy data)
@@ -388,43 +417,97 @@ public class EmotionalMetricsGenerator {
 
     // MARK: - Message Generators
 
-    private static func generatePrimaryInsight(glowScore: Int) -> String {
-        switch glowScore {
+    private static func generatePrimaryInsight(skinHealthScore: Int, metrics: Face3DMetrics) -> String {
+        // Get top and lowest metrics for specific insights
+        let topMetric = getTopMetric(metrics)
+        let lowestMetric = getLowestMetric(metrics)
+        let topConcerns = getTopConcerns(metrics, limit: 2)
+        
+        switch skinHealthScore {
         case 90...100:
-            return "Your skin looks INCREDIBLE! ✨"
+            return "Your skin health score is \(skinHealthScore)/100. Your \(topMetric) is particularly strong. Keep doing what you're doing."
         case 80..<90:
-            return "Your skin looks amazing today! 🌟"
+            return "Your skin health score is \(skinHealthScore)/100. Your \(topMetric) is strong. Focus on improving \(lowestMetric) to reach the next level."
         case 70..<80:
-            return "Your skin is looking great! ☺️"
+            return "Your skin health score is \(skinHealthScore)/100. Prioritize \(topConcerns.joined(separator: " and ")) for noticeable improvement."
         case 60..<70:
-            return "Your skin is on the right track! 💪"
+            let primaryConcern = topConcerns.first ?? "your main concern"
+            return "Your skin health score is \(skinHealthScore)/100. Focus on \(primaryConcern) first. Small consistent changes will show results in 3-4 weeks."
         case 50..<60:
-            return "Let's boost your glow together! 🌤️"
+            return "Your skin health score is \(skinHealthScore)/100. Let's build a targeted routine. Start with the most critical issue below and track progress weekly."
         default:
-            return "We've got a plan to get you glowing! 💙"
+            return "Your skin health score is \(skinHealthScore)/100. We've identified specific areas to address. Follow the action plan below to see improvement."
         }
     }
+    
+    // Helper: Get top performing metric
+    private static func getTopMetric(_ metrics: Face3DMetrics) -> String {
+        let metrics: [(String, Float)] = [
+            ("texture", metrics.globalRoughnessScore),
+            ("tone evenness", metrics.globalPigmentationScore),
+            ("uniformity", metrics.globalDiscolorationScore),
+            ("pores", metrics.poreAnalysis?.visibilityScore ?? 0),
+            ("acne clarity", metrics.acneAnalysis?.overallScore ?? 0)
+        ]
+        return metrics.max(by: { $0.1 < $1.1 })?.0 ?? "overall skin health"
+    }
+    
+    // Helper: Get lowest performing metric
+    private static func getLowestMetric(_ metrics: Face3DMetrics) -> String {
+        let metrics: [(String, Float)] = [
+            ("texture", metrics.globalRoughnessScore),
+            ("tone evenness", metrics.globalPigmentationScore),
+            ("uniformity", metrics.globalDiscolorationScore),
+            ("pores", 100 - (metrics.poreAnalysis?.visibilityScore ?? 50)), // Invert pore visibility
+            ("acne clarity", metrics.acneAnalysis?.overallScore ?? 75)
+        ]
+        return metrics.min(by: { $0.1 < $1.1 })?.0 ?? "overall skin health"
+    }
+    
+    // Helper: Get top concerns
+    private static func getTopConcerns(_ metrics: Face3DMetrics, limit: Int) -> [String] {
+        var concerns: [String] = []
+        
+        if metrics.globalRoughnessScore < 60 {
+            concerns.append("texture")
+        }
+        if metrics.globalPigmentationScore < 60 {
+            concerns.append("tone evenness")
+        }
+        if metrics.globalDiscolorationScore < 60 {
+            concerns.append("discoloration")
+        }
+        if let pores = metrics.poreAnalysis, pores.visibility > 50 {
+            concerns.append("pore visibility")
+        }
+        if let acne = metrics.acneAnalysis, acne.overallScore < 70 {
+            concerns.append("acne")
+        }
+        
+        return Array(concerns.prefix(limit))
+    }
 
-    private static func generateCelebration(glowScore: Int, previousScore: Int?) -> String {
+    private static func generateCelebration(skinHealthScore: Int, previousScore: Int?) -> String {
         if let prev = previousScore {
-            let change = glowScore - prev
+            let change = skinHealthScore - prev
             if change > 10 {
-                return "WOW! Your score jumped \(change) points! 🎉🎊✨"
+                return "Your skin health score improved from \(prev) to \(skinHealthScore) (+\(change) points). Your routine is working!"
             } else if change > 5 {
-                return "Amazing progress! Up \(change) points! 🎉"
+                return "Your skin health score improved from \(prev) to \(skinHealthScore) (+\(change) points). Keep up the consistent care!"
             } else if change > 0 {
-                return "Nice improvement! +\(change) points! 👏"
+                return "Your skin health score improved from \(prev) to \(skinHealthScore) (+\(change) points). Small progress adds up!"
             } else if change == 0 {
-                return "You're maintaining your healthy skin! Keep it up! 💪"
+                return "Your skin health score is \(skinHealthScore)/100, same as last time. Consistency is key - keep maintaining your routine!"
             } else {
-                return "Let's get you back on track! You've got this! 💙"
+                let decline = abs(change)
+                return "Your skin health score decreased from \(prev) to \(skinHealthScore) (-\(decline) points). Review the recommendations below to get back on track."
             }
         } else {
             // First scan
-            if glowScore >= 80 {
-                return "Great starting point! Let's keep your skin healthy! ✨"
+            if skinHealthScore >= 80 {
+                return "Your baseline skin health score is \(skinHealthScore)/100. Great starting point! Track changes over time to see your progress."
             } else {
-                return "Awesome! We've established your baseline. Let's start your skin health journey! 🌟"
+                return "Your baseline skin health score is \(skinHealthScore)/100. This is your starting point. Follow the recommendations to improve."
             }
         }
     }
@@ -483,91 +566,122 @@ public class EmotionalMetricsGenerator {
         // Texture concerns
         if metrics.globalRoughnessScore < 60 {
             let severity: ConcernLevel = metrics.globalRoughnessScore < 40 ? .moderate : .mild
+            let score = Int(metrics.globalRoughnessScore)
+            let textureIssue = getSpecificTextureIssue(metrics)
+            let solution = getSpecificTextureSolution(score: metrics.globalRoughnessScore, profile: userProfile)
+            let timeframe = getRealisticTimeframe(score: metrics.globalRoughnessScore)
+            
             concerns.append(EmotionalConcern(
                 title: "Skin texture could be smoother",
                 emoji: "✨",
                 severity: severity,
-                message: "Let's work on smoothing your skin",
-                solution: "Regular exfoliation and moisturizing",
-                encouragement: "Most people see smoother skin in 2-3 weeks!"
+                message: "Your texture score is \(score)/100. This indicates \(textureIssue).",
+                solution: solution,
+                encouragement: "With consistent treatment, you should see improvement in \(timeframe) weeks."
             ))
         }
 
         // Pigmentation concerns
         if metrics.globalPigmentationScore < 60 {
             let severity: ConcernLevel = metrics.globalPigmentationScore < 40 ? .moderate : .mild
+            let score = Int(metrics.globalPigmentationScore)
+            let solution = getSpecificPigmentationSolution(score: metrics.globalPigmentationScore, profile: userProfile)
+            let timeframe = getRealisticTimeframe(score: metrics.globalPigmentationScore)
+            
             concerns.append(EmotionalConcern(
                 title: "Uneven skin tone",
                 emoji: "🌤️",
                 severity: severity,
-                message: "We can help even out your complexion",
-                solution: "Vitamin C serum and daily SPF",
-                encouragement: "Consistency is key! Results typically show in 4-6 weeks."
+                message: "Your tone evenness score is \(score)/100. This indicates noticeable color variation across your face.",
+                solution: solution,
+                encouragement: "With consistent treatment, you should see improvement in \(timeframe) weeks."
             ))
         }
 
         // Discoloration concerns
         if metrics.globalDiscolorationScore < 60 {
             let severity: ConcernLevel = metrics.globalDiscolorationScore < 40 ? .moderate : .mild
+            let score = Int(metrics.globalDiscolorationScore)
+            let solution = getSpecificDiscolorationSolution(score: metrics.globalDiscolorationScore, profile: userProfile)
+            let timeframe = getRealisticTimeframe(score: metrics.globalDiscolorationScore)
+            
             concerns.append(EmotionalConcern(
                 title: "Dark spots or hyperpigmentation",
                 emoji: "☀️",
                 severity: severity,
-                message: "Let's fade those dark spots",
-                solution: "SPF 30+ daily + brightening serum",
-                encouragement: "Dark spots fade gradually. Stay patient!"
+                message: "Your discoloration score is \(score)/100. This indicates visible dark spots or patchy pigmentation.",
+                solution: solution,
+                encouragement: "With consistent treatment, you should see fading in \(timeframe) weeks. SPF is essential to prevent new spots."
             ))
         }
 
         // Wrinkle concerns
         if let wrinkles = metrics.wrinkleAnalysis, wrinkles.overallScore < 70 {
             let severity: ConcernLevel = wrinkles.overallScore < 50 ? .moderate : .mild
+            let score = Int(wrinkles.overallScore)
+            let wrinkleCount = wrinkles.wrinkleCount
+            let solution = getSpecificWrinkleSolution(score: wrinkles.overallScore, count: wrinkleCount, profile: userProfile)
+            let timeframe = getRealisticTimeframe(score: wrinkles.overallScore)
+            
             concerns.append(EmotionalConcern(
                 title: "Fine lines and wrinkles",
                 emoji: "💧",
                 severity: severity,
-                message: "Let's smooth those fine lines",
-                solution: "Retinol serum at night + hydration",
-                encouragement: "Consistent use shows results in 4-6 weeks!"
+                message: "Your wrinkle score is \(score)/100. We detected \(wrinkleCount) wrinkles with \(wrinkles.wrinkleDepth.rawValue) depth.",
+                solution: solution,
+                encouragement: "With consistent treatment, you should see improvement in \(timeframe) weeks."
             ))
         }
 
         // Pore concerns
         if let pores = metrics.poreAnalysis, pores.visibility > 30 {
             let severity: ConcernLevel = pores.visibility > 50 ? .moderate : .mild
+            let visibility = Int(pores.visibility)
+            let solution = getSpecificPoreSolution(visibility: pores.visibility, profile: userProfile)
+            let timeframe = getRealisticTimeframe(score: 100 - pores.visibility) // Invert for timeframe calculation
+            
             concerns.append(EmotionalConcern(
                 title: "Visible pores",
                 emoji: "🔬",
                 severity: severity,
-                message: "Let's minimize those pores",
-                solution: "Niacinamide serum + gentle exfoliation",
-                encouragement: "Pores appear smaller with consistent care!"
+                message: "Your pore visibility is \(visibility)/100. This indicates enlarged pores that need targeted treatment.",
+                solution: solution,
+                encouragement: "With consistent treatment, you should see improvement in \(timeframe) weeks."
             ))
         }
 
         // Acne concerns
         if let acne = metrics.acneAnalysis, acne.blemishCount > 5 {
             let severity: ConcernLevel = acne.blemishCount > 20 ? .moderate : .mild
+            let score = Int(acne.overallScore)
+            let count = acne.blemishCount
+            let solution = getSpecificAcneSolution(score: acne.overallScore, count: count, profile: userProfile)
+            let timeframe = count > 20 ? "2-3" : "1-2"
+            
             concerns.append(EmotionalConcern(
                 title: "Active breakouts",
                 emoji: "🌿",
                 severity: severity,
-                message: "Let's clear up those blemishes",
-                solution: "Salicylic acid + spot treatment",
-                encouragement: "Most breakouts improve in 1-2 weeks!"
+                message: "Your acne clarity score is \(score)/100. We detected \(count) active blemishes (\(acne.severity.rawValue) severity).",
+                solution: solution,
+                encouragement: "With consistent treatment, you should see improvement in \(timeframe) weeks."
             ))
         }
 
         // Redness concerns
         if let redness = metrics.rednessAnalysis, redness.overallScore < 70 {
             let severity: ConcernLevel = redness.overallScore < 50 ? .moderate : .mild
+            let score = Int(redness.overallScore)
+            let solution = getSpecificRednessSolution(score: redness.overallScore, level: redness.rednessLevel, profile: userProfile)
+            let timeframe = getRealisticTimeframe(score: redness.overallScore)
+            
             concerns.append(EmotionalConcern(
                 title: "Skin redness and sensitivity",
                 emoji: "🌸",
                 severity: severity,
-                message: "Let's calm that redness",
-                solution: "Gentle, fragrance-free products + calming serum",
-                encouragement: "Redness reduces with the right gentle routine!"
+                message: "Your redness control score is \(score)/100. This indicates \(redness.rednessLevel.rawValue) redness that needs calming treatment.",
+                solution: solution,
+                encouragement: "With consistent gentle treatment, you should see improvement in \(timeframe) weeks."
             ))
         }
 
@@ -575,7 +689,8 @@ public class EmotionalMetricsGenerator {
     }
 
     private static func generatePersonalizedMessage(
-        glowScore: Int,
+        skinHealthScore: Int,
+        metrics: Face3DMetrics,
         improvements: [EmotionalImprovement],
         concerns: [EmotionalConcern],
         userProfile: UserProfile?
@@ -583,19 +698,27 @@ public class EmotionalMetricsGenerator {
         let name = userProfile?.name ?? "there"
 
         if !improvements.isEmpty {
-            return "Hey \(name)! Your routine is paying off! Keep up the great work! 💪"
-        } else if glowScore >= 80 {
-            return "Hey \(name)! Your skin is in great shape. Let's maintain this glow! ✨"
+            let topImprovement = improvements.max(by: { $0.percentChange < $1.percentChange })
+            if let improvement = topImprovement {
+                return "\(name), your \(improvement.title.lowercased()) improved by \(improvement.percentChange) points! Your routine is working - keep it up."
+            }
+            return "\(name), your routine is paying off! Keep up the consistent care."
+        } else if skinHealthScore >= 80 {
+            let topMetric = getTopMetric(metrics)
+            return "\(name), your skin health score is \(skinHealthScore)/100. Your \(topMetric) is particularly strong. Maintain your current routine."
         } else if concerns.isEmpty {
-            return "Hey \(name)! Your skin is looking good. Ready to take it to the next level? 🌟"
+            return "\(name), your skin health score is \(skinHealthScore)/100. You're doing well. Focus on the recommendations below to reach the next level."
         } else {
-            return "Hey \(name)! We've identified some areas to work on. Let's create your personalized routine! 💙"
+            let primaryConcern = concerns.first?.title.lowercased() ?? "main concern"
+            return "\(name), your skin health score is \(skinHealthScore)/100. We've identified \(primaryConcern) as the priority. Follow the action plan below."
         }
     }
 
     private static func generateNextSteps(
         concerns: [EmotionalConcern],
-        glowScore: Int
+        metrics: Face3DMetrics,
+        skinHealthScore: Int,
+        userProfile: UserProfile?
     ) -> [ActionableStep] {
         var steps: [ActionableStep] = []
 
@@ -604,87 +727,113 @@ public class EmotionalMetricsGenerator {
             action: "Apply SPF 30+ sunscreen",
             frequency: "Every morning",
             timing: "After moisturizer",
-            expectedResult: "Prevent new damage, maintain current glow",
+            expectedResult: "Prevent new UV damage and maintain your current skin health score",
             priority: .critical,
             icon: "sun.max.fill"
         ))
 
-        // Generate steps based on concerns
+        // Generate steps based on concerns with specific actions
         for concern in concerns.prefix(2) {  // Top 2 concerns only
             if concern.title.contains("texture") {
+                let action = getSpecificExfoliationAction(score: metrics.globalRoughnessScore, profile: userProfile)
+                let frequency = getSpecificFrequency(score: metrics.globalRoughnessScore, isExfoliation: true)
+                let timeframe = getRealisticTimeframe(score: metrics.globalRoughnessScore)
+                let expectedImprovement = getExpectedImprovement(score: metrics.globalRoughnessScore)
+                
                 steps.append(ActionableStep(
-                    action: "Exfoliate with gentle AHA/BHA",
-                    frequency: "2-3 times per week",
-                    timing: "Evening",
-                    expectedResult: "Smoother skin in 2-3 weeks",
+                    action: action,
+                    frequency: frequency,
+                    timing: "Evening, after cleansing, before moisturizer",
+                    expectedResult: "\(expectedImprovement)% smoother texture in \(timeframe) weeks",
                     priority: .important,
                     icon: "sparkles"
                 ))
             }
 
             if concern.title.contains("tone") || concern.title.contains("spots") {
+                let action = getSpecificPigmentationAction(score: metrics.globalPigmentationScore, profile: userProfile)
+                let timeframe = getRealisticTimeframe(score: metrics.globalPigmentationScore)
+                let expectedImprovement = getExpectedImprovement(score: metrics.globalPigmentationScore)
+                
                 steps.append(ActionableStep(
-                    action: "Apply Vitamin C serum",
+                    action: action,
                     frequency: "Every morning",
-                    timing: "Before moisturizer",
-                    expectedResult: "Brighter, more even tone in 4-6 weeks",
+                    timing: "Before moisturizer, after cleansing",
+                    expectedResult: "\(expectedImprovement)% more even tone in \(timeframe) weeks",
                     priority: .important,
                     icon: "sunrise.fill"
                 ))
             }
 
             if concern.title.contains("wrinkles") || concern.title.contains("lines") {
+                let action = getSpecificWrinkleAction(score: metrics.wrinkleAnalysis?.overallScore ?? 70, profile: userProfile)
+                let frequency = getSpecificFrequency(score: metrics.wrinkleAnalysis?.overallScore ?? 70, isExfoliation: false)
+                let timeframe = getRealisticTimeframe(score: metrics.wrinkleAnalysis?.overallScore ?? 70)
+                
                 steps.append(ActionableStep(
-                    action: "Apply retinol serum",
-                    frequency: "3-4 nights per week",
-                    timing: "Evening, after cleansing",
-                    expectedResult: "Smoother skin, reduced fine lines in 6-8 weeks",
+                    action: action,
+                    frequency: frequency,
+                    timing: "Evening, after cleansing, before moisturizer",
+                    expectedResult: "Reduced fine lines and improved firmness in \(timeframe) weeks",
                     priority: .important,
                     icon: "moon.stars.fill"
                 ))
             }
 
             if concern.title.contains("pores") {
+                let action = getSpecificPoreAction(visibility: metrics.poreAnalysis?.visibility ?? 50, profile: userProfile)
+                let timeframe = getRealisticTimeframe(score: 100 - (metrics.poreAnalysis?.visibility ?? 50))
+                
                 steps.append(ActionableStep(
-                    action: "Use niacinamide serum",
+                    action: action,
                     frequency: "Morning and evening",
-                    timing: "After cleansing",
-                    expectedResult: "Minimized pore appearance in 3-4 weeks",
+                    timing: "After cleansing, before other serums",
+                    expectedResult: "Minimized pore appearance in \(timeframe) weeks",
                     priority: .important,
                     icon: "circle.grid.2x2.fill"
                 ))
             }
 
             if concern.title.contains("breakouts") || concern.title.contains("acne") {
+                let action = getSpecificAcneAction(score: metrics.acneAnalysis?.overallScore ?? 70, count: metrics.acneAnalysis?.blemishCount ?? 0, profile: userProfile)
+                let timeframe = metrics.acneAnalysis?.blemishCount ?? 0 > 20 ? "2-3" : "1-2"
+                
                 steps.append(ActionableStep(
-                    action: "Apply salicylic acid treatment",
+                    action: action,
                     frequency: "Once daily",
-                    timing: "Evening",
-                    expectedResult: "Clearer skin, fewer breakouts in 2-3 weeks",
+                    timing: "Evening, after cleansing",
+                    expectedResult: "Clearer skin, fewer breakouts in \(timeframe) weeks",
                     priority: .important,
                     icon: "leaf.fill"
                 ))
             }
 
             if concern.title.contains("redness") || concern.title.contains("sensitivity") {
+                let action = getSpecificRednessAction(score: metrics.rednessAnalysis?.overallScore ?? 70, profile: userProfile)
+                let timeframe = getRealisticTimeframe(score: metrics.rednessAnalysis?.overallScore ?? 70)
+                
                 steps.append(ActionableStep(
-                    action: "Use calming serum (centella or niacinamide)",
+                    action: action,
                     frequency: "Morning and evening",
-                    timing: "After cleansing",
-                    expectedResult: "Reduced redness and irritation in 2-4 weeks",
+                    timing: "After cleansing, before other products",
+                    expectedResult: "Reduced redness and irritation in \(timeframe) weeks",
                     priority: .important,
                     icon: "heart.fill"
                 ))
             }
         }
 
-        // Hydration (always good)
-        if glowScore < 80 {
+        // Hydration (always good if score is low)
+        if skinHealthScore < 80 {
+            let hydrationScore = metrics.hydrationEstimate?.overallScore ?? 70
+            let action = getSpecificHydrationAction(score: hydrationScore, profile: userProfile)
+            let timeframe = getRealisticTimeframe(score: hydrationScore)
+            
             steps.append(ActionableStep(
-                action: "Hydrate with hyaluronic acid serum",
+                action: action,
                 frequency: "Morning and night",
-                timing: "After cleansing",
-                expectedResult: "Plumper, more radiant skin in 1-2 weeks",
+                timing: "After cleansing, before other serums",
+                expectedResult: "Improved hydration and plumpness in \(timeframe) weeks",
                 priority: .important,
                 icon: "drop.fill"
             ))
@@ -708,5 +857,275 @@ public class EmotionalMetricsGenerator {
         let date2 = Date(timeIntervalSince1970: timestamp2)
         let days = Calendar.current.dateComponents([.day], from: date2, to: date1).day ?? 0
         return abs(days)
+    }
+    
+    // MARK: - Helper Functions for Specific Solutions
+    
+    private static func getSpecificTextureIssue(_ metrics: Face3DMetrics) -> String {
+        if let pores = metrics.poreAnalysis, pores.visibility > 50 {
+            return "enlarged pores and surface roughness"
+        } else if metrics.globalRoughnessScore < 40 {
+            return "significant texture irregularities that need targeted treatment"
+        } else {
+            return "mild texture concerns that can improve with consistent care"
+        }
+    }
+    
+    private static func getSpecificTextureSolution(score: Float, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if score < 40 {
+            return isSensitive
+                ? "Start with a 2% salicylic acid cleanser daily (gentle for sensitive skin), add a 5% lactic acid serum 2x weekly at night, and use a ceramide moisturizer daily"
+                : "Start with a 2% salicylic acid cleanser daily, add a 5% glycolic acid toner 3x weekly at night, and use a retinol serum 2x weekly. Moisturize with ceramides daily"
+        } else if score < 60 {
+            return isSensitive
+                ? "Use a 5% lactic acid serum 2-3x weekly at night (gentler than glycolic), followed by a ceramide moisturizer. Add a niacinamide serum in the morning"
+                : "Use a gentle AHA exfoliant (lactic acid 5-10%) 2-3x weekly at night, followed by a ceramide moisturizer. Add a niacinamide serum in the morning"
+        } else {
+            return "Maintain with a gentle exfoliant 1-2x weekly and consistent moisturizing. Consider adding a peptide serum for texture refinement"
+        }
+    }
+    
+    private static func getSpecificPigmentationSolution(score: Float, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if score < 40 {
+            return isSensitive
+                ? "Apply 10% L-ascorbic acid vitamin C serum every morning (start 3x weekly), use SPF 50+ daily, and add a 5% niacinamide serum at night"
+                : "Apply 15-20% L-ascorbic acid vitamin C serum every morning, use SPF 50+ daily, and consider a prescription hydroquinone or azelaic acid treatment"
+        } else if score < 60 {
+            return isSensitive
+                ? "Apply 10% vitamin C serum every morning, use SPF 30+ daily, and add a 5% niacinamide serum at night"
+                : "Apply 15% vitamin C serum every morning, use SPF 30+ daily, and add a brightening serum with arbutin or kojic acid"
+        } else {
+            return "Maintain with 10-15% vitamin C serum every morning and daily SPF 30+. Consider adding a gentle brightening serum"
+        }
+    }
+    
+    private static func getSpecificDiscolorationSolution(score: Float, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if score < 40 {
+            return isSensitive
+                ? "Apply SPF 50+ daily (most important), use a 5% niacinamide serum morning and night, and add a gentle brightening serum with arbutin"
+                : "Apply SPF 50+ daily (most important), use a brightening serum with 2% hydroquinone or 10% azelaic acid, and add a vitamin C serum in the morning"
+        } else if score < 60 {
+            return isSensitive
+                ? "Apply SPF 30+ daily, use a 5% niacinamide serum, and add a gentle brightening serum"
+                : "Apply SPF 30+ daily, use a brightening serum with arbutin or kojic acid, and add vitamin C in the morning"
+        } else {
+            return "Maintain with daily SPF 30+ and a gentle brightening serum. SPF prevents new spots from forming"
+        }
+    }
+    
+    private static func getSpecificWrinkleSolution(score: Float, count: Int, profile: UserProfile?) -> String {
+        let age = profile?.age ?? 30
+        let isSensitive = profile?.skinType == .sensitive
+        
+        if age >= 40 {
+            return isSensitive
+                ? "Consider prescription retinoid (tretinoin) from dermatologist (start 2x weekly), use a peptide serum daily, and apply SPF 50+ every morning"
+                : "Consider prescription retinoid (tretinoin) from dermatologist, use a peptide serum daily, and apply SPF 50+ every morning"
+        } else if score < 50 {
+            return isSensitive
+                ? "Start with 0.25% retinol serum 2x weekly at night, use a peptide serum daily, and apply SPF 30+ every morning"
+                : "Start with 0.5% retinol serum 3-4x weekly at night, use a peptide serum daily, and apply SPF 30+ every morning"
+        } else {
+            return isSensitive
+                ? "Use 0.25% retinol serum 2-3x weekly at night, add a peptide serum, and apply SPF 30+ daily"
+                : "Use 0.5% retinol serum 3x weekly at night, add a peptide serum, and apply SPF 30+ daily"
+        }
+    }
+    
+    private static func getSpecificPoreSolution(visibility: Float, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if visibility > 60 {
+            return isSensitive
+                ? "Use 2% salicylic acid cleanser daily, apply 5% niacinamide serum morning and evening, and use a gentle clay mask 1x weekly"
+                : "Use 2% salicylic acid cleanser daily, apply 10% niacinamide serum morning and evening, and use a BHA toner 2-3x weekly"
+        } else if visibility > 40 {
+            return isSensitive
+                ? "Use a gentle salicylic acid cleanser 3-4x weekly, apply 5% niacinamide serum daily, and use a gentle exfoliant 1x weekly"
+                : "Use 2% salicylic acid cleanser daily, apply 10% niacinamide serum daily, and use a BHA toner 2x weekly"
+        } else {
+            return "Maintain with 5% niacinamide serum daily and gentle exfoliation 1-2x weekly"
+        }
+    }
+    
+    private static func getSpecificAcneSolution(score: Float, count: Int, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if count > 20 {
+            return isSensitive
+                ? "Use 2% salicylic acid cleanser daily, apply 2.5% benzoyl peroxide spot treatment at night, and use a 5% niacinamide serum to reduce inflammation"
+                : "Use 2% salicylic acid cleanser daily, apply 5% benzoyl peroxide treatment at night, and consider a prescription retinoid"
+        } else if count > 10 {
+            return isSensitive
+                ? "Use 2% salicylic acid cleanser daily, apply 2.5% benzoyl peroxide spot treatment, and use a 5% niacinamide serum"
+                : "Use 2% salicylic acid cleanser daily, apply 5% benzoyl peroxide or salicylic acid treatment, and use a 10% niacinamide serum"
+        } else {
+            return isSensitive
+                ? "Use a gentle salicylic acid cleanser 3-4x weekly and apply 2.5% benzoyl peroxide spot treatment as needed"
+                : "Use 2% salicylic acid cleanser daily and apply 5% salicylic acid or benzoyl peroxide spot treatment"
+        }
+    }
+    
+    private static func getSpecificRednessSolution(score: Float, level: RednessLevel, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if score < 50 {
+            return isSensitive
+                ? "Use fragrance-free, gentle cleanser, apply 5% niacinamide serum twice daily, use a centella asiatica serum, and avoid harsh exfoliants"
+                : "Use gentle, fragrance-free products, apply 10% niacinamide serum twice daily, use a centella asiatica or azelaic acid serum, and avoid harsh exfoliants"
+        } else {
+            return isSensitive
+                ? "Use gentle, fragrance-free products, apply 5% niacinamide serum daily, and use a calming serum with centella or aloe"
+                : "Use gentle products, apply 10% niacinamide serum daily, and use a calming serum with centella or azelaic acid"
+        }
+    }
+    
+    private static func getSpecificExfoliationAction(score: Float, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if score < 40 {
+            return isSensitive
+                ? "Start with 2% salicylic acid cleanser daily (gentle for sensitive skin)"
+                : "Use 5% glycolic acid toner 3x weekly + 2% salicylic acid spot treatment"
+        } else if score < 60 {
+            return isSensitive
+                ? "Use 5% lactic acid serum 2-3x weekly (gentler than glycolic)"
+                : "Apply 7% glycolic acid toner 2-3x weekly"
+        } else {
+            return "Maintain with gentle 5% lactic acid 1-2x weekly"
+        }
+    }
+    
+    private static func getSpecificPigmentationAction(score: Float, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if score < 40 {
+            return isSensitive
+                ? "Apply 10% L-ascorbic acid vitamin C serum (start 3x weekly, build to daily)"
+                : "Apply 15-20% L-ascorbic acid vitamin C serum every morning"
+        } else if score < 60 {
+            return isSensitive
+                ? "Apply 10% vitamin C serum every morning"
+                : "Apply 15% vitamin C serum every morning"
+        } else {
+            return "Apply 10-15% vitamin C serum every morning"
+        }
+    }
+    
+    private static func getSpecificWrinkleAction(score: Float, profile: UserProfile?) -> String {
+        let age = profile?.age ?? 30
+        let isSensitive = profile?.skinType == .sensitive
+        
+        if age >= 40 {
+            return isSensitive
+                ? "Consider prescription retinoid (tretinoin) from dermatologist (start 2x weekly)"
+                : "Consider prescription retinoid (tretinoin) from dermatologist"
+        } else if score < 50 {
+            return isSensitive
+                ? "Start with 0.25% retinol serum 2x weekly at night"
+                : "Start with 0.5% retinol serum 3-4x weekly at night"
+        } else {
+            return isSensitive
+                ? "Use 0.25% retinol serum 2-3x weekly at night"
+                : "Use 0.5% retinol serum 3x weekly at night"
+        }
+    }
+    
+    private static func getSpecificPoreAction(visibility: Float, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if visibility > 60 {
+            return isSensitive
+                ? "Use 2% salicylic acid cleanser daily + 5% niacinamide serum"
+                : "Use 2% salicylic acid cleanser daily + 10% niacinamide serum"
+        } else if visibility > 40 {
+            return isSensitive
+                ? "Use gentle salicylic acid cleanser 3-4x weekly + 5% niacinamide serum"
+                : "Use 2% salicylic acid cleanser daily + 10% niacinamide serum"
+        } else {
+            return "Use 5% niacinamide serum daily"
+        }
+    }
+    
+    private static func getSpecificAcneAction(score: Float, count: Int, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if count > 20 {
+            return isSensitive
+                ? "Use 2% salicylic acid cleanser daily + 2.5% benzoyl peroxide spot treatment"
+                : "Use 2% salicylic acid cleanser daily + 5% benzoyl peroxide treatment"
+        } else if count > 10 {
+            return isSensitive
+                ? "Use 2% salicylic acid cleanser daily + 2.5% benzoyl peroxide spot treatment"
+                : "Use 2% salicylic acid cleanser daily + 5% salicylic acid treatment"
+        } else {
+            return isSensitive
+                ? "Use gentle salicylic acid cleanser 3-4x weekly + spot treatment as needed"
+                : "Use 2% salicylic acid cleanser daily + spot treatment"
+        }
+    }
+    
+    private static func getSpecificRednessAction(score: Float, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if score < 50 {
+            return isSensitive
+                ? "Use fragrance-free cleanser + 5% niacinamide serum twice daily + centella asiatica serum"
+                : "Use gentle products + 10% niacinamide serum twice daily + centella or azelaic acid serum"
+        } else {
+            return isSensitive
+                ? "Use gentle, fragrance-free products + 5% niacinamide serum daily"
+                : "Use gentle products + 10% niacinamide serum daily"
+        }
+    }
+    
+    private static func getSpecificHydrationAction(score: Float, profile: UserProfile?) -> String {
+        let isSensitive = profile?.skinType == .sensitive
+        if score < 50 {
+            return isSensitive
+                ? "Apply hyaluronic acid serum (2-3% concentration) morning and night on damp skin, followed by a ceramide moisturizer"
+                : "Apply hyaluronic acid serum (5% concentration) morning and night on damp skin, followed by a ceramide or peptide moisturizer"
+        } else if score < 70 {
+            return isSensitive
+                ? "Apply hyaluronic acid serum morning and night on damp skin, followed by moisturizer"
+                : "Apply hyaluronic acid serum morning and night on damp skin, followed by moisturizer"
+        } else {
+            return "Maintain with hyaluronic acid serum as needed, always apply on damp skin"
+        }
+    }
+    
+    private static func getSpecificFrequency(score: Float, isExfoliation: Bool) -> String {
+        if isExfoliation {
+            if score < 40 {
+                return "3-4 times per week"
+            } else if score < 60 {
+                return "2-3 times per week"
+            } else {
+                return "1-2 times per week"
+            }
+        } else {
+            if score < 50 {
+                return "3-4 nights per week"
+            } else if score < 70 {
+                return "2-3 nights per week"
+            } else {
+                return "1-2 nights per week"
+            }
+        }
+    }
+    
+    private static func getExpectedImprovement(score: Float) -> String {
+        if score < 40 {
+            return "15-20"
+        } else if score < 60 {
+            return "10-15"
+        } else {
+            return "5-10"
+        }
+    }
+    
+    private static func getRealisticTimeframe(score: Float) -> String {
+        if score < 40 {
+            return "4-6"
+        } else if score < 60 {
+            return "3-4"
+        } else {
+            return "2-3"
+        }
     }
 }

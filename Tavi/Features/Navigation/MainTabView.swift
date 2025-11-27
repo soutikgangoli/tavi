@@ -440,11 +440,11 @@ struct ProfileTabView: View {
 
                         Spacer()
 
-                        if challenge.glowImprovement > 0 {
+                        if challenge.skinHealthImprovement > 0 {
                             HStack(spacing: 4) {
                                 Image(systemName: "arrow.up.right")
                                     .font(.system(size: 11, weight: .bold))
-                                Text("+\(challenge.glowImprovement) glow")
+                                Text("+\(challenge.skinHealthImprovement) skin health")
                                     .font(.gilroy(size: 13, weight: .semibold))
                             }
                             .foregroundColor(.green)

@@ -388,8 +388,8 @@ struct ResultsDetailView: View {
                     // Glow (Composite Health Index)
                     if let glowAnalysis = metrics.glowAnalysis {
                         ResultsMetricCardWithConfidence(
-                            title: "Glow",
-                            value: Double(glowAnalysis.glowScore),
+                            title: "Skin Health",
+                            value: Double(glowAnalysis.skinHealthScore),
                             confidence: Double(glowAnalysis.confidence),
                             icon: "sparkles",
                             isCoreMetric: false
@@ -499,7 +499,7 @@ struct ResultsDetailView: View {
                             .fontWeight(.semibold)
                     }
 
-                    Text("\(Int(analysis.glowScore))/100")
+                    Text("\(Int(analysis.skinHealthScore))/100")
                         .font(.title)
                         .fontWeight(.bold)
                         .foregroundColor(.orange)

@@ -1515,7 +1515,7 @@ struct ClinicalInfoView_Previews: PreviewProvider {
 
     static var previewEmotionalMetrics: EmotionalMetrics {
         EmotionalMetrics(
-            glowScore: 85,
+            skinHealthScore: 85,
             primaryInsight: "Your skin looks amazing today!",
             celebration: "Great starting point!",
             improvements: [],

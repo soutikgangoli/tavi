@@ -259,7 +259,7 @@ public struct CelebratoryResultsView: View {
         ].filter { $0.1 < 60 }
 
         // Build summary based on analysis
-        let overallScore = emotionalMetrics.glowScore
+        let overallScore = emotionalMetrics.skinHealthScore
 
         if overallScore >= 80 {
             if let topStrength = strengths.max(by: { $0.1 < $1.1 }) {
@@ -826,7 +826,7 @@ public struct CelebratoryResultsView: View {
     // MARK: - Helpers
 
     private var scoreInterpretationTitle: String {
-        switch emotionalMetrics.glowScore {
+        switch emotionalMetrics.skinHealthScore {
         case 90...100: return "Outstanding results"
         case 80..<90: return "Excellent progress"
         case 70..<80: return "Great work"
@@ -837,7 +837,7 @@ public struct CelebratoryResultsView: View {
     }
 
     private var scoreGradient: LinearGradient {
-        switch emotionalMetrics.glowScore {
+        switch emotionalMetrics.skinHealthScore {
         case 80...100: return HeadspaceDesign.Colors.mintGradient
         case 60..<80: return HeadspaceDesign.Colors.warmGradient
         default: return HeadspaceDesign.Colors.peachGradient
@@ -845,7 +845,7 @@ public struct CelebratoryResultsView: View {
     }
 
     private var scoreInterpretation: String {
-        switch emotionalMetrics.glowScore {
+        switch emotionalMetrics.skinHealthScore {
         case 90...100: return "Your skin health is outstanding. Keep up your excellent routine to maintain these results."
         case 80..<90: return "Your skin health is in great shape. Continue your current routine for best results."
         case 70..<80: return "You're making good progress. Follow the recommendations below to improve further."
@@ -901,23 +901,77 @@ public struct CelebratoryResultsView: View {
 
         switch metricType {
         case .brightness:
-            return "Try vitamin C serums or exfoliating to boost radiance"
+            if score < 40 {
+                return "Apply 15-20% L-ascorbic acid vitamin C serum every morning. Your radiance score of \(score) needs targeted treatment."
+            } else if score < 60 {
+                return "Add a 10-15% vitamin C serum every morning. You'll see improvement in 3-4 weeks."
+            } else {
+                return "Maintain with 10% vitamin C serum. Your radiance is already good!"
+            }
         case .roughness:
-            return "Regular exfoliation and moisturizing can improve smoothness"
+            if score < 40 {
+                return "Start with 2% salicylic acid cleanser daily + 5% glycolic acid 3x weekly. Your texture score of \(score) needs targeted treatment."
+            } else if score < 60 {
+                return "Add a 5-7% glycolic acid toner 2-3x weekly at night. You'll see improvement in 3-4 weeks."
+            } else {
+                return "Maintain with gentle exfoliation 1-2x weekly. Your texture is already good!"
+            }
         case .pigmentation:
-            return "SPF daily and targeted treatments can help even skin tone"
+            if score < 40 {
+                return "Apply 15-20% vitamin C serum every morning + SPF 50+ daily. Your tone evenness score of \(score) needs targeted treatment."
+            } else if score < 60 {
+                return "Apply 10-15% vitamin C serum every morning + SPF 30+ daily. You'll see improvement in 4-6 weeks."
+            } else {
+                return "Maintain with daily SPF 30+ and vitamin C. Your tone is already even!"
+            }
         case .wrinkles:
-            return "Retinol and peptides can help improve skin firmness"
+            if score < 50 {
+                return "Start with 0.5% retinol serum 3-4x weekly at night + peptide serum daily. Your wrinkle score of \(score) needs targeted treatment."
+            } else if score < 70 {
+                return "Use 0.5% retinol serum 2-3x weekly at night + peptide serum. You'll see improvement in 6-8 weeks."
+            } else {
+                return "Maintain with retinol 1-2x weekly. Your skin firmness is already good!"
+            }
         case .hydration:
-            return "Increase water intake and use hydrating serums"
+            if score < 50 {
+                return "Apply hyaluronic acid serum (5% concentration) morning and night on damp skin + ceramide moisturizer. Your hydration score of \(score) needs improvement."
+            } else if score < 70 {
+                return "Apply hyaluronic acid serum morning and night on damp skin. You'll see improvement in 2-3 weeks."
+            } else {
+                return "Maintain with hyaluronic acid as needed. Your hydration is already good!"
+            }
         case .discoloration:
-            return "Daily SPF 30+ is essential for preventing UV damage"
+            if score < 40 {
+                return "Apply SPF 50+ daily (most important) + brightening serum with 2% hydroquinone or 10% azelaic acid. Your discoloration score of \(score) needs targeted treatment."
+            } else if score < 60 {
+                return "Apply SPF 30+ daily + brightening serum with arbutin or kojic acid. You'll see fading in 4-6 weeks."
+            } else {
+                return "Maintain with daily SPF 30+. SPF prevents new spots from forming."
+            }
         case .pores:
-            return "Salicylic acid and niacinamide can help minimize pores"
+            if score < 40 {
+                return "Use 2% salicylic acid cleanser daily + 10% niacinamide serum twice daily. Your pore visibility score of \(score) needs targeted treatment."
+            } else if score < 60 {
+                return "Use 2% salicylic acid cleanser daily + 10% niacinamide serum. You'll see improvement in 3-4 weeks."
+            } else {
+                return "Maintain with 5% niacinamide serum daily. Your pores are already well-controlled!"
+            }
         case .specular:
-            return "Oil-control products and regular cleansing can help"
+            if score < 50 {
+                return "Use oil-control cleanser with salicylic acid + mattifying serum with niacinamide. Your shine control score of \(score) needs improvement."
+            } else if score < 70 {
+                return "Use oil-control products and regular cleansing. You'll see improvement in 2-3 weeks."
+            } else {
+                return "Maintain with regular cleansing. Your oil control is already good!"
+            }
         case .luminance:
-            return "Brightening serums with vitamin C can enhance luminosity"
+            if score < 40 {
+                return "Apply 15-20% vitamin C serum every morning + brightening serum. Your brightness score of \(score) needs targeted treatment."
+            } else if score < 60 {
+                return "Add a 10-15% vitamin C serum every morning. You'll see improvement in 3-4 weeks."
+            } else {
+                return "Maintain with 10% vitamin C serum. Your brightness is already good!"
+            }
         }
     }
 
@@ -930,7 +984,7 @@ public struct CelebratoryResultsView: View {
 
         // Animate score circle from 0 to target value
         withAnimation(.easeOut(duration: 1.5).delay(0.3)) {
-            animatedScore = CGFloat(emotionalMetrics.glowScore)
+            animatedScore = CGFloat(emotionalMetrics.skinHealthScore)
         }
 
         withAnimation(HeadspaceDesign.Animations.gentle.delay(0.3)) {

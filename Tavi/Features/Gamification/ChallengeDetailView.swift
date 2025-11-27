@@ -114,8 +114,8 @@ public struct ChallengeDetailView: View {
                     .background(HeadspaceDesign.Colors.textSecondary.opacity(0.2))
 
                 statItem(
-                    title: "Glow",
-                    value: challenge.glowImprovement > 0 ? "+\(challenge.glowImprovement)" : "\(challenge.glowImprovement)",
+                    title: "Skin Health",
+                    value: challenge.skinHealthImprovement > 0 ? "+\(challenge.skinHealthImprovement)" : "\(challenge.skinHealthImprovement)",
                     subtitle: "improvement"
                 )
             }
@@ -286,21 +286,21 @@ public struct ChallengeDetailView: View {
                 Spacer()
 
                 HStack(spacing: 4) {
-                    if challenge.glowImprovement > 0 {
+                    if challenge.skinHealthImprovement > 0 {
                         Image(systemName: "arrow.up.right")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.green)
-                    } else if challenge.glowImprovement < 0 {
+                    } else if challenge.skinHealthImprovement < 0 {
                         Image(systemName: "arrow.down.right")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.red)
                     }
 
-                    Text("\(challenge.glowImprovement > 0 ? "+" : "")\(challenge.glowImprovement)")
+                    Text("\(challenge.skinHealthImprovement > 0 ? "+" : "")\(challenge.skinHealthImprovement)")
                         .font(.gilroy(size: 20, weight: .bold))
                         .foregroundColor(
-                            challenge.glowImprovement > 0 ? .green :
-                            challenge.glowImprovement < 0 ? .red :
+                            challenge.skinHealthImprovement > 0 ? .green :
+                            challenge.skinHealthImprovement < 0 ? .red :
                             HeadspaceDesign.Colors.textPrimary
                         )
                 }
@@ -310,14 +310,14 @@ public struct ChallengeDetailView: View {
             HStack(alignment: .bottom, spacing: HeadspaceDesign.Spacing.lg) {
                 barChartItem(
                     label: "Baseline",
-                    value: challenge.baselineGlowScore,
+                    value: challenge.baselineSkinHealthScore,
                     maxValue: 100,
                     color: HeadspaceDesign.Colors.textSecondary.opacity(0.4)
                 )
 
                 barChartItem(
                     label: "Current",
-                    value: challenge.currentGlowScore,
+                    value: challenge.currentSkinHealthScore,
                     maxValue: 100,
                     color: HeadspaceDesign.Colors.secondary
                 )

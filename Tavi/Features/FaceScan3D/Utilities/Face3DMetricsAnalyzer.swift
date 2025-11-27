@@ -318,7 +318,9 @@ public class Face3DMetricsAnalyzer {
                 roughnessScore: globalResults.roughnessScore,
                 texture: textureImage
             )
-            AppLogger.metrics.info("   💡 Using elasticity proxy (first-time user, 40% confidence)")
+            if let elasticity = elasticityAnalysis {
+                AppLogger.metrics.info("   💡 Using elasticity proxy (first-time user, \(String(format: "%.0f", elasticity.confidence))% confidence)")
+            }
         }
 
         // Step 5c: Compute remaining advanced metrics IN PARALLEL using TaskGroup
@@ -546,7 +548,7 @@ public class Face3DMetricsAnalyzer {
             existingMetrics: metrics,
             specularAnalyzer: specularAnalyzer
         )
-        AppLogger.metrics.info("   - Glow Score (Health): \(String(format: "%.1f", glowAnalysis.glowScore))/100")
+        AppLogger.metrics.info("   - Skin Health Score: \(String(format: "%.1f", glowAnalysis.skinHealthScore))/100")
         AppLogger.metrics.info("   - Radiance Score (Luminosity): \(String(format: "%.1f", glowAnalysis.radianceScore))/100")
 
         // Hydration estimation (multi-method ensemble)

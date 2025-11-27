@@ -616,7 +616,7 @@ public struct HomeView: View {
         }
 
         // Use overall score as baseline for challenge
-        _ = GamificationManager.shared.startNewChallenge(baselineGlowScore: Int(latest.overallScore))
+        _ = GamificationManager.shared.startNewChallenge(baselineSkinHealthScore: Int(latest.overallScore))
     }
 
     private func latestScanCard(_ session: SessionResult) -> some View {
@@ -1153,14 +1153,14 @@ public struct HomeView: View {
                             .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
                         HStack(spacing: 4) {
-                            if challenge.glowImprovement > 0 {
+                            if challenge.skinHealthImprovement > 0 {
                                 Image(systemName: "arrow.up.right")
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(.green)
                             }
-                            Text("\(challenge.glowImprovement > 0 ? "+" : "")\(challenge.glowImprovement)")
+                            Text("\(challenge.skinHealthImprovement > 0 ? "+" : "")\(challenge.skinHealthImprovement)")
                                 .font(.gilroy(size: 18, weight: .bold))
-                                .foregroundColor(challenge.glowImprovement > 0 ? .green : HeadspaceDesign.Colors.textPrimary)
+                                .foregroundColor(challenge.skinHealthImprovement > 0 ? .green : HeadspaceDesign.Colors.textPrimary)
                         }
                     }
 

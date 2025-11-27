@@ -31,7 +31,7 @@ public class FallbackStorage: ObservableObject {
         /// Overall score (mapped from glow score for compatibility with SessionResult)
         /// Returns Double to match SessionResult's type (Core Data uses Double for scores)
         public var overallScore: Double {
-            return Double(emotionalMetrics.glowScore)
+            return Double(emotionalMetrics.skinHealthScore)
         }
 
         /// Relative date string (e.g., "Today", "Yesterday", "3 days ago")
@@ -179,7 +179,7 @@ public class FallbackStorage: ObservableObject {
                 coreDataSession.deviceOS = session.deviceOS
 
                 // Copy scores
-                coreDataSession.overallScore = Double(session.emotionalMetrics.glowScore)
+                coreDataSession.overallScore = Double(session.emotionalMetrics.skinHealthScore)
                 coreDataSession.textureAvg = Double(session.emotionalMetrics.smoothness)
                 coreDataSession.pigmentationAvg = Double(session.emotionalMetrics.evenness)
                 coreDataSession.blurQuality = Double(session.emotionalMetrics.youthfulness)

@@ -47,7 +47,7 @@ public class GlowAnalyzer {
 
         AppLogger.metrics.info("✨ Analyzing skin glow and radiance...")
 
-        // PART 1: GLOW SCORE (Overall Health Index)
+        // PART 1: SKIN HEALTH SCORE (Overall Health Index)
         // ONLY HIGH-CONFIDENCE METRICS - NO AGE-RELATED FEATURES
 
         let smoothness = existingMetrics.globalRoughnessScore
@@ -61,9 +61,9 @@ public class GlowAnalyzer {
         // Get radiance from LAB analysis
         let radiancePreview = analyzeLABLightness(texture: texture) * 100.0
 
-        // Compute glow score with HIGH-CONFIDENCE metrics ONLY
+        // Compute skin health score with HIGH-CONFIDENCE metrics ONLY
         // EXCLUDED: Firmness/Wrinkles (age-related) and Oil Control (low confidence)
-        let glowScore = (
+        let skinHealthScore = (
             smoothness * Configuration.smoothnessWeight +
             evenness * Configuration.evennessWeight +
             radiancePreview * Configuration.radianceWeight +
@@ -72,7 +72,7 @@ public class GlowAnalyzer {
             acne * Configuration.acneWeight
         )
 
-        AppLogger.metrics.info("   Glow Score (High-Confidence Metrics Only): \(String(format: "%.1f", glowScore))/100")
+        AppLogger.metrics.info("   Skin Health Score (High-Confidence Metrics Only): \(String(format: "%.1f", skinHealthScore))/100")
         AppLogger.metrics.info("     - Smoothness (25%): \(String(format: "%.1f", smoothness)) → \(String(format: "%.1f", smoothness * Configuration.smoothnessWeight))")
         AppLogger.metrics.info("     - Evenness (20%): \(String(format: "%.1f", evenness)) → \(String(format: "%.1f", evenness * Configuration.evennessWeight))")
         AppLogger.metrics.info("     - Radiance (20%): \(String(format: "%.1f", radiancePreview)) → \(String(format: "%.1f", radiancePreview * Configuration.radianceWeight))")
@@ -120,7 +120,7 @@ public class GlowAnalyzer {
         AppLogger.metrics.info("✅ Glow and radiance analysis complete (confidence: \(String(format: "%.0f", confidence))%)")
 
         return GlowAnalysis(
-            glowScore: glowScore,
+            skinHealthScore: skinHealthScore,
             radianceScore: radianceScore,
             smoothnessContribution: smoothness * Configuration.smoothnessWeight,
             evennessContribution: evenness * Configuration.evennessWeight,
