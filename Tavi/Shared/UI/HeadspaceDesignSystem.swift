@@ -86,65 +86,97 @@ public struct HeadspaceDesign {
 
     // MARK: - Typography
 
+    /// Clean, minimalistic sans-serif typography system
+    /// Uses SF Pro (Apple's system font) for optimal readability and consistency
+    /// High contrast for scores and important metrics
     public struct Typography {
-        // Roboto font helper - Google's Material Design font
-        // Clean, modern, and widely used in professional apps
-        public static func gilroy(size: CGFloat, weight: Font.Weight = .regular) -> Font {
-            // Try to use Roboto font, fallback to SF Pro if not available
-            let fontName: String
-            switch weight {
-            case .ultraLight: fontName = "Roboto-Thin"
-            case .thin: fontName = "Roboto-Light"
-            case .light: fontName = "Roboto-Light"
-            case .regular: fontName = "Roboto-Regular"
-            case .medium: fontName = "Roboto-Medium"
-            case .semibold: fontName = "Roboto-Medium"
-            case .bold: fontName = "Roboto-Bold"
-            case .heavy: fontName = "Roboto-Bold"
-            case .black: fontName = "Roboto-Black"
-            default: fontName = "Roboto-Regular"
-            }
 
-            // Try custom font first, fallback to system font
-            if let customFont = UIFont(name: fontName, size: size) {
-                return Font(customFont)
-            } else {
-                // Fallback to SF Pro if Roboto not installed
-                return Font.system(size: size, weight: weight, design: .default)
-            }
+        // MARK: - Base Font Function
+
+        /// Creates a clean sans-serif font with the specified size and weight
+        /// Uses SF Pro for optimal iOS readability
+        public static func gilroy(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+            // Use SF Pro (system font) for clean, modern look
+            // SF Pro is optimized for iOS and provides excellent readability
+            return Font.system(size: size, weight: weight, design: .default)
         }
 
-        // Font definitions
-        public static let bodyMedium = gilroy(size: 16, weight: .medium)
+        // MARK: - Semantic Font Styles
 
-        // Headings - Gilroy, friendly
+        /// Extra large display text for hero sections (40pt bold)
+        public static let displayLarge = Font.system(size: 40, weight: .bold, design: .default)
+
+        /// Large display text for main scores (64pt bold, high contrast)
+        public static let scoreDisplay = Font.system(size: 64, weight: .bold, design: .rounded)
+
+        /// Medium score display (48pt bold)
+        public static let scoreMedium = Font.system(size: 48, weight: .bold, design: .rounded)
+
+        /// Small score display (32pt bold)
+        public static let scoreSmall = Font.system(size: 32, weight: .bold, design: .rounded)
+
+        /// Page titles (28pt bold)
+        public static let pageTitle = Font.system(size: 28, weight: .bold, design: .default)
+
+        /// Section headers (22pt semibold)
+        public static let sectionHeader = Font.system(size: 22, weight: .semibold, design: .default)
+
+        /// Card titles (18pt semibold)
+        public static let cardTitle = Font.system(size: 18, weight: .semibold, design: .default)
+
+        /// Body text - primary (16pt regular)
+        public static let bodyPrimary = Font.system(size: 16, weight: .regular, design: .default)
+
+        /// Body text - medium weight (16pt medium)
+        public static let bodyMedium = Font.system(size: 16, weight: .medium, design: .default)
+
+        /// Body text - secondary (15pt regular)
+        public static let bodySecondary = Font.system(size: 15, weight: .regular, design: .default)
+
+        /// Caption text (14pt medium)
+        public static let caption = Font.system(size: 14, weight: .medium, design: .default)
+
+        /// Small caption text (12pt regular)
+        public static let captionSmall = Font.system(size: 12, weight: .regular, design: .default)
+
+        /// Label text (13pt semibold)
+        public static let label = Font.system(size: 13, weight: .semibold, design: .default)
+
+        /// Button text (17pt semibold)
+        public static let button = Font.system(size: 17, weight: .semibold, design: .default)
+
+        /// Tab bar text (10pt medium)
+        public static let tabBar = Font.system(size: 10, weight: .medium, design: .default)
+
+        // MARK: - Legacy View Builders (for backward compatibility)
+
         public static func hero(_ text: String) -> some View {
             Text(text)
-                .font(gilroy(size: 34, weight: .bold))
+                .font(.system(size: 34, weight: .bold, design: .default))
                 .foregroundColor(Colors.textPrimary)
         }
 
         public static func title(_ text: String) -> some View {
             Text(text)
-                .font(gilroy(size: 24, weight: .bold))
+                .font(.system(size: 24, weight: .bold, design: .default))
                 .foregroundColor(Colors.textPrimary)
         }
 
         public static func headline(_ text: String) -> some View {
             Text(text)
-                .font(gilroy(size: 18, weight: .semibold))
+                .font(.system(size: 18, weight: .semibold, design: .default))
                 .foregroundColor(Colors.textPrimary)
         }
 
         public static func body(_ text: String) -> some View {
             Text(text)
-                .font(gilroy(size: 16, weight: .regular))
+                .font(.system(size: 16, weight: .regular, design: .default))
                 .foregroundColor(Colors.textSecondary)
         }
 
         public static func caption(_ text: String) -> some View {
             Text(text)
-                .font(gilroy(size: 14, weight: .medium))
+                .font(.system(size: 14, weight: .medium, design: .default))
                 .foregroundColor(Colors.textTertiary)
         }
     }
@@ -402,12 +434,17 @@ public struct HeadspaceBadge: View {
     }
 }
 
-// MARK: - Font Extension for Gilroy
+// MARK: - Font Extension
 
 extension Font {
-    /// Creates a Gilroy font with the specified size and weight
-    /// Falls back to system rounded font if Gilroy is not available
+    /// Creates a clean sans-serif font with the specified size and weight
+    /// Uses SF Pro system font for optimal iOS readability
     public static func gilroy(size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        return HeadspaceDesign.Typography.gilroy(size: size, weight: weight)
+        return Font.system(size: size, weight: weight, design: .default)
+    }
+
+    /// High contrast score font (rounded design for friendly appearance)
+    public static func scoreFont(size: CGFloat) -> Font {
+        return Font.system(size: size, weight: .bold, design: .rounded)
     }
 }

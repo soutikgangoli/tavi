@@ -123,7 +123,7 @@ struct FancyLoadingScreen: View {
 
                     // App name - better spacing
                     Text("Tavi")
-                        .font(.gilroy(size: 48, weight: .bold))
+                        .font(.system(size: 48, weight: .bold))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [

@@ -266,15 +266,15 @@ public struct MetricDetailView: View {
             VStack(spacing: 4) {
                 if sessions.isEmpty {
                     Text("—")
-                        .font(.gilroy(size: 56, weight: .bold))
+                        .font(.scoreFont(size: 56))
                         .foregroundColor(HeadspaceDesign.Colors.textTertiary)
                 } else {
                     Text("\(Int(latestScore))%")
-                        .font(.gilroy(size: 56, weight: .bold))
+                        .font(.scoreFont(size: 56))
                         .foregroundColor(HeadspaceDesign.Colors.textPrimary)
 
                     Text(qualityLabel(for: latestScore))
-                        .font(.gilroy(size: 16, weight: .medium))
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 }
             }

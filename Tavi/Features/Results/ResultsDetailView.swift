@@ -1308,7 +1308,7 @@ struct ResultsDetailView: View {
                         }
 
                         Text("\(Int(wrinkles.overallScore))")
-                            .font(.gilroy(size: 32, weight: .bold))
+                            .font(.scoreFont(size: 32))
                             .foregroundColor(.purple)
 
                         Text(wrinkles.wrinkleDepth.rawValue)
@@ -1339,7 +1339,7 @@ struct ResultsDetailView: View {
                         }
 
                         Text("\(Int(volume.overallScore))")
-                            .font(.gilroy(size: 32, weight: .bold))
+                            .font(.scoreFont(size: 32))
                             .foregroundColor(.cyan)
 
                         Text("Loss: \(String(format: "%.1f", volume.cheekHollowing.volumeLoss))%")

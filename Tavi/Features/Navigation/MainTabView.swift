@@ -316,8 +316,8 @@ struct ProfileTabView: View {
                     challengeCard(challenge)
                 }
 
-                // Achievements grid
-                achievementsGrid
+                // Achievements horizontal carousel
+                achievementsCarousel
 
                 // Stats section
                 VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
@@ -345,33 +345,6 @@ struct ProfileTabView: View {
                     .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
                 }
 
-                // Settings section
-                VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
-                    Text("Settings")
-                        .font(.gilroy(size: 18, weight: .bold))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-
-                    VStack(spacing: 0) {
-                        SettingsRow(icon: "gearshape.fill", label: "Settings") {
-                            showSettings = true
-                        }
-                        Divider().padding(.leading, 52)
-                        SettingsRow(icon: "bell.fill", label: "Notifications") {
-                            showNotifications = true
-                        }
-                        Divider().padding(.leading, 52)
-                        SettingsRow(icon: "lock.fill", label: "Privacy & Data") {
-                            showPrivacy = true
-                        }
-                        Divider().padding(.leading, 52)
-                        SettingsRow(icon: "info.circle.fill", label: "About & Help") {
-                            showAbout = true
-                        }
-                    }
-                    .background(HeadspaceDesign.Colors.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
-                }
-
                 Spacer()
             }
             .padding(.horizontal, HeadspaceDesign.Spacing.lg)
@@ -379,6 +352,17 @@ struct ProfileTabView: View {
         }
         .background(HeadspaceDesign.Colors.background)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                }
+            }
+        }
         .sheet(isPresented: $showChallengeDetail) {
             ChallengeDetailView()
         }
@@ -481,32 +465,34 @@ struct ProfileTabView: View {
         .buttonStyle(PlainButtonStyle())
     }
 
-    // MARK: - Achievements Grid
+    // MARK: - Achievements Carousel
 
-    private var achievementsGrid: some View {
+    private var achievementsCarousel: some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             Text("Achievements")
                 .font(.gilroy(size: 18, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
 
             let achievements = GamificationManager.shared.getAchievements()
 
-            LazyVGrid(columns: [
-                GridItem(.flexible(), spacing: HeadspaceDesign.Spacing.md),
-                GridItem(.flexible(), spacing: HeadspaceDesign.Spacing.md)
-            ], spacing: HeadspaceDesign.Spacing.md) {
-                ForEach(achievements, id: \.id) { achievement in
-                    achievementBadge(achievement)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                    ForEach(achievements, id: \.id) { achievement in
+                        achievementBadgeCompact(achievement)
+                    }
                 }
+                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
             }
         }
+        .padding(.horizontal, -HeadspaceDesign.Spacing.lg) // Offset container padding
     }
 
-    private func achievementBadge(_ achievement: Achievement) -> some View {
+    private func achievementBadgeCompact(_ achievement: Achievement) -> some View {
         Button {
             showAchievementDetail = achievement
         } label: {
-            VStack(spacing: HeadspaceDesign.Spacing.sm) {
+            VStack(spacing: 8) {
                 ZStack {
                     Circle()
                         .fill(
@@ -514,19 +500,38 @@ struct ProfileTabView: View {
                             ? Color(red: 0.6, green: 0.9, blue: 0.7).opacity(0.2)  // Pastel green background
                             : HeadspaceDesign.Colors.textSecondary.opacity(0.1)
                         )
-                        .frame(width: 64, height: 64)
+                        .frame(width: 56, height: 56)
 
                     Image(systemName: achievement.iconName)
-                        .font(.system(size: 28, weight: .semibold))
+                        .font(.system(size: 24, weight: .semibold))
                         .foregroundColor(
                             achievement.isUnlocked
                             ? Color(red: 0.3, green: 0.8, blue: 0.5)  // Pastel green icon
                             : HeadspaceDesign.Colors.textSecondary.opacity(0.4)
                         )
+
+                    // Unlocked checkmark badge
+                    if achievement.isUnlocked {
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Circle()
+                                    .fill(Color(red: 0.3, green: 0.8, blue: 0.5))
+                                    .frame(width: 18, height: 18)
+                                    .overlay(
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.white)
+                                    )
+                            }
+                        }
+                        .frame(width: 56, height: 56)
+                    }
                 }
 
                 Text(achievement.title)
-                    .font(.gilroy(size: 14, weight: .semibold))
+                    .font(.gilroy(size: 12, weight: .semibold))
                     .foregroundColor(
                         achievement.isUnlocked
                         ? HeadspaceDesign.Colors.textPrimary
@@ -534,30 +539,11 @@ struct ProfileTabView: View {
                     )
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
-                    .frame(height: 36)
-
-                if achievement.isUnlocked, let date = achievement.unlockedDate {
-                    Text(formatUnlockDate(date))
-                        .font(.gilroy(size: 11, weight: .regular))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-                } else {
-                    Text("Locked")
-                        .font(.gilroy(size: 11, weight: .regular))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-                }
+                    .frame(width: 70, height: 32)
             }
-            .padding(HeadspaceDesign.Spacing.md)
-            .frame(maxWidth: .infinity)
-            .background(HeadspaceDesign.Colors.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+            .frame(width: 80)
         }
         .buttonStyle(PlainButtonStyle())
-    }
-
-    private func formatUnlockDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        return formatter.string(from: date)
     }
 }
 
@@ -589,37 +575,6 @@ private struct StatRow: View {
                     .foregroundColor(iconColor ?? HeadspaceDesign.Colors.textPrimary)
             }
         }
-    }
-}
-
-struct SettingsRow: View {
-    let icon: String
-    let label: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: HeadspaceDesign.Spacing.md) {
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-                    .frame(width: 28)
-
-                Text(label)
-                    .font(.gilroy(size: 16, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
-            }
-            .padding(.vertical, HeadspaceDesign.Spacing.md)
-            .padding(.horizontal, HeadspaceDesign.Spacing.lg)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(PlainButtonStyle())
     }
 }
 

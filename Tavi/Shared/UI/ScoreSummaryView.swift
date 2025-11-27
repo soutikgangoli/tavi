@@ -116,7 +116,7 @@ public struct ScoreSummaryView: View {
                 // Score text
                 VStack(spacing: 8) {
                     Text("\(Int(scores.overallScore))")
-                        .font(.gilroy(size: 56, weight: .bold))
+                        .font(.scoreFont(size: 56))
                         .foregroundStyle(gradeColor(scores.grade))
 
                     Text("out of 100")

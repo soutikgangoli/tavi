@@ -1440,6 +1440,8 @@ extension EmotionalScan3DFlowView {
             flowState = .error("Insufficient storage. Please free up space and try again.")
         case .corruptedData:
             flowState = .error("Data corrupted. Please try scanning again.")
+        case .metricsGenerationFailed:
+            flowState = .error("Failed to generate skin metrics. Please try scanning again with better lighting.")
         }
     }
 

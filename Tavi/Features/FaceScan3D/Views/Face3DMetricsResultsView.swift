@@ -119,7 +119,7 @@ public struct Face3DMetricsResultsView: View {
 
                         HStack(spacing: 12) {
                             Text(String(format: "%.1f", metrics.overallScore))
-                                .font(.gilroy(size: 48, weight: .bold))
+                                .font(.scoreFont(size: 48))
                                 .foregroundColor(colorForScore(metrics.overallScore))
 
                             VStack(alignment: .leading, spacing: 4) {
