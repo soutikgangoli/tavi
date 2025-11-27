@@ -242,20 +242,20 @@ public struct CelebratoryResultsView: View {
     private var dynamicSummaryText: String {
         // Identify strengths (scores >= 75)
         let strengths: [(String, Int)] = [
-            ("clarity", emotionalMetrics.freshness),
-            ("smoothness", emotionalMetrics.smoothness),
+            ("hydration", emotionalMetrics.freshness),
+            ("texture", emotionalMetrics.smoothness),
             ("radiance", emotionalMetrics.radiance),
-            ("evenness", emotionalMetrics.evenness),
-            ("firmness", emotionalMetrics.youthfulness)
+            ("tone evenness", emotionalMetrics.evenness),
+            ("wrinkle control", emotionalMetrics.youthfulness)
         ].filter { $0.1 >= 75 }
 
         // Identify areas needing attention (scores < 60)
         let needsAttention: [(String, Int)] = [
-            ("clarity", emotionalMetrics.freshness),
-            ("smoothness", emotionalMetrics.smoothness),
+            ("hydration", emotionalMetrics.freshness),
+            ("texture", emotionalMetrics.smoothness),
             ("radiance", emotionalMetrics.radiance),
-            ("evenness", emotionalMetrics.evenness),
-            ("firmness", emotionalMetrics.youthfulness)
+            ("tone evenness", emotionalMetrics.evenness),
+            ("wrinkle control", emotionalMetrics.youthfulness)
         ].filter { $0.1 < 60 }
 
         // Build summary based on analysis
@@ -289,19 +289,19 @@ public struct CelebratoryResultsView: View {
             // Horizontal row of circular progress rings
             HStack(spacing: HeadspaceDesign.Spacing.lg) {
                 circularMetricRing(
-                    title: "Firmness",
+                    title: "Lines & Wrinkles",
                     score: emotionalMetrics.youthfulness,
                     icon: "arrow.up.circle.fill"
                 )
 
                 circularMetricRing(
-                    title: "Smoothness",
+                    title: "Texture",
                     score: emotionalMetrics.smoothness,
                     icon: "waveform.path"
                 )
 
                 circularMetricRing(
-                    title: "Clarity",
+                    title: "Hydration",
                     score: emotionalMetrics.freshness,
                     icon: "drop.fill"
                 )
@@ -371,22 +371,22 @@ public struct CelebratoryResultsView: View {
             // Expandable metric rows
             VStack(spacing: 0) {
                 profileMetricRow(
-                    title: "Smoothness",
+                    title: "Texture",
                     icon: "waveform.path",
                     score: emotionalMetrics.smoothness,
                     diagnosis: "Surface texture quality measured by analyzing pore size distribution, surface smoothness, and uniformity. We measure micro-variations in the skin surface to assess overall skin refinement.",
-                    metricId: "profile_smoothness",
+                    metricId: "profile_texture",
                     metricType: .roughness
                 )
 
                 Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
 
                 profileMetricRow(
-                    title: "Clarity",
+                    title: "Hydration",
                     icon: "drop.fill",
                     score: emotionalMetrics.freshness,
-                    diagnosis: "Overall skin vitality measured by analyzing hydration markers and surface moisture levels. Higher scores indicate well-hydrated, healthy-looking skin with good clarity.",
-                    metricId: "profile_clarity",
+                    diagnosis: "Overall skin vitality measured by analyzing hydration markers and surface moisture levels. Higher scores indicate well-hydrated, healthy-looking skin with good moisture balance.",
+                    metricId: "profile_hydration",
                     metricType: .hydration
                 )
 
@@ -404,7 +404,7 @@ public struct CelebratoryResultsView: View {
                 Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
 
                 profileMetricRow(
-                    title: "Evenness",
+                    title: "Tone Evenness",
                     icon: "circle.hexagongrid.fill",
                     score: emotionalMetrics.evenness,
                     diagnosis: "Skin tone uniformity calculated by measuring color consistency, detecting hyperpigmentation, and analyzing color distribution across facial regions.",
@@ -415,10 +415,10 @@ public struct CelebratoryResultsView: View {
                 Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
 
                 profileMetricRow(
-                    title: "Redness",
+                    title: "Redness Control",
                     icon: "heart.fill",
-                    score: emotionalMetrics.sunProtection,
-                    diagnosis: "Skin redness detected by analyzing red channel intensity, inflammation patterns, and vascular visibility across facial regions. Lower redness indicates healthier skin.",
+                    score: emotionalMetrics.rednessScore,
+                    diagnosis: "Skin redness detected by analyzing red channel intensity, inflammation patterns, and vascular visibility across facial regions. Higher scores indicate calmer, less inflamed skin.",
                     metricId: "profile_redness",
                     metricType: .discoloration
                 )
@@ -428,8 +428,8 @@ public struct CelebratoryResultsView: View {
                 profileMetricRow(
                     title: "Acne",
                     icon: "circle.fill",
-                    score: max(0, 100 - (emotionalMetrics.glowScore / 2)),
-                    diagnosis: "Breakout assessment based on detecting surface irregularities, inflammation markers, and breakout patterns. We analyze texture variations and color changes associated with active acne.",
+                    score: emotionalMetrics.acneScore,
+                    diagnosis: "Breakout assessment based on detecting surface irregularities, inflammation markers, and breakout patterns. We analyze texture variations and color changes associated with active acne. Higher scores indicate clearer skin.",
                     metricId: "profile_acne",
                     metricType: .pigmentation
                 )
@@ -437,23 +437,34 @@ public struct CelebratoryResultsView: View {
                 Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
 
                 profileMetricRow(
-                    title: "Firmness",
+                    title: "Lines & Wrinkles",
                     icon: "arrow.up.circle.fill",
                     score: emotionalMetrics.youthfulness,
-                    diagnosis: "Wrinkle assessment using advanced 3D mesh analysis to detect surface irregularities and depth variations. Wrinkle severity is calculated by measuring the depth, length, and density of facial creases across 50,000+ data points.",
-                    metricId: "profile_firmness",
+                    diagnosis: "Wrinkle assessment using advanced 3D mesh analysis to detect surface irregularities and depth variations. Wrinkle severity is calculated by measuring the depth, length, and density of facial creases across 50,000+ data points. Higher scores indicate fewer, shallower wrinkles.",
+                    metricId: "profile_wrinkles",
                     metricType: .wrinkles
                 )
 
                 Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
 
                 profileMetricRow(
-                    title: "Oil Control",
-                    icon: "drop.triangle.fill",
-                    score: emotionalMetrics.freshness,
-                    diagnosis: "Sebum levels measured by analyzing specular highlights, shine patterns, and surface reflection characteristics. We detect areas of excess sebum production that can lead to breakouts and enlarged pores.",
-                    metricId: "profile_oil",
+                    title: "Shine Detection",
+                    icon: "sparkle",
+                    score: emotionalMetrics.oilControlScore,
+                    diagnosis: "Surface shine measured by analyzing specular highlights and reflection patterns. Detects areas with high reflectance that may indicate oiliness or product application. Higher scores indicate less shine and better matteness.",
+                    metricId: "profile_shine",
                     metricType: .hydration
+                )
+
+                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+
+                profileMetricRow(
+                    title: "Pore Visibility",
+                    icon: "circle.grid.3x3.fill",
+                    score: emotionalMetrics.poreScore,
+                    diagnosis: "Pore size and visibility measured using high-frequency texture analysis. We detect enlarged pores, pore density, and size distribution across different facial zones. Higher scores indicate smaller, less visible pores.",
+                    metricId: "profile_pores",
+                    metricType: .texture
                 )
             }
             .padding(.bottom, HeadspaceDesign.Spacing.md)

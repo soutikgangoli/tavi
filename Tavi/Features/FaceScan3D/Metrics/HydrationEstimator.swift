@@ -18,7 +18,7 @@ import UIKit
 import simd
 
 /// Hydration estimation result (indirect measurement)
-struct HydrationEstimate {
+public struct HydrationEstimate: Codable, Sendable {
     let overallScore: Float  // 0-100 (estimated hydration indicator)
     let level: HydrationLevel
     let regionalScores: [String: Float]
@@ -31,7 +31,7 @@ struct HydrationEstimate {
     let confidence: Float  // 0-100, reliability of estimate based on conditions
 }
 
-enum HydrationLevel: String {
+enum HydrationLevel: String, Codable {
     case veryDry = "Very Dry"
     case dry = "Dry"
     case normal = "Normal"

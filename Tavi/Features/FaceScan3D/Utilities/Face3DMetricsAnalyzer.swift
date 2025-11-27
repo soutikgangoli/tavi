@@ -28,13 +28,14 @@ public class Face3DMetricsAnalyzer {
     private let skinElasticityAnalyzer: SkinElasticityAnalyzer
     private let volumeMetricsAnalyzer: VolumeMetricsAnalyzer
     private let regionalAnalyzers: RegionalAnalyzers
-    private let skinTypeClassifier: SkinTypeClassifier
+    // REMOVED: SkinTypeClassifier - was running every scan but result never displayed anywhere
     private let wrinkleAnalyzer: WrinkleAnalyzer
     private let poreAnalyzer: PoreAnalyzer
     private let acneAnalyzer: AcneAnalyzer
     private let rednessAnalyzer: RednessAnalyzer
     private let topologyAnalyzer: MeshTopologyAnalyzer
     private let sunDamageAnalyzer: SunDamageAnalyzer
+    private let hydrationEstimator: HydrationEstimator
 
     // Normalizers for diverse skin tones and lighting conditions
     private let skinToneNormalizer: SkinToneNormalizer
@@ -87,13 +88,14 @@ public class Face3DMetricsAnalyzer {
         self.skinElasticityAnalyzer = SkinElasticityAnalyzer()
         self.volumeMetricsAnalyzer = VolumeMetricsAnalyzer()
         self.regionalAnalyzers = RegionalAnalyzers()
-        self.skinTypeClassifier = SkinTypeClassifier()
+        // REMOVED: SkinTypeClassifier initialization
         self.wrinkleAnalyzer = WrinkleAnalyzer()
         self.poreAnalyzer = PoreAnalyzer()
         self.acneAnalyzer = AcneAnalyzer()
         self.rednessAnalyzer = RednessAnalyzer()
         self.topologyAnalyzer = MeshTopologyAnalyzer()
         self.sunDamageAnalyzer = SunDamageAnalyzer()
+        self.hydrationEstimator = HydrationEstimator()
         self.skinToneNormalizer = SkinToneNormalizer()
         self.colorTempNormalizer = ColorTemperatureNormalizer()
     }
@@ -293,12 +295,30 @@ public class Face3DMetricsAnalyzer {
                 AppLogger.metrics.warning("   ⚠️ Wrinkle analysis unavailable, using roughness fallback")
             }
 
+            // Temporal analysis (2+ scans, high confidence 60-90%)
             elasticityAnalysis = skinElasticityAnalyzer.estimateElasticity(
                 historicalScans: historicalScans,
                 currentWrinkleDepth: currentWrinkleDepth
             )
+            if elasticityAnalysis != nil {
+                AppLogger.metrics.info("   ✅ Using temporal elasticity analysis (2+ scans)")
+            }
         } else {
-            elasticityAnalysis = nil
+            // Proxy analysis (first-time user, lower confidence 40%)
+            // Use wrinkle depth from analysis if available, otherwise use roughness proxy
+            let wrinkleDepthForProxy: Float
+            if let wrinkles = wrinkleAnalysis, !wrinkles.wrinkleRegions.isEmpty {
+                wrinkleDepthForProxy = wrinkles.wrinkleRegions.map { $0.depth }.reduce(0, +) / Float(wrinkles.wrinkleRegions.count)
+            } else {
+                wrinkleDepthForProxy = globalResults.roughness * 0.001
+            }
+
+            elasticityAnalysis = skinElasticityAnalyzer.estimateElasticityProxy(
+                currentWrinkleDepth: wrinkleDepthForProxy,
+                roughnessScore: globalResults.roughnessScore,
+                texture: textureImage
+            )
+            AppLogger.metrics.info("   💡 Using elasticity proxy (first-time user, 40% confidence)")
         }
 
         // Step 5c: Compute remaining advanced metrics IN PARALLEL using TaskGroup
@@ -315,9 +335,9 @@ public class Face3DMetricsAnalyzer {
         // Note: Using nonisolated(unsafe) to suppress Sendable warnings
         // The analyzers don't mutate state and are safe for concurrent access
         AppLogger.metrics.debug("   🚀 Starting parallel analysis tasks...")
-        let (volumeAnalysis, regionalAnalysis, skinTypeAnalysis, poreAnalysis, acneAnalysis, rednessAnalysis, topologyAnalysis) = await withTaskGroup(
+        let (volumeAnalysis, regionalAnalysis, poreAnalysis, acneAnalysis, rednessAnalysis, topologyAnalysis) = await withTaskGroup(
             of: AnalysisResult.self,
-            returning: (VolumeAnalysis?, RegionalAnalysis?, SkinTypeAnalysis?, PoreAnalysis?, AcneAnalysis?, RednessAnalysis?, TopologyAnalysis?).self
+            returning: (VolumeAnalysis?, RegionalAnalysis?, PoreAnalysis?, AcneAnalysis?, RednessAnalysis?, TopologyAnalysis?).self
         ) { group in
             // Task 1: Volume metrics (geometry-based)
             group.addTask { [volumeMetricsAnalyzer] in
@@ -337,15 +357,7 @@ public class Face3DMetricsAnalyzer {
                 return .regional(result)
             }
 
-            // Task 3: Skin type classification (texture-based)
-            group.addTask { [skinTypeClassifier] in
-                let result = skinTypeClassifier.classifySkinType(
-                    texture: textureImage,
-                    roughnessScore: roughnessScore,
-                    specularity: specularValue
-                )
-                return .skinType(result)
-            }
+            // REMOVED: Task 3 - Skin type classification (was never displayed to users)
 
             // Task 4: Pore analysis (texture-based)
             group.addTask { [poreAnalyzer] in
@@ -374,7 +386,7 @@ public class Face3DMetricsAnalyzer {
             // Collect all results
             var volume: VolumeAnalysis?
             var regional: RegionalAnalysis?
-            var skinType: SkinTypeAnalysis?
+            // REMOVED: skinType variable
             var pore: PoreAnalysis?
             var acne: AcneAnalysis?
             var redness: RednessAnalysis?
@@ -388,9 +400,9 @@ public class Face3DMetricsAnalyzer {
                 case .regional(let analysis):
                     AppLogger.metrics.debug("      ✓ Regional analysis complete")
                     regional = analysis
-                case .skinType(let analysis):
-                    AppLogger.metrics.debug("      ✓ Skin type analysis complete")
-                    skinType = analysis
+                case .skinType:
+                    // REMOVED: Skin type analysis (was never displayed)
+                    break
                 case .pore(let analysis):
                     AppLogger.metrics.debug("      ✓ Pore analysis complete")
                     pore = analysis
@@ -406,7 +418,7 @@ public class Face3DMetricsAnalyzer {
                 }
             }
 
-            return (volume, regional, skinType, pore, acne, redness, topology)
+            return (volume, regional, pore, acne, redness, topology)
         }
 
         let parallelTime = Date().timeIntervalSince1970 - parallelStartTime
@@ -420,10 +432,9 @@ public class Face3DMetricsAnalyzer {
             AppLogger.metrics.info("   - Volume: \(volume.overallScore)/100")
         }
         if let regional = regionalAnalysis {
-            AppLogger.metrics.info("   - Regional: Under-eye \(regional.underEyeDarkness.score)/100, Jawline \(regional.jawlineDefinition.definition)/100")
-        }
-        if let skinType = skinTypeAnalysis {
-            AppLogger.metrics.info("   - Skin Type: \(skinType.skinType.rawValue) (confidence: \(skinType.confidence))")
+            let underEyeScore = regional.underEyeDarkness?.score ?? 0
+            let jawlineScore = regional.jawlineDefinition?.definition ?? 0
+            AppLogger.metrics.info("   - Regional: Under-eye \(underEyeScore)/100, Jawline \(jawlineScore)/100")
         }
         if let wrinkles = wrinkleAnalysis {
             AppLogger.metrics.info("   - Wrinkles: \(wrinkles.overallScore)/100 (\(wrinkles.wrinkleDepth.rawValue), count: \(wrinkles.wrinkleCount))")
@@ -498,7 +509,7 @@ public class Face3DMetricsAnalyzer {
             elasticityAnalysis: elasticityAnalysis,
             volumeAnalysis: volumeAnalysis,
             regionalAnalysis: regionalAnalysis,
-            skinTypeAnalysis: skinTypeAnalysis,
+            skinTypeAnalysis: nil,  // REMOVED: SkinTypeClassifier (was never displayed)
             wrinkleAnalysis: wrinkleAnalysis,
             poreAnalysis: poreAnalysis,
             acneAnalysis: acneAnalysis,
@@ -540,12 +551,56 @@ public class Face3DMetricsAnalyzer {
         AppLogger.metrics.info("   - Glow Score (Health): \(String(format: "%.1f", glowAnalysis.glowScore))/100")
         AppLogger.metrics.info("   - Radiance Score (Luminosity): \(String(format: "%.1f", glowAnalysis.radianceScore))/100")
 
+        // Hydration estimation (multi-method ensemble)
+        AppLogger.metrics.info("   💧 Running HydrationEstimator...")
+        let hydrationEstimate = hydrationEstimator.estimateHydration(
+            texture: UIImage(cgImage: unifiedTexture),
+            roughnessScore: metrics.globalRoughnessScore,
+            geometry: unifiedMesh.geometry
+        )
+        AppLogger.metrics.info("   - Hydration Score: \(String(format: "%.1f", hydrationEstimate.overallScore))/100 (\(hydrationEstimate.level.rawValue))")
+        AppLogger.metrics.info("      Methods: Specularity \(String(format: "%.0f", hydrationEstimate.specularityScore))%, Texture \(String(format: "%.0f", hydrationEstimate.textureScore))%, Variance \(String(format: "%.0f", hydrationEstimate.varianceScore))%")
+
+        // Update ROI metrics with real moisture data from hydration estimate
+        let moistureProxy = MoistureProxy(
+            moistureIndex: Double(hydrationEstimate.overallScore) / 100.0,
+            specularRatio: Double(hydrationEstimate.specularityScore) / 100.0,
+            smoothnessLowFreq: Double(hydrationEstimate.textureScore) / 100.0
+        )
+
+        var updatedROIMetrics: [Face3DROI: ROI3DMetrics] = [:]
+        for (roi, roiMetric) in metrics.roiMetrics {
+            // Create updated ROI metric with real moisture data
+            let updatedMetric = ROI3DMetrics(
+                roi: roi,
+                roughnessProxy: roiMetric.roughnessProxy,
+                pigmentationIndex: roiMetric.pigmentationIndex,
+                specularProxy: roiMetric.specularProxy,
+                discolorationIndex: roiMetric.discolorationIndex,
+                textureEnergy: roiMetric.textureEnergy,
+                labVariance: roiMetric.labVariance,
+                qualityScore: roiMetric.qualityScore,
+                moistureProxy: moistureProxy,  // Use real hydration data
+                pixelCount: roiMetric.pixelCount,
+                averageLuminance: roiMetric.averageLuminance,
+                averageLightness: roiMetric.averageLightness,
+                averageAChannel: roiMetric.averageAChannel,
+                averageBChannel: roiMetric.averageBChannel,
+                roughnessScore: roiMetric.roughnessScore,
+                pigmentationScore: roiMetric.pigmentationScore,
+                specularScore: roiMetric.specularScore,
+                isLowConfidence: roiMetric.isLowConfidence,
+                confidenceLevel: roiMetric.confidenceLevel
+            )
+            updatedROIMetrics[roi] = updatedMetric
+        }
+
         // Calculate ACTUAL total processing time including all parallel analyzers
         let actualProcessingTime = Date().timeIntervalSince1970 - startTime
 
-        // Update metrics with sun damage analysis and glow analysis
+        // Update metrics with sun damage analysis, glow analysis, and hydration estimate
         let finalMetrics = Face3DMetrics(
-            roiMetrics: metrics.roiMetrics,
+            roiMetrics: updatedROIMetrics,
             globalRoughnessProxy: metrics.globalRoughnessProxy,
             globalPigmentationIndex: metrics.globalPigmentationIndex,
             globalDiscolorationIndex: metrics.globalDiscolorationIndex,
@@ -567,14 +622,15 @@ public class Face3DMetricsAnalyzer {
             elasticityAnalysis: metrics.elasticityAnalysis,
             volumeAnalysis: metrics.volumeAnalysis,
             regionalAnalysis: metrics.regionalAnalysis,
-            skinTypeAnalysis: metrics.skinTypeAnalysis,
+            skinTypeAnalysis: nil,  // REMOVED: SkinTypeClassifier
             wrinkleAnalysis: metrics.wrinkleAnalysis,
             poreAnalysis: metrics.poreAnalysis,
             acneAnalysis: metrics.acneAnalysis,
             rednessAnalysis: metrics.rednessAnalysis,
             topologyAnalysis: metrics.topologyAnalysis,
             sunDamageAnalysis: sunDamageAnalysis,
-            glowAnalysis: glowAnalysis
+            glowAnalysis: glowAnalysis,
+            hydrationEstimate: hydrationEstimate
         )
 
         AppLogger.metrics.info("✅ Face3DMetricsAnalyzer: Complete in \(actualProcessingTime)s")

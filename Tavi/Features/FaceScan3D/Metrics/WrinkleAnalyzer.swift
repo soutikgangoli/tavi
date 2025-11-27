@@ -296,6 +296,19 @@ class WrinkleAnalyzer {
         var maxDepth: Float = 0
 
         for region in regions {
+            // First identify the face region
+            let location = identifyFaceRegion(
+                geometry: geometry,
+                regionVertices: region
+            )
+
+            // Skip under-eye regions - these are handled by VolumeMetricsAnalyzer
+            // Under-eye bags should not be counted as wrinkles
+            if location == "underEye" {
+                AppLogger.metrics.debug("   Skipping under-eye region (handled by VolumeMetrics, not wrinkles)")
+                continue
+            }
+
             let depth = estimateRegionDepth(
                 geometry: geometry,
                 regionVertices: region,
@@ -321,11 +334,6 @@ class WrinkleAnalyzer {
             } else {
                 severity = .deep
             }
-
-            let location = identifyFaceRegion(
-                geometry: geometry,
-                regionVertices: region
-            )
 
             wrinkleRegions.append(WrinkleRegion(
                 location: location,
@@ -436,6 +444,7 @@ class WrinkleAnalyzer {
     }
 
     /// Identify which face region the wrinkle is in
+    /// Note: "underEye" region is handled separately by VolumeMetricsAnalyzer (eye bags)
     private func identifyFaceRegion(
         geometry: FaceMeshGeometry,
         regionVertices: [Int]
@@ -444,11 +453,21 @@ class WrinkleAnalyzer {
         let centroid = regionVertices.map { geometry.vertices[$0] }
             .reduce(SIMD3<Float>.zero, +) / Float(regionVertices.count)
 
-        // Simple heuristic based on Y position
+        // Calculate face center X for left/right distinction
+        let centerX = geometry.vertices.map { $0.x }.reduce(0, +) / Float(geometry.vertices.count)
+
+        // Heuristic based on Y position with under-eye detection
         if centroid.y > 0.05 {
             return "forehead"
-        } else if centroid.y > 0.0 {
-            return "eyes"
+        } else if centroid.y > 0.02 && centroid.y <= 0.05 {
+            return "eyes"  // Upper eye area (crow's feet)
+        } else if centroid.y >= -0.01 && centroid.y <= 0.02 {
+            // Under-eye region - check if it's near the eye area horizontally
+            let distFromCenter = abs(centroid.x - centerX)
+            if distFromCenter > 0.015 && distFromCenter < 0.06 {
+                return "underEye"  // Under-eye bags area - handled by VolumeMetricsAnalyzer
+            }
+            return "cheeks"
         } else if centroid.y > -0.03 {
             return "cheeks"
         } else {

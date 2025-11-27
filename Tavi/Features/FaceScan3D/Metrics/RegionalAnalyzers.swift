@@ -12,10 +12,10 @@ import simd
 
 /// Complete regional analysis result
 public struct RegionalAnalysis: Codable, Sendable {
-    let underEyeDarkness: UnderEyeDarknessAnalysis
-    let lipAnalysis: LipAnalysis
-    let nosePores: NosePoreAnalysis
-    let jawlineDefinition: JawlineAnalysis
+    let underEyeDarkness: UnderEyeDarknessAnalysis?  // FIXED: Returns nil if extraction fails
+    let lipAnalysis: LipAnalysis?                     // FIXED: Returns nil if insufficient data
+    let nosePores: NosePoreAnalysis?                  // FIXED: Returns nil if extraction fails
+    let jawlineDefinition: JawlineAnalysis?           // FIXED: Returns nil if no vertices found
 }
 
 // MARK: - Under-Eye Darkness
@@ -44,6 +44,7 @@ public struct LipAnalysis: Codable, Sendable {
     let hydrationLevel: LipHydrationLevel
     let upperLipVolume: Float
     let lowerLipVolume: Float
+    let confidence: Float  // 0-100, based on vertex count
 }
 
 public enum LipHydrationLevel: String, Codable, Sendable {
@@ -69,6 +70,7 @@ public struct JawlineAnalysis: Codable, Sendable {
     let angle: Float  // Jawline angle in degrees
     let symmetry: Float  // 0-100
     let contour: [SIMD3<Float>]  // 3D jawline contour points
+    let confidence: Float  // 0-100, based on vertex count
 }
 
 /// Regional skin analyzers
@@ -97,10 +99,11 @@ public class RegionalAnalyzers {
 
     // MARK: - Under-Eye Darkness Analysis
 
-    public func analyzeUnderEyeDarkness(texture: UIImage) -> UnderEyeDarknessAnalysis {
+    public func analyzeUnderEyeDarkness(texture: UIImage) -> UnderEyeDarknessAnalysis? {
 
         guard let cgImage = texture.cgImage else {
-            return defaultUnderEyeAnalysis()
+            AppLogger.metrics.warning("⚠️ RegionalAnalyzers: No CGImage for under-eye analysis")
+            return nil  // FIXED: Return nil instead of fake data
         }
 
         // Extract under-eye regions
@@ -108,13 +111,19 @@ public class RegionalAnalyzers {
         let rightEyeRegion = extractUnderEyeRegion(image: cgImage, side: .right)
 
         // Calculate darkness (LAB L* channel)
-        let leftDarkness = calculateRegionBrightness(region: leftEyeRegion)
-        let rightDarkness = calculateRegionBrightness(region: rightEyeRegion)
+        guard let leftDarkness = calculateRegionBrightness(region: leftEyeRegion),
+              let rightDarkness = calculateRegionBrightness(region: rightEyeRegion) else {
+            AppLogger.metrics.warning("⚠️ RegionalAnalyzers: Under-eye region brightness calculation failed")
+            return nil  // FIXED: Return nil instead of fake data
+        }
 
         let avgDarkness = (leftDarkness + rightDarkness) / 2.0
 
         // Compare with surrounding skin (cheeks)
-        let cheekBrightness = calculateCheekBrightness(image: cgImage)
+        guard let cheekBrightness = calculateCheekBrightness(image: cgImage) else {
+            AppLogger.metrics.warning("⚠️ RegionalAnalyzers: Cheek brightness calculation failed")
+            return nil  // FIXED: Return nil when comparison fails
+        }
         let colorDeviation = abs(avgDarkness - cheekBrightness)
 
         // Score (less deviation = better)
@@ -143,12 +152,33 @@ public class RegionalAnalyzers {
 
     // MARK: - Lip Analysis
 
-    public func analyzeLips(geometry: FaceMeshGeometry, texture: UIImage) -> LipAnalysis {
+    public func analyzeLips(geometry: FaceMeshGeometry, texture: UIImage) -> LipAnalysis? {
+        AppLogger.metrics.info("   🔍 Analyzing lip region...")
 
         // Extract lip region from geometry (dynamically adapts to face shape)
         let lipIndices = getLipIndices(geometry: geometry)
         let lipVertices = lipIndices.compactMap { index in
             index < geometry.vertices.count ? geometry.vertices[index] : nil
+        }
+
+        AppLogger.metrics.debug("      Found \(lipVertices.count) lip vertices")
+
+        // Need at least 3 vertices for basic analysis (lowered from 4)
+        guard lipVertices.count >= 3 else {
+            AppLogger.metrics.warning("      ❌ Insufficient lip vertices (\(lipVertices.count) < 3)")
+            return nil
+        }
+
+        // Calculate confidence based on vertex count
+        let confidence: Float
+        if lipVertices.count >= 20 {
+            confidence = 85  // High confidence
+        } else if lipVertices.count >= 10 {
+            confidence = 70  // Medium confidence
+        } else if lipVertices.count >= 5 {
+            confidence = 55  // Low-medium confidence
+        } else {
+            confidence = 40  // Low confidence (3-4 vertices)
         }
 
         // Calculate volume (fullness)
@@ -169,7 +199,8 @@ public class RegionalAnalyzers {
                 symmetryScore: symmetryScore,
                 hydrationLevel: .normal,
                 upperLipVolume: upperLipVolume,
-                lowerLipVolume: lowerLipVolume
+                lowerLipVolume: lowerLipVolume,
+                confidence: confidence
             )
         }
 
@@ -177,13 +208,16 @@ public class RegionalAnalyzers {
         let textureScore = analyzeLipTexture(region: lipRegion)
         let hydration = classifyLipHydration(textureScore: textureScore)
 
+        AppLogger.metrics.info("      ✅ Lip analysis: confidence=\(String(format: "%.0f", confidence))%")
+
         return LipAnalysis(
             textureScore: textureScore,
             volumeScore: volumeScore,
             symmetryScore: symmetryScore,
             hydrationLevel: hydration,
             upperLipVolume: upperLipVolume,
-            lowerLipVolume: lowerLipVolume
+            lowerLipVolume: lowerLipVolume,
+            confidence: confidence
         )
     }
 
@@ -231,12 +265,33 @@ public class RegionalAnalyzers {
 
     // MARK: - Jawline Analysis
 
-    public func analyzeJawline(geometry: FaceMeshGeometry) -> JawlineAnalysis {
+    public func analyzeJawline(geometry: FaceMeshGeometry) -> JawlineAnalysis? {
+        AppLogger.metrics.info("   🔍 Analyzing jawline region...")
 
         // Extract jawline vertices (dynamically adapts to face shape)
         let jawlineIndices = getJawlineIndices(geometry: geometry)
         let jawlineVertices = jawlineIndices.compactMap { index in
             index < geometry.vertices.count ? geometry.vertices[index] : nil
+        }
+
+        AppLogger.metrics.debug("      Found \(jawlineVertices.count) jawline vertices")
+
+        // Need at least 3 vertices for basic analysis (lowered threshold)
+        guard jawlineVertices.count >= 3 else {
+            AppLogger.metrics.warning("      ❌ Insufficient jawline vertices (\(jawlineVertices.count) < 3)")
+            return nil
+        }
+
+        // Calculate confidence based on vertex count
+        let confidence: Float
+        if jawlineVertices.count >= 30 {
+            confidence = 90  // High confidence
+        } else if jawlineVertices.count >= 15 {
+            confidence = 75  // Medium-high confidence
+        } else if jawlineVertices.count >= 8 {
+            confidence = 60  // Medium confidence
+        } else {
+            confidence = 45  // Low confidence (3-7 vertices)
         }
 
         // Calculate definition (how sharp the jawline is)
@@ -248,11 +303,14 @@ public class RegionalAnalyzers {
         // Calculate symmetry
         let symmetry = calculateJawlineSymmetry(vertices: jawlineVertices)
 
+        AppLogger.metrics.info("      ✅ Jawline analysis: confidence=\(String(format: "%.0f", confidence))%")
+
         return JawlineAnalysis(
             definition: definition,
             angle: angle,
             symmetry: symmetry,
-            contour: jawlineVertices
+            contour: jawlineVertices,
+            confidence: confidence
         )
     }
 
@@ -274,8 +332,11 @@ public class RegionalAnalyzers {
         return image.cropping(to: rect)
     }
 
-    private func calculateRegionBrightness(region: CGImage?) -> Float {
-        guard let region = region else { return 50 }
+    private func calculateRegionBrightness(region: CGImage?) -> Float? {
+        guard let region = region else {
+            AppLogger.metrics.warning("⚠️ RegionalAnalyzers: Region extraction failed")
+            return nil  // FIXED: Return nil instead of arbitrary 50
+        }
 
         // Calculate average LAB L* (brightness) using proper color space conversion
         let pixels = extractPixels(from: region)
@@ -342,7 +403,7 @@ public class RegionalAnalyzers {
         }
     }
 
-    private func calculateCheekBrightness(image: CGImage) -> Float {
+    private func calculateCheekBrightness(image: CGImage) -> Float? {
         // Extract cheek region and calculate brightness
         let cheekRegion = image.cropping(to: CGRect(
             x: image.width / 3,
@@ -351,7 +412,7 @@ public class RegionalAnalyzers {
             height: image.height / 6
         ))
 
-        return calculateRegionBrightness(region: cheekRegion)
+        return calculateRegionBrightness(region: cheekRegion)  // Now returns Optional
     }
 
     /// Get lip region indices dynamically based on vertex positions
@@ -701,15 +762,8 @@ public class RegionalAnalyzers {
         return pixels
     }
 
-    private func defaultUnderEyeAnalysis() -> UnderEyeDarknessAnalysis {
-        return UnderEyeDarknessAnalysis(
-            score: 60,
-            severity: .mild,
-            leftEyeDarkness: 50,
-            rightEyeDarkness: 50,
-            colorDeviation: 10
-        )
-    }
+    // REMOVED: defaultUnderEyeAnalysis() - was returning fake data (60, 50, 50, 10)
+    // Now returns nil when extraction fails instead of fake values
 
     enum Side {
         case left, right

@@ -22,11 +22,17 @@ public struct EmotionalMetrics: Codable, Sendable {
 
     // Emotional sub-scores (more relatable than technical metrics)
     let radiance: Int                     // 0-100: "How glowy is my skin?"
-    let smoothness: Int                   // 0-100: "How smooth does it feel?"
+    let smoothness: Int                   // 0-100: "How smooth does it feel?" (Texture)
     let evenness: Int                     // 0-100: "Is my tone even?"
-    let youthfulness: Int                 // 0-100: "Do I look young?"
-    let freshness: Int                    // 0-100: "Do I look fresh and awake?"
+    let youthfulness: Int                 // 0-100: "Do I look young?" (Lines & Wrinkles)
+    let freshness: Int                    // 0-100: "Do I look fresh and awake?" (Hydration proxy)
     let sunProtection: Int                // 0-100: "Am I protected from sun damage?"
+
+    // New: Real analyzer scores (added for Option C fix)
+    let acneScore: Int                    // 0-100: Acne/blemish clarity (from acneAnalysis)
+    let rednessScore: Int                 // 0-100: Redness control (from rednessAnalysis)
+    let oilControlScore: Int              // 0-100: Oil/shine control (from globalSpecularScore)
+    let poreScore: Int                    // 0-100: Pore visibility (from poreAnalysis)
 
     // Memberwise initializer for direct instantiation
     public init(
@@ -43,7 +49,11 @@ public struct EmotionalMetrics: Codable, Sendable {
         evenness: Int,
         youthfulness: Int,
         freshness: Int,
-        sunProtection: Int
+        sunProtection: Int,
+        acneScore: Int,
+        rednessScore: Int,
+        oilControlScore: Int,
+        poreScore: Int
     ) {
         self.glowScore = glowScore
         self.primaryInsight = primaryInsight
@@ -59,6 +69,10 @@ public struct EmotionalMetrics: Codable, Sendable {
         self.youthfulness = youthfulness
         self.freshness = freshness
         self.sunProtection = sunProtection
+        self.acneScore = acneScore
+        self.rednessScore = rednessScore
+        self.oilControlScore = oilControlScore
+        self.poreScore = poreScore
     }
 
     // Custom decoder to handle backward compatibility with old saved data
@@ -79,12 +93,18 @@ public struct EmotionalMetrics: Codable, Sendable {
         freshness = try container.decode(Int.self, forKey: .freshness)
         // Default to 75 for old data that doesn't have sunProtection
         sunProtection = try container.decodeIfPresent(Int.self, forKey: .sunProtection) ?? 75
+        // Default to reasonable values for new fields (backward compatibility)
+        acneScore = try container.decodeIfPresent(Int.self, forKey: .acneScore) ?? 75
+        rednessScore = try container.decodeIfPresent(Int.self, forKey: .rednessScore) ?? 75
+        oilControlScore = try container.decodeIfPresent(Int.self, forKey: .oilControlScore) ?? 75
+        poreScore = try container.decodeIfPresent(Int.self, forKey: .poreScore) ?? 75
     }
 
     private enum CodingKeys: String, CodingKey {
         case glowScore, primaryInsight, celebration, improvements, concerns
         case personalizedMessage, nextSteps, timeEstimate, radiance, smoothness
         case evenness, youthfulness, freshness, sunProtection
+        case acneScore, rednessScore, oilControlScore, poreScore
     }
 }
 
@@ -233,6 +253,12 @@ public class EmotionalMetricsGenerator {
         // 9. Time estimate
         let timeEstimate = generateTimeEstimate(concerns: concerns)
 
+        // 10. Extract real analyzer scores (Option C fix)
+        let acneScore = Int(clinicalMetrics.acneAnalysis?.overallScore ?? 75.0)
+        let rednessScore = Int(clinicalMetrics.rednessAnalysis?.overallScore ?? 75.0)
+        let oilControlScore = Int(clinicalMetrics.globalSpecularScore ?? 75.0)
+        let poreScore = Int(clinicalMetrics.poreAnalysis?.visibilityScore ?? 75.0)
+
         return EmotionalMetrics(
             glowScore: glowScore,
             primaryInsight: primaryInsight,
@@ -247,7 +273,11 @@ public class EmotionalMetricsGenerator {
             evenness: evenness,
             youthfulness: youthfulness,
             freshness: freshness,
-            sunProtection: Int(clinicalMetrics.sunDamageAnalysis?.protectionScore ?? 75.0)
+            sunProtection: Int(clinicalMetrics.sunDamageAnalysis?.protectionScore ?? 75.0),
+            acneScore: acneScore,
+            rednessScore: rednessScore,
+            oilControlScore: oilControlScore,
+            poreScore: poreScore
         )
     }
 
@@ -343,7 +373,14 @@ public class EmotionalMetricsGenerator {
     }
 
     private static func calculateFreshness(from metrics: Face3DMetrics) -> Int {
-        // Freshness = glow + hydration indicators
+        // Use real hydration estimator if available
+        if let hydration = metrics.hydrationEstimate {
+            AppLogger.metrics.debug("ℹ️ Freshness: Using real hydration estimate: \(String(format: "%.1f", Double(hydration.overallScore)))")
+            return Int(hydration.overallScore.rounded())
+        }
+
+        // Fallback to proxy only if hydration estimate unavailable (backward compatibility)
+        AppLogger.metrics.debug("⚠️ Freshness: Hydration estimate unavailable, using proxy")
         let evenness = metrics.globalPigmentationScore
         let smoothness = metrics.globalRoughnessScore
         return Int((evenness * 0.5 + smoothness * 0.5).rounded())

@@ -12,9 +12,9 @@ import simd
 /// Volume-based aging analysis
 public struct VolumeAnalysis: Codable, Sendable {
     let overallScore: Float  // 0-100
-    let cheekHollowing: CheekHollowingAnalysis
-    let underEyeBags: UnderEyeBagAnalysis
-    let facialSymmetry: SymmetryAnalysis
+    let cheekHollowing: CheekHollowingAnalysis?  // nil if insufficient data
+    let underEyeBags: UnderEyeBagAnalysis?  // nil if insufficient data
+    let facialSymmetry: SymmetryAnalysis?  // nil if insufficient data
     let volumeChanges: VolumeChanges?  // Compared to baseline
 }
 
@@ -77,19 +77,30 @@ public class VolumeMetricsAnalyzer {
     // MARK: - Public API
 
     /// Analyze volume-based aging metrics
+    /// Returns nil if insufficient vertex data for analysis
     public func analyzeVolume(
         geometry: FaceMeshGeometry,
         baseline: FaceMeshGeometry? = nil
-    ) -> VolumeAnalysis {
+    ) -> VolumeAnalysis? {
+        AppLogger.metrics.info("💠 VolumeMetricsAnalyzer: Starting analysis...")
 
         // Analyze cheek hollowing
         let cheekHollowing = analyzeCheekHollowing(geometry: geometry, baseline: baseline)
+        if cheekHollowing == nil {
+            AppLogger.metrics.warning("   ⚠️ Cheek hollowing analysis failed (returned nil)")
+        }
 
         // Analyze under-eye bags
         let underEyeBags = analyzeUnderEyeBags(geometry: geometry)
+        if underEyeBags == nil {
+            AppLogger.metrics.warning("   ⚠️ Under-eye bag analysis failed (returned nil)")
+        }
 
         // Analyze facial symmetry
         let symmetry = analyzeFacialSymmetry(geometry: geometry)
+        if symmetry == nil {
+            AppLogger.metrics.warning("   ⚠️ Facial symmetry analysis failed (returned nil)")
+        }
 
         // Calculate volume changes if baseline exists
         let volumeChanges: VolumeChanges?
@@ -102,8 +113,20 @@ public class VolumeMetricsAnalyzer {
             volumeChanges = nil
         }
 
-        // Overall score (average of components)
-        let overallScore = (cheekHollowing.score + underEyeBags.score + symmetry.score) / 3.0
+        // Calculate overall score from available components
+        var scores: [Float] = []
+        if let cheek = cheekHollowing { scores.append(cheek.score) }
+        if let eyes = underEyeBags { scores.append(eyes.score) }
+        if let sym = symmetry { scores.append(sym.score) }
+
+        // Need at least one valid component for a score
+        guard !scores.isEmpty else {
+            AppLogger.metrics.warning("   ❌ VolumeMetrics: No valid components - returning nil")
+            return nil
+        }
+
+        let overallScore = scores.reduce(0, +) / Float(scores.count)
+        AppLogger.metrics.info("   ✅ VolumeMetrics: Overall score = \(String(format: "%.1f", overallScore)) from \(scores.count) components")
 
         return VolumeAnalysis(
             overallScore: overallScore,
@@ -119,15 +142,27 @@ public class VolumeMetricsAnalyzer {
     private func analyzeCheekHollowing(
         geometry: FaceMeshGeometry,
         baseline: FaceMeshGeometry?
-    ) -> CheekHollowingAnalysis {
+    ) -> CheekHollowingAnalysis? {
+        AppLogger.metrics.info("   🔍 Analyzing cheek hollowing...")
 
         // Extract cheek regions dynamically (adapts to face shape)
         let leftCheekIndices = getCheekIndices(side: .left, geometry: geometry)
         let rightCheekIndices = getCheekIndices(side: .right, geometry: geometry)
 
-        // Calculate volumes
-        let leftVolume = calculateRegionVolume(geometry: geometry, indices: leftCheekIndices)
-        let rightVolume = calculateRegionVolume(geometry: geometry, indices: rightCheekIndices)
+        AppLogger.metrics.debug("      Left cheek: \(leftCheekIndices.count) vertices, Right cheek: \(rightCheekIndices.count) vertices")
+
+        // Calculate volumes - returns nil if insufficient vertices
+        guard let leftVolume = calculateRegionVolume(geometry: geometry, indices: leftCheekIndices),
+              let rightVolume = calculateRegionVolume(geometry: geometry, indices: rightCheekIndices) else {
+            AppLogger.metrics.warning("      ❌ Insufficient cheek vertices for volume calculation")
+            return nil
+        }
+
+        // Validate we got meaningful volumes (not zeros from bad data)
+        guard leftVolume > 0 || rightVolume > 0 else {
+            AppLogger.metrics.warning("      ❌ Cheek volumes are zero - insufficient data")
+            return nil
+        }
 
         // Average volume
         let avgVolume = (leftVolume + rightVolume) / 2.0
@@ -137,21 +172,26 @@ public class VolumeMetricsAnalyzer {
         let volumeScore: Float
         let volumeLoss: Float
         let severity: HollowingSeverity
-        
+
         if let baselineGeometry = baseline {
             // Compare to baseline for accurate volume loss calculation
             let baselineLeftIndices = getCheekIndices(side: .left, geometry: baselineGeometry)
             let baselineRightIndices = getCheekIndices(side: .right, geometry: baselineGeometry)
-            let baselineLeftVolume = calculateRegionVolume(geometry: baselineGeometry, indices: baselineLeftIndices)
-            let baselineRightVolume = calculateRegionVolume(geometry: baselineGeometry, indices: baselineRightIndices)
+
+            guard let baselineLeftVolume = calculateRegionVolume(geometry: baselineGeometry, indices: baselineLeftIndices),
+                  let baselineRightVolume = calculateRegionVolume(geometry: baselineGeometry, indices: baselineRightIndices) else {
+                AppLogger.metrics.warning("      ❌ Insufficient baseline cheek vertices")
+                return nil
+            }
+
             let baselineAvgVolume = (baselineLeftVolume + baselineRightVolume) / 2.0
-            
+
             // Calculate actual volume loss compared to baseline
             volumeLoss = max(0, ((baselineAvgVolume - avgVolume) / max(baselineAvgVolume, 0.001)) * 100)
-            
+
             // Score based on volume loss (0% loss = 100 score, 50% loss = 50 score)
             volumeScore = max(0, 100 - volumeLoss)
-            
+
             // Classify severity based on actual loss
             if volumeLoss < 5 {
                 severity = .none
@@ -168,10 +208,16 @@ public class VolumeMetricsAnalyzer {
             let faceWidth = calculateFaceWidth(geometry: geometry)
             let expectedVolume = faceWidth * 0.8  // Proportional to face width
             volumeLoss = max(0, ((expectedVolume - avgVolume) / max(expectedVolume, 0.001)) * 100)
-            
-            // More lenient scoring without baseline
-            volumeScore = max(50, 100 - (volumeLoss * 0.5))  // Cap at 50 minimum
-            
+
+            // Validate volume loss is reasonable
+            guard volumeLoss >= 0 && volumeLoss < 200 else {
+                AppLogger.metrics.warning("      ❌ Invalid volume loss calculation: \(volumeLoss)")
+                return nil
+            }
+
+            // More lenient scoring without baseline (removed artificial floor)
+            volumeScore = max(0, 100 - (volumeLoss * 0.5))
+
             // More lenient severity classification without baseline
             if volumeLoss < 20 {
                 severity = .none
@@ -184,6 +230,8 @@ public class VolumeMetricsAnalyzer {
             }
         }
 
+        AppLogger.metrics.info("      ✅ Cheek hollowing: score=\(String(format: "%.1f", volumeScore)), severity=\(severity.rawValue)")
+
         return CheekHollowingAnalysis(
             score: volumeScore,
             severity: severity,
@@ -195,17 +243,32 @@ public class VolumeMetricsAnalyzer {
 
     // MARK: - Under-Eye Bags Analysis
 
-    private func analyzeUnderEyeBags(geometry: FaceMeshGeometry) -> UnderEyeBagAnalysis {
+    private func analyzeUnderEyeBags(geometry: FaceMeshGeometry) -> UnderEyeBagAnalysis? {
+        AppLogger.metrics.info("   🔍 Analyzing under-eye bags...")
 
         // Extract under-eye regions dynamically (adapts to face shape)
         let leftEyeIndices = getUnderEyeIndices(side: .left, geometry: geometry)
         let rightEyeIndices = getUnderEyeIndices(side: .right, geometry: geometry)
+
+        AppLogger.metrics.debug("      Left eye: \(leftEyeIndices.count) vertices, Right eye: \(rightEyeIndices.count) vertices")
+
+        // Need at least some vertices to analyze
+        guard !leftEyeIndices.isEmpty || !rightEyeIndices.isEmpty else {
+            AppLogger.metrics.warning("      ❌ No under-eye vertices found")
+            return nil
+        }
 
         // Calculate protrusion (how much bags stick out)
         let leftProtrusion = calculateProtrusion(geometry: geometry, indices: leftEyeIndices)
         let rightProtrusion = calculateProtrusion(geometry: geometry, indices: rightEyeIndices)
 
         let avgProtrusion = (leftProtrusion + rightProtrusion) / 2.0
+
+        // Validate we have meaningful protrusion data (0 = missing data, not "perfect skin")
+        guard avgProtrusion > 0 else {
+            AppLogger.metrics.warning("      ❌ avgProtrusion = 0, no valid data available")
+            return nil
+        }
 
         // Score (less protrusion = better)
         let score = max(0, 100 - (avgProtrusion / 0.005 * 100))  // 5mm = 0 score
@@ -222,9 +285,11 @@ public class VolumeMetricsAnalyzer {
             severity = .severe
         }
 
-        // Volume (approximate)
-        let leftVolume = calculateRegionVolume(geometry: geometry, indices: leftEyeIndices)
-        let rightVolume = calculateRegionVolume(geometry: geometry, indices: rightEyeIndices)
+        // Volume (approximate) - use 0 if nil
+        let leftVolume = calculateRegionVolume(geometry: geometry, indices: leftEyeIndices) ?? 0
+        let rightVolume = calculateRegionVolume(geometry: geometry, indices: rightEyeIndices) ?? 0
+
+        AppLogger.metrics.info("      ✅ Under-eye bags: score=\(String(format: "%.1f", score)), severity=\(severity.rawValue)")
 
         return UnderEyeBagAnalysis(
             score: score,
@@ -237,9 +302,16 @@ public class VolumeMetricsAnalyzer {
 
     // MARK: - Facial Symmetry Analysis
 
-    private func analyzeFacialSymmetry(geometry: FaceMeshGeometry) -> SymmetryAnalysis {
+    private func analyzeFacialSymmetry(geometry: FaceMeshGeometry) -> SymmetryAnalysis? {
+        AppLogger.metrics.info("   🔍 Analyzing facial symmetry...")
 
         let vertices = geometry.vertices
+
+        // Need sufficient vertices for symmetry analysis
+        guard vertices.count >= 10 else {
+            AppLogger.metrics.warning("      ❌ Insufficient vertices (\(vertices.count)) for symmetry analysis")
+            return nil
+        }
 
         // Find center line (midpoint between left/right landmarks)
         let centerX = calculateFaceCenterX(vertices: vertices)
@@ -270,11 +342,19 @@ public class VolumeMetricsAnalyzer {
             }
         }
 
+        // Need deviations to calculate symmetry
+        guard !leftRightDeviations.isEmpty else {
+            AppLogger.metrics.warning("      ❌ No deviation data calculated")
+            return nil
+        }
+
         // Average deviation
-        let avgDeviation = leftRightDeviations.reduce(0, +) / Float(max(leftRightDeviations.count, 1))
+        let avgDeviation = leftRightDeviations.reduce(0, +) / Float(leftRightDeviations.count)
 
         // Score (less deviation = better symmetry)
         let score = max(0, 100 - (avgDeviation / 0.005 * 100))  // 5mm avg = 0 score
+
+        AppLogger.metrics.info("      ✅ Facial symmetry: score=\(String(format: "%.1f", score)), avgDeviation=\(String(format: "%.2f", avgDeviation * 1000))mm")
 
         return SymmetryAnalysis(
             score: score,
@@ -288,29 +368,34 @@ public class VolumeMetricsAnalyzer {
     private func calculateVolumeChanges(
         current: FaceMeshGeometry,
         baseline: FaceMeshGeometry
-    ) -> VolumeChanges {
+    ) -> VolumeChanges? {
+        AppLogger.metrics.info("   🔍 Calculating volume changes over time...")
 
         // Calculate total face volume for both
-        let currentVolume = calculateTotalFaceVolume(geometry: current)
-        let baselineVolume = calculateTotalFaceVolume(geometry: baseline)
+        guard let currentVolume = calculateTotalFaceVolume(geometry: current),
+              let baselineVolume = calculateTotalFaceVolume(geometry: baseline),
+              baselineVolume > 0 else {
+            AppLogger.metrics.warning("      ❌ Cannot calculate total face volume")
+            return nil
+        }
 
         let volumeChange = ((currentVolume - baselineVolume) / baselineVolume) * 100
 
-        // Calculate regional volume changes
-        let currentCheekVolumeLeft = calculateRegionVolume(geometry: current, indices: getCheekIndices(side: .left, geometry: current))
-        let baselineCheekVolumeLeft = calculateRegionVolume(geometry: baseline, indices: getCheekIndices(side: .left, geometry: baseline))
-        let currentCheekVolumeRight = calculateRegionVolume(geometry: current, indices: getCheekIndices(side: .right, geometry: current))
-        let baselineCheekVolumeRight = calculateRegionVolume(geometry: baseline, indices: getCheekIndices(side: .right, geometry: baseline))
+        // Calculate regional volume changes (use 0 if nil for optional regions)
+        let currentCheekVolumeLeft = calculateRegionVolume(geometry: current, indices: getCheekIndices(side: .left, geometry: current)) ?? 0
+        let baselineCheekVolumeLeft = calculateRegionVolume(geometry: baseline, indices: getCheekIndices(side: .left, geometry: baseline)) ?? 0
+        let currentCheekVolumeRight = calculateRegionVolume(geometry: current, indices: getCheekIndices(side: .right, geometry: current)) ?? 0
+        let baselineCheekVolumeRight = calculateRegionVolume(geometry: baseline, indices: getCheekIndices(side: .right, geometry: baseline)) ?? 0
 
         let cheekVolumeChangeLeft = ((currentCheekVolumeLeft - baselineCheekVolumeLeft) / max(baselineCheekVolumeLeft, 0.001)) * 100
         let cheekVolumeChangeRight = ((currentCheekVolumeRight - baselineCheekVolumeRight) / max(baselineCheekVolumeRight, 0.001)) * 100
         let cheekVolumeChange = (cheekVolumeChangeLeft + cheekVolumeChangeRight) / 2.0
 
         // Calculate under-eye volume changes
-        let currentEyeVolumeLeft = calculateRegionVolume(geometry: current, indices: getUnderEyeIndices(side: .left, geometry: current))
-        let baselineEyeVolumeLeft = calculateRegionVolume(geometry: baseline, indices: getUnderEyeIndices(side: .left, geometry: baseline))
-        let currentEyeVolumeRight = calculateRegionVolume(geometry: current, indices: getUnderEyeIndices(side: .right, geometry: current))
-        let baselineEyeVolumeRight = calculateRegionVolume(geometry: baseline, indices: getUnderEyeIndices(side: .right, geometry: baseline))
+        let currentEyeVolumeLeft = calculateRegionVolume(geometry: current, indices: getUnderEyeIndices(side: .left, geometry: current)) ?? 0
+        let baselineEyeVolumeLeft = calculateRegionVolume(geometry: baseline, indices: getUnderEyeIndices(side: .left, geometry: baseline)) ?? 0
+        let currentEyeVolumeRight = calculateRegionVolume(geometry: current, indices: getUnderEyeIndices(side: .right, geometry: current)) ?? 0
+        let baselineEyeVolumeRight = calculateRegionVolume(geometry: baseline, indices: getUnderEyeIndices(side: .right, geometry: baseline)) ?? 0
 
         let eyeVolumeChangeLeft = ((currentEyeVolumeLeft - baselineEyeVolumeLeft) / max(baselineEyeVolumeLeft, 0.001)) * 100
         let eyeVolumeChangeRight = ((currentEyeVolumeRight - baselineEyeVolumeRight) / max(baselineEyeVolumeRight, 0.001)) * 100
@@ -325,6 +410,8 @@ public class VolumeMetricsAnalyzer {
         } else {
             trend = .stable
         }
+
+        AppLogger.metrics.info("      ✅ Volume changes: overall=\(String(format: "%.1f", volumeChange))%, trend=\(trend.rawValue)")
 
         return VolumeChanges(
             cheekVolumeChange: cheekVolumeChange,
@@ -454,7 +541,7 @@ public class VolumeMetricsAnalyzer {
         return bounds.maxX - bounds.minX
     }
 
-    private func calculateRegionVolume(geometry: FaceMeshGeometry, indices: [Int]) -> Float {
+    private func calculateRegionVolume(geometry: FaceMeshGeometry, indices: [Int]) -> Float? {
         // Calculate convex hull volume for region using Quickhull algorithm
         let vertices = geometry.vertices
         var regionVertices: [SIMD3<Float>] = []
@@ -463,10 +550,20 @@ public class VolumeMetricsAnalyzer {
             regionVertices.append(vertices[index])
         }
 
-        guard regionVertices.count >= 4 else { return 0 }  // Need at least 4 points for 3D convex hull
+        // Need at least 4 points for 3D convex hull - return nil instead of 0
+        guard regionVertices.count >= 4 else {
+            AppLogger.metrics.debug("      → Region has <4 vertices (\(regionVertices.count)), cannot calculate volume")
+            return nil
+        }
 
         // Compute convex hull using Quickhull
         let convexHull = computeConvexHull3D(points: regionVertices)
+
+        // Check for valid hull
+        guard !convexHull.faces.isEmpty else {
+            AppLogger.metrics.debug("      → Convex hull has no faces - degenerate geometry")
+            return nil
+        }
 
         // Calculate volume from convex hull triangulation
         let volume = calculateConvexHullVolume(hull: convexHull)
@@ -764,7 +861,7 @@ public class VolumeMetricsAnalyzer {
         return regionDepths.reduce(0, +) / Float(max(regionDepths.count, 1))
     }
 
-    private func calculateTotalFaceVolume(geometry: FaceMeshGeometry) -> Float {
+    private func calculateTotalFaceVolume(geometry: FaceMeshGeometry) -> Float? {
         // Simplified total volume calculation
         let allIndices = Array(0..<geometry.vertices.count)
         return calculateRegionVolume(geometry: geometry, indices: allIndices)

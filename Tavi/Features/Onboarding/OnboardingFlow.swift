@@ -25,7 +25,7 @@ public struct OnboardingFlowView: View {
         ),
         OnboardingPage(
             title: "3D Face Scan in 1 Minute",
-            description: "We'll guide you through 7 head poses to capture your face in 3D.\n\n• Clinical-grade skin analysis\n• Track your progress over time\n• All data stays on your device\n\nLet's get started!",
+            description: "We'll guide you through five quick poses to capture your face in 3D.\n\n• Clinical-grade AI skin analysis\n• Track changes over time\n• 100% on-device privacy\n\nLet's begin.",
             imageName: "face.smiling",
             color: .blue
         )

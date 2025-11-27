@@ -450,6 +450,9 @@ public struct Face3DMetrics: Codable, Sendable {
     /// Redness and inflammation analysis
     public let rednessAnalysis: RednessAnalysis?
 
+    /// Hydration estimation (multi-method ensemble)
+    public let hydrationEstimate: HydrationEstimate?
+
     /// Mesh topology quality analysis
     public let topologyAnalysis: TopologyAnalysis?
 
@@ -490,6 +493,7 @@ public struct Face3DMetrics: Codable, Sendable {
         poreAnalysis: PoreAnalysis? = nil,
         acneAnalysis: AcneAnalysis? = nil,
         rednessAnalysis: RednessAnalysis? = nil,
+        hydrationEstimate: HydrationEstimate? = nil,
         topologyAnalysis: TopologyAnalysis? = nil,
         sunDamageAnalysis: SunDamageAnalysis? = nil,
         scanQuality: ScanQuality? = nil,
@@ -523,6 +527,7 @@ public struct Face3DMetrics: Codable, Sendable {
         self.poreAnalysis = poreAnalysis
         self.acneAnalysis = acneAnalysis
         self.rednessAnalysis = rednessAnalysis
+        self.hydrationEstimate = hydrationEstimate
         self.topologyAnalysis = topologyAnalysis
         self.sunDamageAnalysis = sunDamageAnalysis
         self.scanQuality = scanQuality
@@ -580,6 +585,7 @@ public struct Face3DMetrics: Codable, Sendable {
         case elasticityAnalysis, volumeAnalysis, regionalAnalysis, skinTypeAnalysis
         case wrinkleAnalysis, poreAnalysis, acneAnalysis, rednessAnalysis
         case topologyAnalysis, sunDamageAnalysis, scanQuality, glowAnalysis
+        case hydrationEstimate
     }
 
     public init(from decoder: Decoder) throws {
@@ -621,6 +627,7 @@ public struct Face3DMetrics: Codable, Sendable {
         sunDamageAnalysis = try container.decode(Optional<SunDamageAnalysis>.self, forKey: .sunDamageAnalysis)
         scanQuality = try container.decode(Optional<ScanQuality>.self, forKey: .scanQuality)
         glowAnalysis = try container.decodeIfPresent(GlowAnalysis.self, forKey: .glowAnalysis)
+        hydrationEstimate = try container.decodeIfPresent(HydrationEstimate.self, forKey: .hydrationEstimate)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -659,6 +666,7 @@ public struct Face3DMetrics: Codable, Sendable {
         try container.encode(sunDamageAnalysis, forKey: .sunDamageAnalysis)
         try container.encode(scanQuality, forKey: .scanQuality)
         try container.encode(glowAnalysis, forKey: .glowAnalysis)
+        try container.encode(hydrationEstimate, forKey: .hydrationEstimate)
     }
 }
 

@@ -813,7 +813,7 @@ public struct HomeView: View {
                     .foregroundColor(HeadspaceDesign.Colors.textPrimary)
             }
 
-            Text("We use clinical-grade spectral analysis powered by AI and dermatological mapping to see what the naked eye can't.")
+            Text("Clinical-grade spectral imaging and AI dermatological mapping reveal what the eye can't.")
                 .font(.gilroy(size: 16, weight: .regular))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

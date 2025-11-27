@@ -41,6 +41,9 @@ public struct EmotionalScan3DFlowView: View {
     @State private var cyclingMessageIndex: Int = 0
     @State private var cyclingTimer: Timer?
     @State private var countdownTimer: Timer?
+    @State private var breathingPhase: Double = 0
+    @State private var breathingTimer: Timer?
+    @State private var elapsedTimeRefresh: Int = 0  // Triggers UI refresh for elapsed time
 
     // Automatic retry state
     @State private var retryCount: Int = 0
@@ -308,49 +311,46 @@ public struct EmotionalScan3DFlowView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                // Processing circle - matching preparing screen style
+                // Processing circle - contained within bounds
                 ZStack {
-                    // Outer glow rings (breathing effect)
+                    // Outer glow ring (subtle pulse, contained)
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color.white.opacity(0.15), Color.clear],
+                                colors: [Color.white.opacity(0.12), Color.clear],
                                 center: .center,
-                                startRadius: 80,
-                                endRadius: 120
+                                startRadius: 70,
+                                endRadius: 100
                             )
                         )
-                        .frame(width: 240, height: 240)
-                        .scaleEffect(1.0 + sin(Double(processingStep) * 0.5) * 0.1)
-                        .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: processingStep)
+                        .frame(width: 200, height: 200)
+                        .opacity(0.8 + sin(breathingPhase) * 0.2)
 
+                    // Middle glow ring
                     Circle()
                         .fill(
                             RadialGradient(
                                 colors: [Color.white.opacity(0.08), Color.clear],
                                 center: .center,
-                                startRadius: 120,
-                                endRadius: 160
+                                startRadius: 80,
+                                endRadius: 110
                             )
                         )
-                        .frame(width: 320, height: 320)
-                        .scaleEffect(1.0 + sin(Double(processingStep) * 0.5) * 0.08)
-                        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: processingStep)
+                        .frame(width: 220, height: 220)
+                        .opacity(0.7 + sin(breathingPhase * 0.8) * 0.15)
 
-                    // Main white breathing circle
+                    // Main white circle (fixed size, no scaling)
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color.white, Color.white.opacity(0.85)],
+                                colors: [Color.white, Color.white.opacity(0.9)],
                                 center: .center,
                                 startRadius: 0,
                                 endRadius: 80
                             )
                         )
                         .frame(width: 160, height: 160)
-                        .scaleEffect(1.0 + sin(Double(processingStep) * 0.3) * 0.08)
-                        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: processingStep)
-                        .shadow(color: Color.white.opacity(0.3), radius: 20, x: 0, y: 0)
+                        .shadow(color: Color.white.opacity(0.3), radius: 15, x: 0, y: 0)
 
                     // Center content - percentage with progress ring overlay
                     ZStack {
@@ -400,26 +400,18 @@ public struct EmotionalScan3DFlowView: View {
                             .transition(.opacity)
                     }
 
-                    // Time remaining (white subtext)
-                    if timeRemainingSeconds > 0 {
+                    // Elapsed time (white subtext) - shows real processing time
+                    if let startTime = processingStartTime {
                         HStack(spacing: 6) {
                             Image(systemName: "clock.fill")
                                 .font(.system(size: 14))
-                            Text(formatTimeRemaining(timeRemainingSeconds))
+                            Text(formatElapsedTime(since: startTime))
                                 .font(.gilroy(size: 14, weight: .medium))
                                 .monospacedDigit()
                         }
                         .foregroundColor(.white.opacity(0.85))
                         .padding(.top, 8)
-                    } else if timeRemainingSeconds < 0 {
-                        HStack(spacing: 6) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 14))
-                            Text("Almost done...")
-                                .font(.gilroy(size: 14, weight: .medium))
-                        }
-                        .foregroundColor(.white.opacity(0.85))
-                        .padding(.top, 8)
+                        .id(elapsedTimeRefresh)  // Forces refresh every second
                     }
                 }
                 .padding(.bottom, 24)
@@ -438,6 +430,10 @@ public struct EmotionalScan3DFlowView: View {
         }
         .onAppear {
             startTimeCountdown()
+            startBreathingAnimation()
+        }
+        .onDisappear {
+            stopBreathingAnimation()
         }
     }
 
@@ -1472,34 +1468,37 @@ extension EmotionalScan3DFlowView {
         }
     }
 
-    /// Update time remaining estimate when moving to a new step
-    private func updateTimeRemaining(from phase: ProcessingPhase) {
-        // Calculate time remaining from this phase onwards
-        // Don't include current phase if timer is already counting down
-        timeRemainingSeconds = timeEstimator.estimateTimeRemaining(from: phase, includeCurrentPhase: true)
-
-        // Add a buffer to prevent negative time
-        if timeRemainingSeconds < 5 {
-            timeRemainingSeconds = 5
-        }
+    /// Format elapsed time since start
+    private func formatElapsedTime(since startTime: Date) -> String {
+        let elapsed = Int(Date().timeIntervalSince(startTime))
+        let minutes = elapsed / 60
+        let seconds = elapsed % 60
+        return String(format: "%d:%02d", minutes, seconds)
     }
 
-    /// Start the real-time countdown timer
+    /// Update time remaining estimate when moving to a new step (kept for compatibility)
+    private func updateTimeRemaining(from phase: ProcessingPhase) {
+        // No longer used for display, but kept for any dependent logic
+    }
+
+    /// Start the elapsed time display timer
     private func startTimeCountdown() {
+        // Set processing start time if not already set
+        if processingStartTime == nil {
+            processingStartTime = Date()
+        }
+
         // Invalidate any existing timer first
         countdownTimer?.invalidate()
         countdownTimer = nil
 
+        // Timer triggers UI refresh for elapsed time display
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
             DispatchQueue.main.async { [self] in
-                // Only count down if we have time remaining
-                if timeRemainingSeconds > 0 {
-                    timeRemainingSeconds -= 1
-                }
-
                 // Stop timer if we're no longer processing
                 if case .processing = flowState {
-                    // Continue
+                    // Increment to trigger SwiftUI refresh
+                    elapsedTimeRefresh += 1
                 } else {
                     timer.invalidate()
                     countdownTimer = nil
@@ -1512,6 +1511,26 @@ extension EmotionalScan3DFlowView {
     private func stopTimeCountdown() {
         countdownTimer?.invalidate()
         countdownTimer = nil
+    }
+
+    /// Start the breathing animation for the processing circle
+    private func startBreathingAnimation() {
+        breathingTimer?.invalidate()
+        breathingTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
+            DispatchQueue.main.async {
+                // Smooth sine wave animation (completes full cycle every ~3 seconds)
+                breathingPhase += 0.1
+                if breathingPhase > .pi * 2 {
+                    breathingPhase = 0
+                }
+            }
+        }
+    }
+
+    /// Stop the breathing animation
+    private func stopBreathingAnimation() {
+        breathingTimer?.invalidate()
+        breathingTimer = nil
     }
 
     // MARK: - JSON Backup Functions
