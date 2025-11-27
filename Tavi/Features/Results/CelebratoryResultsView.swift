@@ -78,8 +78,13 @@ public struct CelebratoryResultsView: View {
                         .opacity(showScore ? 1 : 0)
                         .scaleEffect(showScore ? 1 : 0.95)
 
-                    // Metrics breakdown
-                    metricsSection
+                    // NEW: Summary component - immediately below the score
+                    summarySection
+                        .opacity(showScore ? 1 : 0)
+                        .offset(y: showScore ? 0 : 10)
+
+                    // NEW: Key Metrics with circular progress rings
+                    keyMetricsSection
                         .opacity(showMetrics ? 1 : 0)
                         .offset(y: showMetrics ? 0 : 10)
 
@@ -90,17 +95,17 @@ public struct CelebratoryResultsView: View {
                             .offset(y: showFirstTimeBanner ? 0 : 10)
                     }
 
+                    // NEW: Detailed Skin Profile (merged metrics + clinical diagnosis)
+                    detailedSkinProfileSection
+                        .opacity(showActions ? 1 : 0)
+                        .offset(y: showActions ? 0 : 10)
+
                     // Action plan
                     actionPlanSection
                         .opacity(showActions ? 1 : 0)
                         .offset(y: showActions ? 0 : 10)
 
-                    // Clinical Diagnosis (What is What)
-                    clinicalDiagnosisSection
-                        .opacity(showActions ? 1 : 0)
-                        .offset(y: showActions ? 0 : 10)
-
-                    // Recommended Products
+                    // Recommended Products (MOVED TO BOTTOM)
                     recommendedProductsSection
                         .opacity(showActions ? 1 : 0)
                         .offset(y: showActions ? 0 : 10)
@@ -211,6 +216,353 @@ public struct CelebratoryResultsView: View {
         )
     }
 
+    // MARK: - Summary Section (NEW - "The Grip")
+
+    private var summarySection: some View {
+        VStack(spacing: HeadspaceDesign.Spacing.md) {
+            Text(dynamicSummaryText)
+                .font(.gilroy(size: 18, weight: .medium))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+        }
+        .padding(HeadspaceDesign.Spacing.xl)
+        .frame(maxWidth: .infinity)
+        .background(HeadspaceDesign.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+
+    /// Dynamic 1-2 sentence summary based on metrics
+    private var dynamicSummaryText: String {
+        // Identify strengths (scores >= 75)
+        let strengths: [(String, Int)] = [
+            ("clarity", emotionalMetrics.freshness),
+            ("smoothness", emotionalMetrics.smoothness),
+            ("radiance", emotionalMetrics.radiance),
+            ("evenness", emotionalMetrics.evenness),
+            ("firmness", emotionalMetrics.youthfulness)
+        ].filter { $0.1 >= 75 }
+
+        // Identify areas needing attention (scores < 60)
+        let needsAttention: [(String, Int)] = [
+            ("clarity", emotionalMetrics.freshness),
+            ("smoothness", emotionalMetrics.smoothness),
+            ("radiance", emotionalMetrics.radiance),
+            ("evenness", emotionalMetrics.evenness),
+            ("firmness", emotionalMetrics.youthfulness)
+        ].filter { $0.1 < 60 }
+
+        // Build summary based on analysis
+        let overallScore = emotionalMetrics.glowScore
+
+        if overallScore >= 80 {
+            if let topStrength = strengths.max(by: { $0.1 < $1.1 }) {
+                return "Excellent results! Your \(topStrength.0) is outstanding. Keep up your current routine to maintain these results."
+            }
+            return "Excellent results! Your skin health is in great shape across all metrics."
+        } else if overallScore >= 60 {
+            let strengthText = strengths.first.map { "Your \($0.0) is high" } ?? "Good foundation"
+            let attentionText = needsAttention.first.map { ", but \($0.0) needs attention" } ?? ""
+            return "\(strengthText)\(attentionText). Follow the recommendations below for improvement."
+        } else {
+            if let focus = needsAttention.min(by: { $0.1 < $1.1 }) {
+                return "Focus on improving \(focus.0) first. Small consistent steps will show results over time."
+            }
+            return "Let's work together on improving your skin health. Start with the action plan below."
+        }
+    }
+
+    // MARK: - Key Metrics Section (NEW - Circular Progress Rings)
+
+    private var keyMetricsSection: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+            Text("Key Metrics")
+                .font(.gilroy(size: 22, weight: .bold))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+            // Horizontal row of circular progress rings
+            HStack(spacing: HeadspaceDesign.Spacing.lg) {
+                circularMetricRing(
+                    title: "Firmness",
+                    score: emotionalMetrics.youthfulness,
+                    icon: "arrow.up.circle.fill"
+                )
+
+                circularMetricRing(
+                    title: "Smoothness",
+                    score: emotionalMetrics.smoothness,
+                    icon: "waveform.path"
+                )
+
+                circularMetricRing(
+                    title: "Clarity",
+                    score: emotionalMetrics.freshness,
+                    icon: "drop.fill"
+                )
+
+                circularMetricRing(
+                    title: "Radiance",
+                    score: emotionalMetrics.radiance,
+                    icon: "sparkles"
+                )
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(HeadspaceDesign.Spacing.xl)
+        .background(HeadspaceDesign.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+
+    /// Individual circular progress ring for key metrics
+    private func circularMetricRing(title: String, score: Int, icon: String) -> some View {
+        VStack(spacing: HeadspaceDesign.Spacing.sm) {
+            // Circular progress ring
+            ZStack {
+                Circle()
+                    .stroke(metricColor(score).opacity(0.2), lineWidth: 6)
+                    .frame(width: 60, height: 60)
+
+                Circle()
+                    .trim(from: 0, to: CGFloat(score) / 100)
+                    .stroke(metricColor(score), style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .frame(width: 60, height: 60)
+                    .rotationEffect(.degrees(-90))
+
+                Text("\(score)")
+                    .font(.gilroy(size: 18, weight: .bold))
+                    .foregroundColor(metricColor(score))
+            }
+
+            // Title
+            Text(title)
+                .font(.gilroy(size: 12, weight: .medium))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Detailed Skin Profile (MERGED - Metrics + Clinical Diagnosis)
+
+    @State private var expandedProfileMetric: String? = nil
+
+    private var detailedSkinProfileSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Section header
+            Text("Detailed Skin Profile")
+                .font(.gilroy(size: 22, weight: .bold))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                .padding(.top, HeadspaceDesign.Spacing.lg)
+                .padding(.bottom, HeadspaceDesign.Spacing.md)
+
+            // Expandable metric rows
+            VStack(spacing: 0) {
+                profileMetricRow(
+                    title: "Smoothness",
+                    icon: "waveform.path",
+                    score: emotionalMetrics.smoothness,
+                    diagnosis: "Surface texture quality measured by analyzing pore size distribution, surface smoothness, and uniformity. We measure micro-variations in the skin surface to assess overall skin refinement.",
+                    metricId: "profile_smoothness",
+                    metricType: .roughness
+                )
+
+                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+
+                profileMetricRow(
+                    title: "Clarity",
+                    icon: "drop.fill",
+                    score: emotionalMetrics.freshness,
+                    diagnosis: "Overall skin vitality measured by analyzing hydration markers and surface moisture levels. Higher scores indicate well-hydrated, healthy-looking skin with good clarity.",
+                    metricId: "profile_clarity",
+                    metricType: .hydration
+                )
+
+                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+
+                profileMetricRow(
+                    title: "Radiance",
+                    icon: "sparkles",
+                    score: emotionalMetrics.radiance,
+                    diagnosis: "Light reflection quality measured by analyzing light reflection patterns, skin luminosity, and color vibrance across different facial zones. Higher scores indicate healthier, more luminous skin.",
+                    metricId: "profile_radiance",
+                    metricType: .brightness
+                )
+
+                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+
+                profileMetricRow(
+                    title: "Evenness",
+                    icon: "circle.hexagongrid.fill",
+                    score: emotionalMetrics.evenness,
+                    diagnosis: "Skin tone uniformity calculated by measuring color consistency, detecting hyperpigmentation, and analyzing color distribution across facial regions.",
+                    metricId: "profile_evenness",
+                    metricType: .pigmentation
+                )
+
+                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+
+                profileMetricRow(
+                    title: "Redness",
+                    icon: "heart.fill",
+                    score: emotionalMetrics.sunProtection,
+                    diagnosis: "Skin redness detected by analyzing red channel intensity, inflammation patterns, and vascular visibility across facial regions. Lower redness indicates healthier skin.",
+                    metricId: "profile_redness",
+                    metricType: .discoloration
+                )
+
+                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+
+                profileMetricRow(
+                    title: "Acne",
+                    icon: "circle.fill",
+                    score: max(0, 100 - (emotionalMetrics.glowScore / 2)),
+                    diagnosis: "Breakout assessment based on detecting surface irregularities, inflammation markers, and breakout patterns. We analyze texture variations and color changes associated with active acne.",
+                    metricId: "profile_acne",
+                    metricType: .pigmentation
+                )
+
+                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+
+                profileMetricRow(
+                    title: "Firmness",
+                    icon: "arrow.up.circle.fill",
+                    score: emotionalMetrics.youthfulness,
+                    diagnosis: "Wrinkle assessment using advanced 3D mesh analysis to detect surface irregularities and depth variations. Wrinkle severity is calculated by measuring the depth, length, and density of facial creases across 50,000+ data points.",
+                    metricId: "profile_firmness",
+                    metricType: .wrinkles
+                )
+
+                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+
+                profileMetricRow(
+                    title: "Oil Control",
+                    icon: "drop.triangle.fill",
+                    score: emotionalMetrics.freshness,
+                    diagnosis: "Sebum levels measured by analyzing specular highlights, shine patterns, and surface reflection characteristics. We detect areas of excess sebum production that can lead to breakouts and enlarged pores.",
+                    metricId: "profile_oil",
+                    metricType: .hydration
+                )
+            }
+            .padding(.bottom, HeadspaceDesign.Spacing.md)
+        }
+        .background(HeadspaceDesign.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+
+    /// Expandable profile metric row showing score and clinical diagnosis
+    private func profileMetricRow(title: String, icon: String, score: Int, diagnosis: String, metricId: String, metricType: AnalysisMetricType) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Tappable header row
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    expandedProfileMetric = expandedProfileMetric == metricId ? nil : metricId
+                }
+            } label: {
+                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                    // Icon
+                    ZStack {
+                        Circle()
+                            .fill(metricColor(score).opacity(0.12))
+                            .frame(width: 40, height: 40)
+
+                        Image(systemName: icon)
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(metricColor(score))
+                    }
+
+                    // Title and quality badge
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.gilroy(size: 16, weight: .semibold))
+                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                        qualityBadge(for: score)
+                    }
+
+                    Spacer()
+
+                    // Score
+                    Text("\(score)")
+                        .font(.gilroy(size: 24, weight: .bold))
+                        .foregroundColor(metricColor(score))
+
+                    // Chevron
+                    Image(systemName: expandedProfileMetric == metricId ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                }
+                .padding(HeadspaceDesign.Spacing.lg)
+            }
+
+            // Expanded diagnosis content
+            if expandedProfileMetric == metricId {
+                VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+                    // Diagnosis text
+                    Text(diagnosis)
+                        .font(.gilroy(size: 14, weight: .regular))
+                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .lineSpacing(4)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    // Improvement suggestion (if applicable)
+                    if let suggestion = improvementSuggestion(for: score, metricType: metricType) {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "lightbulb.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.orange)
+
+                            Text(suggestion)
+                                .font(.gilroy(size: 14, weight: .medium))
+                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(HeadspaceDesign.Spacing.md)
+                        .background(Color.orange.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                    }
+
+                    // Help button
+                    Button {
+                        selectedMetricForHelp = metricType
+                        hasViewedMetricHelp = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "questionmark.circle")
+                                .font(.system(size: 14))
+                            Text("Learn more about \(title.lowercased())")
+                                .font(.gilroy(size: 13, weight: .medium))
+                        }
+                        .foregroundColor(HeadspaceDesign.Colors.primary)
+                    }
+                }
+                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                .padding(.bottom, HeadspaceDesign.Spacing.lg)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    // MARK: - Legacy Metrics Section (REMOVED - replaced by detailedSkinProfileSection)
+
     private var metricsSection: some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.xl) {
             // Section header
@@ -296,7 +648,7 @@ public struct CelebratoryResultsView: View {
                 .font(.system(size: 20, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
 
-            Text("New to skin metrics? Tap ? next to any metric to learn more")
+            Text("New to skin metrics? Tap any metric to see details and tips")
                 .font(.gilroy(size: 15, weight: .medium))
                 .foregroundColor(HeadspaceDesign.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

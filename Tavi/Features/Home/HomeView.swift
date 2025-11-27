@@ -21,6 +21,7 @@ public struct HomeView: View {
     @State private var errorState: ErrorState?
     @State private var selectedMetricType: UserMetricType?
     @State private var selectedSessionForDetail: SessionResult?
+    @State private var isMetricsExpanded: Bool = false
     @AppStorage("skipOnboarding") private var skipOnboarding: Bool = false
 
     // Fallback storage support
@@ -708,90 +709,84 @@ public struct HomeView: View {
             // Hero CTA Card - Most prominent, first thing they see
             heroCTACard
                 .padding(.top, HeadspaceDesign.Spacing.md)
-            
+
+            // The Science Section
+            scienceBehindGlowCard
+
             // Quick Benefits Card - Compact, shows value
             quickBenefitsCard
-            
-            // How It Works Card
-            howItWorksCard
-            
-            // 8 Metrics Preview
-            metricsFeatureCards
-            
-            // Technology Card
-            technologyCard
         }
     }
 
     /// Hero CTA Card - Prominent call-to-action for first scan
     private var heroCTACard: some View {
-        Button {
-            showScanFlow = true
-        } label: {
-            VStack(spacing: 0) {
-                // White background with yellow border
-                ZStack {
-                    // White background
-                    Color.white
-                    
-                    // Thick yellow border
-                    RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                        .stroke(HeadspaceDesign.Colors.primary, lineWidth: 4)
-                    
-                    VStack(spacing: HeadspaceDesign.Spacing.lg) {
-                        ZStack {
-                            // White circle with yellow border
-                            Circle()
-                                .fill(Color.white)
-                                .frame(width: 100, height: 100)
-                                .overlay(
-                                    Circle()
-                                        .stroke(HeadspaceDesign.Colors.primary, lineWidth: 4)
-                                )
-                            
-                            Image(systemName: "camera.fill")
-                                .font(.system(size: 44, weight: .semibold))
-                                .foregroundColor(HeadspaceDesign.Colors.primary)
-                        }
-                        
-                        VStack(spacing: 8) {
-                            Text("Start Your First Scan")
-                                .font(.gilroy(size: 24, weight: .bold))
-                                .foregroundColor(.black)
-                                .multilineTextAlignment(.center)
-                            
-                            Text("Get your complete skin health analysis in just 1 minute")
-                                .font(.gilroy(size: 15, weight: .medium))
-                                .foregroundColor(.black.opacity(0.7))
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, HeadspaceDesign.Spacing.md)
-                        }
+        VStack(spacing: 0) {
+            // Main content area
+            ZStack {
+                // White background
+                Color.white
+
+                // Thick yellow border
+                RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
+                    .stroke(HeadspaceDesign.Colors.primary, lineWidth: 4)
+
+                VStack(spacing: HeadspaceDesign.Spacing.lg) {
+                    ZStack {
+                        // White circle with yellow border
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: 100, height: 100)
+                            .overlay(
+                                Circle()
+                                    .stroke(HeadspaceDesign.Colors.primary, lineWidth: 4)
+                            )
+
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 44, weight: .semibold))
+                            .foregroundColor(HeadspaceDesign.Colors.primary)
                     }
-                    .padding(HeadspaceDesign.Spacing.xl)
+
+                    VStack(spacing: 8) {
+                        Text("Start Your First Scan")
+                            .font(.gilroy(size: 24, weight: .bold))
+                            .foregroundColor(.black)
+                            .multilineTextAlignment(.center)
+
+                        Text("Get your complete skin health analysis in just 1 minute")
+                            .font(.gilroy(size: 15, weight: .medium))
+                            .foregroundColor(.black.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, HeadspaceDesign.Spacing.md)
+                    }
                 }
-                .frame(height: 220)
-                
-                // CTA Button section with yellow border
-                HStack {
-                    Text("Begin Scan")
-                        .font(.gilroy(size: 18, weight: .bold))
-                    
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .semibold))
-                }
-                .foregroundColor(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(Color.white)
-                .overlay(
-                    Rectangle()
-                        .frame(height: 4)
-                        .foregroundColor(HeadspaceDesign.Colors.primary),
-                    alignment: .top
-                )
+                .padding(HeadspaceDesign.Spacing.xl)
             }
+            .frame(height: 220)
+
+            // Single dominant CTA button
+            Button {
+                showScanFlow = true
+            } label: {
+                VStack(spacing: 8) {
+                    HStack {
+                        Text("Start Your Scan")
+                            .font(.gilroy(size: 20, weight: .bold))
+
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 18, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+
+                    Text("Powered by Advanced Biometrics")
+                        .font(.gilroy(size: 13, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(HeadspaceDesign.Colors.primary)
+            }
+            .buttonStyle(PlainButtonStyle())
         }
-        .buttonStyle(PlainButtonStyle())
         .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
         .overlay(
             RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
@@ -805,15 +800,95 @@ public struct HomeView: View {
         )
     }
     
-    /// Quick Benefits Card - Shows key value propositions
+    /// The Science Behind Your Glow Section
+    private var scienceBehindGlowCard: some View {
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            HStack {
+                Image(systemName: "waveform.path.ecg")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.primary)
+
+                Text("The Science Behind Your Glow")
+                    .font(.gilroy(size: 20, weight: .bold))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+            }
+
+            Text("We use clinical-grade spectral analysis powered by AI and dermatological mapping to see what the naked eye can't.")
+                .font(.gilroy(size: 16, weight: .regular))
+                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(HeadspaceDesign.Spacing.lg)
+        .background(HeadspaceDesign.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Shadows.card.color,
+            radius: HeadspaceDesign.Shadows.card.radius,
+            x: HeadspaceDesign.Shadows.card.x,
+            y: HeadspaceDesign.Shadows.card.y
+        )
+    }
+
+    /// Quick Benefits Card - Shows key value propositions with expandable metrics
     private var quickBenefitsCard: some View {
         VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
             Text("What You'll Get")
                 .font(.gilroy(size: 20, weight: .bold))
                 .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-            
+
             VStack(spacing: HeadspaceDesign.Spacing.md) {
-                benefitRow(icon: "checkmark.circle.fill", title: "8 Skin Health Metrics", description: "Comprehensive analysis of your skin")
+                // Expandable 8 Metrics row
+                Button {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isMetricsExpanded.toggle()
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+                        HStack(spacing: HeadspaceDesign.Spacing.md) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(HeadspaceDesign.Colors.primary)
+                                .frame(width: 28)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("8 Skin Health Metrics")
+                                    .font(.gilroy(size: 16, weight: .semibold))
+                                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                                Text("Comprehensive analysis of your skin")
+                                    .font(.gilroy(size: 14, weight: .regular))
+                                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: isMetricsExpanded ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        }
+
+                        // Expanded metrics list
+                        if isMetricsExpanded {
+                            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+                                Divider()
+                                    .padding(.vertical, 4)
+
+                                metricDetailRow(icon: "waveform.path", name: "Smoothness")
+                                metricDetailRow(icon: "drop.fill", name: "Hydration")
+                                metricDetailRow(icon: "sparkles", name: "Glow")
+                                metricDetailRow(icon: "circle.hexagongrid.fill", name: "Pigmentation")
+                                metricDetailRow(icon: "circle.fill", name: "Acne")
+                                metricDetailRow(icon: "sun.max.fill", name: "Sun Damage")
+                                metricDetailRow(icon: "heart.fill", name: "Redness")
+                                metricDetailRow(icon: "square.grid.3x3.fill", name: "Roughness")
+                            }
+                            .padding(.leading, 42)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+
                 benefitRow(icon: "checkmark.circle.fill", title: "Progress Tracking", description: "See improvements over time")
                 benefitRow(icon: "checkmark.circle.fill", title: "Personalized Insights", description: "Get recommendations tailored to you")
             }
@@ -827,6 +902,22 @@ public struct HomeView: View {
             x: HeadspaceDesign.Shadows.card.x,
             y: HeadspaceDesign.Shadows.card.y
         )
+    }
+
+    /// Individual metric detail row for expanded view
+    private func metricDetailRow(icon: String, name: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(HeadspaceDesign.Colors.primary)
+                .frame(width: 20)
+
+            Text(name)
+                .font(.gilroy(size: 14, weight: .medium))
+                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+            Spacer()
+        }
     }
     
     /// How It Works Card

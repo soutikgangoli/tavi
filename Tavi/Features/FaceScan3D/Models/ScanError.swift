@@ -57,6 +57,9 @@ enum ScanError: Error, LocalizedError, Identifiable {
     /// Failed to compute clinical metrics from the processed mesh data
     case metricsFailed(analyzer: String? = nil, reason: String? = nil)
 
+    /// Failed to generate emotional metrics from clinical data
+    case metricsGenerationFailed
+
     /// Processing operation timed out
     case processingTimeout(operation: String, seconds: Double)
 
@@ -97,6 +100,7 @@ enum ScanError: Error, LocalizedError, Identifiable {
         case .mergeFailed: return "merge_failed"
         case .bakeFailed: return "bake_failed"
         case .metricsFailed: return "metrics_failed"
+        case .metricsGenerationFailed: return "metrics_generation_failed"
         case .processingTimeout: return "processing_timeout"
         case .invalidData: return "invalid_data"
         case .coreDataSaveFailed: return "save_failed"
@@ -148,6 +152,8 @@ enum ScanError: Error, LocalizedError, Identifiable {
             if let analyzer = analyzer { parts.append("Analyzer: \(analyzer)") }
             if let reason = reason { parts.append(reason) }
             return parts.joined(separator: " ")
+        case .metricsGenerationFailed:
+            return "Analysis incomplete. Unable to generate results from scan data."
         case .processingTimeout(let operation, let seconds):
             return "Processing timed out after \(Int(seconds))s during: \(operation)."
         case .invalidData(let field):
@@ -198,7 +204,7 @@ enum ScanError: Error, LocalizedError, Identifiable {
             return "Keep a neutral, relaxed expression. No smiling, frowning, or talking."
 
         // Processing Errors
-        case .mergeFailed, .bakeFailed, .metricsFailed:
+        case .mergeFailed, .bakeFailed, .metricsFailed, .metricsGenerationFailed:
             return "Try scanning in a well-lit area with neutral expression. If problem persists, restart the app."
         case .processingTimeout:
             return "Close other apps to free up resources, then try again."
@@ -275,7 +281,7 @@ enum ScanError: Error, LocalizedError, Identifiable {
             // Permanent device/permission issues - no auto-retry
             return false
 
-        case .mergeFailed, .bakeFailed, .metricsFailed:
+        case .mergeFailed, .bakeFailed, .metricsFailed, .metricsGenerationFailed:
             // Processing failures - may be resource related
             return false  // Don't auto-retry processing failures
 

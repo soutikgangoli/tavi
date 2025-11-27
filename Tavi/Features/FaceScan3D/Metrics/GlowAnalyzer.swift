@@ -52,8 +52,7 @@ public class GlowAnalyzer {
 
         let smoothness = existingMetrics.globalRoughnessScore
         let evenness = existingMetrics.globalPigmentationScore
-        // TEST OVERRIDE: Set clarity to 76 for testing (TODO: Remove after testing)
-        let clarity: Float = 76.0  // Override: was 100.0 - existingMetrics.globalDiscolorationScore
+        let clarity = 100.0 - existingMetrics.globalDiscolorationScore
 
         // Get additional HIGH-CONFIDENCE metrics
         let redness = 100.0 - (existingMetrics.rednessAnalysis?.overallScore ?? 50.0)  // Invert: lower redness = better

@@ -153,11 +153,11 @@ public class EmotionalMetricsGenerator {
         from clinicalMetrics: Face3DMetrics?,
         previousMetrics: Face3DMetrics? = nil,
         userProfile: UserProfile? = nil
-    ) -> EmotionalMetrics {
+    ) -> EmotionalMetrics? {
 
-        // TEMPORARY: Handle nil metrics (when analyzer is disabled for testing)
+        // Return nil if metrics are unavailable - UI will handle error state
         guard let clinicalMetrics = clinicalMetrics else {
-            return generateDefaultMetrics(userProfile: userProfile)
+            return nil
         }
 
         // 1. Calculate Skin Health Index (unified 0-100)
@@ -165,8 +165,7 @@ public class EmotionalMetricsGenerator {
 
         // 2. Calculate emotional sub-scores
         let radiance = calculateRadiance(from: clinicalMetrics)
-        // TESTING: Hardcoded smoothness score for development
-        var smoothness = 83  // TODO: Revert to Int(clinicalMetrics.globalRoughnessScore) after testing
+        var smoothness = Int(clinicalMetrics.globalRoughnessScore)
         let evenness = Int(clinicalMetrics.globalPigmentationScore)
         var youthfulness = calculateYouthfulness(from: clinicalMetrics)
         let freshness = calculateFreshness(from: clinicalMetrics)
@@ -252,46 +251,6 @@ public class EmotionalMetricsGenerator {
         )
     }
 
-    /// TEMPORARY: Generate default metrics when analyzer is unavailable
-    /// This provides reasonable fallback values for UI testing
-    private static func generateDefaultMetrics(userProfile: UserProfile?) -> EmotionalMetrics {
-        let name = userProfile?.name ?? "there"
-
-        return EmotionalMetrics(
-            glowScore: 70,
-            primaryInsight: "Scan complete! We're analyzing your results... ✨",
-            celebration: "Your 3D face scan was successful! 🎉",
-            improvements: [],
-            concerns: [
-                EmotionalConcern(
-                    title: "Analysis in progress",
-                    emoji: "🔬",
-                    severity: .none,
-                    message: "We're still processing your detailed metrics",
-                    solution: "Check back soon for complete analysis",
-                    encouragement: "Your scan data has been saved!"
-                )
-            ],
-            personalizedMessage: "Hey \(name)! Your scan was successful. Detailed analysis coming soon! 💙",
-            nextSteps: [
-                ActionableStep(
-                    action: "Apply SPF 30+ sunscreen",
-                    frequency: "Every morning",
-                    timing: "After moisturizer",
-                    expectedResult: "Prevent new damage, maintain current glow",
-                    priority: .critical,
-                    icon: "sun.max.fill"
-                )
-            ],
-            timeEstimate: "Complete analysis available soon",
-            radiance: 70,
-            smoothness: 70,
-            evenness: 70,
-            youthfulness: 70,
-            freshness: 70,
-            sunProtection: 75
-        )
-    }
 
     // MARK: - Calculators
 

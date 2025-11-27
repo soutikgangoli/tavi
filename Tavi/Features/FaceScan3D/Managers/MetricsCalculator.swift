@@ -17,9 +17,9 @@ public class MetricsCalculator {
     // MARK: - Public Methods
 
     /// Calculates comprehensive face metrics from captured data
-    public func calculateMetrics(from capturedPoses: [GuidanceStep: CapturedPoseData]) -> FaceMetrics {
+    public func calculateMetrics(from capturedPoses: [GuidanceStep: CapturedPoseData]) -> FaceMetrics? {
         guard !capturedPoses.isEmpty else {
-            return FaceMetrics.empty
+            return nil
         }
 
         // Calculate individual metrics
@@ -259,14 +259,6 @@ public struct FaceMetrics {
     public let symmetryScore: Double
     public let surfaceQualityScore: Double
     public let regionalAnalysis: RegionalAnalysis
-
-    static let empty = FaceMetrics(
-        overallScore: 0,
-        volumeMetrics: VolumeMetrics(cheekVolume: 0, foreheadVolume: 0, chinVolume: 0, overallFullness: 0),
-        symmetryScore: 0,
-        surfaceQualityScore: 0,
-        regionalAnalysis: .empty
-    )
 }
 
 public struct VolumeMetrics {
@@ -283,15 +275,6 @@ public struct RegionalAnalysis {
     public let noseScore: Double
     public let mouthScore: Double
     public let chinScore: Double
-
-    static let empty = RegionalAnalysis(
-        foreheadScore: 0,
-        cheeksScore: 0,
-        eyeAreaScore: 0,
-        noseScore: 0,
-        mouthScore: 0,
-        chinScore: 0
-    )
 }
 
 public enum FaceRegion {

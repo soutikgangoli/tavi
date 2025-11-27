@@ -850,11 +850,13 @@ public struct EmotionalScan3DFlowView: View {
                 let previousClinicalMetrics = await loadPreviousClinicalMetrics()
                 let loadedPreviousMetrics = await loadPreviousMetrics()
 
-                let emotional = EmotionalMetricsGenerator.generate(
+                guard let emotional = EmotionalMetricsGenerator.generate(
                     from: computedClinicalMetrics,
                     previousMetrics: previousClinicalMetrics,
                     userProfile: userProfile
-                )
+                ) else {
+                    throw ScanError.metricsGenerationFailed
+                }
 
                 // Store both metrics for results view
                 self.clinicalMetrics = computedClinicalMetrics
@@ -871,9 +873,13 @@ public struct EmotionalScan3DFlowView: View {
                 let challenge = GamificationManager.shared.getCurrentChallenge()
                 // Update challenge if active (would need to implement proper update method)
 
-                let glowImprovement = previousClinicalMetrics != nil
-                    ? emotional.glowScore - EmotionalMetricsGenerator.generate(from: previousClinicalMetrics!).glowScore
-                    : 0
+                let glowImprovement: Int
+                if let previousClinicalMetrics = previousClinicalMetrics,
+                   let previousEmotional = EmotionalMetricsGenerator.generate(from: previousClinicalMetrics) {
+                    glowImprovement = emotional.glowScore - previousEmotional.glowScore
+                } else {
+                    glowImprovement = 0
+                }
 
                 let unlockedAchievements = GamificationManager.shared.checkAndUnlockAchievements(
                     totalScans: updatedStreak.totalScans,

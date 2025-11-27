@@ -42,9 +42,6 @@ public struct InsightsTabView: View {
                         insightsContent
                     }
 
-                    // Educational content (always visible)
-                    educationalContentSection
-
                     Spacer(minLength: 100)
                 }
                 .padding(.horizontal, HeadspaceDesign.Spacing.lg)
@@ -415,47 +412,70 @@ public struct InsightsTabView: View {
             // Header
             forYouHeader(text: "Based on your \(sessions.count) scans...")
 
-            // Dynamic insight cards
-            insightCardsSection
-
-            // Progress trends chart
+            // 1. BASELINE: Progress trends chart + Top performing metrics
             progressTrendsSection
 
             // Top performing metrics (if 3+ scans)
             if sessions.count >= 3 {
                 topMetricsSection
             }
+
+            // 2. EDUCATIONAL CONTENT: (Moved from bottom)
+            educationalContentSection
+
+            // 3. RECOMMENDATIONS: Dynamic insight cards + Product recommendations
+            insightCardsSection
         }
     }
 
     private var insightCardsSection: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.md) {
-            // Calculate improvements and declines
-            let improvements = calculateImprovements()
-            let declines = calculateDeclines()
-            let strongMetrics = getTopMetrics()
+        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+            // Premium section header
+            HStack {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(HeadspaceDesign.Colors.primary)
 
-            // Improvement card
-            if !improvements.isEmpty {
-                improvementCard(improvements: improvements)
-                
-                // Add recommendations section right after improvement card
-                whatYouShouldBeDoingSection
+                Text("Recommendations")
+                    .font(.gilroy(size: 22, weight: .bold))
+                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                Spacer()
+
+                Image(systemName: "crown.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(HeadspaceDesign.Colors.secondary)
             }
+            .padding(.horizontal, HeadspaceDesign.Spacing.sm)
 
-            // Recommendation card
-            if let metric = strongMetrics.first, metric.1 >= 85 {
-                recommendationCard(metric: metric)
-            }
+            VStack(spacing: HeadspaceDesign.Spacing.md) {
+                // Calculate improvements and declines
+                let improvements = calculateImprovements()
+                let declines = calculateDeclines()
+                let strongMetrics = getTopMetrics()
 
-            // Area to watch card
-            if !declines.isEmpty {
-                areaToWatchCard(declines: declines)
-            }
+                // Improvement card
+                if !improvements.isEmpty {
+                    improvementCard(improvements: improvements)
 
-            // If no insights, show steady progress
-            if improvements.isEmpty && declines.isEmpty {
-                steadyProgressCard()
+                    // Add premium recommendations section right after improvement card
+                    whatYouShouldBeDoingSection
+                }
+
+                // Recommendation card
+                if let metric = strongMetrics.first, metric.1 >= 85 {
+                    recommendationCard(metric: metric)
+                }
+
+                // Area to watch card
+                if !declines.isEmpty {
+                    areaToWatchCard(declines: declines)
+                }
+
+                // If no insights, show steady progress
+                if improvements.isEmpty && declines.isEmpty {
+                    steadyProgressCard()
+                }
             }
         }
     }
@@ -984,57 +1004,108 @@ public struct InsightsTabView: View {
     }
     
     private func productsCard(products: [(name: String, category: String)]) -> some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
-            HStack {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
-                
-                Text("Recommended Products")
-                    .font(.gilroy(size: 18, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                
-                Spacer()
-            }
-            
-            Text("These products are specifically chosen to address your skin's unique needs:")
-                .font(.gilroy(size: 14, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-                .padding(.bottom, 4)
-            
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(Array(products.enumerated()), id: \.offset) { index, product in
-                    HStack(alignment: .center, spacing: 12) {
-                        Circle()
-                            .fill(HeadspaceDesign.Colors.primary.opacity(0.2))
-                            .frame(width: 32, height: 32)
-                            .overlay {
-                                Text("\(index + 1)")
-                                    .font(.gilroy(size: 14, weight: .bold))
-                                    .foregroundColor(HeadspaceDesign.Colors.primary)
-                            }
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(product.name)
-                                .font(.gilroy(size: 15, weight: .semibold))
-                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                            
-                            Text(product.category)
-                                .font(.gilroy(size: 13, weight: .regular))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-                        }
-                        
-                        Spacer()
+        VStack(spacing: 0) {
+            // Premium gradient header
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        HeadspaceDesign.Colors.primary,
+                        HeadspaceDesign.Colors.primary.opacity(0.8)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .frame(height: 100)
+
+                HStack(spacing: HeadspaceDesign.Spacing.sm) {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Premium Recommendations")
+                            .font(.gilroy(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+
+                        Text("Curated for your skin")
+                            .font(.gilroy(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.9))
                     }
-                    .padding(.vertical, 4)
+
+                    Spacer()
+
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                .padding(HeadspaceDesign.Spacing.lg)
+            }
+
+            // Products list on white background
+            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+                Text("These products are specifically chosen to address your skin's unique needs:")
+                    .font(.gilroy(size: 14, weight: .regular))
+                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .padding(.bottom, 4)
+
+                VStack(alignment: .leading, spacing: 16) {
+                    ForEach(Array(products.enumerated()), id: \.offset) { index, product in
+                        HStack(alignment: .center, spacing: 14) {
+                            // Premium number badge
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                HeadspaceDesign.Colors.primary,
+                                                HeadspaceDesign.Colors.secondary
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 40, height: 40)
+
+                                Text("\(index + 1)")
+                                    .font(.gilroy(size: 16, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(product.name)
+                                    .font(.gilroy(size: 16, weight: .bold))
+                                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+
+                                Text(product.category.uppercased())
+                                    .font(.gilroy(size: 11, weight: .semibold))
+                                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                                    .tracking(0.5)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
+                                .fill(HeadspaceDesign.Colors.primary.opacity(0.05))
+                        )
+                    }
                 }
             }
+            .padding(HeadspaceDesign.Spacing.lg)
+            .background(HeadspaceDesign.Colors.elevatedCard)
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(HeadspaceDesign.Colors.elevatedCard)
-                .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
+        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .shadow(
+            color: HeadspaceDesign.Colors.primary.opacity(0.2),
+            radius: 15,
+            x: 0,
+            y: 8
         )
     }
     
