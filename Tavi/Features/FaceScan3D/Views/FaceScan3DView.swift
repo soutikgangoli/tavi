@@ -34,7 +34,7 @@ public struct FaceScan3DView: View {
     /// Callback when all poses are captured
     public var onCaptureComplete: (([GuidanceStep: CapturedPoseData]) -> Void)?
 
-    @AppStorage("enableFaceMesh") private var enableFaceMesh: Bool = true
+    @AppStorage(AppDefaultsKey.enableFaceMesh) private var enableFaceMesh: Bool = true
     @State private var errorState: ErrorState?
 
     public init(
@@ -99,7 +99,7 @@ public struct FaceScan3DView: View {
                         DebugInfoView(viewModel: viewModel)
                             .padding()
                             .background(.ultraThinMaterial)
-                            .cornerRadius(12)
+                            .cornerRadius(Designs.Radius.medium)
                             .padding()
 
                         Spacer()
@@ -129,13 +129,13 @@ public struct FaceScan3DView: View {
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 8)
                                 .background(Color.orange)
-                                .cornerRadius(8)
+                                .cornerRadius(Designs.Radius.small)
                         }
                         .accessibilityLabel("Continue scan anyway despite warning")
                     }
                     .padding()
-                    .background(.red.opacity(0.8))
-                    .cornerRadius(12)
+                    .background(.red.opacity(Designs.Opacity.semiTransparent))
+                    .cornerRadius(Designs.Radius.medium)
                     .padding()
                 }
             }
@@ -147,7 +147,7 @@ public struct FaceScan3DView: View {
     private func errorView(_ error: ErrorState) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 60))
+                .font(.app(size: 60))
                 .foregroundColor(.orange)
 
             Text("Scan Error")
@@ -245,12 +245,12 @@ private struct DebugInfoView: View {
                 .foregroundStyle(.white)
 
             Divider()
-                .background(.white.opacity(0.3))
+                .background(.white.opacity(Designs.Opacity.medium))
 
             HStack {
                 Circle()
                     .fill(viewModel.faceDetected ? Color.green : Color.red)
-                    .frame(width: 8, height: 8)
+                    .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
                 Text("Face: \(viewModel.faceDetected ? "Detected" : "Not Found")")
                     .font(.caption)
                     .foregroundStyle(.white)
@@ -261,7 +261,7 @@ private struct DebugInfoView: View {
                 .foregroundStyle(.white)
 
             Divider()
-                .background(.white.opacity(0.3))
+                .background(.white.opacity(Designs.Opacity.medium))
 
             Text("Face Angles (ARKit)")
                 .font(.caption)
@@ -292,7 +292,7 @@ private struct DebugInfoView: View {
 
             if let light = viewModel.lightEstimation {
                 Divider()
-                    .background(.white.opacity(0.3))
+                    .background(.white.opacity(Designs.Opacity.medium))
 
                 Text("Light Intensity: \(Int(light.ambientIntensity))")
                     .font(.caption)
@@ -305,7 +305,7 @@ private struct DebugInfoView: View {
 
             if let blendShapes = viewModel.blendShapes {
                 Divider()
-                    .background(.white.opacity(0.3))
+                    .background(.white.opacity(Designs.Opacity.medium))
 
                 Text("Eye Blink L: \(String(format: "%.2f", blendShapes.eyeBlinkLeft))")
                     .font(.caption)

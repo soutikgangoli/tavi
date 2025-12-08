@@ -62,8 +62,8 @@ public struct CalibrationHUD: View {
                 // Color indicator circle
                 Circle()
                     .fill(statusColor)
-                    .frame(width: 16, height: 16)
-                    .shadow(color: statusColor.opacity(0.5), radius: 4)
+                    .frame(width: Designs.Sizes.indicatorSmallCircle, height: Designs.Sizes.indicatorSmallCircle)
+                    .shadow(color: statusColor.opacity(Designs.Opacity.semiOpaque), radius: Designs.Spacing.xxSmall)
 
                 // Status icon and text
                 HStack(spacing: 8) {
@@ -82,14 +82,14 @@ public struct CalibrationHUD: View {
                     } else {
                         Text("Analyzing...")
                             .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
                     }
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .background(.ultraThinMaterial)
-            .cornerRadius(12)
+            .cornerRadius(Designs.Radius.medium)
 
             // Metrics display
             if let metrics = metrics {
@@ -98,7 +98,7 @@ public struct CalibrationHUD: View {
                     VStack(spacing: 4) {
                         Text("Luma")
                             .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
                         Text(String(format: "%.2f", metrics.averageLuma))
                             .font(.caption)
                             .fontWeight(.medium)
@@ -106,14 +106,14 @@ public struct CalibrationHUD: View {
                     }
 
                     Divider()
-                        .frame(height: 30)
-                        .background(.white.opacity(0.3))
+                        .frame(height: Designs.Sizes.indicatorLarge)
+                        .background(.white.opacity(Designs.Opacity.medium))
 
                     // Histogram status
                     VStack(spacing: 4) {
                         Text("Histogram")
                             .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
                         Text(metrics.isHistogramClipped ? "Clipped" : "OK")
                             .font(.caption)
                             .fontWeight(.medium)
@@ -123,7 +123,7 @@ public struct CalibrationHUD: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(.ultraThinMaterial)
-                .cornerRadius(10)
+                .cornerRadius(Designs.Radius.medium)
             }
 
             // Calibrate button
@@ -139,15 +139,15 @@ public struct CalibrationHUD: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
                     .background(.green)
-                    .cornerRadius(12)
-                    .shadow(color: .green.opacity(0.4), radius: 8)
+                    .cornerRadius(Designs.Radius.medium)
+                    .shadow(color: .green.opacity(Designs.Opacity.light), radius: Designs.Spacing.xSmall)
                 }
                 .transition(.scale.combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: metrics?.calibrationStatus)
-        .animation(.easeInOut(duration: 0.3), value: isCalibrated)
-        .animation(.easeInOut(duration: 0.3), value: isExposureLocked)
+        .animation(Designs.Animation.standard, value: metrics?.calibrationStatus)
+        .animation(Designs.Animation.standard, value: isCalibrated)
+        .animation(Designs.Animation.standard, value: isExposureLocked)
     }
 }
 
@@ -164,7 +164,7 @@ public struct DetailedCalibrationView: View {
 
     public var body: some View {
         ZStack {
-            Color.black.opacity(0.7)
+            Color.black.opacity(Designs.Opacity.semiTransparent)
                 .ignoresSafeArea()
                 .onTapGesture {
                     isPresented = false
@@ -203,23 +203,23 @@ public struct DetailedCalibrationView: View {
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             // Background
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(.gray.opacity(0.3))
+                            RoundedRectangle(cornerRadius: Designs.Radius.xSmall)
+                                .fill(.gray.opacity(Designs.Opacity.medium))
 
                             // Target range
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(.green.opacity(0.3))
+                            RoundedRectangle(cornerRadius: Designs.Radius.xSmall)
+                                .fill(.green.opacity(Designs.Opacity.medium))
                                 .frame(width: geometry.size.width * 0.3)
                                 .offset(x: geometry.size.width * 0.35)
 
                             // Current value indicator
                             Circle()
                                 .fill(statusColor)
-                                .frame(width: 12, height: 12)
+                                .frame(width: Designs.Sizes.indicatorXSmall, height: Designs.Sizes.indicatorXSmall)
                                 .offset(x: geometry.size.width * CGFloat(metrics.averageLuma) - 6)
                         }
                     }
-                    .frame(height: 20)
+                    .frame(height: Designs.Sizes.indicatorMedium)
                 }
 
                 Divider()
@@ -232,7 +232,7 @@ public struct DetailedCalibrationView: View {
                         .foregroundStyle(.white)
 
                     CalibrationHistogramView(histogram: metrics.histogram, totalPixels: metrics.totalPixels)
-                        .frame(height: 100)
+                        .frame(height: Designs.Sizes.indicatorXLarge)
 
                     if metrics.isHistogramClipped {
                         HStack(spacing: 6) {
@@ -260,10 +260,10 @@ public struct DetailedCalibrationView: View {
                         .foregroundStyle(statusColor)
                 }
             }
-            .padding(24)
+            .padding(Designs.Spacing.xLarge)
             .background(.ultraThinMaterial)
-            .cornerRadius(20)
-            .padding(40)
+            .cornerRadius(Designs.Radius.xLarge)
+            .padding(Designs.Spacing.xxxLarge)
         }
     }
 
@@ -307,9 +307,9 @@ struct CalibrationHistogramView: View {
     private func barColor(for index: Int) -> Color {
         if index < 5 || index >= 251 {
             // Clipping zones
-            return .red.opacity(0.8)
+            return .red.opacity(Designs.Opacity.semiTransparent)
         } else {
-            return .white.opacity(0.7)
+            return .white.opacity(Designs.Opacity.semiTransparent)
         }
     }
 }

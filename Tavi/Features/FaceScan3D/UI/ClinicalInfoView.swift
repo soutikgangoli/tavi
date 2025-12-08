@@ -42,11 +42,11 @@ public struct ClinicalInfoView: View {
 
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(.secondary)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppFont.metricLabel)
                 }
                 .padding()
                 .background(Color(uiColor: .secondarySystemBackground))
-                .cornerRadius(12)
+                .cornerRadius(Designs.CornerRadius.medium)
             }
             .buttonStyle(.plain)
 
@@ -56,7 +56,7 @@ public struct ClinicalInfoView: View {
                     Text("Scientific Methodology")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                        .padding(.top, 16)
+                        .padding(.top, Designs.Spacing.medium)
 
                     // Radiance breakdown - Pure luminosity measurement
                     VStack(alignment: .leading, spacing: 16) {
@@ -97,9 +97,9 @@ public struct ClinicalInfoView: View {
                             // Component 1: Evenness (60% weight)
                             HStack(alignment: .top, spacing: 12) {
                                 Circle()
-                                    .fill(Color.yellow.opacity(0.3))
-                                    .frame(width: 8, height: 8)
-                                    .padding(.top, 6)
+                                    .fill(Designs.Colors.primary.opacity(Designs.Opacity.medium))
+                                    .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                    .padding(.top, Designs.Spacing.tiny)
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
@@ -159,9 +159,9 @@ public struct ClinicalInfoView: View {
                                         }
                                         .padding(.top, 4)
                                     }
-                                    .padding(8)
-                                    .background(Color.blue.opacity(0.05))
-                                    .cornerRadius(8)
+                                    .padding(Designs.Spacing.xSmall)
+                                    .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                    .cornerRadius(Designs.CornerRadius.small)
 
                                     Text("Then normalized for your skin tone to ensure fairness")
                                         .font(.caption)
@@ -175,9 +175,9 @@ public struct ClinicalInfoView: View {
                             // Component 2: Shine (40% weight)
                             HStack(alignment: .top, spacing: 12) {
                                 Circle()
-                                    .fill(Color.yellow.opacity(0.3))
-                                    .frame(width: 8, height: 8)
-                                    .padding(.top, 6)
+                                    .fill(Designs.Colors.primary.opacity(Designs.Opacity.medium))
+                                    .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                    .padding(.top, Designs.Spacing.tiny)
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
@@ -237,9 +237,9 @@ public struct ClinicalInfoView: View {
                                             }
                                         }
                                     }
-                                    .padding(8)
-                                    .background(Color.blue.opacity(0.05))
-                                    .cornerRadius(8)
+                                    .padding(Designs.Spacing.xSmall)
+                                    .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                    .cornerRadius(Designs.CornerRadius.small)
                                 }
                             }
 
@@ -259,13 +259,13 @@ public struct ClinicalInfoView: View {
                                         .foregroundColor(.secondary)
                                 }
                             }
-                            .padding(12)
-                            .background(Color.yellow.opacity(0.1))
-                            .cornerRadius(8)
+                            .padding(Designs.Spacing.small)
+                            .background(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
+                            .cornerRadius(Designs.CornerRadius.small)
                         }
                         .padding()
                         .background(Color(uiColor: .secondarySystemBackground))
-                        .cornerRadius(12)
+                        .cornerRadius(Designs.CornerRadius.medium)
                     }
 
                     // Smoothness breakdown - WHY is it 82?
@@ -300,9 +300,9 @@ public struct ClinicalInfoView: View {
                             // Direct from roughness score
                             HStack(alignment: .top, spacing: 12) {
                                 Circle()
-                                    .fill(Color.blue.opacity(0.3))
-                                    .frame(width: 8, height: 8)
-                                    .padding(.top, 6)
+                                    .fill(Designs.Colors.info.opacity(Designs.Opacity.medium))
+                                    .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                    .padding(.top, Designs.Spacing.tiny)
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
@@ -373,9 +373,9 @@ public struct ClinicalInfoView: View {
                                         }
                                         .padding(.top, 4)
                                     }
-                                    .padding(8)
-                                    .background(Color.blue.opacity(0.05))
-                                    .cornerRadius(8)
+                                    .padding(Designs.Spacing.xSmall)
+                                    .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                    .cornerRadius(Designs.CornerRadius.small)
 
                                     Text("Algorithm: Detects sub-millimeter texture irregularities using gradient analysis")
                                         .font(.caption)
@@ -402,13 +402,13 @@ public struct ClinicalInfoView: View {
                                         .foregroundStyle(.tertiary)
                                 }
                             }
-                            .padding(12)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
+                            .padding(Designs.Spacing.small)
+                            .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                            .cornerRadius(Designs.CornerRadius.small)
                         }
                         .padding()
                         .background(Color(uiColor: .secondarySystemBackground))
-                        .cornerRadius(12)
+                        .cornerRadius(Designs.CornerRadius.medium)
                     }
 
                     // Evenness breakdown - WHY is it 79?
@@ -443,9 +443,9 @@ public struct ClinicalInfoView: View {
                             // Pigmentation uniformity score
                             HStack(alignment: .top, spacing: 12) {
                                 Circle()
-                                    .fill(Color.purple.opacity(0.3))
-                                    .frame(width: 8, height: 8)
-                                    .padding(.top, 6)
+                                    .fill(Color.purple.opacity(Designs.Opacity.medium))
+                                    .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                    .padding(.top, Designs.Spacing.tiny)
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
@@ -514,9 +514,9 @@ public struct ClinicalInfoView: View {
                                         }
                                         .padding(.top, 4)
                                     }
-                                    .padding(8)
-                                    .background(Color.blue.opacity(0.05))
-                                    .cornerRadius(8)
+                                    .padding(Designs.Spacing.xSmall)
+                                    .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                    .cornerRadius(Designs.CornerRadius.small)
 
                                     Text("Fairness: Scores normalized by your baseline skin tone to ensure equal assessment")
                                         .font(.caption)
@@ -543,13 +543,13 @@ public struct ClinicalInfoView: View {
                                         .foregroundStyle(.tertiary)
                                 }
                             }
-                            .padding(12)
-                            .background(Color.purple.opacity(0.1))
-                            .cornerRadius(8)
+                            .padding(Designs.Spacing.small)
+                            .background(Color.purple.opacity(Designs.Opacity.veryLight))
+                            .cornerRadius(Designs.CornerRadius.small)
                         }
                         .padding()
                         .background(Color(uiColor: .secondarySystemBackground))
-                        .cornerRadius(12)
+                        .cornerRadius(Designs.CornerRadius.medium)
                     }
 
                     // Youthfulness breakdown - WHY is it 75?
@@ -584,9 +584,9 @@ public struct ClinicalInfoView: View {
                             // Component 1: Smoothness
                             HStack(alignment: .top, spacing: 12) {
                                 Circle()
-                                    .fill(Color.pink.opacity(0.3))
-                                    .frame(width: 8, height: 8)
-                                    .padding(.top, 6)
+                                    .fill(Color.pink.opacity(Designs.Opacity.medium))
+                                    .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                    .padding(.top, Designs.Spacing.tiny)
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
@@ -616,9 +616,9 @@ public struct ClinicalInfoView: View {
                                                 .fontWeight(.medium)
                                         }
                                     }
-                                    .padding(8)
-                                    .background(Color.blue.opacity(0.05))
-                                    .cornerRadius(8)
+                                    .padding(Designs.Spacing.xSmall)
+                                    .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                    .cornerRadius(Designs.CornerRadius.small)
                                 }
                             }
 
@@ -627,9 +627,9 @@ public struct ClinicalInfoView: View {
                             // Component 2: Wrinkle Assessment
                             HStack(alignment: .top, spacing: 12) {
                                 Circle()
-                                    .fill(Color.pink.opacity(0.3))
-                                    .frame(width: 8, height: 8)
-                                    .padding(.top, 6)
+                                    .fill(Color.pink.opacity(Designs.Opacity.medium))
+                                    .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                    .padding(.top, Designs.Spacing.tiny)
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
@@ -706,9 +706,9 @@ public struct ClinicalInfoView: View {
                                             }
                                         }
                                     }
-                                    .padding(8)
-                                    .background(Color.blue.opacity(0.05))
-                                    .cornerRadius(8)
+                                    .padding(Designs.Spacing.xSmall)
+                                    .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                    .cornerRadius(Designs.CornerRadius.small)
 
                                     Text("Note: Wrinkle depth measurement uses empirical calibration and is undergoing validation")
                                         .font(.caption)
@@ -745,13 +745,13 @@ public struct ClinicalInfoView: View {
                                         .foregroundStyle(.tertiary)
                                 }
                             }
-                            .padding(12)
-                            .background(Color.pink.opacity(0.1))
-                            .cornerRadius(8)
+                            .padding(Designs.Spacing.small)
+                            .background(Color.pink.opacity(Designs.Opacity.veryLight))
+                            .cornerRadius(Designs.CornerRadius.small)
                         }
                         .padding()
                         .background(Color(uiColor: .secondarySystemBackground))
-                        .cornerRadius(12)
+                        .cornerRadius(Designs.CornerRadius.medium)
                     }
 
                     // Freshness breakdown - WHY is it 81?
@@ -786,9 +786,9 @@ public struct ClinicalInfoView: View {
                             // Component 1: Evenness (50% weight)
                             HStack(alignment: .top, spacing: 12) {
                                 Circle()
-                                    .fill(Color.green.opacity(0.3))
-                                    .frame(width: 8, height: 8)
-                                    .padding(.top, 6)
+                                    .fill(Designs.ScoreColors.excellent.opacity(Designs.Opacity.medium))
+                                    .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                    .padding(.top, Designs.Spacing.tiny)
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
@@ -818,9 +818,9 @@ public struct ClinicalInfoView: View {
                                                 .fontWeight(.medium)
                                         }
                                     }
-                                    .padding(8)
-                                    .background(Color.blue.opacity(0.05))
-                                    .cornerRadius(8)
+                                    .padding(Designs.Spacing.xSmall)
+                                    .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                    .cornerRadius(Designs.CornerRadius.small)
 
                                     Text("Uniform pigmentation indicates well-hydrated skin")
                                         .font(.caption)
@@ -834,9 +834,9 @@ public struct ClinicalInfoView: View {
                             // Component 2: Smoothness (50% weight)
                             HStack(alignment: .top, spacing: 12) {
                                 Circle()
-                                    .fill(Color.green.opacity(0.3))
-                                    .frame(width: 8, height: 8)
-                                    .padding(.top, 6)
+                                    .fill(Designs.ScoreColors.excellent.opacity(Designs.Opacity.medium))
+                                    .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                    .padding(.top, Designs.Spacing.tiny)
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
@@ -866,9 +866,9 @@ public struct ClinicalInfoView: View {
                                                 .fontWeight(.medium)
                                         }
                                     }
-                                    .padding(8)
-                                    .background(Color.blue.opacity(0.05))
-                                    .cornerRadius(8)
+                                    .padding(Designs.Spacing.xSmall)
+                                    .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                    .cornerRadius(Designs.CornerRadius.small)
 
                                     Text("Refined texture indicates optimal moisture levels")
                                         .font(.caption)
@@ -899,13 +899,13 @@ public struct ClinicalInfoView: View {
                                         .foregroundStyle(.tertiary)
                                 }
                             }
-                            .padding(12)
-                            .background(Color.green.opacity(0.1))
-                            .cornerRadius(8)
+                            .padding(Designs.Spacing.small)
+                            .background(Designs.ScoreColors.excellent.opacity(Designs.Opacity.veryLight))
+                            .cornerRadius(Designs.CornerRadius.small)
                         }
                         .padding()
                         .background(Color(uiColor: .secondarySystemBackground))
-                        .cornerRadius(12)
+                        .cornerRadius(Designs.CornerRadius.medium)
                     }
 
                     // Sun Protection breakdown - WHY is it 78? (only show if enabled)
@@ -941,9 +941,9 @@ public struct ClinicalInfoView: View {
                                 // Component 1: Pigmentation Health (30% weight)
                                 HStack(alignment: .top, spacing: 12) {
                                     Circle()
-                                        .fill(Color.orange.opacity(0.3))
-                                        .frame(width: 8, height: 8)
-                                        .padding(.top, 6)
+                                        .fill(Designs.Colors.warning.opacity(Designs.Opacity.medium))
+                                        .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                        .padding(.top, Designs.Spacing.tiny)
 
                                     VStack(alignment: .leading, spacing: 4) {
                                         HStack {
@@ -982,9 +982,9 @@ public struct ClinicalInfoView: View {
                                                     .fontWeight(.medium)
                                             }
                                         }
-                                        .padding(8)
-                                        .background(Color.blue.opacity(0.05))
-                                        .cornerRadius(8)
+                                        .padding(Designs.Spacing.xSmall)
+                                        .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                        .cornerRadius(Designs.CornerRadius.small)
                                     }
                                 }
 
@@ -993,9 +993,9 @@ public struct ClinicalInfoView: View {
                                 // Component 2: Photoaging Resistance (25% weight)
                                 HStack(alignment: .top, spacing: 12) {
                                     Circle()
-                                        .fill(Color.orange.opacity(0.3))
-                                        .frame(width: 8, height: 8)
-                                        .padding(.top, 6)
+                                        .fill(Designs.Colors.warning.opacity(Designs.Opacity.medium))
+                                        .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                        .padding(.top, Designs.Spacing.tiny)
 
                                     VStack(alignment: .leading, spacing: 4) {
                                         HStack {
@@ -1033,9 +1033,9 @@ public struct ClinicalInfoView: View {
                                                     .fontWeight(.medium)
                                             }
                                         }
-                                        .padding(8)
-                                        .background(Color.blue.opacity(0.05))
-                                        .cornerRadius(8)
+                                        .padding(Designs.Spacing.xSmall)
+                                        .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                        .cornerRadius(Designs.CornerRadius.small)
                                     }
                                 }
 
@@ -1044,9 +1044,9 @@ public struct ClinicalInfoView: View {
                                 // Component 3: Texture Health (20% weight)
                                 HStack(alignment: .top, spacing: 12) {
                                     Circle()
-                                        .fill(Color.orange.opacity(0.3))
-                                        .frame(width: 8, height: 8)
-                                        .padding(.top, 6)
+                                        .fill(Designs.Colors.warning.opacity(Designs.Opacity.medium))
+                                        .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                        .padding(.top, Designs.Spacing.tiny)
 
                                     VStack(alignment: .leading, spacing: 4) {
                                         HStack {
@@ -1084,9 +1084,9 @@ public struct ClinicalInfoView: View {
                                                     .fontWeight(.medium)
                                             }
                                         }
-                                        .padding(8)
-                                        .background(Color.blue.opacity(0.05))
-                                        .cornerRadius(8)
+                                        .padding(Designs.Spacing.xSmall)
+                                        .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                        .cornerRadius(Designs.CornerRadius.small)
                                     }
                                 }
 
@@ -1095,9 +1095,9 @@ public struct ClinicalInfoView: View {
                                 // Component 4: Vascular Health (15% weight)
                                 HStack(alignment: .top, spacing: 12) {
                                     Circle()
-                                        .fill(Color.orange.opacity(0.3))
-                                        .frame(width: 8, height: 8)
-                                        .padding(.top, 6)
+                                        .fill(Designs.Colors.warning.opacity(Designs.Opacity.medium))
+                                        .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                        .padding(.top, Designs.Spacing.tiny)
 
                                     VStack(alignment: .leading, spacing: 4) {
                                         HStack {
@@ -1136,9 +1136,9 @@ public struct ClinicalInfoView: View {
                                                     .fontWeight(.medium)
                                             }
                                         }
-                                        .padding(8)
-                                        .background(Color.blue.opacity(0.05))
-                                        .cornerRadius(8)
+                                        .padding(Designs.Spacing.xSmall)
+                                        .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                        .cornerRadius(Designs.CornerRadius.small)
                                     }
                                 }
 
@@ -1147,9 +1147,9 @@ public struct ClinicalInfoView: View {
                                 // Component 5: Pore Health (10% weight)
                                 HStack(alignment: .top, spacing: 12) {
                                     Circle()
-                                        .fill(Color.orange.opacity(0.3))
-                                        .frame(width: 8, height: 8)
-                                        .padding(.top, 6)
+                                        .fill(Designs.Colors.warning.opacity(Designs.Opacity.medium))
+                                        .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
+                                        .padding(.top, Designs.Spacing.tiny)
 
                                     VStack(alignment: .leading, spacing: 4) {
                                         HStack {
@@ -1198,9 +1198,9 @@ public struct ClinicalInfoView: View {
                                                 }
                                             }
                                         }
-                                        .padding(8)
-                                        .background(Color.blue.opacity(0.05))
-                                        .cornerRadius(8)
+                                        .padding(Designs.Spacing.xSmall)
+                                        .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                        .cornerRadius(Designs.CornerRadius.small)
                                     }
                                 }
 
@@ -1225,13 +1225,13 @@ public struct ClinicalInfoView: View {
                                             .foregroundStyle(.tertiary)
                                     }
                                 }
-                                .padding(12)
-                                .background(Color.orange.opacity(0.1))
-                                .cornerRadius(8)
+                                .padding(Designs.Spacing.small)
+                                .background(Designs.Colors.warning.opacity(Designs.Opacity.veryLight))
+                                .cornerRadius(Designs.CornerRadius.small)
                             }
                             .padding()
                             .background(Color(uiColor: .secondarySystemBackground))
-                            .cornerRadius(12)
+                            .cornerRadius(Designs.CornerRadius.medium)
                         }
                     }
 
@@ -1241,7 +1241,7 @@ public struct ClinicalInfoView: View {
                 }
                 .padding()
                 .background(Color(uiColor: .tertiarySystemBackground))
-                .cornerRadius(12)
+                .cornerRadius(Designs.CornerRadius.medium)
                 .padding(.top, 8)
             }
         }
@@ -1407,9 +1407,9 @@ struct MetricBreakdownCard: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
             }
-            .padding(8)
-            .background(color.opacity(0.1))
-            .cornerRadius(8)
+            .padding(Designs.Spacing.xSmall)
+            .background(color.opacity(Designs.Opacity.veryLight))
+            .cornerRadius(Designs.CornerRadius.small)
 
             // Components
             VStack(alignment: .leading, spacing: 8) {
@@ -1417,7 +1417,7 @@ struct MetricBreakdownCard: View {
                     let component = components[index]
                     HStack(alignment: .top, spacing: 12) {
                         Circle()
-                            .fill(color.opacity(0.3))
+                            .fill(color.opacity(Designs.Opacity.medium))
                             .frame(width: 8, height: 8)
                             .padding(.top, 6)
 
@@ -1450,13 +1450,13 @@ struct MetricBreakdownCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(12)
+            .padding(Designs.Spacing.small)
             .background(Color(UIColor.quaternarySystemFill))
-            .cornerRadius(8)
+            .cornerRadius(Designs.CornerRadius.small)
         }
         .padding()
         .background(Color(uiColor: .secondarySystemBackground))
-        .cornerRadius(12)
+        .cornerRadius(Designs.CornerRadius.medium)
     }
 }
 
@@ -1490,11 +1490,11 @@ struct ConfidenceRow: View {
                 .foregroundColor(confidenceLevel.1)
             Text(confidenceLevel.0)
                 .font(.caption)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, Designs.Spacing.xSmall)
                 .padding(.vertical, 4)
-                .background(confidenceLevel.1.opacity(0.2))
+                .background(confidenceLevel.1.opacity(Designs.Opacity.light))
                 .foregroundColor(confidenceLevel.1)
-                .cornerRadius(6)
+                .cornerRadius(Designs.CornerRadius.tiny)
         }
     }
 }

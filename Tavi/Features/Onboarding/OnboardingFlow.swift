@@ -41,7 +41,7 @@ public struct OnboardingFlowView: View {
                     if !userName.isEmpty {
                         try? UserProfileManager.shared.updateName(userName)
                     }
-                    UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                    UserDefaults.standard.set(true, forKey: AppDefaultsKey.hasCompletedOnboarding)
                     dismiss()
                 }
                 .foregroundColor(.gray)
@@ -100,7 +100,7 @@ public struct OnboardingFlowView: View {
                         }
 
                         // Mark onboarding as complete
-                        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+                        UserDefaults.standard.set(true, forKey: AppDefaultsKey.hasCompletedOnboarding)
                         dismiss()
                     }
                     .fontWeight(.bold)
@@ -108,7 +108,7 @@ public struct OnboardingFlowView: View {
                     .padding(.horizontal, 30)
                     .padding(.vertical, 12)
                     .background(Color.blue)
-                    .cornerRadius(25)
+                    .cornerRadius(Designs.CornerRadius.xxLarge)
                 }
             }
             .padding(.horizontal, 30)
@@ -133,17 +133,17 @@ struct OnboardingPageView: View {
 
             // Icon
             Image(systemName: page.imageName)
-                .font(.system(size: 80))
+                .font(AppFont.scoreDisplayLarge)
                 .foregroundColor(page.color)
 
             // Title
             Text(page.title)
-                .font(.system(size: 32, weight: .bold))
+                .font(.app(size: 32, weight: .bold))
                 .multilineTextAlignment(.center)
 
             // Description
             Text(page.description)
-                .font(.system(size: 18))
+                .font(.app(size: 18))
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
@@ -152,7 +152,7 @@ struct OnboardingPageView: View {
             if page.requiresInput {
                 TextField("Enter your name", text: $userName)
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 18))
+                    .font(.app(size: 18))
                     .padding(.horizontal, 40)
                     .padding(.top, 20)
                     .autocapitalization(.words)
@@ -191,7 +191,7 @@ public struct MetricExplanationView: View {
                 // Header
                 HStack {
                     Image(systemName: metric.iconName)
-                        .font(.system(size: 40))
+                        .font(AppFont.custom(size: 40, weight: .regular))
                         .foregroundColor(metric.color)
 
                     VStack(alignment: .leading) {
@@ -232,7 +232,7 @@ public struct MetricExplanationView: View {
                         ForEach(metric.affectingFactors, id: \.self) { factor in
                             HStack {
                                 Image(systemName: "circle.fill")
-                                    .font(.system(size: 6))
+                                    .font(AppFont.custom(size: 6, weight: .regular))
                                 Text(factor)
                             }
                         }
@@ -270,7 +270,7 @@ struct SectionView<Content: View>: View {
             content
                 .padding()
                 .background(Color.gray.opacity(0.1))
-                .cornerRadius(10)
+                .cornerRadius(Designs.CornerRadius.medium)
         }
     }
 }

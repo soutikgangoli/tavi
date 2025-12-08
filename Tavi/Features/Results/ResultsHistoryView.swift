@@ -86,9 +86,9 @@ struct ResultsHistoryView: View {
                 } else {
                     VStack(spacing: 20) {
                         Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 60))
+                            .font(AppFont.displayLight)
                             .foregroundColor(.orange)
-                        
+
                         Text("Session Not Found")
                             .font(.title2)
                             .fontWeight(.semibold)
@@ -108,7 +108,7 @@ struct ResultsHistoryView: View {
                                 .frame(maxWidth: 200)
                                 .padding(.vertical, 16)
                                 .background(Color.blue)
-                                .cornerRadius(12)
+                                .cornerRadius(Designs.Radius.medium)
                         }
                     }
                     .padding()
@@ -134,7 +134,7 @@ struct ResultsHistoryView: View {
     private func errorView(_ error: ErrorState) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 60))
+                .font(AppFont.displayLight)
                 .foregroundColor(.orange)
 
             Text("Unable to Load History")
@@ -167,7 +167,7 @@ struct ResultsHistoryView: View {
 
     private var sessionsList: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+            VStack(alignment: .leading, spacing: Designs.Spacing.lg) {
                 // Filter chips
                 filterChipsView
 
@@ -207,7 +207,7 @@ struct ResultsHistoryView: View {
 
     private var filterChipsView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: HeadspaceDesign.Spacing.sm) {
+            HStack(spacing: Designs.Spacing.sm) {
                 ForEach(TimeFilter.allCases, id: \.self) { filter in
                     filterChip(filter)
                 }
@@ -220,18 +220,18 @@ struct ResultsHistoryView: View {
             selectedTimeFilter = filter
         } label: {
             Text(filter.rawValue)
-                .font(.system(size: 14, weight: selectedTimeFilter == filter ? .semibold : .medium, design: .rounded))
+                .font(.app(size: 14, weight: selectedTimeFilter == filter ? .semibold : .medium, design: .rounded))
                 .foregroundColor(
                     selectedTimeFilter == filter
                     ? .white
-                    : HeadspaceDesign.Colors.textPrimary
+                    : Designs.Colors.textPrimary
                 )
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(
                     selectedTimeFilter == filter
-                    ? HeadspaceDesign.Colors.primary
-                    : HeadspaceDesign.Colors.textSecondary.opacity(0.1)
+                    ? Designs.Colors.primary
+                    : Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 20))
         }
@@ -249,33 +249,33 @@ struct ResultsHistoryView: View {
                     // Score circle
                     ZStack {
                         Circle()
-                            .fill(scoreColor(session.overallScore).opacity(0.15))
-                            .frame(width: 50, height: 50)
+                            .fill(scoreColor(session.overallScore).opacity(Designs.Opacity.veryLight + 0.05))
+                            .frame(width: Designs.Sizes.frameWidthSmall, height: Designs.Sizes.frameWidthSmall)
 
                         Text("\(Int(session.overallScore))")
-                            .font(.gilroy(size: 18, weight: .bold))
+                            .font(AppFont.headlineSecondary)
                             .foregroundColor(scoreColor(session.overallScore))
                     }
 
                     // Name, Date Time, Score% in one line
                     VStack(alignment: .leading, spacing: 4) {
                         Text(session.relativeDate)
-                            .font(.gilroy(size: 16, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            .font(AppFont.subheadingPrimary)
+                            .foregroundColor(Designs.Colors.textPrimary)
 
                         Text(formattedDateTime(session.date))
-                            .font(.gilroy(size: 14, weight: .regular))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.caption)
+                            .foregroundColor(Designs.Colors.textSecondary)
                     }
 
                     Spacer()
 
                     // Chevron
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                        .font(AppFont.metricLabel)
+                        .foregroundColor(Designs.Colors.textTertiary)
                 }
-                .padding(HeadspaceDesign.Spacing.md)
+                .padding(Designs.Spacing.md)
             }
             .buttonStyle(PlainButtonStyle())
 
@@ -291,40 +291,34 @@ struct ResultsHistoryView: View {
                 } label: {
                     HStack {
                         Image(systemName: "arrow.left.arrow.right")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(AppFont.metricLabel)
 
                         Text("Compare with Latest")
-                            .font(.gilroy(size: 14, weight: .semibold))
+                            .font(AppFont.label)
 
                         Spacer()
 
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(AppFont.captionSmall)
                     }
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
-                    .padding(HeadspaceDesign.Spacing.sm)
-                    .padding(.horizontal, HeadspaceDesign.Spacing.xs)
+                    .foregroundColor(Designs.Colors.primary)
+                    .padding(Designs.Spacing.sm)
+                    .padding(.horizontal, Designs.Spacing.xs)
                 }
             }
         }
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color.opacity(0.5),
-            radius: HeadspaceDesign.Shadows.card.radius / 2,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color.opacity(Designs.Opacity.semiOpaque),
+            radius: Designs.Shadows.card.radius / 2,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
     private func scoreColor(_ score: Double) -> Color {
-        switch score {
-        case 90...100: return Color(red: 76/255, green: 217/255, blue: 100/255)
-        case 80..<90: return Color(red: 101/255, green: 188/255, blue: 126/255)
-        case 50..<80: return Color(red: 149/255, green: 218/255, blue: 176/255)
-        case 30..<50: return Color(red: 255/255, green: 204/255, blue: 0/255)
-        default: return Color(red: 255/255, green: 59/255, blue: 48/255)
-        }
+        return Designs.ScoreColors.color(for: Int(score))
     }
 
     private func formattedDateTime(_ date: Date) -> String {
@@ -354,7 +348,7 @@ struct ResultsHistoryView: View {
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "face.smiling")
-                .font(.system(size: 80))
+                .font(AppFont.scoreDisplayLarge)
                 .foregroundStyle(.secondary)
 
             Text("No Analysis Yet")
@@ -473,7 +467,7 @@ struct GradeBadge: View {
             .fontWeight(.bold)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(gradeColor.opacity(0.2))
+            .background(gradeColor.opacity(Designs.Opacity.light))
             .foregroundColor(gradeColor)
             .clipShape(RoundedRectangle(cornerRadius: 6))
     }

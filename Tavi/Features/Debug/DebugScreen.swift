@@ -478,15 +478,15 @@ struct PerformanceHUD: View {
     var body: some View {
         VStack(alignment: .trailing, spacing: 4) {
             Text(String(format: "%.1f FPS", fps))
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .font(.app(size: 12, weight: .bold, design: .monospaced))
                 .foregroundColor(.green)
 
             Text(String(format: "%.1f ms", latency))
-                .font(.system(size: 10, design: .monospaced))
+                .font(.app(size: 10, design: .monospaced))
                 .foregroundColor(.cyan)
 
             Text("#\(frameCount)")
-                .font(.system(size: 10, design: .monospaced))
+                .font(.app(size: 10, design: .monospaced))
                 .foregroundStyle(.secondary)
         }
         .padding(8)

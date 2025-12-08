@@ -327,22 +327,22 @@ struct StatusIndicator: View {
     private var fillColor: Color {
         switch state {
         case .empty:
-            return Color.gray.opacity(0.3)
+            return Designs.Status.inactive.opacity(Designs.Opacity.medium)
         case .okay:
-            return Color.yellow
+            return Designs.Status.warning
         case .perfect:
-            return Color.green
+            return Designs.Status.active
         }
     }
 
     private var labelColor: Color {
         switch state {
         case .empty:
-            return Color.gray
+            return Designs.Status.inactive
         case .okay:
-            return Color.yellow
+            return Designs.Status.warning
         case .perfect:
-            return Color.green
+            return Designs.Status.active
         }
     }
 
@@ -350,10 +350,10 @@ struct StatusIndicator: View {
         VStack(spacing: 2) {
             Circle()
                 .fill(fillColor)
-                .frame(width: 24, height: 24)
+                .frame(width: Designs.Sizes.iconSmall, height: Designs.Sizes.iconSmall)
 
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.app(size: 10, weight: .medium))
                 .foregroundStyle(labelColor)
         }
     }
@@ -381,7 +381,7 @@ struct FaceOutlineView: View {
                 Circle()
                     .stroke(
                         LinearGradient(
-                            colors: [Color.green.opacity(0.3), Color.green.opacity(0)],
+                            colors: [Designs.Status.active.opacity(Designs.Opacity.medium), Designs.Status.active.opacity(0)],
                             startPoint: .center,
                             endPoint: .trailing
                         ),
@@ -401,7 +401,7 @@ struct FaceOutlineView: View {
                 .stroke(
                     allChecksPassed ?
                         LinearGradient(
-                            colors: [Color.green, Color.green.opacity(0.8)],
+                            colors: [Designs.Status.active, Designs.Status.active.opacity(Designs.Opacity.semiTransparent)],
                             startPoint: .top,
                             endPoint: .bottom
                         ) :
@@ -418,14 +418,14 @@ struct FaceOutlineView: View {
                 )
                 .frame(width: outlineSize.width, height: outlineSize.height)
                 .shadow(
-                    color: (allChecksPassed ? Color.green : Color.white).opacity(allChecksPassed ? 0.6 : 0.2),
+                    color: (allChecksPassed ? Designs.Status.active : Color.white).opacity(allChecksPassed ? Designs.Opacity.semiOpaque : Designs.Opacity.light),
                     radius: allChecksPassed ? 12 : 4
                 )
 
             // Countdown timer when holding
             if allChecksPassed && holdTimer > 0 {
                 Text("\(holdTimer)")
-                    .font(.gilroy(size: 72, weight: .bold))
+                    .font(AppFont.scoreDisplayLarge)
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.3), radius: 4)
             }

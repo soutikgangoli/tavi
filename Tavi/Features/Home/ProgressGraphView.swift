@@ -62,36 +62,36 @@ public struct ProgressGraphView: View {
     public var body: some View {
         VStack(spacing: 0) {
             // Header with period selector
-            VStack(spacing: HeadspaceDesign.Spacing.md) {
+            VStack(spacing: Designs.Spacing.md) {
                 HStack {
                     Text("Progress Over Time")
-                        .font(.gilroy(size: 20, weight: .bold))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        .font(AppFont.title3)
+                        .foregroundColor(Designs.Colors.textPrimary)
 
                     Spacer()
 
                     // Period selector
-                    HStack(spacing: 4) {
+                    HStack(spacing: Designs.Spacing.xxSmall) {
                         ForEach(ProgressTimePeriod.allCases, id: \.self) { period in
                             Button {
-                                withAnimation(.easeInOut(duration: 0.3)) {
+                                withAnimation(Designs.Animation.standard) {
                                     selectedPeriod = period
                                     selectedSession = nil
                                 }
                             } label: {
                                 Text(period.rawValue)
-                                    .font(.gilroy(size: 12, weight: .semibold))
-                                    .foregroundColor(selectedPeriod == period ? .white : HeadspaceDesign.Colors.textSecondary)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(selectedPeriod == period ? HeadspaceDesign.Colors.primary : Color.clear)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    .font(AppFont.label)
+                                    .foregroundColor(selectedPeriod == period ? .white : Designs.Colors.textSecondary)
+                                    .padding(.horizontal, Designs.Spacing.small)
+                                    .padding(.vertical, Designs.Spacing.xxSmall)
+                                    .background(selectedPeriod == period ? Designs.Colors.primary : Color.clear)
+                                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.tiny))
                             }
                         }
                     }
-                    .padding(4)
-                    .background(HeadspaceDesign.Colors.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .padding(Designs.Spacing.xxSmall)
+                    .background(Designs.Colors.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.small))
                 }
 
                 // Stats summary
@@ -99,85 +99,85 @@ public struct ProgressGraphView: View {
                     statsRow
                 }
             }
-            .padding(HeadspaceDesign.Spacing.xl)
-            .background(HeadspaceDesign.Colors.elevatedCard)
+            .padding(Designs.Spacing.xl)
+            .background(Designs.Colors.elevatedCard)
 
             // Chart
             if hasData {
                 chartView
-                    .frame(height: 220)
-                    .padding(.horizontal, HeadspaceDesign.Spacing.lg)
-                    .padding(.vertical, HeadspaceDesign.Spacing.xl)
-                    .background(HeadspaceDesign.Colors.elevatedCard)
+                    .frame(height: Designs.Sizes.graphHeight)
+                    .padding(.horizontal, Designs.Spacing.lg)
+                    .padding(.vertical, Designs.Spacing.xl)
+                    .background(Designs.Colors.elevatedCard)
             } else {
                 emptyState
-                    .frame(height: 220)
-                    .padding(HeadspaceDesign.Spacing.xl)
-                    .background(HeadspaceDesign.Colors.elevatedCard)
+                    .frame(height: Designs.Sizes.graphHeight)
+                    .padding(Designs.Spacing.xl)
+                    .background(Designs.Colors.elevatedCard)
             }
         }
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
     private var statsRow: some View {
-        HStack(spacing: HeadspaceDesign.Spacing.xl) {
+        HStack(spacing: Designs.Spacing.xl) {
             // Trend
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Designs.Spacing.xxSmall) {
                 Text("Trend")
-                    .font(.gilroy(size: 12, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.captionSmall)
+                    .foregroundColor(Designs.Colors.textSecondary)
 
-                HStack(spacing: 4) {
+                HStack(spacing: Designs.Spacing.xxSmall) {
                     if let trend = calculateTrend() {
                         Image(systemName: trend > 0 ? "arrow.up.right" : "arrow.down.right")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(AppFont.caption)
                             .foregroundColor(trend > 0 ? .green : .red)
 
                         Text("\(trend > 0 ? "+" : "")\(String(format: "%.1f", trend))%")
-                            .font(.gilroy(size: 16, weight: .bold))
+                            .font(AppFont.bodyMedium)
                             .foregroundColor(trend > 0 ? .green : .red)
                     }
                 }
             }
 
             Divider()
-                .frame(height: 40)
+                .frame(height: Designs.Sizes.graphBarHeight)
 
             // Average score
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Designs.Spacing.xxSmall) {
                 Text("Average")
-                    .font(.gilroy(size: 12, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.captionSmall)
+                    .foregroundColor(Designs.Colors.textSecondary)
 
                 Text("\(Int(averageScore))")
-                    .font(.gilroy(size: 16, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(Designs.Colors.textPrimary)
             }
 
             Divider()
-                .frame(height: 40)
+                .frame(height: Designs.Sizes.graphBarHeight)
 
             // Best score
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Designs.Spacing.xxSmall) {
                 Text("Best")
-                    .font(.gilroy(size: 12, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.captionSmall)
+                    .foregroundColor(Designs.Colors.textSecondary)
 
-                HStack(spacing: 4) {
+                HStack(spacing: Designs.Spacing.xxSmall) {
                     Image(systemName: "star.fill")
-                        .font(.system(size: 12))
+                        .font(AppFont.captionSmall)
                         .foregroundColor(.yellow)
 
                     Text("\(Int(bestScore))")
-                        .font(.gilroy(size: 16, weight: .bold))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        .font(AppFont.bodyMedium)
+                        .foregroundColor(Designs.Colors.textPrimary)
                 }
             }
         }
@@ -196,8 +196,8 @@ public struct ProgressGraphView: View {
                     .foregroundStyle(
                         LinearGradient(
                             colors: [
-                                Color(red: 99/255, green: 179/255, blue: 237/255),  // Light blue
-                                Color(red: 56/255, green: 149/255, blue: 211/255)   // Darker blue
+                                Designs.ScoreColors.graphBlueLight,
+                                Designs.ScoreColors.graphBlueDark
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
@@ -213,8 +213,8 @@ public struct ProgressGraphView: View {
                     .foregroundStyle(
                         LinearGradient(
                             colors: [
-                                Color(red: 99/255, green: 179/255, blue: 237/255).opacity(0.3),
-                                Color(red: 99/255, green: 179/255, blue: 237/255).opacity(0.05)
+                                Designs.ScoreColors.graphBlueLight.opacity(0.3),
+                                Designs.ScoreColors.graphBlueLight.opacity(0.05)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
@@ -228,23 +228,23 @@ public struct ProgressGraphView: View {
                     )
                     .foregroundStyle(Color.white)
                     .symbolSize(selectedSession?.id == session.id ? 150 : 80)
-                    .annotation(position: .top, spacing: 8) {
+                    .annotation(position: .top, spacing: Designs.Spacing.xSmall) {
                         if selectedSession?.id == session.id {
-                            VStack(spacing: 4) {
+                            VStack(spacing: Designs.Spacing.xxSmall) {
                                 Text("\(Int(session.overallScore))")
-                                    .font(.gilroy(size: 16, weight: .bold))
+                                    .font(AppFont.bodyMedium)
                                     .foregroundColor(.white)
 
                                 Text(formatDate(session.date))
-                                    .font(.gilroy(size: 11, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.9))
+                                    .font(AppFont.captionSmall)
+                                    .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, Designs.Spacing.small)
+                            .padding(.vertical, Designs.Spacing.xSmall)
                             .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(red: 56/255, green: 149/255, blue: 211/255))
-                                    .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+                                RoundedRectangle(cornerRadius: Designs.Radius.small)
+                                    .fill(Designs.ScoreColors.graphBlueDark)
+                                    .shadow(color: .black.opacity(Designs.Opacity.veryLight), radius: Designs.Spacing.xxSmall, y: Designs.Border.widthThick)
                             )
                         }
                     }
@@ -258,11 +258,11 @@ public struct ProgressGraphView: View {
                     AxisTick()
                     if let date = value.as(Date.self) {
                         AxisValueLabel {
-                            VStack(spacing: 2) {
+                            VStack(spacing: Designs.Spacing.xxxSmall) {
                                 Text(formatTime(date))
-                                    .font(.system(size: 10, weight: .medium))
+                                    .font(AppFont.captionSmall)
                                 Text(formatDateShort(date))
-                                    .font(.system(size: 9))
+                                    .font(AppFont.micro)
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -318,13 +318,13 @@ public struct ProgressGraphView: View {
                     ForEach(0..<5) { i in
                         HStack {
                             Text("\(100 - i * 25)")
-                                .font(.system(size: 10))
+                                .font(AppFont.captionSmall)
                                 .foregroundColor(.gray)
-                                .frame(width: 30, alignment: .trailing)
+                                .frame(width: Designs.Sizes.frameWidthTiny, alignment: .trailing)
 
                             Rectangle()
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(height: 1)
+                                .fill(Designs.Colors.border.opacity(Designs.Opacity.light))
+                                .frame(height: Designs.Sizes.frameHeightBarXSmall)
                         }
 
                         if i < 4 {
@@ -348,7 +348,7 @@ public struct ProgressGraphView: View {
                         path.addLine(to: point)
                     }
                 }
-                .stroke(Color.blue, lineWidth: 2)
+                .stroke(Designs.Colors.info, lineWidth: Designs.Border.widthThick)
 
                 // Data points
                 ForEach(Array(sortedSessions.enumerated()), id: \.element.id) { index, session in
@@ -356,8 +356,8 @@ public struct ProgressGraphView: View {
                     let y = geometry.size.height * CGFloat(1 - session.overallScore / 100)
 
                     Circle()
-                        .fill(Color.blue)
-                        .frame(width: 8, height: 8)
+                        .fill(Designs.Colors.info)
+                        .frame(width: Designs.Sizes.progressIndicatorSmall, height: Designs.Sizes.progressIndicatorSmall)
                         .position(x: x, y: y)
                 }
             }
@@ -365,18 +365,18 @@ public struct ProgressGraphView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.md) {
+        VStack(spacing: Designs.Spacing.md) {
             Image(systemName: "chart.line.uptrend.xyaxis")
-                .font(.system(size: 48))
-                .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                .font(AppFont.scoreMedium)
+                .foregroundColor(Designs.Colors.textTertiary)
 
             Text("Not enough data yet")
-                .font(.gilroy(size: 16, weight: .semibold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.headline)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Text("Complete at least 2 scans to see your progress")
-                .font(.gilroy(size: 14, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
                 .multilineTextAlignment(.center)
         }
     }

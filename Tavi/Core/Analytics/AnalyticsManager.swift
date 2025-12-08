@@ -16,7 +16,7 @@ import os.log
 public class AnalyticsManager {
     public static let shared = AnalyticsManager()
 
-    @AppStorage("analytics_enabled") private var isEnabled: Bool = true
+    @AppStorage(AppDefaultsKey.analyticsEnabled) private var isEnabled: Bool = true
 
     private let logger = Logger(subsystem: "com.tavi.app", category: "Analytics")
     private let eventQueue = DispatchQueue(label: "com.tavi.analytics", qos: .utility)
@@ -165,7 +165,7 @@ public class AnalyticsManager {
     private func persistEvents() {
         do {
             let encoded = try JSONEncoder().encode(eventStorage)
-            UserDefaults.standard.set(encoded, forKey: "analytics_events")
+            UserDefaults.standard.set(encoded, forKey: AppDefaultsKey.analyticsEvents)
             logger.debug("💾 Persisted \(self.eventStorage.count) events to storage")
         } catch {
             logger.error("Failed to encode analytics events: \(error)")
@@ -174,7 +174,7 @@ public class AnalyticsManager {
     }
 
     private func loadStoredEvents() {
-        guard let data = UserDefaults.standard.data(forKey: "analytics_events") else {
+        guard let data = UserDefaults.standard.data(forKey: AppDefaultsKey.analyticsEvents) else {
             return
         }
 

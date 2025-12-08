@@ -108,12 +108,12 @@ public class BiometricAuth {
 
     /// Check if user has enabled biometric lock in settings
     public func isBiometricLockEnabled() -> Bool {
-        return UserDefaults.standard.bool(forKey: "biometricLockEnabled")
+        return UserDefaults.standard.bool(forKey: AppDefaultsKey.biometricLockEnabled)
     }
 
     /// Enable or disable biometric lock
     public func setBiometricLock(enabled: Bool) {
-        UserDefaults.standard.set(enabled, forKey: "biometricLockEnabled")
+        UserDefaults.standard.set(enabled, forKey: AppDefaultsKey.biometricLockEnabled)
     }
 }
 

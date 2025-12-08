@@ -14,6 +14,8 @@ import SwiftUI
 /// - Single accent color for CTAs
 /// - Rounded cards with shadows
 /// - Flat, trustworthy feel (no gradients, no loud hues)
+/// 
+/// @available(*, deprecated, message: "Use Designs instead. This system is being phased out in favor of the unified Designs system.")
 enum DesignSystem {
 
     // MARK: - Colors
@@ -73,50 +75,53 @@ enum DesignSystem {
         }
 
         /// Overlay colors (adaptive for light/dark mode)
-        static let overlay = Color(uiColor: .label).opacity(0.5) // Adapts to dark mode
-        static let overlayLight = Color(uiColor: .label).opacity(0.3) // Adapts to dark mode
+        static let overlay = Color(uiColor: .label).opacity(Designs.Opacity.semiOpaque) // Adapts to dark mode
+        static let overlayLight = Color(uiColor: .label).opacity(Designs.Opacity.medium) // Adapts to dark mode
     }
 
     // MARK: - Typography
+    // Uses AppFont for centralized font management
+    // To change fonts app-wide, update AppFont.swift
 
     enum Typography {
         /// Large title (28-34pt, bold)
-        static let largeTitle = Font.system(size: 34, weight: .bold, design: .default)
+        static let largeTitle = AppFont.largeTitle
 
         /// Title (22-28pt, bold)
-        static let title = Font.system(size: 28, weight: .bold, design: .default)
+        static let title = AppFont.title
 
         /// Title 2 (20-24pt, bold)
-        static let title2 = Font.system(size: 24, weight: .bold, design: .default)
+        static let title2 = AppFont.title2
 
         /// Title 3 (18-20pt, semibold)
-        static let title3 = Font.system(size: 20, weight: .semibold, design: .default)
+        static let title3 = AppFont.title3
 
         /// Headline (16-17pt, semibold)
-        static let headline = Font.system(size: 17, weight: .semibold, design: .default)
+        static let headline = AppFont.headline
 
         /// Body (16-17pt, regular)
-        static let body = Font.system(size: 17, weight: .regular, design: .default)
+        static let body = AppFont.body
 
         /// Callout (15-16pt, regular)
-        static let callout = Font.system(size: 16, weight: .regular, design: .default)
+        static let callout = AppFont.callout
 
         /// Subheadline (14-15pt, regular)
-        static let subheadline = Font.system(size: 15, weight: .regular, design: .default)
+        static let subheadline = AppFont.subheadline
 
         /// Footnote (12-13pt, regular)
-        static let footnote = Font.system(size: 13, weight: .regular, design: .default)
+        static let footnote = AppFont.footnote
 
         /// Caption (11-12pt, regular)
-        static let caption = Font.system(size: 12, weight: .regular, design: .default)
+        static let caption = AppFont.captionSmall
 
         /// Caption 2 (10-11pt, regular)
-        static let caption2 = Font.system(size: 11, weight: .regular, design: .default)
+        static let caption2 = AppFont.custom(size: 11, weight: .regular)
     }
 
     // MARK: - Spacing
 
     enum Spacing {
+        static let xxxSmall: CGFloat = 2
         static let xxSmall: CGFloat = 4
         static let xSmall: CGFloat = 8
         static let small: CGFloat = 12
@@ -130,6 +135,9 @@ enum DesignSystem {
     // MARK: - Corner Radius
 
     enum CornerRadius {
+        static let xxSmall: CGFloat = 2
+        static let xSmall: CGFloat = 4
+        static let tiny: CGFloat = 6
         static let small: CGFloat = 8
         static let medium: CGFloat = 12
         static let large: CGFloat = 16
@@ -137,41 +145,107 @@ enum DesignSystem {
         static let xxLarge: CGFloat = 24
     }
 
+    // MARK: - Score Colors (for metrics and achievements)
+
+    enum ScoreColors {
+        /// Excellent score (90-100) - Bright green
+        static let excellent = Color(red: 76/255, green: 217/255, blue: 100/255)
+
+        /// Good score (80-89) - Light green
+        static let good = Color(red: 101/255, green: 188/255, blue: 126/255)
+
+        /// Fair score (50-79) - Pale green
+        static let fair = Color(red: 149/255, green: 218/255, blue: 176/255)
+
+        /// Warning score (30-49) - Yellow
+        static let warning = Color(red: 255/255, green: 204/255, blue: 0/255)
+
+        /// Poor score (0-29) - Red
+        static let poor = Color(red: 255/255, green: 59/255, blue: 48/255)
+
+        /// Returns the appropriate color for a given score
+        static func color(for score: Int) -> Color {
+            switch score {
+            case 90...100: return excellent
+            case 80..<90: return good
+            case 50..<80: return fair
+            case 30..<50: return warning
+            default: return poor
+            }
+        }
+
+        // Graph colors
+        static let graphBlueLight = Color(red: 99/255, green: 179/255, blue: 237/255)
+        static let graphBlueDark = Color(red: 56/255, green: 149/255, blue: 211/255)
+
+        // Achievement colors
+        static let achievementGreen = Color(red: 0.3, green: 0.8, blue: 0.5)
+        static let achievementGreenBackground = Color(red: 0.6, green: 0.9, blue: 0.7)
+
+        // Pink accent (for special features)
+        static let pinkAccent = Color(red: 255/255, green: 159/255, blue: 243/255)
+    }
+
     // MARK: - Shadows
 
     enum Shadow {
         /// Light shadow for cards
         static let card = ShadowStyle(
-            color: Color.black.opacity(0.08),
-            radius: 8,
+            color: Color.black.opacity(Designs.Opacity.veryLight - 0.02),
+            radius: Designs.Spacing.small,
             x: 0,
-            y: 2
+            y: Designs.Border.widthThick
         )
 
         /// Medium shadow for elevated elements
         static let elevated = ShadowStyle(
-            color: Color.black.opacity(0.12),
-            radius: 12,
+            color: Color.black.opacity(Designs.Opacity.veryLight + 0.02),
+            radius: Designs.Spacing.small + 4,
             x: 0,
-            y: 4
+            y: Designs.Spacing.xxSmall
         )
 
         /// Heavy shadow for modals
         static let modal = ShadowStyle(
-            color: Color.black.opacity(0.2),
-            radius: 20,
+            color: Color.black.opacity(Designs.Opacity.light),
+            radius: Designs.Radius.xLarge,
             x: 0,
-            y: 8
+            y: Designs.Spacing.small
         )
     }
 
     // MARK: - Animation
 
     enum Animation {
+        /// Quick animation (0.2s) - for micro-interactions
         static let quick = SwiftUI.Animation.easeInOut(duration: 0.2)
+
+        /// Standard animation (0.3s) - default for most transitions
         static let standard = SwiftUI.Animation.easeInOut(duration: 0.3)
+
+        /// Slow animation (0.5s) - for larger transitions
         static let slow = SwiftUI.Animation.easeInOut(duration: 0.5)
+
+        /// Spring animation - bouncy feedback
         static let spring = SwiftUI.Animation.spring(response: 0.3, dampingFraction: 0.7)
+
+        /// Gentle spring - softer bounce
+        static let gentle = SwiftUI.Animation.spring(response: 0.6, dampingFraction: 0.8)
+
+        /// Bouncy spring - more playful
+        static let bouncy = SwiftUI.Animation.spring(response: 0.4, dampingFraction: 0.6)
+
+        /// Breathing animation - slow in/out for ambient effects
+        static let breathe = SwiftUI.Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true)
+
+        /// Pulse animation - faster rhythm
+        static let pulse = SwiftUI.Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)
+
+        /// Slow pulse - very slow ambient pulse
+        static let slowPulse = SwiftUI.Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: true)
+
+        /// Linear animation (0.5s) - for progress indicators
+        static let linear = SwiftUI.Animation.linear(duration: 0.5)
     }
 }
 
@@ -185,38 +259,7 @@ struct ShadowStyle {
 }
 
 // MARK: - View Extensions
-
-extension View {
-    /// Apply card shadow
-    func cardShadow() -> some View {
-        self.shadow(
-            color: DesignSystem.Shadow.card.color,
-            radius: DesignSystem.Shadow.card.radius,
-            x: DesignSystem.Shadow.card.x,
-            y: DesignSystem.Shadow.card.y
-        )
-    }
-
-    /// Apply elevated shadow
-    func elevatedShadow() -> some View {
-        self.shadow(
-            color: DesignSystem.Shadow.elevated.color,
-            radius: DesignSystem.Shadow.elevated.radius,
-            x: DesignSystem.Shadow.elevated.x,
-            y: DesignSystem.Shadow.elevated.y
-        )
-    }
-
-    /// Apply modal shadow
-    func modalShadow() -> some View {
-        self.shadow(
-            color: DesignSystem.Shadow.modal.color,
-            radius: DesignSystem.Shadow.modal.radius,
-            x: DesignSystem.Shadow.modal.x,
-            y: DesignSystem.Shadow.modal.y
-        )
-    }
-}
+// Note: cardShadow(), elevatedShadow(), modalShadow() are now defined in Designs.swift
 
 // MARK: - Design System Button Styles
 
@@ -228,7 +271,7 @@ struct PrimaryButtonStyle: ButtonStyle {
             .font(DesignSystem.Typography.headline)
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
-            .frame(height: 56)
+            .frame(height: Designs.Sizes.buttonHeight)
             .background(
                 isEnabled
                     ? DesignSystem.Colors.accent
@@ -248,7 +291,7 @@ struct SecondaryButtonStyle: ButtonStyle {
             .font(DesignSystem.Typography.headline)
             .foregroundColor(isEnabled ? DesignSystem.Colors.accent : DesignSystem.Colors.textTertiary)
             .frame(maxWidth: .infinity)
-            .frame(height: 56)
+            .frame(height: Designs.Sizes.buttonHeight)
             .background(DesignSystem.Colors.backgroundSecondary)
             .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium))
             .overlay(
@@ -316,9 +359,9 @@ struct ColorSwatch: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: Designs.Radius.small)
                 .fill(color)
-                .frame(height: 60)
+                .frame(height: Designs.Sizes.frameMedium + 20)
 
             Text(name)
                 .font(DesignSystem.Typography.caption2)

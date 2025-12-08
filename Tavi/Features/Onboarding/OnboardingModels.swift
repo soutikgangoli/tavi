@@ -39,7 +39,7 @@ extension OnboardingCard {
                 "Position yourself facing the light source",
                 "Avoid direct sunlight or strong backlighting"
             ],
-            image: .systemIcon("sun.max.fill", DesignSystem.Colors.warning)
+            image: .systemIcon("sun.max.fill", Designs.Colors.warning)
         ),
 
         // Card 2: Framing Guide
@@ -53,7 +53,7 @@ extension OnboardingCard {
                 "Maintain 12-18 inches from camera",
                 "Look directly at the camera"
             ],
-            image: .systemIcon("face.smiling", DesignSystem.Colors.accent)
+            image: .systemIcon("face.smiling", Designs.Colors.accent)
         ),
 
         // Card 3: Hold Still
@@ -67,7 +67,7 @@ extension OnboardingCard {
                 "The capture takes only a few seconds",
                 "You'll feel a haptic when complete"
             ],
-            image: .systemIcon("hand.raised.fill", DesignSystem.Colors.info)
+            image: .systemIcon("hand.raised.fill", Designs.Colors.info)
         )
     ]
 }

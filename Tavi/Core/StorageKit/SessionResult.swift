@@ -123,73 +123,53 @@ extension SessionResult {
             self.acneScore = 0
         }
 
-        // Generate thumbnail and save full face image asynchronously with JPEG compression
-        Task { [self] in
-            // Save full resolution face image (JPEG at 0.8 quality for heatmap generation)
-            let uiFaceImage = UIImage(cgImage: faceImage)
-            if let faceImageData = uiFaceImage.jpegData(compressionQuality: 0.8) {
-                await MainActor.run {
-                    self.faceImage = faceImageData
-                }
-            }
+        // Generate thumbnail and save full face image SYNCHRONOUSLY to ensure data is saved
+        // before context.save() is called. This fixes the issue where older scans have no images.
+        let uiFaceImage = UIImage(cgImage: faceImage)
+        self.faceImage = uiFaceImage.jpegData(compressionQuality: 0.8)
 
-            // Generate thumbnail (JPEG at 0.8 quality - saves ~5x storage vs PNG)
-            if let thumbnailImage = await resizeImage(faceImage, to: CGSize(width: 200, height: 200)) {
-                await MainActor.run {
-                    self.thumbnail = thumbnailImage.jpegData(compressionQuality: 0.8)
-                }
-            }
+        // Generate thumbnail synchronously (JPEG at 0.8 quality - saves ~5x storage vs PNG)
+        if let thumbnailImage = resizeImageSync(faceImage, to: CGSize(width: 200, height: 200)) {
+            self.thumbnail = thumbnailImage.jpegData(compressionQuality: 0.8)
+        }
 
-            // Save heatmaps (JPEG at 0.8 quality for efficient storage)
-            if let heatmaps = heatmaps {
-                if let composite = heatmaps[.composite],
-                   let resized = await resizeImage(composite, to: CGSize(width: 300, height: 300)) {
-                    await MainActor.run {
-                        self.heatmapComposite = resized.jpegData(compressionQuality: 0.8)
-                    }
-                }
-                if let sharpness = heatmaps[.sharpness],
-                   let resized = await resizeImage(sharpness, to: CGSize(width: 300, height: 300)) {
-                    await MainActor.run {
-                        self.heatmapSharpness = resized.jpegData(compressionQuality: 0.8)
-                    }
-                }
-                if let texture = heatmaps[.texture],
-                   let resized = await resizeImage(texture, to: CGSize(width: 300, height: 300)) {
-                    await MainActor.run {
-                        self.heatmapTexture = resized.jpegData(compressionQuality: 0.8)
-                    }
-                }
-                if let pigmentation = heatmaps[.pigmentation],
-                   let resized = await resizeImage(pigmentation, to: CGSize(width: 300, height: 300)) {
-                    await MainActor.run {
-                        self.heatmapPigmentation = resized.jpegData(compressionQuality: 0.8)
-                    }
-                }
-                if let moisture = heatmaps[.moisture],
-                   let resized = await resizeImage(moisture, to: CGSize(width: 300, height: 300)) {
-                    await MainActor.run {
-                        self.heatmapMoisture = resized.jpegData(compressionQuality: 0.8)
-                    }
-                }
+        // Save heatmaps synchronously (JPEG at 0.8 quality for efficient storage)
+        if let heatmaps = heatmaps {
+            if let composite = heatmaps[.composite],
+               let resized = resizeImageSync(composite, to: CGSize(width: 300, height: 300)) {
+                self.heatmapComposite = resized.jpegData(compressionQuality: 0.8)
+            }
+            if let sharpness = heatmaps[.sharpness],
+               let resized = resizeImageSync(sharpness, to: CGSize(width: 300, height: 300)) {
+                self.heatmapSharpness = resized.jpegData(compressionQuality: 0.8)
+            }
+            if let texture = heatmaps[.texture],
+               let resized = resizeImageSync(texture, to: CGSize(width: 300, height: 300)) {
+                self.heatmapTexture = resized.jpegData(compressionQuality: 0.8)
+            }
+            if let pigmentation = heatmaps[.pigmentation],
+               let resized = resizeImageSync(pigmentation, to: CGSize(width: 300, height: 300)) {
+                self.heatmapPigmentation = resized.jpegData(compressionQuality: 0.8)
+            }
+            if let moisture = heatmaps[.moisture],
+               let resized = resizeImageSync(moisture, to: CGSize(width: 300, height: 300)) {
+                self.heatmapMoisture = resized.jpegData(compressionQuality: 0.8)
             }
         }
     }
 
-    private func resizeImage(_ image: CGImage, to size: CGSize) async -> UIImage? {
-        // Perform image resizing on background thread to avoid blocking main thread
-        await Task.detached(priority: .utility) {
-            UIGraphicsBeginImageContextWithOptions(size, false, 1.0)
-            defer { UIGraphicsEndImageContext() }
+    /// Synchronous image resize - ensures images are saved before context.save()
+    private func resizeImageSync(_ image: CGImage, to size: CGSize) -> UIImage? {
+        UIGraphicsBeginImageContextWithOptions(size, false, 1.0)
+        defer { UIGraphicsEndImageContext() }
 
-            let context = UIGraphicsGetCurrentContext()
-            context?.interpolationQuality = .high
+        let context = UIGraphicsGetCurrentContext()
+        context?.interpolationQuality = .high
 
-            let uiImage = UIImage(cgImage: image)
-            uiImage.draw(in: CGRect(origin: .zero, size: size))
+        let uiImage = UIImage(cgImage: image)
+        uiImage.draw(in: CGRect(origin: .zero, size: size))
 
-            return UIGraphicsGetImageFromCurrentImageContext()
-        }.value
+        return UIGraphicsGetImageFromCurrentImageContext()
     }
 
     /// Extract regional score from Face3DMetrics

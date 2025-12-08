@@ -223,7 +223,7 @@ struct Crosshair: View {
             path.addLine(to: CGPoint(x: center.x, y: center.y + size))
         }
         .stroke(color, lineWidth: 2)
-        .opacity(0.8)
+        .opacity(Designs.Opacity.semiTransparent)
     }
 }
 
@@ -243,12 +243,12 @@ struct ROILabel: View {
 
             Text(String(format: "%.0f%%", roi.confidence * 100))
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(color.opacity(0.9))
-        .cornerRadius(6)
+        .background(color.opacity(Designs.Opacity.almostOpaque))
+        .cornerRadius(Designs.Radius.tiny)
         .position(x: rect.midX, y: rect.minY - 25)
     }
 }
@@ -269,13 +269,13 @@ public struct ROIInfoPanel: View {
                 .foregroundStyle(.white)
 
             Divider()
-                .background(.white.opacity(0.3))
+                .background(.white.opacity(Designs.Opacity.medium))
 
             // IPD info
             HStack {
                 Text("Inter-Pupil Distance:")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
                 Spacer()
                 Text(String(format: "%.1f px", roiSet.interPupilDistance))
                     .font(.caption)
@@ -284,16 +284,16 @@ public struct ROIInfoPanel: View {
             }
 
             Divider()
-                .background(.white.opacity(0.3))
+                .background(.white.opacity(Designs.Opacity.medium))
 
             // ROI list
             ForEach(roiSet.allROIs.sorted(by: { $0.type.displayName < $1.type.displayName }), id: \.type.identifier) { roi in
                 ROIInfoRow(roi: roi)
             }
         }
-        .padding(16)
+        .padding(Designs.Spacing.medium)
         .background(.ultraThinMaterial)
-        .cornerRadius(12)
+        .cornerRadius(Designs.Radius.medium)
     }
 }
 
@@ -315,8 +315,8 @@ struct ROIInfoRow: View {
             // Color indicator
             Rectangle()
                 .fill(color)
-                .frame(width: 4, height: 20)
-                .cornerRadius(2)
+                .frame(width: Designs.Sizes.indicatorSmall, height: Designs.Sizes.indicatorMedium)
+                .cornerRadius(Designs.Radius.xSmall / 2)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(roi.type.displayName)
@@ -327,11 +327,11 @@ struct ROIInfoRow: View {
                 HStack(spacing: 12) {
                     Text(String(format: "%.0f×%.0f", roi.imageRect.width, roi.imageRect.height))
                         .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
 
                     Text(String(format: "%.1f IPD", roi.scaleFactorIPD))
                         .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
 
                     Spacer()
 
@@ -361,9 +361,9 @@ public struct ROILegend: View {
             ROILegendItem(color: .purple, label: "Forehead")
             ROILegendItem(color: .orange, label: "Chin")
         }
-        .padding(12)
+        .padding(Designs.Spacing.small)
         .background(.ultraThinMaterial)
-        .cornerRadius(12)
+        .cornerRadius(Designs.Radius.medium)
     }
 }
 
@@ -375,7 +375,7 @@ struct ROILegendItem: View {
         HStack(spacing: 8) {
             Rectangle()
                 .fill(color)
-                .frame(width: 16, height: 3)
+                .frame(width: Designs.Sizes.indicatorSmallCircle, height: Designs.Sizes.indicatorSmall / 4)
 
             Text(label)
                 .font(.caption2)
@@ -430,8 +430,8 @@ struct ExtractedROICard: View {
             Image(uiImage: UIImage(cgImage: extractedROI.image))
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(height: 150)
-                .cornerRadius(8)
+                .frame(height: Designs.Sizes.displayHeight / 2)
+                .cornerRadius(Designs.Radius.small)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(color, lineWidth: 2)
@@ -449,10 +449,10 @@ struct ExtractedROICard: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(12)
+        .padding(Designs.Spacing.small)
         .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 4)
+        .cornerRadius(Designs.Radius.medium)
+        .shadow(color: .black.opacity(Designs.Opacity.veryLight), radius: Designs.Spacing.xxSmall)
     }
 }
 

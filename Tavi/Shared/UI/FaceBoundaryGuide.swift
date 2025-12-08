@@ -46,7 +46,7 @@ public struct FaceBoundaryGuide: View {
                     )
                     .frame(width: circleSize, height: circleSize)
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 0.3), value: completionProgress(for: faceResult))
+                    .animation(Designs.Animation.standard, value: completionProgress(for: faceResult))
             }
 
             // Single error message at bottom
@@ -73,7 +73,7 @@ public struct FaceBoundaryGuide: View {
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: primaryGuidanceMessage?.text)
+        .animation(Designs.Animation.standard, value: primaryGuidanceMessage?.text)
     }
 
     // MARK: - Boundary Color

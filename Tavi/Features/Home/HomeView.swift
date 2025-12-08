@@ -22,7 +22,7 @@ public struct HomeView: View {
     @State private var selectedMetricType: UserMetricType?
     @State private var selectedSessionForDetail: SessionResult?
     @State private var isMetricsExpanded: Bool = false
-    @AppStorage("skipOnboarding") private var skipOnboarding: Bool = false
+    @AppStorage(AppDefaultsKey.skipOnboarding) private var skipOnboarding: Bool = false
 
     // Fallback storage support
     @StateObject private var fallbackStorage = FallbackStorage.shared
@@ -31,8 +31,8 @@ public struct HomeView: View {
     public init(selectedTab: Binding<MainTabView.Tab>, showScanFlow: Binding<Bool>) {
         self._selectedTab = selectedTab
         self._showScanFlow = showScanFlow
-        let hasCompleted = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
-        let skipEnabled = UserDefaults.standard.bool(forKey: "skipOnboarding")
+        let hasCompleted = UserDefaults.standard.bool(forKey: AppDefaultsKey.hasCompletedOnboarding)
+        let skipEnabled = UserDefaults.standard.bool(forKey: AppDefaultsKey.skipOnboarding)
         // Show onboarding only if not completed AND skip is not enabled
         _showOnboarding = State(initialValue: !hasCompleted && !skipEnabled)
     }
@@ -100,12 +100,12 @@ public struct HomeView: View {
                     Button {
                         showSettings = true
                     } label: {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        Image(systemName: SFSymbol.gearshapeFill)
+                            .font(AppFont.metricValue)
+                            .foregroundColor(Designs.Colors.textSecondary)
                     }
-                    .accessibilityLabel("Settings")
-                    .accessibilityHint("Opens app settings and preferences")
+                    .accessibilityLabel(AppStrings.Accessibility.settingsButton)
+                    .accessibilityHint(AppStrings.Accessibility.settingsHint)
                 }
             }
             .navigationDestination(for: SessionResult.self) { session in
@@ -133,15 +133,15 @@ public struct HomeView: View {
 
     private var contentView: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: HeadspaceDesign.Spacing.lg) {
+            VStack(spacing: Designs.Spacing.lg) {
                 // Header: Show date header if has scans, greeting if empty
                 if hasCoreDataScans {
                     dateHeaderSection
-                        .padding(.top, HeadspaceDesign.Spacing.sm)
+                        .padding(.top, Designs.Spacing.sm)
                 } else {
                     greetingSection
-                        .padding(.top, HeadspaceDesign.Spacing.sm)
-                        .padding(.bottom, HeadspaceDesign.Spacing.md)
+                        .padding(.top, Designs.Spacing.sm)
+                        .padding(.bottom, Designs.Spacing.md)
                 }
 
                 // Status widgets row: Only show if has scans
@@ -182,27 +182,26 @@ public struct HomeView: View {
                 }
 
                 // Bottom padding for tab bar
-                Spacer().frame(height: 100)
+                Spacer().frame(height: Designs.Sizes.frameXXLarge)
             }
-            .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+            .padding(.horizontal, Designs.Spacing.lg)
         }
-        .background(HeadspaceDesign.Colors.background)
+        .background(Designs.Colors.background)
     }
 
     // MARK: - Error View
 
     private func errorView(_ error: ErrorState) -> some View {
         VStack(spacing: 20) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 60))
+            Image(systemName: SFSymbol.exclamationTriangle)
+                .font(AppFont.custom(size: 60, weight: .regular))
                 .foregroundColor(.orange)
 
-            Text("Something went wrong")
-                .font(.title2)
-                .fontWeight(.semibold)
+            Text(AppStrings.Errors.somethingWentWrong)
+                .font(AppFont.title2)
 
             Text(error.message)
-                .font(.body)
+                .font(AppFont.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -210,13 +209,13 @@ public struct HomeView: View {
             Button {
                 errorState = nil
             } label: {
-                Text("Try Again")
-                    .font(.headline)
+                Text(AppStrings.Buttons.tryAgain)
+                    .font(AppFont.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: 200)
                     .padding(.vertical, 16)
-                    .background(HeadspaceDesign.Colors.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+                    .background(Designs.Colors.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
             }
             .padding(.top)
         }
@@ -226,21 +225,21 @@ public struct HomeView: View {
     // MARK: - Components
 
     private var greetingSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             let userName = UserProfileManager.shared.loadProfile().name ?? "there"
             let greeting = getTimeBasedGreeting()
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("\(greeting), \(userName)! 👋")
-                    .font(.gilroy(size: 34, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+            VStack(alignment: .leading, spacing: Designs.Spacing.xSmall) {
+                Text("\(greeting), \(userName)!")
+                    .font(AppFont.largeTitle)
+                    .foregroundColor(Designs.Colors.textPrimary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("Ready to discover your skin's true health?")
-                    .font(.gilroy(size: 18, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                Text(AppStrings.Home.readyToDiscover)
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -249,14 +248,14 @@ public struct HomeView: View {
     /// Date header for has-data state (replaces greeting)
     private var dateHeaderSection: some View {
         HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.xs) {
-                Text("Today, \(formattedTodayDate)")
-                    .font(.gilroy(size: 28, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+            VStack(alignment: .leading, spacing: Designs.Spacing.xs) {
+                Text("\(AppStrings.TimeRanges.today), \(formattedTodayDate)")
+                    .font(AppFont.pageTitle)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
-                Text("Track your skin health journey")
-                    .font(.gilroy(size: 16, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                Text(AppStrings.Home.trackYourJourney)
+                    .font(AppFont.bodyPrimary)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
@@ -267,17 +266,17 @@ public struct HomeView: View {
             } label: {
                 ZStack {
                     Circle()
-                        .fill(HeadspaceDesign.Colors.primary.opacity(0.15))
-                        .frame(width: 44, height: 44)
+                        .fill(Designs.Colors.primary.opacity(Designs.Opacity.medium))
+                        .frame(width: Designs.Sizes.iconMedium, height: Designs.Sizes.iconMedium)
 
                     if let userName = UserProfileManager.shared.loadProfile().name {
                         Text(String(userName.prefix(1)).uppercased())
-                            .font(.gilroy(size: 18, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                            .font(AppFont.cardTitle)
+                            .foregroundColor(Designs.Colors.primary)
                     } else {
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                        Image(systemName: SFSymbol.personFill)
+                            .font(AppFont.metricValue)
+                            .foregroundColor(Designs.Colors.primary)
                     }
                 }
             }
@@ -287,7 +286,7 @@ public struct HomeView: View {
 
     /// Status widgets row (challenge + last scan info)
     private var statusWidgetsRow: some View {
-        HStack(spacing: HeadspaceDesign.Spacing.md) {
+        HStack(spacing: Designs.Spacing.md) {
             // Left: Challenge status
             challengeStatusWidget
                 .frame(maxWidth: .infinity)
@@ -306,57 +305,57 @@ public struct HomeView: View {
                 Button {
                     showChallengeDetail = true
                 } label: {
-                    HStack(spacing: HeadspaceDesign.Spacing.sm) {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(HeadspaceDesign.Colors.secondary)
+                    HStack(spacing: Designs.Spacing.sm) {
+                        Image(systemName: SFSymbol.flameFill)
+                            .font(AppFont.metricValue)
+                            .foregroundColor(Designs.Colors.secondary)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Active")
-                                .font(.gilroy(size: 14, weight: .semibold))
-                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            Text(AppStrings.Home.active)
+                                .font(AppFont.label)
+                                .foregroundColor(Designs.Colors.textPrimary)
 
                             let progress = Int((Double(challenge.daysCompleted) / Double(challenge.goalDays)) * 100)
-                            Text("\(challenge.daysCompleted) days • \(progress)% done")
-                                .font(.gilroy(size: 12, weight: .regular))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            Text("\(challenge.daysCompleted) \(AppStrings.Home.days) • \(progress)% done")
+                                .font(AppFont.captionSmall)
+                                .foregroundColor(Designs.Colors.textSecondary)
                         }
 
                         Spacer()
 
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                        Image(systemName: SFSymbol.chevronDown)
+                            .font(AppFont.captionSmall)
+                            .foregroundColor(Designs.Colors.textTertiary)
                     }
-                    .padding(HeadspaceDesign.Spacing.md)
-                    .background(HeadspaceDesign.Colors.elevatedCard)
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                    .padding(Designs.Spacing.md)
+                    .background(Designs.Colors.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                 }
             } else {
                 // No active challenge - show start button
                 Button {
                     startChallenge()
                 } label: {
-                    HStack(spacing: HeadspaceDesign.Spacing.sm) {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(HeadspaceDesign.Colors.secondary)
+                    HStack(spacing: Designs.Spacing.sm) {
+                        Image(systemName: SFSymbol.flameFill)
+                            .font(AppFont.metricValue)
+                            .foregroundColor(Designs.Colors.secondary)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Start Challenge")
-                                .font(.gilroy(size: 14, weight: .semibold))
-                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            Text(AppStrings.Home.startChallenge)
+                                .font(AppFont.label)
+                                .foregroundColor(Designs.Colors.textPrimary)
 
-                            Text("30-Day Glow")
-                                .font(.gilroy(size: 12, weight: .regular))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            Text(AppStrings.Home.thirtyDayGlow)
+                                .font(AppFont.captionSmall)
+                                .foregroundColor(Designs.Colors.textSecondary)
                         }
 
                         Spacer()
                     }
-                    .padding(HeadspaceDesign.Spacing.md)
-                    .background(HeadspaceDesign.Colors.elevatedCard)
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                    .padding(Designs.Spacing.md)
+                    .background(Designs.Colors.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                 }
             }
         }
@@ -364,37 +363,37 @@ public struct HomeView: View {
 
     /// Last scan info widget
     private var lastScanWidget: some View {
-        HStack(spacing: HeadspaceDesign.Spacing.sm) {
-            Image(systemName: "calendar")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+        HStack(spacing: Designs.Spacing.sm) {
+            Image(systemName: SFSymbol.calendar)
+                .font(AppFont.cardTitle)
+                .foregroundColor(Designs.Colors.textSecondary)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Last Scan")
-                    .font(.gilroy(size: 14, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                Text(AppStrings.Home.lastScan)
+                    .font(AppFont.label)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 if let lastScan = latestSession {
                     Text(formatRelativeDate(lastScan.date))
-                        .font(.gilroy(size: 12, weight: .regular))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .font(AppFont.captionSmall)
+                        .foregroundColor(Designs.Colors.textSecondary)
                 } else {
-                    Text("No scans yet")
-                        .font(.gilroy(size: 12, weight: .regular))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    Text(AppStrings.EmptyStates.noScansYet)
+                        .font(AppFont.captionSmall)
+                        .foregroundColor(Designs.Colors.textSecondary)
                 }
             }
 
             Spacer()
         }
-        .padding(HeadspaceDesign.Spacing.md)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+        .padding(Designs.Spacing.md)
+        .background(Designs.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
     }
 
     /// Hero rings section - 1 large overall ring + 3 smaller metric rings
     private var heroRingsSection: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(spacing: Designs.Spacing.lg) {
             if let latest = latestSession {
                 // Large Overall Score Ring
                 Button {
@@ -402,22 +401,22 @@ public struct HomeView: View {
                 } label: {
                     largeHeroRing(
                         score: latest.overallScore,
-                        label: "Overall Health",
-                        color: HeadspaceDesign.Colors.primary
+                        label: AppStrings.Home.overallHealth,
+                        color: Designs.Colors.primary
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
 
                 // 3 Smaller Metric Rings
-                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                HStack(spacing: Designs.Spacing.md) {
                     // Ring 1: Smoothness
                     Button {
                         selectedMetricType = .smoothness
                     } label: {
                         smallHeroRing(
                             score: latest.textureAvg,
-                            label: "Smoothness",
-                            color: Color(red: 101/255, green: 188/255, blue: 126/255)  // Green
+                            label: AppStrings.Metrics.smoothness,
+                            color: Designs.ScoreColors.good
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -428,8 +427,8 @@ public struct HomeView: View {
                     } label: {
                         smallHeroRing(
                             score: latest.pigmentationAvg,
-                            label: "Evenness",
-                            color: HeadspaceDesign.Colors.secondary  // Yellow
+                            label: AppStrings.Metrics.evenness,
+                            color: Designs.Colors.secondary  // Yellow
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -441,7 +440,7 @@ public struct HomeView: View {
                         smallHeroRing(
                             score: getRadianceScore(from: latest),
                             label: "Radiance",
-                            color: Color(red: 255/255, green: 159/255, blue: 243/255)  // Pink
+                            color: Designs.ScoreColors.pinkAccent
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -452,85 +451,85 @@ public struct HomeView: View {
                     selectedSessionForDetail = latest
                 } label: {
                     HStack {
-                        Text("View All Metrics")
-                            .font(.gilroy(size: 15, weight: .semibold))
+                        Text(AppStrings.Home.viewAllMetrics)
+                            .font(AppFont.subheadingSecondary)
 
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 13, weight: .semibold))
+                        Image(systemName: SFSymbol.arrowRight)
+                            .font(AppFont.label)
                     }
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                    .foregroundColor(Designs.Colors.primary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(HeadspaceDesign.Colors.primary.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.sm))
+                    .padding(.vertical, Designs.Spacing.small)
+                    .background(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.sm))
                 }
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .padding(.vertical, HeadspaceDesign.Spacing.md)
+        .padding(.vertical, Designs.Spacing.md)
     }
 
     /// Large hero ring for overall score
     private func largeHeroRing(score: Double, label: String, color: Color) -> some View {
-        VStack(spacing: HeadspaceDesign.Spacing.sm) {
+        VStack(spacing: Designs.Spacing.sm) {
             ZStack {
                 // Background circle
                 Circle()
-                    .stroke(color.opacity(0.2), lineWidth: 12)
-                    .frame(width: 140, height: 140)
+                    .stroke(color.opacity(Designs.Opacity.light), lineWidth: 12)
+                    .frame(width: Designs.Sizes.achievementIconLarge, height: Designs.Sizes.achievementIconLarge)
 
                 // Progress circle
                 Circle()
                     .trim(from: 0, to: CGFloat(score / 100))
                     .stroke(color, style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                    .frame(width: 140, height: 140)
+                    .frame(width: Designs.Sizes.achievementIconLarge, height: Designs.Sizes.achievementIconLarge)
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 1.0), value: score)
+                    .animation(Designs.Animation.pulse, value: score)
 
                 // Score text
                 VStack(spacing: 2) {
                     Text("\(Int(score))")
                         .font(.scoreFont(size: 48))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        .foregroundColor(Designs.Colors.textPrimary)
 
                     Text("%")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .font(AppFont.cardTitle)
+                        .foregroundColor(Designs.Colors.textSecondary)
                 }
             }
 
             Text(label)
-                .font(.gilroy(size: 16, weight: .semibold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.subheadingPrimary)
+                .foregroundColor(Designs.Colors.textPrimary)
         }
     }
 
     /// Small hero ring for individual metrics
     private func smallHeroRing(score: Double, label: String, color: Color) -> some View {
-        VStack(spacing: HeadspaceDesign.Spacing.xs) {
+        VStack(spacing: Designs.Spacing.xs) {
             ZStack {
                 // Background circle
                 Circle()
-                    .stroke(color.opacity(0.2), lineWidth: 6)
-                    .frame(width: 70, height: 70)
+                    .stroke(color.opacity(Designs.Opacity.light), lineWidth: 6)
+                    .frame(width: Designs.Sizes.achievementIconSmall, height: Designs.Sizes.achievementIconSmall)
 
                 // Progress circle
                 Circle()
                     .trim(from: 0, to: CGFloat(score / 100))
                     .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .frame(width: 70, height: 70)
+                    .frame(width: Designs.Sizes.achievementIconSmall, height: Designs.Sizes.achievementIconSmall)
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 0.8), value: score)
+                    .animation(Designs.Animation.slow, value: score)
 
                 // Score text
                 Text("\(Int(score))")
                     .font(.scoreFont(size: 20))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
             }
 
             Text(label)
-                .font(.gilroy(size: 12, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
@@ -554,58 +553,58 @@ public struct HomeView: View {
 
     /// Latest scan summary card
     private var latestScanSummaryCard: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             if let latest = latestSession {
                 HStack {
                     Text(generateSummaryTitle(latest))
-                        .font(.gilroy(size: 18, weight: .bold))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        .font(AppFont.headlineSecondary)
+                        .foregroundColor(Designs.Colors.textPrimary)
 
                     Spacer()
 
                     Button {
                         selectedSessionForDetail = latest
                     } label: {
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                        Image(systemName: SFSymbol.arrowUpRight)
+                            .font(AppFont.metricLabel)
+                            .foregroundColor(Designs.Colors.primary)
                     }
                 }
 
                 Text(generateSummaryText(latest))
-                    .font(.gilroy(size: 15, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.bodySecondary)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack {
-                    Text("Overall Score: \(Int(latest.overallScore))")
-                        .font(.gilroy(size: 16, weight: .semibold))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    Text("\(AppStrings.Home.overallScorePrefix) \(Int(latest.overallScore))")
+                        .font(AppFont.subheadingPrimary)
+                        .foregroundColor(Designs.Colors.textPrimary)
 
                     if let trend = calculateTrend(for: latest), trend != 0 {
                         HStack(spacing: 4) {
-                            Image(systemName: trend > 0 ? "arrow.up.right" : "arrow.down.right")
-                                .font(.system(size: 11, weight: .bold))
+                            Image(systemName: trend > 0 ? SFSymbol.arrowUpRight : "arrow.down.right")
+                                .font(AppFont.custom(size: 11, weight: .bold))
                             Text("\(trend > 0 ? "+" : "")\(Int(trend))")
-                                .font(.gilroy(size: 13, weight: .semibold))
+                                .font(AppFont.footnote)
                         }
-                        .foregroundColor(trend > 0 ? .green : .red)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background((trend > 0 ? Color.green : Color.red).opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .foregroundColor(trend > 0 ? Designs.ScoreColors.excellent : Designs.Colors.error)
+                        .padding(.horizontal, Designs.Spacing.xSmall)
+                        .padding(.vertical, Designs.Spacing.xxSmall)
+                        .background((trend > 0 ? Designs.ScoreColors.excellent : Designs.Colors.error).opacity(Designs.Opacity.veryLight))
+                        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.tiny))
                     }
                 }
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
@@ -624,20 +623,20 @@ public struct HomeView: View {
             VStack(spacing: 0) {
                 // Gradient header
                 ZStack {
-                    HeadspaceDesign.Colors.warmGradient
-                        .frame(height: 200)
+                    Designs.Colors.warmGradient
+                        .frame(height: Designs.Sizes.displayHeight - 100)
 
-                    VStack(spacing: HeadspaceDesign.Spacing.lg) {
+                    VStack(spacing: Designs.Spacing.lg) {
                         // Score circle
                         ZStack {
                             Circle()
-                                .stroke(Color.white.opacity(0.2), lineWidth: 8)
-                                .frame(width: 120, height: 120)
+                                .stroke(Color.white.opacity(Designs.Opacity.light), lineWidth: 8)
+                                .frame(width: Designs.Sizes.achievementIcon, height: Designs.Sizes.achievementIcon)
 
                             Circle()
                                 .trim(from: 0, to: CGFloat(session.overallScore / 100))
                                 .stroke(Color.white, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                                .frame(width: 120, height: 120)
+                                .frame(width: Designs.Sizes.achievementIcon, height: Designs.Sizes.achievementIcon)
                                 .rotationEffect(.degrees(-90))
 
                             Text("\(Int(session.overallScore))")
@@ -648,46 +647,46 @@ public struct HomeView: View {
                         .accessibilityValue("\(Int(session.overallScore)) out of 100, \(scoreDescription(session.overallScore))")
 
                         Text("Your Skin Health Score")
-                            .font(.gilroy(size: 17, weight: .medium))
-                            .foregroundColor(.white.opacity(0.95))
+                            .font(AppFont.bodyMedium)
+                            .foregroundColor(.white.opacity(Designs.Opacity.almostTransparent))
                             .accessibilityHidden(true)
                     }
                 }
 
                 // White footer
-                VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+                VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
                     HStack {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Last scanned")
-                                .font(.gilroy(size: 14, weight: .medium))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                                .font(AppFont.caption)
+                                .foregroundColor(Designs.Colors.textSecondary)
 
                             Text(session.relativeDate)
-                                .font(.gilroy(size: 16, weight: .semibold))
-                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                                .font(AppFont.subheadingPrimary)
+                                .foregroundColor(Designs.Colors.textPrimary)
                         }
 
                         Spacer()
 
                         HStack(spacing: 6) {
                             Text("View details")
-                                .font(.gilroy(size: 16, weight: .semibold))
+                                .font(AppFont.subheadingPrimary)
 
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .bold))
+                            Image(systemName: SFSymbol.chevronRight)
+                                .font(AppFont.label)
                         }
-                        .foregroundColor(HeadspaceDesign.Colors.primary)
+                        .foregroundColor(Designs.Colors.primary)
                     }
                 }
-                .padding(HeadspaceDesign.Spacing.xl)
-                .background(HeadspaceDesign.Colors.elevatedCard)
+                .padding(Designs.Spacing.xl)
+                .background(Designs.Colors.elevatedCard)
             }
-            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+            .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
             .shadow(
-                color: HeadspaceDesign.Shadows.card.color,
-                radius: HeadspaceDesign.Shadows.card.radius,
-                x: HeadspaceDesign.Shadows.card.x,
-                y: HeadspaceDesign.Shadows.card.y
+                color: Designs.Shadows.card.color,
+                radius: Designs.Shadows.card.radius,
+                x: Designs.Shadows.card.x,
+                y: Designs.Shadows.card.y
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -705,10 +704,10 @@ public struct HomeView: View {
     }
 
     private var firstScanCard: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(spacing: Designs.Spacing.lg) {
             // Hero CTA Card - Most prominent, first thing they see
             heroCTACard
-                .padding(.top, HeadspaceDesign.Spacing.md)
+                .padding(.top, Designs.Spacing.md)
 
             // The Science Section
             scienceBehindGlowCard
@@ -727,41 +726,41 @@ public struct HomeView: View {
                 Color.white
 
                 // Thick yellow border
-                RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                    .stroke(HeadspaceDesign.Colors.primary, lineWidth: 4)
+                RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                    .stroke(Designs.Colors.primary, lineWidth: 4)
 
-                VStack(spacing: HeadspaceDesign.Spacing.lg) {
+                VStack(spacing: Designs.Spacing.lg) {
                     ZStack {
                         // White circle with yellow border
                         Circle()
                             .fill(Color.white)
-                            .frame(width: 100, height: 100)
+                            .frame(width: Designs.Sizes.profileIcon, height: Designs.Sizes.profileIcon)
                             .overlay(
                                 Circle()
-                                    .stroke(HeadspaceDesign.Colors.primary, lineWidth: 4)
+                                    .stroke(Designs.Colors.primary, lineWidth: 4)
                             )
 
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: 44, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                        Image(systemName: SFSymbol.cameraFill)
+                            .font(AppFont.custom(size: 44, weight: .semibold))
+                            .foregroundColor(Designs.Colors.primary)
                     }
 
                     VStack(spacing: 8) {
-                        Text("Start Your First Scan")
-                            .font(.gilroy(size: 24, weight: .bold))
+                        Text(AppStrings.Home.startYourFirstScan)
+                            .font(AppFont.title2)
                             .foregroundColor(.black)
                             .multilineTextAlignment(.center)
 
-                        Text("Get your complete skin health analysis in just 1 minute")
-                            .font(.gilroy(size: 15, weight: .medium))
-                            .foregroundColor(.black.opacity(0.7))
+                        Text(AppStrings.Home.getCompleteAnalysis)
+                            .font(AppFont.bodySecondary)
+                            .foregroundColor(.black.opacity(Designs.Opacity.semiTransparent))
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, HeadspaceDesign.Spacing.md)
+                            .padding(.horizontal, Designs.Spacing.md)
                     }
                 }
-                .padding(HeadspaceDesign.Spacing.xl)
+                .padding(Designs.Spacing.xl)
             }
-            .frame(height: 220)
+            .frame(height: Designs.Sizes.displayXLarge2)
 
             // Single dominant CTA button
             Button {
@@ -769,117 +768,117 @@ public struct HomeView: View {
             } label: {
                 VStack(spacing: 8) {
                     HStack {
-                        Text("Start Your Scan")
-                            .font(.gilroy(size: 20, weight: .bold))
+                        Text(AppStrings.Home.startYourScan)
+                            .font(AppFont.headlinePrimary)
 
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 18, weight: .semibold))
+                        Image(systemName: SFSymbol.arrowRight)
+                            .font(AppFont.cardTitle)
                     }
                     .foregroundColor(.white)
 
-                    Text("Powered by Advanced Biometrics")
-                        .font(.gilroy(size: 13, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+                    Text(AppStrings.Home.poweredByBiometrics)
+                        .font(AppFont.footnote)
+                        .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
-                .background(HeadspaceDesign.Colors.primary)
+                .padding(.vertical, Designs.Spacing.large)
+                .background(Designs.Colors.primary)
             }
             .buttonStyle(PlainButtonStyle())
         }
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .overlay(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .stroke(HeadspaceDesign.Colors.primary, lineWidth: 4)
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .stroke(Designs.Colors.primary, lineWidth: 4)
         )
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
     
     /// The Science Behind Your Glow Section
     private var scienceBehindGlowCard: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             HStack {
-                Image(systemName: "waveform.path.ecg")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                Image(systemName: SFSymbol.waveformPath)
+                    .font(AppFont.navIcon)
+                    .foregroundColor(Designs.Colors.primary)
 
-                Text("The Science Behind Your Glow")
-                    .font(.gilroy(size: 20, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                Text(AppStrings.Home.scienceBehindGlow)
+                    .font(AppFont.headlinePrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
             }
 
-            Text("Clinical-grade spectral imaging and AI dermatological mapping reveal what the eye can't.")
-                .font(.gilroy(size: 16, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+            Text(AppStrings.Home.clinicalGradeImaging)
+                .font(AppFont.bodyPrimary)
+                .foregroundColor(Designs.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
     /// Quick Benefits Card - Shows key value propositions with expandable metrics
     private var quickBenefitsCard: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
-            Text("What You'll Get")
-                .font(.gilroy(size: 20, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
+            Text(AppStrings.Home.whatYoullGet)
+                .font(AppFont.headlinePrimary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
-            VStack(spacing: HeadspaceDesign.Spacing.md) {
+            VStack(spacing: Designs.Spacing.md) {
                 // Expandable 8 Metrics row
                 Button {
-                    withAnimation(.easeInOut(duration: 0.3)) {
+                    withAnimation(Designs.Animation.standard) {
                         isMetricsExpanded.toggle()
                     }
                 } label: {
-                    VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
-                        HStack(spacing: HeadspaceDesign.Spacing.md) {
+                    VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
+                        HStack(spacing: Designs.Spacing.md) {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(HeadspaceDesign.Colors.primary)
-                                .frame(width: 28)
+                                .font(AppFont.metricValue)
+                                .foregroundColor(Designs.Colors.primary)
+                                .frame(width: Designs.Sizes.iconXSmall)
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("8 Skin Health Metrics")
-                                    .font(.gilroy(size: 16, weight: .semibold))
-                                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                                Text(AppStrings.Home.eightSkinMetrics)
+                                    .font(AppFont.subheadingPrimary)
+                                    .foregroundColor(Designs.Colors.textPrimary)
 
-                                Text("Comprehensive analysis of your skin")
-                                    .font(.gilroy(size: 14, weight: .regular))
-                                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                                Text(AppStrings.Home.comprehensiveAnalysis)
+                                    .font(AppFont.caption)
+                                    .foregroundColor(Designs.Colors.textSecondary)
                             }
 
                             Spacer()
 
-                            Image(systemName: isMetricsExpanded ? "chevron.up" : "chevron.down")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            Image(systemName: isMetricsExpanded ? SFSymbol.chevronUp : SFSymbol.chevronDown)
+                                .font(AppFont.metricLabel)
+                                .foregroundColor(Designs.Colors.textSecondary)
                         }
 
                         // Expanded metrics list
                         if isMetricsExpanded {
-                            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+                            VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
                                 Divider()
-                                    .padding(.vertical, 4)
+                                    .padding(.vertical, Designs.Spacing.xxSmall)
 
-                                metricDetailRow(icon: "waveform.path", name: "Smoothness")
-                                metricDetailRow(icon: "drop.fill", name: "Hydration")
+                                metricDetailRow(icon: "waveform.path", name: AppStrings.Metrics.smoothness)
+                                metricDetailRow(icon: "drop.fill", name: AppStrings.Metrics.hydration)
                                 metricDetailRow(icon: "sparkles", name: "Glow")
-                                metricDetailRow(icon: "circle.hexagongrid.fill", name: "Pigmentation")
-                                metricDetailRow(icon: "circle.fill", name: "Acne")
+                                metricDetailRow(icon: "circle.hexagongrid.fill", name: AppStrings.Metrics.pigmentation)
+                                metricDetailRow(icon: "circle.fill", name: AppStrings.Metrics.acne)
                                 metricDetailRow(icon: "sun.max.fill", name: "Sun Damage")
-                                metricDetailRow(icon: "heart.fill", name: "Redness")
+                                metricDetailRow(icon: "heart.fill", name: AppStrings.Metrics.redness)
                                 metricDetailRow(icon: "square.grid.3x3.fill", name: "Roughness")
                             }
                             .padding(.leading, 42)
@@ -889,18 +888,18 @@ public struct HomeView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
 
-                benefitRow(icon: "checkmark.circle.fill", title: "Progress Tracking", description: "See improvements over time")
-                benefitRow(icon: "checkmark.circle.fill", title: "Personalized Insights", description: "Get recommendations tailored to you")
+                benefitRow(icon: "checkmark.circle.fill", title: AppStrings.Home.progressTracking, description: AppStrings.Home.seeImprovements)
+                benefitRow(icon: "checkmark.circle.fill", title: AppStrings.Home.personalizedInsights, description: AppStrings.Home.recommendationsTailored)
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
@@ -908,13 +907,13 @@ public struct HomeView: View {
     private func metricDetailRow(icon: String, name: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.primary)
-                .frame(width: 20)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.primary)
+                .frame(width: Designs.Sizes.iconTiny)
 
             Text(name)
-                .font(.gilroy(size: 14, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Spacer()
         }
@@ -922,20 +921,20 @@ public struct HomeView: View {
 
     /// Individual benefit row with icon and text
     private func benefitRow(icon: String, title: String, description: String) -> some View {
-        HStack(spacing: HeadspaceDesign.Spacing.md) {
+        HStack(spacing: Designs.Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(HeadspaceDesign.Colors.primary)
-                .frame(width: 28)
+                .font(AppFont.metricValue)
+                .foregroundColor(Designs.Colors.primary)
+                .frame(width: Designs.Sizes.iconXSmall)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(description)
-                    .font(.gilroy(size: 14, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
@@ -943,12 +942,12 @@ public struct HomeView: View {
     }
 
     private var recentScansSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
-            Text("Recent scans")
-                .font(.gilroy(size: 22, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+        VStack(alignment: .leading, spacing: Designs.Spacing.lg) {
+            Text(AppStrings.Home.recentScans)
+                .font(AppFont.sectionHeader)
+                .foregroundColor(Designs.Colors.textPrimary)
 
-            VStack(spacing: HeadspaceDesign.Spacing.md) {
+            VStack(spacing: Designs.Spacing.md) {
                 ForEach(Array(sessions.prefix(5)), id: \.id) { session in
                     recentScanListItem(session)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -969,18 +968,18 @@ public struct HomeView: View {
                     selectedTab = .history
                 } label: {
                     HStack {
-                        Text("View All Scans (\(sessions.count))")
-                            .font(.gilroy(size: 16, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                        Text(AppStrings.Home.viewAllScans(sessions.count))
+                            .font(AppFont.subheadingPrimary)
+                            .foregroundColor(Designs.Colors.primary)
 
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                        Image(systemName: SFSymbol.arrowRight)
+                            .font(AppFont.metricLabel)
+                            .foregroundColor(Designs.Colors.primary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(HeadspaceDesign.Colors.primary.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                    .background(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                 }
             }
         }
@@ -988,32 +987,32 @@ public struct HomeView: View {
 
     private func recentScanListItem(_ session: SessionResult) -> some View {
         NavigationLink(value: session) {
-            HStack(alignment: .center, spacing: HeadspaceDesign.Spacing.md) {
+            HStack(alignment: .center, spacing: Designs.Spacing.md) {
                 // Date badge (left corner) - compact
                 VStack(spacing: 2) {
                     Text(formatDayMonth(session.date))
-                        .font(.gilroy(size: 14, weight: .bold))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        .font(AppFont.label)
+                        .foregroundColor(Designs.Colors.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
 
                     Text(formatYear(session.date))
-                        .font(.gilroy(size: 10, weight: .medium))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .font(AppFont.tabBar)
+                        .foregroundColor(Designs.Colors.textSecondary)
                         .lineLimit(1)
                 }
-                .frame(width: 50, alignment: .center)
-                .padding(.vertical, 8)
-                .background(HeadspaceDesign.Colors.background)
+                .frame(width: Designs.Sizes.badgeMedium + 20, alignment: .center)
+                .padding(.vertical, Designs.Spacing.xSmall)
+                .background(Designs.Colors.background)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
                 // Main content area
                 VStack(alignment: .leading, spacing: 6) {
                     // First line: "Skin Score" label on left, score number on right
                     HStack(spacing: 8) {
-                        Text("Skin Score")
-                            .font(.gilroy(size: 14, weight: .medium))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        Text(AppStrings.Home.skinScore)
+                            .font(AppFont.caption)
+                            .foregroundColor(Designs.Colors.textSecondary)
                         
                         Spacer()
                         
@@ -1026,8 +1025,8 @@ public struct HomeView: View {
                     // Second line: Date (e.g., "Today") on left, percentage in box on right
                     HStack(spacing: 8) {
                         Text(session.relativeDate)
-                            .font(.gilroy(size: 15, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            .font(AppFont.subheadingSecondary)
+                            .foregroundColor(Designs.Colors.textPrimary)
                             .lineLimit(1)
                         
                         Spacer()
@@ -1035,38 +1034,38 @@ public struct HomeView: View {
                         // Percentage in a box
                         HStack(spacing: 4) {
                             if let trend = calculateTrend(for: session), trend != 0 {
-                                Image(systemName: trend > 0 ? "arrow.up.right" : "arrow.down.right")
-                                    .font(.system(size: 9, weight: .bold))
+                                Image(systemName: trend > 0 ? SFSymbol.arrowUpRight : "arrow.down.right")
+                                    .font(AppFont.microBold)
                                 Text("\(trend > 0 ? "+" : "")\(Int(trend))%")
-                                    .font(.gilroy(size: 12, weight: .semibold))
+                                    .font(AppFont.captionSmall)
                             } else {
                                 Text("\(Int(session.overallScore))%")
-                                    .font(.gilroy(size: 12, weight: .semibold))
+                                    .font(AppFont.captionSmall)
                             }
                         }
                         .foregroundColor(scoreColor(session.overallScore))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(scoreColor(session.overallScore).opacity(0.15))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .padding(.horizontal, Designs.Spacing.xSmall)
+                        .padding(.vertical, Designs.Spacing.xxSmall)
+                        .background(scoreColor(session.overallScore).opacity(Designs.Opacity.medium))
+                        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.tiny))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Chevron indicator
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                Image(systemName: SFSymbol.chevronRight)
+                    .font(AppFont.metricLabel)
+                    .foregroundColor(Designs.Colors.textTertiary)
             }
             .frame(minHeight: 80)
-            .padding(HeadspaceDesign.Spacing.md)
-            .background(HeadspaceDesign.Colors.elevatedCard)
-            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+            .padding(Designs.Spacing.md)
+            .background(Designs.Colors.elevatedCard)
+            .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
             .shadow(
-                color: HeadspaceDesign.Shadows.card.color,
-                radius: HeadspaceDesign.Shadows.card.radius,
-                x: HeadspaceDesign.Shadows.card.x,
-                y: HeadspaceDesign.Shadows.card.y
+                color: Designs.Shadows.card.color,
+                radius: Designs.Shadows.card.radius,
+                x: Designs.Shadows.card.x,
+                y: Designs.Shadows.card.y
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -1076,68 +1075,68 @@ public struct HomeView: View {
         VStack(spacing: 0) {
             // Yellow header with black text and progress
             ZStack {
-                HeadspaceDesign.Colors.primary  // Bumble yellow
-                    .frame(height: 140)
+                Designs.Colors.primary  // Bumble yellow
+                    .frame(height: Designs.Sizes.achievementIconLarge)
 
-                VStack(spacing: HeadspaceDesign.Spacing.md) {
+                VStack(spacing: Designs.Spacing.md) {
                     // Title
                     HStack {
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 20, weight: .bold))
+                            .font(AppFont.metricValue)
                         Text("30-Day Glow Challenge")
-                            .font(.gilroy(size: 18, weight: .bold))
+                            .font(AppFont.headlineSecondary)
                     }
-                    .foregroundColor(HeadspaceDesign.Colors.secondary)
+                    .foregroundColor(Designs.Colors.secondary)
 
                     // Progress circle
                     ZStack {
                         Circle()
-                            .stroke(HeadspaceDesign.Colors.secondary.opacity(0.3), lineWidth: 8)
-                            .frame(width: 70, height: 70)
+                            .stroke(Designs.Colors.secondary.opacity(Designs.Opacity.medium), lineWidth: 8)
+                            .frame(width: Designs.Sizes.achievementIconSmall, height: Designs.Sizes.achievementIconSmall)
 
                         Circle()
                             .trim(from: 0, to: CGFloat(challenge.progressPercentage) / 100)
-                            .stroke(HeadspaceDesign.Colors.secondary, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                            .frame(width: 70, height: 70)
+                            .stroke(Designs.Colors.secondary, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                            .frame(width: Designs.Sizes.achievementIconSmall, height: Designs.Sizes.achievementIconSmall)
                             .rotationEffect(.degrees(-90))
 
                         VStack(spacing: 2) {
                             Text("\(challenge.daysCompleted)")
                                 .font(.scoreFont(size: 24))
-                                .foregroundColor(HeadspaceDesign.Colors.secondary)
+                                .foregroundColor(Designs.Colors.secondary)
                             Text("days")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(HeadspaceDesign.Colors.secondary.opacity(0.9))
+                                .font(AppFont.tabBar)
+                                .foregroundColor(Designs.Colors.secondary.opacity(Designs.Opacity.almostOpaque))
                         }
                     }
                 }
             }
 
             // White info section
-            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            VStack(alignment: .leading, spacing: Designs.Spacing.md) {
                 // Progress bar
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("\(challenge.daysRemaining) days remaining")
-                            .font(.gilroy(size: 14, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            .font(AppFont.label)
+                            .foregroundColor(Designs.Colors.textPrimary)
 
                         Spacer()
 
                         Text("\(Int(challenge.progressPercentage))%")
-                            .font(.gilroy(size: 14, weight: .bold))
-                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                            .font(AppFont.label)
+                            .foregroundColor(Designs.Colors.primary)
                     }
 
                     // Progress bar
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(height: 8)
+                                .fill(Color.gray.opacity(Designs.Opacity.light))
+                                .frame(height: Designs.Sizes.indicatorTiny)
 
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(HeadspaceDesign.Colors.accent)  // Lavender
+                                .fill(Designs.Colors.accent)  // Lavender
                                 .frame(width: geometry.size.width * CGFloat(challenge.progressPercentage) / 100, height: 8)
                         }
                     }
@@ -1145,92 +1144,92 @@ public struct HomeView: View {
                 }
 
                 // Stats
-                HStack(spacing: HeadspaceDesign.Spacing.lg) {
+                HStack(spacing: Designs.Spacing.lg) {
                     // Glow improvement
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Glow Improvement")
-                            .font(.gilroy(size: 12, weight: .medium))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.captionSmall)
+                            .foregroundColor(Designs.Colors.textSecondary)
 
                         HStack(spacing: 4) {
                             if challenge.skinHealthImprovement > 0 {
-                                Image(systemName: "arrow.up.right")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(.green)
+                                Image(systemName: SFSymbol.arrowUpRight)
+                                    .font(AppFont.captionSmall)
+                                    .foregroundColor(Designs.ScoreColors.excellent)
                             }
                             Text("\(challenge.skinHealthImprovement > 0 ? "+" : "")\(challenge.skinHealthImprovement)")
-                                .font(.gilroy(size: 18, weight: .bold))
-                                .foregroundColor(challenge.skinHealthImprovement > 0 ? .green : HeadspaceDesign.Colors.textPrimary)
+                                .font(AppFont.headlineSecondary)
+                                .foregroundColor(challenge.skinHealthImprovement > 0 ? Designs.ScoreColors.excellent : Designs.Colors.textPrimary)
                         }
                     }
 
                     Divider()
-                        .frame(height: 40)
+                        .frame(height: Designs.Sizes.frameMedium)
 
                     // Next milestone
                     if let nextMilestone = challenge.nextMilestone {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Next Milestone")
-                                .font(.gilroy(size: 12, weight: .medium))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                                .font(AppFont.captionSmall)
+                                .foregroundColor(Designs.Colors.textSecondary)
 
                             HStack(spacing: 6) {
                                 Image(systemName: nextMilestone.iconName)
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                                    .font(AppFont.bodyPrimary)
+                                    .foregroundColor(Designs.Colors.primary)
                                 Text(nextMilestone.title)
-                                    .font(.gilroy(size: 14, weight: .semibold))
-                                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                                    .font(AppFont.caption)
+                                    .foregroundColor(Designs.Colors.textPrimary)
                             }
                         }
                     }
                 }
             }
-            .padding(HeadspaceDesign.Spacing.xl)
-            .background(HeadspaceDesign.Colors.elevatedCard)
+            .padding(Designs.Spacing.xl)
+            .background(Designs.Colors.elevatedCard)
         }
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
     private var tipsCard: some View {
-        HStack(spacing: HeadspaceDesign.Spacing.lg) {
+        HStack(spacing: Designs.Spacing.lg) {
             // Icon circle
             ZStack {
                 Circle()
-                    .fill(HeadspaceDesign.Colors.accent.opacity(0.12))
-                    .frame(width: 48, height: 48)
+                    .fill(Designs.Colors.accent.opacity(Designs.Opacity.veryLight + 0.02))
+                        .frame(width: Designs.Sizes.cardIcon, height: Designs.Sizes.cardIcon)
 
-                Image(systemName: "lightbulb.fill")
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.accent)
+                Image(systemName: SFSymbol.lightbulbFill)
+                    .font(AppFont.sectionHeader)
+                    .foregroundColor(Designs.Colors.accent)
             }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Pro tip")
-                    .font(.gilroy(size: 14, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.label)
+                    .foregroundColor(Designs.Colors.textSecondary)
 
                 Text("Scan in bright, natural light for best results")
-                    .font(.gilroy(size: 16, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(Designs.Colors.textPrimary)
             }
 
             Spacer()
         }
-        .padding(HeadspaceDesign.Spacing.xl)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.xl)
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
@@ -1239,29 +1238,23 @@ public struct HomeView: View {
     private func getTimeBasedGreeting() -> String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 0..<12: return "Good morning"
-        case 12..<17: return "Good afternoon"
-        default: return "Good evening"
+        case 0..<12: return AppStrings.Home.goodMorning
+        case 12..<17: return AppStrings.Home.goodAfternoon
+        default: return AppStrings.Home.goodEvening
         }
     }
 
     private func scoreColor(_ score: Double) -> Color {
-        switch score {
-        case 90...100: return Color(red: 76/255, green: 217/255, blue: 100/255)      // Brightest green
-        case 80..<90: return Color(red: 101/255, green: 188/255, blue: 126/255)     // Lighter green
-        case 50..<80: return Color(red: 149/255, green: 218/255, blue: 176/255)     // Light green
-        case 30..<50: return Color(red: 255/255, green: 204/255, blue: 0/255)       // Yellow
-        default: return Color(red: 255/255, green: 59/255, blue: 48/255)            // Red
-        }
+        return Designs.ScoreColors.color(for: Int(score))
     }
 
     private func scoreDescription(_ score: Double) -> String {
         switch score {
-        case 90...100: return "Excellent condition"
-        case 80..<90: return "Very good condition"
-        case 50..<80: return "Good condition"
-        case 30..<50: return "Needs improvement"
-        default: return "Requires attention"
+        case 90...100: return AppStrings.Home.excellentCondition
+        case 80..<90: return AppStrings.Home.veryGoodCondition
+        case 50..<80: return AppStrings.Home.goodCondition
+        case 30..<50: return AppStrings.Home.needsImprovementCondition
+        default: return AppStrings.Home.requiresAttention
         }
     }
 
@@ -1330,23 +1323,23 @@ public struct HomeView: View {
     // Generate summary title based on score change
     private func generateSummaryTitle(_ session: SessionResult) -> String {
         if sessions.count == 1 {
-            return "Baseline Scan"
+            return AppStrings.Home.baselineScan
         }
 
         guard let trend = calculateTrend(for: session) else {
-            return "Latest Scan"
+            return AppStrings.Home.latestScan
         }
 
         if trend > 5 {
-            return "Great Progress!"
+            return AppStrings.Home.greatProgress
         } else if trend > 0 {
-            return "Good Progress"
+            return AppStrings.Home.goodProgress
         } else if trend == 0 {
-            return "Steady Progress"
+            return AppStrings.Home.steadyProgress
         } else if trend > -5 {
-            return "Minor Decline"
+            return AppStrings.Home.minorDecline
         } else {
-            return "Needs Attention"
+            return AppStrings.Home.needsAttention
         }
     }
 
@@ -1354,13 +1347,13 @@ public struct HomeView: View {
     private func generateSummaryText(_ session: SessionResult) -> String {
         // Special case: first scan (baseline)
         if sessions.count == 1 {
-            return "This is your baseline scan. Complete another scan to track progress and see improvements over time."
+            return AppStrings.Home.baselineScanDescription
         }
 
         // Get previous scan for comparison
         guard let index = sessions.firstIndex(where: { $0.id == session.id }),
               index < sessions.count - 1 else {
-            return "Your latest scan results are ready to review."
+            return AppStrings.Home.latestResultsReady
         }
 
         let previousSession = sessions[index + 1]
@@ -1431,24 +1424,24 @@ public struct HomeView: View {
 
     private var fallbackStorageNotice: some View {
         HStack(spacing: 12) {
-            Image(systemName: "info.circle.fill")
-                .font(.system(size: 20))
+            Image(systemName: SFSymbol.infoCircleFill)
+                .font(AppFont.metricValue)
                 .foregroundColor(.blue)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Showing Saved Results")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(.app(size: 16, weight: .semibold))
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text("Your scan history is temporarily stored. Results are saved and will sync when available.")
-                    .font(.system(size: 14))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(.app(size: 14))
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
         }
-        .padding(16)
-        .background(Color.blue.opacity(0.1))
+                .padding(Designs.Spacing.medium)
+        .background(Color.blue.opacity(Designs.Opacity.veryLight))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -1459,7 +1452,7 @@ public struct HomeView: View {
                 LinearGradient(
                     gradient: Gradient(colors: [
                         scoreColor(session.overallScore),
-                        scoreColor(session.overallScore).opacity(0.7)
+                        scoreColor(session.overallScore).opacity(Designs.Opacity.semiTransparent)
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -1468,44 +1461,44 @@ public struct HomeView: View {
 
                 VStack(spacing: 8) {
                     Text("Latest Scan")
-                        .font(.gilroy(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+                        .font(AppFont.caption)
+                        .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
 
                     Text("\(Int(session.overallScore))")
                         .font(.scoreFont(size: 56))
                         .foregroundColor(.white)
 
                     Text(scoreDescription(session.overallScore))
-                        .font(.gilroy(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+                        .font(AppFont.bodyMedium)
+                        .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
                 }
             }
 
             // Content
             VStack(alignment: .leading, spacing: 16) {
                 Text(session.relativeDate)
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.subheadline)
+                    .foregroundColor(Designs.Colors.textSecondary)
 
                 Text("Tap 'Start New Scan' below to see your latest results and track progress")
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
-            .padding(20)
+                .padding(Designs.Spacing.large)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(HeadspaceDesign.Colors.cardBackground)
+        .background(Designs.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(Designs.Opacity.veryLight / 1.67), radius: Designs.Spacing.small, x: 0, y: Designs.Spacing.xxSmall)
     }
 
     // MARK: - Fallback Storage Views
 
     private var fallbackProgressChart: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             Text("Your Progress")
-                .font(.gilroy(size: 22, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.sectionHeader)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             // Simple line chart
             GeometryReader { geometry in
@@ -1524,7 +1517,7 @@ public struct HomeView: View {
                             path.move(to: CGPoint(x: 0, y: y))
                             path.addLine(to: CGPoint(x: width, y: y))
                         }
-                        .stroke(HeadspaceDesign.Colors.textSecondary.opacity(0.1), lineWidth: 1)
+                        .stroke(Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight), lineWidth: Designs.Border.width)
                     }
 
                     // Line chart
@@ -1541,7 +1534,7 @@ public struct HomeView: View {
                             }
                         }
                     }
-                    .stroke(HeadspaceDesign.Colors.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                    .stroke(Designs.Colors.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
 
                     // Data points
                     ForEach(Array(chartData.enumerated()), id: \.element.id) { index, session in
@@ -1551,26 +1544,26 @@ public struct HomeView: View {
 
                         Circle()
                             .fill(scoreColor(session.overallScore))
-                            .frame(width: 8, height: 8)
+                            .frame(width: Designs.Sizes.indicatorTiny, height: Designs.Sizes.indicatorTiny)
                             .position(x: x, y: y)
                     }
                 }
             }
             .frame(height: 120)
-            .padding(.vertical, HeadspaceDesign.Spacing.sm)
+            .padding(.vertical, Designs.Spacing.sm)
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(HeadspaceDesign.Colors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
     }
 
     private var fallbackRecentScansSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.lg) {
             Text("Recent scans")
-                .font(.gilroy(size: 22, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.sectionHeader)
+                .foregroundColor(Designs.Colors.textPrimary)
 
-            VStack(spacing: HeadspaceDesign.Spacing.md) {
+            VStack(spacing: Designs.Spacing.md) {
                 ForEach(Array(fallbackSessions.prefix(5)), id: \.id) { session in
                     fallbackScanListItem(session)
                 }
@@ -1579,27 +1572,27 @@ public struct HomeView: View {
     }
 
     private func fallbackScanListItem(_ session: FallbackStorage.FallbackSession) -> some View {
-        HStack(alignment: .center, spacing: HeadspaceDesign.Spacing.lg) {
+        HStack(alignment: .center, spacing: Designs.Spacing.lg) {
             // Date badge - always show day/month number
             VStack(spacing: 4) {
                 Text(formatDayNumber(session.date))
-                    .font(.gilroy(size: 14, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.label)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(formatMonthShort(session.date))
-                    .font(.gilroy(size: 10, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.tabBar)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
-            .frame(width: 48)
+            .frame(width: Designs.Sizes.cardIcon)
             .padding(.vertical, 8)
-            .background(HeadspaceDesign.Colors.background)
+            .background(Designs.Colors.background)
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
             // Score circle
             ZStack {
                 Circle()
-                    .fill(scoreColor(session.overallScore).opacity(0.12))
-                    .frame(width: 64, height: 64)
+                    .fill(scoreColor(session.overallScore).opacity(Designs.Opacity.veryLight + 0.02))
+                    .frame(width: Designs.Sizes.frameLarge, height: Designs.Sizes.frameLarge)
 
                 Text("\(Int(session.overallScore))")
                     .font(.scoreFont(size: 24))
@@ -1610,23 +1603,23 @@ public struct HomeView: View {
             // Info - show date and time
             VStack(alignment: .leading, spacing: 4) {
                 Text(formatRelativeDateForFallback(session.date))
-                    .font(.gilroy(size: 17, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headline)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(formatTime(session.date))
-                    .font(.gilroy(size: 13, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.footnote)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary.opacity(0.5))
+            Image(systemName: SFSymbol.chevronRight)
+                .font(AppFont.metricLabel)
+                .foregroundColor(Designs.Colors.textSecondary.opacity(Designs.Opacity.semiOpaque))
         }
-        .padding(HeadspaceDesign.Spacing.md)
-        .background(HeadspaceDesign.Colors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+        .padding(Designs.Spacing.md)
+        .background(Designs.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
     }
 
     /// Format time as "3:45 PM"

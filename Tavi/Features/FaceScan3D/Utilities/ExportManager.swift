@@ -182,7 +182,7 @@ public struct ExportResultView: View {
     public var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 60))
+                .font(.app(size: 60))
                 .foregroundColor(.green)
 
             Text("Export Complete!")

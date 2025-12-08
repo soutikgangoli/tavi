@@ -32,7 +32,7 @@ public class ProcessingPipeline: ObservableObject {
     private let meshMerger = MeshMerger()
     private let streamingMerger = StreamingMeshMerger()
     private var textureBaker: TextureBaker {
-        let enableHighRes = UserDefaults.standard.bool(forKey: "enableHighResCapture")
+        let enableHighRes = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
         var config = TextureBaker.Configuration()
         if enableHighRes {
             config.textureWidth = ScanConfiguration.highResTextureWidth

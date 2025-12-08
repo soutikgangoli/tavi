@@ -48,7 +48,7 @@ public struct ScoreSummaryView: View {
                             .padding()
                             .background(Color.orange)
                             .foregroundStyle(.white)
-                            .cornerRadius(12)
+                            .cornerRadius(Designs.Radius.medium)
                         }
                     }
 
@@ -100,8 +100,8 @@ public struct ScoreSummaryView: View {
             ZStack {
                 // Background circle
                 Circle()
-                    .stroke(Color.gray.opacity(0.2), lineWidth: 20)
-                    .frame(width: 180, height: 180)
+                    .stroke(Color.gray.opacity(Designs.Opacity.light), lineWidth: Designs.Border.widthThick * 12)
+                    .frame(width: Designs.Sizes.displayLarge, height: Designs.Sizes.displayLarge)
 
                 // Progress circle
                 Circle()
@@ -110,7 +110,7 @@ public struct ScoreSummaryView: View {
                         gradeColor(scores.grade),
                         style: StrokeStyle(lineWidth: 20, lineCap: .round)
                     )
-                    .frame(width: 180, height: 180)
+                    .frame(width: Designs.Sizes.displayLarge, height: Designs.Sizes.displayLarge)
                     .rotationEffect(.degrees(-90))
 
                 // Score text
@@ -129,8 +129,8 @@ public struct ScoreSummaryView: View {
                         .foregroundStyle(gradeColor(scores.grade))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 4)
-                        .background(gradeColor(scores.grade).opacity(0.1))
-                        .cornerRadius(8)
+                        .background(gradeColor(scores.grade).opacity(Designs.Opacity.veryLight))
+                        .cornerRadius(Designs.Radius.small)
                 }
             }
 
@@ -142,7 +142,7 @@ public struct ScoreSummaryView: View {
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .cornerRadius(Designs.Radius.large)
     }
 
     private var averageScoresCard: some View {
@@ -183,7 +183,7 @@ public struct ScoreSummaryView: View {
             HStack {
                 Image(systemName: "star.fill")
                     .foregroundStyle(.yellow)
-                    .frame(width: 20)
+                    .frame(width: Designs.Sizes.iconTiny)
 
                 Text("Composite Score")
                     .font(.headline)
@@ -198,7 +198,7 @@ public struct ScoreSummaryView: View {
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .cornerRadius(Designs.Radius.large)
     }
 
     private var interpretationGuide: some View {
@@ -216,7 +216,7 @@ public struct ScoreSummaryView: View {
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .cornerRadius(Designs.Radius.large)
     }
 
     private func gradeColor(_ grade: ScoreGrade) -> Color {
@@ -310,7 +310,7 @@ struct ROIScoreCard: View {
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .cornerRadius(Designs.Radius.large)
     }
 
     private func scoreColor(_ score: Double) -> Color {
@@ -341,7 +341,7 @@ struct ScoreRow: View {
         HStack {
             Image(systemName: icon)
                 .foregroundStyle(color)
-                .frame(width: 20)
+                .frame(width: Designs.Sizes.indicatorMedium)
 
             Text(label)
                 .font(.subheadline)
@@ -384,7 +384,7 @@ struct ScoreBar: View {
             HStack {
                 Image(systemName: icon)
                     .foregroundStyle(color)
-                    .frame(width: 20)
+                    .frame(width: Designs.Sizes.iconTiny)
 
                 Text(label)
                     .font(.subheadline)
@@ -399,17 +399,17 @@ struct ScoreBar: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     // Background
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 8)
+                    RoundedRectangle(cornerRadius: Designs.Radius.xSmall)
+                        .fill(Color.gray.opacity(Designs.Opacity.light))
+                        .frame(height: Designs.Sizes.indicatorTiny)
 
                     // Progress
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: Designs.Radius.xSmall)
                         .fill(barColor(score))
                         .frame(width: geometry.size.width * (score / 100.0), height: 8)
                 }
             }
-            .frame(height: 8)
+            .frame(height: Designs.Sizes.indicatorTiny)
         }
     }
 
@@ -440,9 +440,9 @@ struct GradeRow: View {
             Text(grade.rawValue)
                 .font(.headline)
                 .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
+                .frame(width: Designs.Sizes.frameSmall, height: Designs.Sizes.frameSmall)
                 .background(color)
-                .cornerRadius(8)
+                .cornerRadius(Designs.Radius.small)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(grade.description)

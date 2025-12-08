@@ -11,7 +11,7 @@ import SwiftUI
 /// Calibration overlay showing lighting, distance, and guidance
 public struct CalibrationOverlay: View {
     @ObservedObject var viewModel: FaceScan3DViewModel
-    @AppStorage("debugModeEnabled") private var debugModeEnabled: Bool = false
+    @AppStorage(AppDefaultsKey.debugModeEnabled) private var debugModeEnabled: Bool = false
 
     public var body: some View {
         ZStack {
@@ -45,15 +45,15 @@ public struct CalibrationOverlay: View {
                         viewModel.startGuidance()
                     } label: {
                         HStack {
-                            Image(systemName: "camera.fill")
+                            Image(systemName: SFSymbol.cameraFill)
                             Text("Start Scanning")
                         }
                         .font(.headline)
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, Designs.Spacing.xxLarge)
                         .padding(.vertical, 16)
-                        .background(lightingIsGood ? Color.blue : Color.gray)
-                        .cornerRadius(12)
+                        .background(lightingIsGood ? Designs.Colors.info : Designs.Status.inactive)
+                        .cornerRadius(Designs.Radius.medium)
                     }
                     .disabled(!lightingIsGood)
                     .opacity(lightingIsGood ? 1.0 : 0.6)
@@ -64,14 +64,14 @@ public struct CalibrationOverlay: View {
                             .font(.caption)
                             .foregroundColor(.red)
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
+                            .padding(.horizontal, Designs.Spacing.xxLarge)
                             .padding(.vertical, 8)
                             .background(.ultraThinMaterial)
-                            .cornerRadius(8)
+                            .cornerRadius(Designs.Radius.small)
                     }
 
                     Spacer()
-                        .frame(height: 60)
+                        .frame(height: Designs.Sizes.frameMedium + 20)
                 }
             }
 
@@ -82,8 +82,8 @@ public struct CalibrationOverlay: View {
                     Spacer()
 
                     VStack(spacing: 12) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 60))
+                        Image(systemName: SFSymbol.checkmarkCircleFill)
+                            .font(AppFont.displayLight)
                             .foregroundStyle(.green)
 
                         Text("Scan Complete!")
@@ -93,20 +93,20 @@ public struct CalibrationOverlay: View {
 
                         Text("Captured \(viewModel.capturedPoses.count) poses")
                             .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
 
                         Button("Scan Again") {
                             viewModel.resetCalibration()
                         }
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, Designs.Spacing.xLarge)
                         .padding(.vertical, 12)
-                        .background(.white.opacity(0.2))
-                        .cornerRadius(8)
-                        .padding(.top, 8)
+                        .background(.white.opacity(Designs.Opacity.light))
+                        .cornerRadius(Designs.Radius.small)
+                        .padding(.top, Designs.Spacing.xSmall)
                     }
-                    .padding(32)
+                    .padding(Designs.Spacing.xxLarge)
                     .background(.ultraThinMaterial)
-                    .cornerRadius(20)
+                    .cornerRadius(Designs.Radius.xLarge)
                     .padding()
 
                     Spacer()
@@ -190,7 +190,7 @@ struct CalibrationStatusView: View {
                     label: "Stability"
                 )
             }
-            .padding(.top, 60)
+            .padding(.top, Designs.Spacing.xxxLarge + 20)
             .padding(.horizontal)
 
             // Center position indicator (below Direction badge)
@@ -200,10 +200,10 @@ struct CalibrationStatusView: View {
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, Designs.Spacing.small)
                     .padding(.vertical, 6)
                     .background(centerStatusColor(centerStatus).opacity(0.3))
-                    .cornerRadius(12)
+                    .cornerRadius(Designs.Radius.medium)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(centerStatusColor(centerStatus), lineWidth: 1)
@@ -219,10 +219,10 @@ struct CalibrationStatusView: View {
                     Text(message)
                         .font(.headline)
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, Designs.Spacing.xLarge)
                         .padding(.vertical, 16)
                         .background(.ultraThinMaterial)
-                        .cornerRadius(16)
+                        .cornerRadius(Designs.Radius.large)
                 }
 
                 // Show detailed lighting issue if present
@@ -231,10 +231,10 @@ struct CalibrationStatusView: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, Designs.Spacing.large)
                         .padding(.vertical, 12)
                         .background(.ultraThinMaterial)
-                        .cornerRadius(12)
+                        .cornerRadius(Designs.Radius.medium)
                 }
             }
             .padding(.bottom, 120)
@@ -307,7 +307,7 @@ struct GuidanceView: View {
                     label: "Stable"
                 )
             }
-            .padding(.top, 20)
+            .padding(.top, Designs.Spacing.large)
             .padding(.horizontal)
 
             // Progress indicators
@@ -320,7 +320,7 @@ struct GuidanceView: View {
                     )
                 }
             }
-            .padding(.top, 12)
+            .padding(.top, Designs.Spacing.small)
             .padding(.horizontal)
 
             Spacer()
@@ -329,18 +329,18 @@ struct GuidanceView: View {
             ZStack {
                 // Always reserve space for countdown (prevents layout shifts)
                 Text("0")
-                    .font(.gilroy(size: 100, weight: .bold))
+                    .font(AppFont.scoreDisplayLarge)
                     .foregroundStyle(.clear)
 
                 if countdownTimer > 0 {
                     Text("\(countdownTimer)")
-                        .font(.gilroy(size: 100, weight: .bold))
+                        .font(AppFont.scoreDisplayLarge)
                         .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.3), radius: 8)
+                        .shadow(color: .black.opacity(Designs.Opacity.medium), radius: Designs.Spacing.small)
                         .transition(.opacity.combined(with: .scale))
                 }
             }
-            .frame(height: 120)  // Fixed height
+            .frame(height: Designs.Sizes.achievementIcon)  // Fixed height
 
             // Bottom instruction box - COMPACT and positioned lower
             VStack {
@@ -374,7 +374,7 @@ struct GuidanceView: View {
                                             .multilineTextAlignment(.center)
                                         Text("(Countdown will start when ready)")
                                             .font(.caption2)
-                                            .foregroundStyle(.yellow.opacity(0.8))
+                                            .foregroundStyle(.yellow.opacity(Designs.Opacity.semiTransparent))
                                     }
                                 }
                             } else if let warning = qualityWarning {
@@ -390,12 +390,12 @@ struct GuidanceView: View {
                                     if warning.contains("blur") || warning.contains("steady") || warning.contains("focus") {
                                         Text("💡 Tip: Hold phone very still, wait 2-3 seconds for focus")
                                             .font(.caption2)
-                                            .foregroundStyle(.orange.opacity(0.8))
+                                            .foregroundStyle(.orange.opacity(Designs.Opacity.semiTransparent))
                                             .multilineTextAlignment(.center)
                                     } else if warning.contains("exposure") || warning.contains("bright") || warning.contains("dark") {
                                         Text("💡 Tip: Move to better lighting or adjust position")
                                             .font(.caption2)
-                                            .foregroundStyle(.orange.opacity(0.8))
+                                            .foregroundStyle(.orange.opacity(Designs.Opacity.semiTransparent))
                                             .multilineTextAlignment(.center)
                                     }
                                 }
@@ -420,7 +420,7 @@ struct GuidanceView: View {
                                             .foregroundStyle(.green)
                                         Text(calibrationState.distance.message)
                                             .font(.caption2)
-                                            .foregroundStyle(.yellow.opacity(0.7))
+                                            .foregroundStyle(.yellow.opacity(Designs.Opacity.semiTransparent))
                                     }
                                 } else {
                                     Text("Hold this position")
@@ -433,17 +433,17 @@ struct GuidanceView: View {
                     }
                     .frame(minHeight: 32)  // Reduced from 44
                 }
-                .padding(.horizontal, 20)  // Reduced from 32
+                .padding(.horizontal, Designs.Spacing.large)  // Reduced from 32
                 .padding(.vertical, 12)  // Reduced from 20
                 .frame(maxWidth: 320)  // Limited width instead of full width
                 .background(.ultraThinMaterial)
-                .cornerRadius(16)  // Slightly smaller radius
-                .shadow(color: .black.opacity(0.2), radius: 10, y: -5)
+                .cornerRadius(Designs.Radius.large)  // Slightly smaller radius
+                .shadow(color: .black.opacity(Designs.Opacity.light), radius: Designs.Spacing.small, y: -Designs.Spacing.xxSmall - 1)
                 .padding(.bottom, 30)  // Lower position (was 40, now 30)
             }
-            .animation(.easeInOut(duration: 0.2), value: guidanceFeedback)
-            .animation(.easeInOut(duration: 0.2), value: qualityWarning)
-            .animation(.easeInOut(duration: 0.2), value: countdownTimer)
+            .animation(Designs.Animation.quick, value: guidanceFeedback)
+            .animation(Designs.Animation.quick, value: qualityWarning)
+            .animation(Designs.Animation.quick, value: countdownTimer)
         }
     }
 }
@@ -476,11 +476,11 @@ struct StatusBadge: View {
         VStack(spacing: 6) {
             ZStack {
                 Circle()
-                    .fill(status.color.opacity(0.3))
-                    .frame(width: 44, height: 44)
+                    .fill(status.color.opacity(Designs.Opacity.medium))
+                    .frame(width: Designs.Sizes.iconMedium, height: Designs.Sizes.iconMedium)
 
                 Image(systemName: icon)
-                    .font(.system(size: 20))
+                    .font(AppFont.metricValue)
                     .foregroundStyle(status.color)
             }
 
@@ -502,22 +502,22 @@ struct StepIndicator: View {
         VStack(spacing: 4) {
             ZStack {
                 Circle()
-                    .fill(isCaptured ? Color.green : (isCurrent ? Color.blue : Color.gray.opacity(0.3)))
-                    .frame(width: 32, height: 32)
+                    .fill(isCaptured ? Designs.Status.active : (isCurrent ? Designs.Colors.info : Designs.Status.inactive.opacity(Designs.Opacity.medium)))
+                        .frame(width: Designs.Sizes.frameSmall, height: Designs.Sizes.frameSmall)
 
                 if isCaptured {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 16, weight: .bold))
+                    Image(systemName: SFSymbol.checkmark)
+                        .font(AppFont.callout)
                         .foregroundStyle(.white)
                 } else if isCurrent {
                     Circle()
                         .stroke(Color.white, lineWidth: 2)
-                        .frame(width: 28, height: 28)
+                        .frame(width: Designs.Sizes.iconXSmall, height: Designs.Sizes.iconXSmall)
                 }
             }
 
             Text(step.shortName)
-                .font(.system(size: 9, weight: .medium))
+                .font(.app(size: 9, weight: .medium))
                 .foregroundStyle(isCurrent ? .white : .gray)
         }
     }
@@ -540,7 +540,7 @@ struct CalibrationDebugInfoView: View {
                     Text("Calibration")
                         .font(.caption2)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
                     Text("✓ Calibrated: \(viewModel.calibrationManager.calibrationState.isCalibrated ? "Yes" : "No")")
                         .font(.caption2)
                         .foregroundStyle(viewModel.calibrationManager.calibrationState.isCalibrated ? .green : .red)
@@ -551,13 +551,13 @@ struct CalibrationDebugInfoView: View {
 
                 Divider()
                     .frame(height: 60)
-                    .background(.white.opacity(0.3))
+                    .background(.white.opacity(Designs.Opacity.medium))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Face Angles")
                         .font(.caption2)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
                     Text("Yaw: \(String(format: "%.1f", viewModel.currentYaw))°")
                         .font(.caption2)
                         .foregroundStyle(abs(viewModel.currentYaw) < 20 ? .green : .orange)
@@ -571,13 +571,13 @@ struct CalibrationDebugInfoView: View {
 
                 Divider()
                     .frame(height: 60)
-                    .background(.white.opacity(0.3))
+                    .background(.white.opacity(Designs.Opacity.medium))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Quality")
                         .font(.caption2)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
                     Text("Lighting: \(viewModel.calibrationManager.calibrationState.lighting.rawValue)")
                         .font(.caption2)
                         .foregroundStyle(viewModel.calibrationManager.calibrationState.lighting.isValid ? .green : .orange)
@@ -589,7 +589,7 @@ struct CalibrationDebugInfoView: View {
 
             if let warning = viewModel.calibrationManager.qualityWarning {
                 Divider()
-                    .background(.white.opacity(0.3))
+                    .background(.white.opacity(Designs.Opacity.medium))
                 Text("⚠️ Warning: \(warning)")
                     .font(.caption2)
                     .foregroundStyle(.orange)
@@ -601,9 +601,9 @@ struct CalibrationDebugInfoView: View {
                     .foregroundStyle(.cyan)
             }
         }
-        .padding(12)
-        .background(.black.opacity(0.7))
-        .cornerRadius(12)
+                .padding(Designs.Spacing.small)
+        .background(.black.opacity(Designs.Opacity.semiTransparent))
+        .cornerRadius(Designs.Radius.medium)
         .padding(.horizontal)
         .padding(.bottom, 8)
     }

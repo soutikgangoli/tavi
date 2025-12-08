@@ -31,28 +31,28 @@ public struct PrivacySettingsView: View {
             List {
                 // Data storage info
                 Section {
-                    VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+                    VStack(alignment: .leading, spacing: Designs.Spacing.md) {
                         HStack {
                             Image(systemName: "shield.checkered")
-                                .font(.system(size: 24))
+                                .font(.app(size: 24))
                                 .foregroundColor(.green)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Privacy First")
-                                    .font(.gilroy(size: 16, weight: .semibold))
+                                    .font(AppFont.subheadingPrimary)
 
                                 Text("All your data stays on your device")
-                                    .font(.gilroy(size: 13, weight: .regular))
-                                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                                    .font(AppFont.footnote)
+                                    .foregroundColor(Designs.Colors.textSecondary)
                             }
                         }
 
                         Text("Tavi stores all scan data locally on your device. We never upload your face images or analysis results to any server.")
-                            .font(.gilroy(size: 14, weight: .regular))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.caption)
+                            .foregroundColor(Designs.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(.vertical, HeadspaceDesign.Spacing.sm)
+                    .padding(.vertical, Designs.Spacing.sm)
                 } header: {
                     Text("Your Data")
                 }
@@ -63,14 +63,14 @@ public struct PrivacySettingsView: View {
                         Text("Total Scans")
                         Spacer()
                         Text("\(sessions.count)")
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .foregroundColor(Designs.Colors.textSecondary)
                     }
 
                     HStack {
                         Text("Data Location")
                         Spacer()
                         Text("On Device")
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .foregroundColor(Designs.Colors.textSecondary)
                     }
                 } header: {
                     Text("Storage Information")
@@ -83,18 +83,18 @@ public struct PrivacySettingsView: View {
                     } label: {
                         HStack {
                             Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 18))
-                                .foregroundColor(HeadspaceDesign.Colors.primary)
+                                .font(.app(size: 18))
+                                .foregroundColor(Designs.Colors.primary)
 
                             Text("Export My Data")
-                                .font(.gilroy(size: 16, weight: .medium))
-                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                                .font(AppFont.bodyMedium)
+                                .foregroundColor(Designs.Colors.textPrimary)
 
                             Spacer()
 
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                                .font(.app(size: 13, weight: .semibold))
+                                .foregroundColor(Designs.Colors.textTertiary)
                         }
                     }
                 } header: {
@@ -110,10 +110,10 @@ public struct PrivacySettingsView: View {
                     } label: {
                         HStack {
                             Image(systemName: "trash.fill")
-                                .font(.system(size: 18))
+                                .font(.app(size: 18))
 
                             Text("Delete All Data")
-                                .font(.gilroy(size: 16, weight: .medium))
+                                .font(AppFont.bodyMedium)
 
                             Spacer()
                         }
@@ -130,26 +130,26 @@ public struct PrivacySettingsView: View {
                     Link(destination: URL(string: "https://example.com/privacy")!) {
                         HStack {
                             Text("Privacy Policy")
-                                .font(.gilroy(size: 16, weight: .medium))
+                                .font(AppFont.bodyMedium)
 
                             Spacer()
 
                             Image(systemName: "arrow.up.forward")
-                                .font(.system(size: 13))
-                                .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                                .font(.app(size: 13))
+                                .foregroundColor(Designs.Colors.textTertiary)
                         }
                     }
 
                     Link(destination: URL(string: "https://example.com/terms")!) {
                         HStack {
                             Text("Terms of Service")
-                                .font(.gilroy(size: 16, weight: .medium))
+                                .font(AppFont.bodyMedium)
 
                             Spacer()
 
                             Image(systemName: "arrow.up.forward")
-                                .font(.system(size: 13))
-                                .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                                .font(.app(size: 13))
+                                .foregroundColor(Designs.Colors.textTertiary)
                         }
                     }
                 } header: {
@@ -188,65 +188,65 @@ public struct PrivacySettingsView: View {
 
     private var exportDataSheet: some View {
         NavigationStack {
-            VStack(spacing: HeadspaceDesign.Spacing.xl) {
+            VStack(spacing: Designs.Spacing.xl) {
                 Image(systemName: "square.and.arrow.up.circle.fill")
-                    .font(.system(size: 64))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                    .font(.app(size: 64))
+                    .foregroundColor(Designs.Colors.primary)
 
-                VStack(spacing: HeadspaceDesign.Spacing.md) {
+                VStack(spacing: Designs.Spacing.md) {
                     Text("Export Your Data")
-                        .font(.gilroy(size: 24, weight: .bold))
+                        .font(AppFont.title2)
 
                     Text("Your scan data will be exported as a JSON file that you can save or share.")
-                        .font(.gilroy(size: 16, weight: .regular))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .font(AppFont.bodyPrimary)
+                        .foregroundColor(Designs.Colors.textSecondary)
                         .multilineTextAlignment(.center)
                 }
 
-                VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+                VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
                     exportInfoRow(icon: "doc.text.fill", text: "\(sessions.count) scans")
                     exportInfoRow(icon: "chart.line.uptrend.xyaxis", text: "All metrics and analysis")
                     exportInfoRow(icon: "calendar", text: "Complete history")
                 }
-                .padding(HeadspaceDesign.Spacing.lg)
-                .background(HeadspaceDesign.Colors.elevatedCard)
-                .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+                .padding(Designs.Spacing.lg)
+                .background(Designs.Colors.elevatedCard)
+                .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
 
                 Button {
                     exportData()
                 } label: {
                     Text("Export Data")
-                        .font(.gilroy(size: 17, weight: .semibold))
+                        .font(AppFont.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(HeadspaceDesign.Colors.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                        .background(Designs.Colors.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                 }
 
                 Button {
                     showingExportSheet = false
                 } label: {
                     Text("Cancel")
-                        .font(.gilroy(size: 17, weight: .medium))
-                        .foregroundColor(HeadspaceDesign.Colors.primary)
+                        .font(AppFont.bodyMedium)
+                        .foregroundColor(Designs.Colors.primary)
                 }
             }
-            .padding(HeadspaceDesign.Spacing.xl)
+            .padding(Designs.Spacing.xl)
             .navigationBarTitleDisplayMode(.inline)
         }
     }
 
     private func exportInfoRow(icon: String, text: String) -> some View {
-        HStack(spacing: HeadspaceDesign.Spacing.md) {
+        HStack(spacing: Designs.Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundColor(HeadspaceDesign.Colors.primary)
+                .font(.app(size: 18))
+                .foregroundColor(Designs.Colors.primary)
                 .frame(width: 28)
 
             Text(text)
-                .font(.gilroy(size: 15, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.bodySecondary)
+                .foregroundColor(Designs.Colors.textPrimary)
         }
     }
 

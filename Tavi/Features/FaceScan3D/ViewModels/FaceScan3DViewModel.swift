@@ -782,7 +782,7 @@ public class FaceScan3DViewModel: ObservableObject {
     }
 
     private func getLightingStrictness() -> LightingStrictnessLevel {
-        let rawValue = UserDefaults.standard.string(forKey: "lightingStrictness") ?? "Strict"
+        let rawValue = UserDefaults.standard.string(forKey: AppDefaultsKey.lightingStrictness) ?? "Strict"
         switch rawValue {
         case "Strict": return .strict
         case "Relaxed": return .relaxed

@@ -18,7 +18,7 @@ public struct AchievementDetailView: View {
     }
 
     public var body: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.xl) {
+        VStack(spacing: Designs.Spacing.xl) {
             Spacer()
 
             // Large achievement icon
@@ -26,17 +26,17 @@ public struct AchievementDetailView: View {
                 Circle()
                     .fill(
                         achievement.isUnlocked
-                        ? Color(red: 0.6, green: 0.9, blue: 0.7).opacity(0.2)  // Pastel green background
-                        : HeadspaceDesign.Colors.textSecondary.opacity(0.1)
+                        ? Designs.ScoreColors.achievementGreenBackground.opacity(Designs.Opacity.light)
+                        : Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight)
                     )
-                    .frame(width: 120, height: 120)
+                    .frame(width: Designs.Sizes.achievementIcon, height: Designs.Sizes.achievementIcon)
 
                 Image(systemName: achievement.iconName)
-                    .font(.system(size: 56, weight: .semibold))
+                    .font(.app(size: 56, weight: .semibold))
                     .foregroundColor(
                         achievement.isUnlocked
-                        ? Color(red: 0.3, green: 0.8, blue: 0.5)  // Pastel green icon
-                        : HeadspaceDesign.Colors.textSecondary.opacity(0.4)
+                        ? Designs.ScoreColors.achievementGreen
+                        : Designs.Colors.textSecondary.opacity(Designs.Opacity.light)
                     )
 
                 // Unlock animation overlay if unlocked
@@ -45,78 +45,78 @@ public struct AchievementDetailView: View {
                         .strokeBorder(
                             LinearGradient(
                                 colors: [
-                                    Color(red: 0.3, green: 0.8, blue: 0.5).opacity(0.5),
-                                    Color(red: 0.3, green: 0.8, blue: 0.5).opacity(0)
+                                    Designs.ScoreColors.achievementGreen.opacity(Designs.Opacity.semiOpaque),
+                                    Designs.ScoreColors.achievementGreen.opacity(0)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
                             lineWidth: 3
                         )
-                        .frame(width: 136, height: 136)
+                        .frame(width: Designs.Sizes.achievementIcon + 16, height: Designs.Sizes.achievementIcon + 16)
                 }
             }
 
             // Title and description
-            VStack(spacing: HeadspaceDesign.Spacing.md) {
+            VStack(spacing: Designs.Spacing.md) {
                 Text(achievement.title)
-                    .font(.gilroy(size: 28, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.pageTitle)
+                    .foregroundColor(Designs.Colors.textPrimary)
                     .multilineTextAlignment(.center)
 
                 Text(achievement.description)
-                    .font(.gilroy(size: 16, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.bodyPrimary)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, HeadspaceDesign.Spacing.xl)
+            .padding(.horizontal, Designs.Spacing.xl)
 
             // Status section
-            VStack(spacing: HeadspaceDesign.Spacing.md) {
+            VStack(spacing: Designs.Spacing.md) {
                 if achievement.isUnlocked {
                     // Unlocked state
                     if let unlockedDate = achievement.unlockedDate {
-                        VStack(spacing: HeadspaceDesign.Spacing.sm) {
+                        VStack(spacing: Designs.Spacing.sm) {
                             HStack(spacing: 8) {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 20, weight: .semibold))
+                                    .font(.app(size: 20, weight: .semibold))
                                 Text("Unlocked")
-                                    .font(.gilroy(size: 18, weight: .bold))
+                                    .font(AppFont.headlineSecondary)
                             }
                             .foregroundColor(.green)
 
                             Text(formatUnlockDate(unlockedDate))
-                                .font(.gilroy(size: 14, weight: .medium))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                                .font(AppFont.caption)
+                                .foregroundColor(Designs.Colors.textSecondary)
                         }
-                        .padding(HeadspaceDesign.Spacing.lg)
+                        .padding(Designs.Spacing.lg)
                         .frame(maxWidth: .infinity)
-                        .background(.green.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                        .background(.green.opacity(Designs.Opacity.veryLight))
+                        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                     }
                 } else {
                     // Locked state
-                    VStack(spacing: HeadspaceDesign.Spacing.sm) {
+                    VStack(spacing: Designs.Spacing.sm) {
                         HStack(spacing: 8) {
                             Image(systemName: "lock.fill")
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(.app(size: 18, weight: .semibold))
                             Text("Locked")
-                                .font(.gilroy(size: 18, weight: .bold))
+                                .font(AppFont.headlineSecondary)
                         }
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .foregroundColor(Designs.Colors.textSecondary)
 
                         Text(getProgressText())
-                            .font(.gilroy(size: 14, weight: .medium))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.caption)
+                            .foregroundColor(Designs.Colors.textSecondary)
                     }
-                    .padding(HeadspaceDesign.Spacing.lg)
+                    .padding(Designs.Spacing.lg)
                     .frame(maxWidth: .infinity)
-                    .background(HeadspaceDesign.Colors.textSecondary.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                    .background(Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight))
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                 }
             }
-            .padding(.horizontal, HeadspaceDesign.Spacing.xl)
+            .padding(.horizontal, Designs.Spacing.xl)
 
             Spacer()
 
@@ -125,17 +125,17 @@ public struct AchievementDetailView: View {
                 dismiss()
             } label: {
                 Text("Close")
-                    .font(.gilroy(size: 17, weight: .semibold))
+                    .font(AppFont.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(HeadspaceDesign.Colors.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                    .background(Designs.Colors.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
             }
-            .padding(.horizontal, HeadspaceDesign.Spacing.xl)
-            .padding(.bottom, HeadspaceDesign.Spacing.xl)
+            .padding(.horizontal, Designs.Spacing.xl)
+            .padding(.bottom, Designs.Spacing.xl)
         }
-        .background(HeadspaceDesign.Colors.background)
+        .background(Designs.Colors.background)
     }
 
     // MARK: - Helpers

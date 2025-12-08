@@ -60,7 +60,7 @@ public struct MainTabView: View {
                 }
             }
             .ignoresSafeArea(.keyboard) // Prevent tab bar from moving with keyboard
-            .animation(.easeInOut(duration: 0.2), value: selectedTab)
+            .animation(Designs.Animation.quick, value: selectedTab)
 
             // Custom tab bar overlay (on top)
             CustomTabBar(selectedTab: $selectedTab, showScanFlow: $showScanFlow)
@@ -96,7 +96,7 @@ struct CustomTabBar: View {
 
             // Tab 2: History
             TabBarButton(
-                icon: "chart.bar.fill",
+                icon: SFSymbol.chartBarFill,
                 label: "History",
                 isSelected: selectedTab == .history
             ) {
@@ -115,7 +115,7 @@ struct CustomTabBar: View {
 
             // Tab 4: Insights
             TabBarButton(
-                icon: "lightbulb.fill",
+                icon: SFSymbol.lightbulbFill,
                 label: "Insights",
                 isSelected: selectedTab == .insights
             ) {
@@ -127,7 +127,7 @@ struct CustomTabBar: View {
 
             // Tab 5: Profile
             TabBarButton(
-                icon: "person.fill",
+                icon: SFSymbol.personFill,
                 label: "Profile",
                 isSelected: selectedTab == .profile
             ) {
@@ -135,14 +135,14 @@ struct CustomTabBar: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal, 8)
-        .padding(.top, 8)
-        .padding(.bottom, 20) // Safe area padding
+        .padding(.horizontal, Designs.Spacing.xSmall)
+        .padding(.top, Designs.Spacing.xSmall)
+        .padding(.bottom, Designs.Spacing.large) // Safe area padding
         .background(
             Rectangle()
-                .fill(HeadspaceDesign.Colors.background)
+                .fill(Designs.Colors.background)
                 .shadow(
-                    color: Color.black.opacity(0.05),
+                    color: Color.black.opacity(Designs.Opacity.veryLight / 2),
                     radius: 8,
                     x: 0,
                     y: -2
@@ -161,14 +161,14 @@ struct TabBarButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: Designs.Spacing.xxSmall) {
                 Image(systemName: icon)
-                    .font(.system(size: 24, weight: isSelected ? .semibold : .regular))
-                    .foregroundColor(isSelected ? HeadspaceDesign.Colors.primary : HeadspaceDesign.Colors.textTertiary)
+                    .font(isSelected ? AppFont.custom(size: 24, weight: .semibold) : AppFont.navIcon)
+                    .foregroundColor(isSelected ? Designs.Colors.primary : Designs.Colors.textTertiary)
 
                 Text(label)
-                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium, design: .rounded))
-                    .foregroundColor(isSelected ? HeadspaceDesign.Colors.primary : HeadspaceDesign.Colors.textTertiary)
+                    .font(.app(size: 10, weight: isSelected ? .semibold : .medium, design: .rounded))
+                    .foregroundColor(isSelected ? Designs.Colors.primary : Designs.Colors.textTertiary)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
@@ -187,18 +187,18 @@ struct CenterScanButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(HeadspaceDesign.Colors.primary)
-                    .frame(width: 56, height: 56)
+                    .fill(Designs.Colors.primary)
+                    .frame(width: Designs.Sizes.tabBarIcon, height: Designs.Sizes.tabBarIcon)
                     .shadow(
-                        color: HeadspaceDesign.Colors.primary.opacity(0.4),
+                        color: Designs.Colors.primary.opacity(Designs.Opacity.light),
                         radius: isPressed ? 8 : 12,
                         x: 0,
                         y: isPressed ? 4 : 6
                     )
 
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.secondary)
+                Image(systemName: SFSymbol.cameraFill)
+                    .font(AppFont.custom(size: 24, weight: .semibold))
+                    .foregroundColor(Designs.Colors.secondary)
             }
             .scaleEffect(isPressed ? 0.92 : 1.0)
         }
@@ -206,12 +206,12 @@ struct CenterScanButton: View {
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
-                    withAnimation(.easeInOut(duration: 0.1)) {
+                    withAnimation(Designs.Animation.quick) {
                         isPressed = true
                     }
                 }
                 .onEnded { _ in
-                    withAnimation(.easeInOut(duration: 0.1)) {
+                    withAnimation(Designs.Animation.quick) {
                         isPressed = false
                     }
                 }
@@ -286,30 +286,30 @@ struct ProfileTabView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .center, spacing: HeadspaceDesign.Spacing.xl) {
+            VStack(alignment: .center, spacing: Designs.Spacing.xl) {
                 // Profile header
-                VStack(spacing: HeadspaceDesign.Spacing.md) {
+                VStack(spacing: Designs.Spacing.md) {
                     ZStack {
                         Circle()
-                            .fill(HeadspaceDesign.Colors.primary.opacity(0.15))
-                            .frame(width: 80, height: 80)
+                            .fill(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
+                            .frame(width: Designs.Sizes.profileIcon, height: Designs.Sizes.profileIcon)
 
                         Text(String(userName.prefix(1)).uppercased())
-                            .font(.gilroy(size: 36, weight: .bold))
-                            .foregroundColor(HeadspaceDesign.Colors.primary)
+                            .font(AppFont.scoreSmall)
+                            .foregroundColor(Designs.Colors.primary)
                     }
 
                     Text(userName)
-                        .font(.gilroy(size: 28, weight: .bold))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        .font(AppFont.pageTitle)
+                        .foregroundColor(Designs.Colors.textPrimary)
 
                     if !userEmail.isEmpty {
                         Text(userEmail)
-                            .font(.gilroy(size: 14, weight: .regular))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.caption)
+                            .foregroundColor(Designs.Colors.textSecondary)
                     }
                 }
-                .padding(.top, HeadspaceDesign.Spacing.xl)
+                .padding(.top, Designs.Spacing.xl)
 
                 // Challenge card (if active)
                 if let challenge = GamificationManager.shared.getCurrentChallenge(), challenge.isActive {
@@ -320,14 +320,14 @@ struct ProfileTabView: View {
                 achievementsCarousel
 
                 // Stats section
-                VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+                VStack(alignment: .leading, spacing: Designs.Spacing.md) {
                     Text("Stats")
-                        .font(.gilroy(size: 18, weight: .bold))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        .font(AppFont.headlineSecondary)
+                        .foregroundColor(Designs.Colors.textPrimary)
 
-                    VStack(spacing: HeadspaceDesign.Spacing.sm) {
+                    VStack(spacing: Designs.Spacing.sm) {
                         StatRow(label: "Total Scans", value: "\(totalScans)")
-                        StatRow(label: "Current Streak", value: currentStreak > 0 ? "\(currentStreak) days" : "-", icon: "flame.fill", iconColor: HeadspaceDesign.Colors.secondary)
+                        StatRow(label: "Current Streak", value: currentStreak > 0 ? "\(currentStreak) days" : "-", icon: SFSymbol.flameFill, iconColor: Designs.Colors.secondary)
                         StatRow(label: "Longest Streak", value: longestStreak > 0 ? "\(longestStreak) days" : "-")
                         StatRow(label: "Average Score", value: totalScans > 0 ? "\(Int(averageScore))" : "-")
                         StatRow(label: "Best Score", value: totalScans > 0 ? "\(Int(bestScore))" : "-")
@@ -335,31 +335,31 @@ struct ProfileTabView: View {
                             StatRow(
                                 label: "30-Day Improvement",
                                 value: improvement > 0 ? "+\(Int(improvement))" : "\(Int(improvement))",
-                                icon: improvement > 0 ? "arrow.up.right" : "arrow.down.right",
+                                icon: improvement > 0 ? SFSymbol.arrowUpRight : "arrow.down.right",
                                 iconColor: improvement > 0 ? .green : .red
                             )
                         }
                     }
-                    .padding(HeadspaceDesign.Spacing.lg)
-                    .background(HeadspaceDesign.Colors.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+                    .padding(Designs.Spacing.lg)
+                    .background(Designs.Colors.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
                 }
 
                 Spacer()
             }
-            .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+            .padding(.horizontal, Designs.Spacing.lg)
             .padding(.bottom, 100) // Extra space for tab bar
         }
-        .background(HeadspaceDesign.Colors.background)
+        .background(Designs.Colors.background)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     showSettings = true
                 } label: {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    Image(systemName: SFSymbol.gearshapeFill)
+                        .font(AppFont.metricValue)
+                        .foregroundColor(Designs.Colors.textSecondary)
                 }
             }
         }
@@ -389,77 +389,77 @@ struct ProfileTabView: View {
         Button {
             showChallengeDetail = true
         } label: {
-            VStack(spacing: 0) {
+            VStack(spacing: Designs.Spacing.xxxSmall) {
                 // Solid lavender header
-                HeadspaceDesign.Colors.accent
-                    .frame(height: 100)
+                Designs.Colors.accent
+                    .frame(height: Designs.Sizes.frameXXLarge)
                 .overlay(
-                    HStack(spacing: HeadspaceDesign.Spacing.md) {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 32, weight: .bold))
+                    HStack(spacing: Designs.Spacing.md) {
+                        Image(systemName: SFSymbol.flameFill)
+                            .font(AppFont.scoreSmall)
                             .foregroundColor(.white)
 
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: Designs.Spacing.xxSmall) {
                             Text("30-Day Glow Challenge")
-                                .font(.gilroy(size: 18, weight: .bold))
+                                .font(AppFont.headlineSecondary)
                                 .foregroundColor(.white)
 
                             Text("Day \(challenge.daysCompleted) of 30")
-                                .font(.gilroy(size: 14, weight: .medium))
-                                .foregroundColor(.white.opacity(0.9))
+                                .font(AppFont.caption)
+                                .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
                         }
 
                         Spacer()
                     }
-                    .padding(HeadspaceDesign.Spacing.lg)
+                    .padding(Designs.Spacing.lg)
                 )
 
                 // Progress bar + stats
-                VStack(spacing: HeadspaceDesign.Spacing.md) {
+                VStack(spacing: Designs.Spacing.md) {
                     // Progress bar
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(height: 8)
+                            RoundedRectangle(cornerRadius: Designs.Radius.xSmall)
+                                .fill(Color.gray.opacity(Designs.Opacity.light))
+                                .frame(height: Designs.Sizes.progressIndicator)
 
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(HeadspaceDesign.Colors.accent)
+                            RoundedRectangle(cornerRadius: Designs.Radius.xSmall)
+                                .fill(Designs.Colors.accent)
                                 .frame(
                                     width: geometry.size.width * CGFloat(challenge.progressPercentage) / 100,
-                                    height: 8
+                                    height: Designs.Sizes.progressIndicator
                                 )
                         }
                     }
-                    .frame(height: 8)
+                    .frame(height: Designs.Sizes.progressIndicator)
 
                     HStack {
                         Text("\(Int(challenge.progressPercentage))% complete")
-                            .font(.gilroy(size: 14, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            .font(AppFont.caption)
+                            .foregroundColor(Designs.Colors.textPrimary)
 
                         Spacer()
 
                         if challenge.skinHealthImprovement > 0 {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.up.right")
-                                    .font(.system(size: 11, weight: .bold))
+                            HStack(spacing: Designs.Spacing.xxSmall) {
+                                Image(systemName: SFSymbol.arrowUpRight)
+                                    .font(AppFont.custom(size: 11, weight: .bold))
                                 Text("+\(challenge.skinHealthImprovement) skin health")
-                                    .font(.gilroy(size: 13, weight: .semibold))
+                                    .font(AppFont.footnote)
                             }
                             .foregroundColor(.green)
                         }
                     }
                 }
-                .padding(HeadspaceDesign.Spacing.lg)
-                .background(HeadspaceDesign.Colors.cardBackground)
+                .padding(Designs.Spacing.lg)
+                .background(Designs.Colors.cardBackground)
             }
-            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+            .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
             .shadow(
-                color: HeadspaceDesign.Shadows.card.color,
-                radius: HeadspaceDesign.Shadows.card.radius,
-                x: HeadspaceDesign.Shadows.card.x,
-                y: HeadspaceDesign.Shadows.card.y
+                color: Designs.Shadows.card.color,
+                radius: Designs.Shadows.card.radius,
+                x: Designs.Shadows.card.x,
+                y: Designs.Shadows.card.y
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -468,46 +468,46 @@ struct ProfileTabView: View {
     // MARK: - Achievements Carousel
 
     private var achievementsCarousel: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             Text("Achievements")
-                .font(.gilroy(size: 18, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                .font(AppFont.headlineSecondary)
+                .foregroundColor(Designs.Colors.textPrimary)
+                .padding(.horizontal, Designs.Spacing.lg)
 
             let achievements = GamificationManager.shared.getAchievements()
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                HStack(spacing: Designs.Spacing.md) {
                     ForEach(achievements, id: \.id) { achievement in
                         achievementBadgeCompact(achievement)
                     }
                 }
-                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                .padding(.horizontal, Designs.Spacing.lg)
             }
         }
-        .padding(.horizontal, -HeadspaceDesign.Spacing.lg) // Offset container padding
+        .padding(.horizontal, -Designs.Spacing.lg) // Offset container padding
     }
 
     private func achievementBadgeCompact(_ achievement: Achievement) -> some View {
         Button {
             showAchievementDetail = achievement
         } label: {
-            VStack(spacing: 8) {
+            VStack(spacing: Designs.Spacing.xSmall) {
                 ZStack {
                     Circle()
                         .fill(
                             achievement.isUnlocked
-                            ? Color(red: 0.6, green: 0.9, blue: 0.7).opacity(0.2)  // Pastel green background
-                            : HeadspaceDesign.Colors.textSecondary.opacity(0.1)
+                            ? Designs.ScoreColors.achievementGreenBackground.opacity(Designs.Opacity.light)
+                            : Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight)
                         )
-                        .frame(width: 56, height: 56)
+                        .frame(width: Designs.Sizes.iconLarge, height: Designs.Sizes.iconLarge)
 
                     Image(systemName: achievement.iconName)
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(AppFont.custom(size: 24, weight: .semibold))
                         .foregroundColor(
                             achievement.isUnlocked
-                            ? Color(red: 0.3, green: 0.8, blue: 0.5)  // Pastel green icon
-                            : HeadspaceDesign.Colors.textSecondary.opacity(0.4)
+                            ? Designs.ScoreColors.achievementGreen
+                            : Designs.Colors.textSecondary.opacity(Designs.Opacity.light)
                         )
 
                     // Unlocked checkmark badge
@@ -517,31 +517,31 @@ struct ProfileTabView: View {
                             HStack {
                                 Spacer()
                                 Circle()
-                                    .fill(Color(red: 0.3, green: 0.8, blue: 0.5))
-                                    .frame(width: 18, height: 18)
+                                    .fill(Designs.ScoreColors.achievementGreen)
+                                    .frame(width: Designs.Sizes.badgeSmall, height: Designs.Sizes.badgeSmall)
                                     .overlay(
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 10, weight: .bold))
+                                        Image(systemName: SFSymbol.checkmark)
+                                            .font(AppFont.tabBar)
                                             .foregroundColor(.white)
                                     )
                             }
                         }
-                        .frame(width: 56, height: 56)
+                        .frame(width: Designs.Sizes.iconLarge, height: Designs.Sizes.iconLarge)
                     }
                 }
 
                 Text(achievement.title)
-                    .font(.gilroy(size: 12, weight: .semibold))
+                    .font(AppFont.label)
                     .foregroundColor(
                         achievement.isUnlocked
-                        ? HeadspaceDesign.Colors.textPrimary
-                        : HeadspaceDesign.Colors.textSecondary
+                        ? Designs.Colors.textPrimary
+                        : Designs.Colors.textSecondary
                     )
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
-                    .frame(width: 70, height: 32)
+                    .frame(width: Designs.Sizes.frameMedium + 30, height: Designs.Sizes.frameSmall)
             }
-            .frame(width: 80)
+            .frame(width: Designs.Sizes.frameXLarge)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -558,21 +558,21 @@ private struct StatRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.gilroy(size: 15, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.bodySecondary)
+                .foregroundColor(Designs.Colors.textSecondary)
 
             Spacer()
 
-            HStack(spacing: 6) {
+            HStack(spacing: Designs.Spacing.xxSmall) {
                 if let icon = icon {
                     Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(iconColor ?? HeadspaceDesign.Colors.textPrimary)
+                        .font(AppFont.metricLabel)
+                        .foregroundColor(iconColor ?? Designs.Colors.textPrimary)
                 }
 
                 Text(value)
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(iconColor ?? HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(iconColor ?? Designs.Colors.textPrimary)
             }
         }
     }

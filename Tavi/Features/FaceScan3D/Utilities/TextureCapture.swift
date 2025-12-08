@@ -21,11 +21,11 @@ public class TextureCapture {
         /// Defaults to 2048×2048 (Recommended) or 4096×4096 (Best) based on High Quality Mode setting
         /// Per POSE_REQUIREMENTS_GUIDE.md: 2K = 83-85% confidence, 4K = 90-92% confidence
         public var targetTextureWidth: Int = {
-            let enableHighRes = UserDefaults.standard.bool(forKey: "enableHighResCapture")
+            let enableHighRes = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
             return enableHighRes ? ScanConfiguration.highResTextureWidth : ScanConfiguration.standardTextureWidth
         }()
         public var targetTextureHeight: Int = {
-            let enableHighRes = UserDefaults.standard.bool(forKey: "enableHighResCapture")
+            let enableHighRes = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
             return enableHighRes ? ScanConfiguration.highResTextureHeight : ScanConfiguration.standardTextureHeight
         }()
 

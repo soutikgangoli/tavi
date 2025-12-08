@@ -25,11 +25,8 @@ public struct EmotionalScan3DFlowView: View {
     @State private var processingProgress: String = ""
     @State private var processingStep: Double = 0  // Changed to Double for smooth progress
     @State private var totalProcessingSteps: Double = 6
-    @State private var estimatedTimeRemaining: String = ""
     @State private var processingStartTime: Date?
-    @State private var currentStepStartTime: Date?
-    @State private var timeRemainingSeconds: Int = 0
-    @State private var timeEstimator = ProcessingTimeEstimator()
+    @StateObject private var timeEstimator = ProcessingTimeEstimator.shared
     @State private var deviceWarningMessage: String?
     @State private var emotionalMetrics: EmotionalMetrics?
     @State private var clinicalMetrics: Face3DMetrics?
@@ -40,10 +37,8 @@ public struct EmotionalScan3DFlowView: View {
     @State private var newAchievements: [Achievement] = []
     @State private var cyclingMessageIndex: Int = 0
     @State private var cyclingTimer: Timer?
-    @State private var countdownTimer: Timer?
     @State private var breathingPhase: Double = 0
     @State private var breathingTimer: Timer?
-    @State private var elapsedTimeRefresh: Int = 0  // Triggers UI refresh for elapsed time
 
     // Automatic retry state
     @State private var retryCount: Int = 0
@@ -317,13 +312,13 @@ public struct EmotionalScan3DFlowView: View {
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color.white.opacity(0.12), Color.clear],
+                                colors: [Color.white.opacity(Designs.Opacity.veryLight + 0.02), Color.clear],
                                 center: .center,
                                 startRadius: 70,
                                 endRadius: 100
                             )
                         )
-                        .frame(width: 200, height: 200)
+                        .frame(width: Designs.Sizes.displayHeightMedium, height: Designs.Sizes.displayHeightMedium)
                         .opacity(0.8 + sin(breathingPhase) * 0.2)
 
                     // Middle glow ring
@@ -336,21 +331,21 @@ public struct EmotionalScan3DFlowView: View {
                                 endRadius: 110
                             )
                         )
-                        .frame(width: 220, height: 220)
+                        .frame(width: Designs.Sizes.displayXLarge2, height: Designs.Sizes.displayXLarge2)
                         .opacity(0.7 + sin(breathingPhase * 0.8) * 0.15)
 
                     // Main white circle (fixed size, no scaling)
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color.white, Color.white.opacity(0.9)],
+                                colors: [Color.white, Color.white.opacity(Designs.Opacity.almostOpaque)],
                                 center: .center,
                                 startRadius: 0,
                                 endRadius: 80
                             )
                         )
-                        .frame(width: 160, height: 160)
-                        .shadow(color: Color.white.opacity(0.3), radius: 15, x: 0, y: 0)
+                        .frame(width: Designs.Sizes.scoreCircleLarge, height: Designs.Sizes.scoreCircleLarge)
+                        .shadow(color: Color.white.opacity(Designs.Opacity.medium), radius: Designs.Spacing.medium, x: 0, y: 0)
 
                     // Center content - percentage with progress ring overlay
                     ZStack {
@@ -361,93 +356,107 @@ public struct EmotionalScan3DFlowView: View {
                                 Color(red: 95/255, green: 111/255, blue: 230/255),
                                 style: StrokeStyle(lineWidth: 8, lineCap: .round)
                             )
-                            .frame(width: 120, height: 120)
+                            .frame(width: Designs.Sizes.achievementIcon, height: Designs.Sizes.achievementIcon)
                             .rotationEffect(.degrees(-90))
-                            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: processingStep)
+                            .animation(Designs.Animation.gentle, value: processingStep)
 
                         // Percentage text
                         VStack(spacing: 2) {
                             Text("\(Int((processingStep / totalProcessingSteps) * 100))%")
-                                .font(.gilroy(size: 42, weight: .bold))
+                                .font(AppFont.displayLarge)
                                 .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255))
 
                             // Step indicator
                             Text("\(Int(processingStep))/\(Int(totalProcessingSteps))")
-                                .font(.gilroy(size: 13, weight: .medium))
-                                .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255).opacity(0.7))
+                                .font(AppFont.footnote)
+                                .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255).opacity(Designs.Opacity.semiTransparent))
                         }
                     }
                 }
-                .padding(.bottom, 32)
+                .padding(.bottom, Designs.Spacing.xxLarge)
 
                 // Processing messages - white text like preparing screen
-                VStack(spacing: 12) {
+                VStack(spacing: Designs.Spacing.small) {
                     // Main message (white header) - REDUCED SIZE
                     Text(processingProgress)
-                        .font(.gilroy(size: 20, weight: .bold))
+                        .font(AppFont.headlinePrimary)
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, Designs.Spacing.xxLarge)
 
                     // Detailed status (white subtext with slight transparency) - REDUCED SIZE + CYCLING
                     if let currentPhase = getCurrentProcessingPhase() {
                         Text(currentPhase.getCyclingMessage(index: cyclingMessageIndex))
-                            .font(.gilroy(size: 14, weight: .regular))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(AppFont.caption)
+                            .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                            .animation(.easeInOut(duration: 0.3), value: cyclingMessageIndex)
+                            .padding(.horizontal, Designs.Spacing.xxLarge)
+                            .animation(Designs.Animation.standard, value: cyclingMessageIndex)
                             .transition(.opacity)
                     }
 
-                    // Elapsed time (white subtext) - shows real processing time
-                    if let startTime = processingStartTime {
-                        HStack(spacing: 6) {
-                            Image(systemName: "clock.fill")
-                                .font(.system(size: 14))
-                            Text(formatElapsedTime(since: startTime))
-                                .font(.gilroy(size: 14, weight: .medium))
+                    // Countdown timer - shows estimated time remaining (counts DOWN)
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock.fill")
+                            .font(AppFont.metricLabel)
+                        if timeEstimator.remainingSeconds > 0 {
+                            Text(formatCountdownTime(timeEstimator.remainingSeconds))
+                                .font(AppFont.subheadingPrimary)
                                 .monospacedDigit()
+                        } else {
+                            Text("Almost done...")
+                                .font(AppFont.caption)
                         }
-                        .foregroundColor(.white.opacity(0.85))
-                        .padding(.top, 8)
-                        .id(elapsedTimeRefresh)  // Forces refresh every second
+                    }
+                    .foregroundColor(.white.opacity(0.95))
+                    .padding(.top, Designs.Spacing.xSmall)
+
+                    // Show learning indicator for first few scans
+                    if !timeEstimator.hasLearnedEstimates() {
+                        Text("Estimate improves with each scan")
+                            .font(AppFont.micro)
+                            .foregroundColor(.white.opacity(Designs.Opacity.semiOpaque + 0.1))
+                            .padding(.top, Designs.Spacing.xxxSmall)
                     }
                 }
-                .padding(.bottom, 24)
+                .padding(.bottom, Designs.Spacing.xLarge)
 
                 Spacer()
 
                 // Bottom checklist - white circles and text like preparing screen
-                VStack(spacing: 12) {
+                VStack(spacing: Designs.Spacing.small) {
                     prepChecklistItem(icon: "checkmark.circle.fill", text: "Please keep your phone on for the analysis")
                     prepChecklistItem(icon: "wand.and.stars", text: "Analyzing your skin")
                     prepChecklistItem(icon: "iphone", text: "Keep the app open")
                 }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 24)
+                .padding(.horizontal, Designs.Spacing.xxLarge)
+                .padding(.bottom, Designs.Spacing.xLarge)
             }
         }
         .onAppear {
-            startTimeCountdown()
+            // Start the countdown timer (estimates total time and counts down)
+            timeEstimator.startCountdown()
             startBreathingAnimation()
+            startCyclingMessages()
+            processingStartTime = Date()
         }
         .onDisappear {
             stopBreathingAnimation()
+            stopCyclingMessages()
         }
     }
 
     // MARK: - Saving View
 
     private var savingView: some View {
-        VStack(spacing: 40) {
+        VStack(spacing: Designs.Spacing.xxxLarge) {
             Spacer()
 
             ProgressView()
                 .scaleEffect(1.5)
                 .tint(.blue)
 
-            VStack(spacing: 12) {
+            VStack(spacing: Designs.Spacing.small) {
                 Text("Saving Results...")
                     .font(.title2)
                     .fontWeight(.semibold)
@@ -456,17 +465,17 @@ public struct EmotionalScan3DFlowView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+                    .padding(.horizontal, Designs.Spacing.xxLarge)
 
                 if saveRetryCount > 0 {
-                    HStack(spacing: 6) {
+                    HStack(spacing: Designs.Spacing.xxSmall) {
                         Image(systemName: "arrow.clockwise")
                             .font(.caption)
                         Text("Retry attempt \(saveRetryCount)/3")
                             .font(.caption)
                     }
                     .foregroundStyle(.orange)
-                    .padding(.top, 8)
+                    .padding(.top, Designs.Spacing.xSmall)
                 }
             }
 
@@ -502,16 +511,16 @@ public struct EmotionalScan3DFlowView: View {
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color.white.opacity(0.15), Color.clear],
+                                colors: [Color.white.opacity(Designs.Opacity.veryLight + 0.05), Color.clear],
                                 center: .center,
                                 startRadius: 80,
                                 endRadius: 120
                             )
                         )
-                        .frame(width: 240, height: 240)
+                        .frame(width: Designs.Sizes.frameXXXLarge, height: Designs.Sizes.frameXXXLarge)
                         .scaleEffect(countdown == 3 ? 1.0 : 1.2)
                         .opacity(countdown == 3 ? 1.0 : 0.5)
-                        .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: countdown)
+                        .animation(Designs.Animation.pulse, value: countdown)
 
                     Circle()
                         .fill(
@@ -522,44 +531,44 @@ public struct EmotionalScan3DFlowView: View {
                                 endRadius: 160
                             )
                         )
-                        .frame(width: 320, height: 320)
+                        .frame(width: Designs.Sizes.displayXXLarge, height: Designs.Sizes.displayXXLarge)
                         .scaleEffect(countdown == 3 ? 1.0 : 1.15)
                         .opacity(countdown == 3 ? 1.0 : 0.3)
-                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: countdown)
+                        .animation(Designs.Animation.breathe, value: countdown)
 
                     // Main white breathing circle
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color.white, Color.white.opacity(0.85)],
+                                colors: [Color.white, Color.white.opacity(Designs.Opacity.semiTransparent + 0.15)],
                                 center: .center,
                                 startRadius: 0,
                                 endRadius: 80
                             )
                         )
-                        .frame(width: 160, height: 160)
+                        .frame(width: Designs.Sizes.scoreCircleLarge, height: Designs.Sizes.scoreCircleLarge)
                         .scaleEffect(countdown == 3 ? 1.0 : 1.15)
-                        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: countdown)
-                        .shadow(color: Color.white.opacity(0.3), radius: 20, x: 0, y: 0)
+                        .animation(Designs.Animation.slowPulse, value: countdown)
+                        .shadow(color: Color.white.opacity(Designs.Opacity.medium), radius: Designs.Radius.xLarge, x: 0, y: 0)
 
                     // Countdown number
                     Text("\(countdown)")
-                        .font(.gilroy(size: 72, weight: .bold))
+                        .font(AppFont.scoreDisplayLarge)
                         .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255))  // #5F6FE6
                 }
-                .padding(.vertical, 20)
+                .padding(.vertical, Designs.Spacing.large)
 
                 // Title and subtitle
-                VStack(spacing: 12) {
+                VStack(spacing: Designs.Spacing.small) {
                     Text("Preparing scan")
-                        .font(.gilroy(size: 30, weight: .bold))
+                        .font(AppFont.title)
                         .foregroundColor(.white)
 
                     Text("Take a deep breath")
-                        .font(.gilroy(size: 18, weight: .regular))
-                        .foregroundColor(.white.opacity(0.95))
+                        .font(AppFont.headlineSecondary)
+                        .foregroundColor(.white.opacity(Designs.Opacity.almostTransparent))
                 }
-                .padding(.bottom, 24)
+                .padding(.bottom, Designs.Spacing.xLarge)
 
                 Spacer()
 
@@ -569,8 +578,8 @@ public struct EmotionalScan3DFlowView: View {
                     prepChecklistItem(icon: "checkmark", text: "Remove glasses if wearing")
                     prepChecklistItem(icon: "iphone", text: "Hold device at eye level")
                 }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 16)
+                .padding(.horizontal, Designs.Spacing.xxLarge)
+                .padding(.bottom, Designs.Spacing.medium)
 
                 // Skip countdown button
                 Button {
@@ -578,15 +587,15 @@ public struct EmotionalScan3DFlowView: View {
                     viewModel.startGuidance()
                 } label: {
                     Text("Skip")
-                        .font(.gilroy(size: 16, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
+                        .font(AppFont.subheadingPrimary)
+                        .foregroundColor(.white.opacity(Designs.Opacity.semiTransparent))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.white.opacity(0.15))
+                        .padding(.vertical, Designs.Spacing.medium)
+                        .background(Color.white.opacity(Designs.Opacity.veryLight + 0.05))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 24)
+                .padding(.horizontal, Designs.Spacing.xxLarge)
+                .padding(.bottom, Designs.Spacing.xLarge)
             }
         }
         .onAppear {
@@ -596,19 +605,19 @@ public struct EmotionalScan3DFlowView: View {
 
     // Helper for checklist items with white background circles
     private func prepChecklistItem(icon: String, text: String) -> some View {
-        HStack(spacing: 20) {
+        HStack(spacing: Designs.Spacing.large) {
             ZStack {
                 Circle()
-                    .fill(Color.white.opacity(0.25))
-                    .frame(width: 48, height: 48)
+                    .fill(Color.white.opacity(Designs.Opacity.light + 0.05))
+                        .frame(width: Designs.Sizes.cardIcon, height: Designs.Sizes.cardIcon)
 
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .medium))
+                    .font(AppFont.metricValue)
                     .foregroundColor(.white)
             }
 
             Text(text)
-                .font(.gilroy(size: 17, weight: .medium))
+                .font(AppFont.bodyMedium)
                 .foregroundColor(.white)
 
             Spacer()
@@ -650,14 +659,14 @@ public struct EmotionalScan3DFlowView: View {
     // MARK: - Auto Retry View
 
     private func autoRetryView(attempt: Int, total: Int, reason: String) -> some View {
-        VStack(spacing: 24) {
+        VStack(spacing: Designs.Spacing.xLarge) {
             Spacer()
 
             ProgressView()
                 .scaleEffect(1.5)
                 .tint(.blue)
 
-            VStack(spacing: 12) {
+            VStack(spacing: Designs.Spacing.small) {
                 Text("Retrying...")
                     .font(.title2)
                     .fontWeight(.semibold)
@@ -670,7 +679,7 @@ public struct EmotionalScan3DFlowView: View {
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+                    .padding(.horizontal, Designs.Spacing.xxLarge)
             }
 
             Button {
@@ -683,7 +692,7 @@ public struct EmotionalScan3DFlowView: View {
                 Text("Cancel Retry")
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, Designs.Spacing.xSmall)
             }
 
             Spacer()
@@ -695,14 +704,14 @@ public struct EmotionalScan3DFlowView: View {
     // MARK: - Error View
 
     private func errorView(message: String) -> some View {
-        VStack(spacing: 24) {
+        VStack(spacing: Designs.Spacing.xLarge) {
             Spacer()
 
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 64))
+                .font(AppFont.scoreDisplay)
                 .foregroundColor(.orange)
 
-            VStack(spacing: 12) {
+            VStack(spacing: Designs.Spacing.small) {
                 Text("Oops!")
                     .font(.title2)
                     .fontWeight(.semibold)
@@ -711,7 +720,7 @@ public struct EmotionalScan3DFlowView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+                    .padding(.horizontal, Designs.Spacing.xxLarge)
             }
 
             Button {
@@ -721,10 +730,10 @@ public struct EmotionalScan3DFlowView: View {
                 Label("Try Again", systemImage: "arrow.clockwise")
                     .font(.headline)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, Designs.Spacing.xxLarge)
+                    .padding(.vertical, Designs.Spacing.small)
                     .background(Color.blue)
-                    .cornerRadius(12)
+                    .cornerRadius(Designs.Radius.medium)
             }
 
             Button {
@@ -733,7 +742,7 @@ public struct EmotionalScan3DFlowView: View {
                 Text("Cancel")
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, Designs.Spacing.xSmall)
             }
 
             Spacer()
@@ -750,9 +759,6 @@ public struct EmotionalScan3DFlowView: View {
         // Initialize device-specific time estimation
         deviceWarningMessage = timeEstimator.getProcessingWarning()
 
-        // Start cycling messages every 3 seconds
-        startCyclingMessages()
-
         // Log scan processing start with context
         CrashReporter.shared.logUserAction("scan_processing_started")
         CrashReporter.shared.setCustomKey("capture_count", value: viewModel.capturedPoses.count)
@@ -763,7 +769,7 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 1: Merge meshes (with timeout protection)
                 smoothlyUpdateProgress(to: 1)
                 processingProgress = ProcessingPhase.meshMerge.description
-                updateTimeRemaining(from: .meshMerge)
+                timeEstimator.startPhase(.meshMerge)
                 CrashReporter.shared.setCustomKey("processing_step", value: "mesh_merge")
 
                 let adjustedMergeTimeout = timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.meshMergeTimeout)
@@ -791,7 +797,7 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 2: Bake texture (with timeout protection)
                 smoothlyUpdateProgress(to: 2)
                 processingProgress = ProcessingPhase.textureBake.description
-                updateTimeRemaining(from: .textureBake)
+                timeEstimator.startPhase(.textureBake)
                 CrashReporter.shared.setCustomKey("processing_step", value: "texture_bake")
 
                 let adjustedBakeTimeout = timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.textureBakeTimeout)
@@ -815,7 +821,7 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 3: Compute clinical metrics (with timeout protection)
                 smoothlyUpdateProgress(to: 3)
                 processingProgress = ProcessingPhase.metricsAnalysis.description
-                updateTimeRemaining(from: .metricsAnalysis)
+                timeEstimator.startPhase(.metricsAnalysis)
                 CrashReporter.shared.setCustomKey("processing_step", value: "metrics_analysis")
 
                 // Attempt metrics computation with timeout protection
@@ -839,7 +845,7 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 4: Convert to emotional metrics
                 smoothlyUpdateProgress(to: 4)
                 processingProgress = ProcessingPhase.emotionalMetrics.description
-                updateTimeRemaining(from: .emotionalMetrics)
+                timeEstimator.startPhase(.emotionalMetrics)
                 CrashReporter.shared.setCustomKey("processing_step", value: "emotional_metrics")
 
                 let userProfile = UserProfileManager.shared.loadProfile()
@@ -861,7 +867,7 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 5: Update gamification
                 smoothlyUpdateProgress(to: 5)
                 processingProgress = ProcessingPhase.gamification.description
-                updateTimeRemaining(from: .gamification)
+                timeEstimator.startPhase(.gamification)
                 CrashReporter.shared.setCustomKey("processing_step", value: "gamification")
 
                 let updatedStreak = GamificationManager.shared.recordScan()
@@ -888,7 +894,7 @@ public struct EmotionalScan3DFlowView: View {
                 // Step 6: Save to Core Data (with timeout protection)
                 smoothlyUpdateProgress(to: 6)
                 processingProgress = ProcessingPhase.coreDataSave.description
-                updateTimeRemaining(from: .coreDataSave)
+                timeEstimator.startPhase(.coreDataSave)
                 CrashReporter.shared.setCustomKey("processing_step", value: "core_data_save")
 
                 // Try to save with timeout - saveToCoreData() handles its own errors and shows alerts
@@ -937,9 +943,11 @@ public struct EmotionalScan3DFlowView: View {
                 CrashReporter.shared.setCustomKey("skin_health_score", value: emotional.skinHealthScore)
                 CrashReporter.shared.setCustomKey("achievements_unlocked", value: unlockedAchievements.count)
 
+                // Finish processing - saves learned times for future estimates
+                timeEstimator.finishProcessing()
+
                 // Stop timers
                 stopCyclingMessages()
-                stopTimeCountdown()
 
                 // Show achievement unlock if any
                 if !unlockedAchievements.isEmpty {
@@ -951,7 +959,7 @@ public struct EmotionalScan3DFlowView: View {
             } catch let scanError as ScanError {
                 // Stop timers on error too
                 stopCyclingMessages()
-                stopTimeCountdown()
+                timeEstimator.cancelProcessing()
                 // Log scan error with full context
                 CrashReporter.shared.logScanError(
                     scanError,
@@ -1271,16 +1279,16 @@ struct AchievementUnlockOverlay: View {
     var body: some View {
         ZStack {
             // Dark background
-            Color.black.opacity(0.7)
+            Color.black.opacity(Designs.Opacity.semiTransparent)
                 .ignoresSafeArea()
                 .onTapGesture {
                     onDismiss()
                 }
 
             // Achievement card
-            VStack(spacing: 20) {
+            VStack(spacing: Designs.Spacing.large) {
                 Image(systemName: "trophy.fill")
-                    .font(.system(size: 80, weight: .light))
+                    .font(AppFont.scoreDisplayLarge)
                     .foregroundColor(.orange)
 
                 Text("Achievement Unlocked!")
@@ -1288,9 +1296,9 @@ struct AchievementUnlockOverlay: View {
                     .fontWeight(.bold)
 
                 ForEach(achievements.prefix(1)) { achievement in
-                    VStack(spacing: 12) {
+                    VStack(spacing: Designs.Spacing.small) {
                         Image(systemName: achievement.iconName)
-                            .font(.system(size: 64, weight: .medium))
+                            .font(AppFont.scoreDisplay)
                             .foregroundColor(.orange)
 
                         Text(achievement.title)
@@ -1310,25 +1318,25 @@ struct AchievementUnlockOverlay: View {
                     Text("Awesome!")
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
-                        .padding(.horizontal, 40)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, Designs.Spacing.xxxLarge)
+                        .padding(.vertical, Designs.Spacing.small)
                         .background(Color.blue)
-                        .cornerRadius(12)
+                        .cornerRadius(Designs.Radius.medium)
                 }
-                .padding(.top, 8)
+                .padding(.top, Designs.Spacing.xSmall)
             }
-            .padding(32)
+            .padding(Designs.Spacing.xxLarge)
             .background(
                 RoundedRectangle(cornerRadius: 24)
                     .fill(Color(uiColor: .systemBackground))
-                    .shadow(radius: 20)
+                    .shadow(radius: Designs.Spacing.large)
             )
-            .padding(.horizontal, 40)
+            .padding(.horizontal, Designs.Spacing.xxxLarge)
             .scaleEffect(showDetails ? 1 : 0.8)
             .opacity(showDetails ? 1 : 0)
         }
         .onAppear {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+            withAnimation(Designs.Animation.spring) {
                 showDetails = true
             }
 
@@ -1451,21 +1459,11 @@ extension EmotionalScan3DFlowView {
         return ProcessingPhase(rawValue: Int(processingStep))
     }
 
-    /// Format seconds into human-readable time string
-    private func formatTimeRemaining(_ seconds: Int) -> String {
-        if seconds >= 60 {
-            let minutes = seconds / 60
-            let remainingSeconds = seconds % 60
-            if remainingSeconds > 0 {
-                return "\(minutes)m \(remainingSeconds)s remaining"
-            } else {
-                return "\(minutes)m remaining"
-            }
-        } else if seconds > 0 {
-            return "\(seconds)s remaining"
-        } else {
-            return "Almost done..."
-        }
+    /// Format countdown time in MM:SS format
+    private func formatCountdownTime(_ seconds: Int) -> String {
+        let minutes = seconds / 60
+        let remainingSeconds = seconds % 60
+        return String(format: "%d:%02d remaining", minutes, remainingSeconds)
     }
 
     /// Format elapsed time since start
@@ -1474,43 +1472,6 @@ extension EmotionalScan3DFlowView {
         let minutes = elapsed / 60
         let seconds = elapsed % 60
         return String(format: "%d:%02d", minutes, seconds)
-    }
-
-    /// Update time remaining estimate when moving to a new step (kept for compatibility)
-    private func updateTimeRemaining(from phase: ProcessingPhase) {
-        // No longer used for display, but kept for any dependent logic
-    }
-
-    /// Start the elapsed time display timer
-    private func startTimeCountdown() {
-        // Set processing start time if not already set
-        if processingStartTime == nil {
-            processingStartTime = Date()
-        }
-
-        // Invalidate any existing timer first
-        countdownTimer?.invalidate()
-        countdownTimer = nil
-
-        // Timer triggers UI refresh for elapsed time display
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-            DispatchQueue.main.async { [self] in
-                // Stop timer if we're no longer processing
-                if case .processing = flowState {
-                    // Increment to trigger SwiftUI refresh
-                    elapsedTimeRefresh += 1
-                } else {
-                    timer.invalidate()
-                    countdownTimer = nil
-                }
-            }
-        }
-    }
-
-    /// Stop the countdown timer
-    private func stopTimeCountdown() {
-        countdownTimer?.invalidate()
-        countdownTimer = nil
     }
 
     /// Start the breathing animation for the processing circle
@@ -1614,7 +1575,7 @@ extension EmotionalScan3DFlowView {
 
         // Note: No need for [weak self] in SwiftUI Views (structs don't have retain cycles)
         cyclingTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
-            withAnimation(.easeInOut(duration: 0.3)) {
+            withAnimation(Designs.Animation.standard) {
                 cyclingMessageIndex += 1
             }
         }
@@ -1628,7 +1589,7 @@ extension EmotionalScan3DFlowView {
 
     /// Smoothly animate progress to target step with intermediate values
     private func smoothlyUpdateProgress(to targetStep: Int) {
-        withAnimation(.linear(duration: 0.5)) {
+        withAnimation(Designs.Animation.linear) {
             processingStep = Double(targetStep)
         }
     }

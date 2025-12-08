@@ -51,7 +51,7 @@ public struct MetricsResultView: View {
                             .padding()
                             .background(Color.purple)
                             .foregroundStyle(.white)
-                            .cornerRadius(12)
+                            .cornerRadius(Designs.Radius.medium)
                         }
                     }
 
@@ -105,8 +105,8 @@ public struct MetricsResultView: View {
             ZStack {
                 // Background circle
                 Circle()
-                    .stroke(Color.gray.opacity(0.2), lineWidth: 20)
-                    .frame(width: 150, height: 150)
+                    .stroke(Color.gray.opacity(Designs.Opacity.light), lineWidth: Designs.Border.widthThick * 12)
+                    .frame(width: Designs.Sizes.displayXLarge, height: Designs.Sizes.displayXLarge)
 
                 // Progress circle
                 Circle()
@@ -115,7 +115,7 @@ public struct MetricsResultView: View {
                         qualityColor(metrics.overallQualityScore),
                         style: StrokeStyle(lineWidth: 20, lineCap: .round)
                     )
-                    .frame(width: 150, height: 150)
+                    .frame(width: Designs.Sizes.displayXLarge, height: Designs.Sizes.displayXLarge)
                     .rotationEffect(.degrees(-90))
 
                 // Score text
@@ -137,7 +137,7 @@ public struct MetricsResultView: View {
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .cornerRadius(Designs.Radius.large)
     }
 
     private var discolorationCard: some View {
@@ -161,7 +161,7 @@ public struct MetricsResultView: View {
 
                 Circle()
                     .fill(discolorationColor(metrics.discolorationIndex))
-                    .frame(width: 60, height: 60)
+                    .frame(width: Designs.Sizes.metricRingMedium, height: Designs.Sizes.metricRingMedium)
                     .overlay(
                         Image(systemName: discolorationIcon(metrics.discolorationIndex))
                             .font(.title2)
@@ -175,7 +175,7 @@ public struct MetricsResultView: View {
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .cornerRadius(Designs.Radius.large)
     }
 
     private func detailedBreakdown(_ avgMetrics: ROIMetrics) -> some View {
@@ -213,7 +213,7 @@ public struct MetricsResultView: View {
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .cornerRadius(Designs.Radius.large)
     }
 
     private func qualityColor(_ score: Double) -> Color {
@@ -309,7 +309,7 @@ struct ROIMetricsCard: View {
                 HStack {
                     Image(systemName: "drop")
                         .foregroundStyle(.cyan)
-                        .frame(width: 20)
+                        .frame(width: Designs.Sizes.iconTiny)
 
                     Text("Moisture Index")
                         .font(.subheadline)
@@ -343,7 +343,7 @@ struct ROIMetricsCard: View {
         }
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .cornerRadius(Designs.Radius.large)
     }
 
     private func scoreColor(_ score: Double) -> Color {
@@ -372,7 +372,7 @@ struct MetricRow: View {
         HStack {
             Image(systemName: icon)
                 .foregroundStyle(color)
-                .frame(width: 20)
+                .frame(width: Designs.Sizes.indicatorMedium)
 
             Text(label)
                 .font(.subheadline)
@@ -408,7 +408,7 @@ private struct MetricBar: View {
             HStack {
                 Image(systemName: icon)
                     .foregroundStyle(color)
-                    .frame(width: 20)
+                    .frame(width: Designs.Sizes.indicatorMedium)
 
                 Text(label)
                     .font(.subheadline)
@@ -423,17 +423,17 @@ private struct MetricBar: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     // Background
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 8)
+                    RoundedRectangle(cornerRadius: Designs.Radius.xSmall)
+                        .fill(Color.gray.opacity(Designs.Opacity.light))
+                        .frame(height: Designs.Sizes.indicatorTiny)
 
                     // Progress
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: Designs.Radius.xSmall)
                         .fill(color)
                         .frame(width: geometry.size.width * value, height: 8)
                 }
             }
-            .frame(height: 8)
+            .frame(height: Designs.Sizes.indicatorTiny)
         }
     }
 }

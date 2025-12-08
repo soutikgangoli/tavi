@@ -23,7 +23,7 @@ public struct CelebratoryResultsView: View {
     @State private var selectedMetricForHelp: AnalysisMetricType? = nil
     @State private var showFirstTimeBanner = false
     @State private var animatedScore: CGFloat = 0  // For smooth circle animation
-    @AppStorage("hasViewedMetricHelp") private var hasViewedMetricHelp = false
+    @AppStorage(AppDefaultsKey.hasViewedMetricHelp) private var hasViewedMetricHelp = false
 
     public enum SaveStatus {
         case saving
@@ -53,7 +53,7 @@ public struct CelebratoryResultsView: View {
         ZStack(alignment: .top) {
             // Main content
             ScrollView(showsIndicators: false) {
-                VStack(spacing: HeadspaceDesign.Spacing.xxxl) {
+                VStack(spacing: Designs.Spacing.xxxl) {
                     // Hero section
                     heroSection
                         .opacity(showScore ? 1 : 0)
@@ -113,12 +113,12 @@ public struct CelebratoryResultsView: View {
                     // Share button
                     shareButton
 
-                    Spacer().frame(height: HeadspaceDesign.Spacing.xxl)
+                    Spacer().frame(height: Designs.Spacing.xxl)
                 }
-                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                .padding(.horizontal, Designs.Spacing.lg)
                 .padding(.top, 80)
             }
-            .background(HeadspaceDesign.Colors.background)
+            .background(Designs.Colors.background)
 
             // Floating close button
             HStack {
@@ -126,16 +126,16 @@ public struct CelebratoryResultsView: View {
                 Button {
                     onClose()
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-                        .frame(width: 32, height: 32)
-                        .background(HeadspaceDesign.Colors.cardBackground)
+                    Image(systemName: SFSymbol.xmark)
+                        .font(AppFont.headline)
+                        .foregroundColor(Designs.Colors.textSecondary)
+                        .frame(width: Designs.Sizes.iconXSmall, height: Designs.Sizes.iconXSmall)
+                        .background(Designs.Colors.cardBackground)
                         .clipShape(Circle())
                 }
             }
-            .padding(.horizontal, HeadspaceDesign.Spacing.lg)
-            .padding(.top, HeadspaceDesign.Spacing.md)
+            .padding(.horizontal, Designs.Spacing.lg)
+            .padding(.top, Designs.Spacing.md)
         }
         .onAppear {
             animateEntrance()
@@ -148,16 +148,16 @@ public struct CelebratoryResultsView: View {
     // MARK: - Components
 
     private var heroSection: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.md) {
+        VStack(spacing: Designs.Spacing.md) {
             Text(scoreInterpretationTitle)
-                .font(.system(size: 32, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(.app(size: 32, weight: .bold))
+                .foregroundColor(Designs.Colors.textPrimary)
                 .multilineTextAlignment(.center)
 
             if !emotionalMetrics.personalizedMessage.isEmpty {
                 Text(emotionalMetrics.personalizedMessage)
-                    .font(.system(size: 18, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(.app(size: 18, weight: .regular))
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
         }
@@ -168,73 +168,73 @@ public struct CelebratoryResultsView: View {
             // Gradient section with score
             ZStack {
                 scoreGradient
-                    .frame(height: 260)
+                    .frame(height: Designs.Sizes.displayHeightLarge)
 
-                VStack(spacing: HeadspaceDesign.Spacing.xl) {
+                VStack(spacing: Designs.Spacing.xl) {
                     // Score circle
                     ZStack {
                         Circle()
-                            .stroke(Color.white.opacity(0.2), lineWidth: 10)
-                            .frame(width: 160, height: 160)
+                            .stroke(Color.white.opacity(Designs.Opacity.light), lineWidth: 10)
+                            .frame(width: Designs.Sizes.scoreCircleLarge, height: Designs.Sizes.scoreCircleLarge)
 
                         Circle()
                             .trim(from: 0, to: animatedScore / 100)
                             .stroke(Color.white, style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                            .frame(width: 160, height: 160)
+                            .frame(width: Designs.Sizes.scoreCircleLarge, height: Designs.Sizes.scoreCircleLarge)
                             .rotationEffect(.degrees(-90))
-                            .animation(.easeOut(duration: 1.5), value: animatedScore)
+                            .animation(Designs.Animation.slowEaseOut, value: animatedScore)
 
                         Text("\(Int(animatedScore))")
                             .font(.scoreFont(size: 64))
                             .foregroundColor(.white)
-                            .animation(.easeOut(duration: 1.5), value: animatedScore)
+                            .animation(Designs.Animation.slowEaseOut, value: animatedScore)
                     }
 
                     Text("Your Skin Health Score")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.white.opacity(0.95))
+                        .font(.app(size: 18, weight: .medium))
+                        .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
                 }
             }
 
             // YELLOW description section (was white-on-white!)
-            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+            VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
                 Text(scoreInterpretation)
-                    .font(.gilroy(size: 16, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(Designs.Colors.textPrimary)
                     .lineSpacing(4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(HeadspaceDesign.Spacing.xl)
-            .background(Color.yellow.opacity(0.15))
+            .padding(Designs.Spacing.xl)
+            .background(Designs.Colors.primary.opacity(Designs.Opacity.medium))
         }
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
     // MARK: - Summary Section (NEW - "The Grip")
 
     private var summarySection: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.md) {
+        VStack(spacing: Designs.Spacing.md) {
             Text(dynamicSummaryText)
-                .font(.gilroy(size: 18, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.headlineSecondary)
+                .foregroundColor(Designs.Colors.textPrimary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)
         }
-        .padding(HeadspaceDesign.Spacing.xl)
+        .padding(Designs.Spacing.xl)
         .frame(maxWidth: .infinity)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
@@ -281,13 +281,13 @@ public struct CelebratoryResultsView: View {
     // MARK: - Key Metrics Section (NEW - Circular Progress Rings)
 
     private var keyMetricsSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.lg) {
             Text("Key Metrics")
-                .font(.gilroy(size: 22, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.sectionHeader)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             // Horizontal row of circular progress rings
-            HStack(spacing: HeadspaceDesign.Spacing.lg) {
+            HStack(spacing: Designs.Spacing.lg) {
                 circularMetricRing(
                     title: "Lines & Wrinkles",
                     score: emotionalMetrics.youthfulness,
@@ -314,41 +314,41 @@ public struct CelebratoryResultsView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .padding(HeadspaceDesign.Spacing.xl)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.xl)
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
     /// Individual circular progress ring for key metrics
     private func circularMetricRing(title: String, score: Int, icon: String) -> some View {
-        VStack(spacing: HeadspaceDesign.Spacing.sm) {
+        VStack(spacing: Designs.Spacing.sm) {
             // Circular progress ring
             ZStack {
                 Circle()
-                    .stroke(metricColor(score).opacity(0.2), lineWidth: 6)
-                    .frame(width: 60, height: 60)
+                    .stroke(metricColor(score).opacity(Designs.Opacity.light), lineWidth: 6)
+                    .frame(width: Designs.Sizes.metricRingMedium, height: Designs.Sizes.metricRingMedium)
 
                 Circle()
                     .trim(from: 0, to: CGFloat(score) / 100)
                     .stroke(metricColor(score), style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .frame(width: 60, height: 60)
+                    .frame(width: Designs.Sizes.metricRingMedium, height: Designs.Sizes.metricRingMedium)
                     .rotationEffect(.degrees(-90))
 
                 Text("\(score)")
-                    .font(.gilroy(size: 18, weight: .bold))
+                    .font(AppFont.headlineSecondary)
                     .foregroundColor(metricColor(score))
             }
 
             // Title
             Text(title)
-                .font(.gilroy(size: 12, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
@@ -362,24 +362,24 @@ public struct CelebratoryResultsView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Section header
             Text("Detailed Skin Profile")
-                .font(.gilroy(size: 22, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
-                .padding(.top, HeadspaceDesign.Spacing.lg)
-                .padding(.bottom, HeadspaceDesign.Spacing.md)
+                .font(AppFont.sectionHeader)
+                .foregroundColor(Designs.Colors.textPrimary)
+                .padding(.horizontal, Designs.Spacing.lg)
+                .padding(.top, Designs.Spacing.lg)
+                .padding(.bottom, Designs.Spacing.md)
 
             // Expandable metric rows
             VStack(spacing: 0) {
                 profileMetricRow(
                     title: "Texture",
-                    icon: "waveform.path",
+                    icon: SFSymbol.waveformPath,
                     score: emotionalMetrics.smoothness,
                     diagnosis: "Surface texture quality measured by analyzing pore size distribution, surface smoothness, and uniformity. We measure micro-variations in the skin surface to assess overall skin refinement.",
                     metricId: "profile_texture",
                     metricType: .roughness
                 )
 
-                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                Divider().padding(.horizontal, Designs.Spacing.lg)
 
                 profileMetricRow(
                     title: "Hydration",
@@ -390,18 +390,18 @@ public struct CelebratoryResultsView: View {
                     metricType: .hydration
                 )
 
-                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                Divider().padding(.horizontal, Designs.Spacing.lg)
 
                 profileMetricRow(
                     title: "Radiance",
-                    icon: "sparkles",
+                    icon: SFSymbol.sparkles,
                     score: emotionalMetrics.radiance,
                     diagnosis: "Light reflection quality measured by analyzing light reflection patterns, skin luminosity, and color vibrance across different facial zones. Higher scores indicate healthier, more luminous skin.",
                     metricId: "profile_radiance",
                     metricType: .brightness
                 )
 
-                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                Divider().padding(.horizontal, Designs.Spacing.lg)
 
                 profileMetricRow(
                     title: "Tone Evenness",
@@ -412,18 +412,18 @@ public struct CelebratoryResultsView: View {
                     metricType: .pigmentation
                 )
 
-                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                Divider().padding(.horizontal, Designs.Spacing.lg)
 
                 profileMetricRow(
                     title: "Redness Control",
-                    icon: "heart.fill",
+                    icon: SFSymbol.heartFill,
                     score: emotionalMetrics.rednessScore,
                     diagnosis: "Skin redness detected by analyzing red channel intensity, inflammation patterns, and vascular visibility across facial regions. Higher scores indicate calmer, less inflamed skin.",
                     metricId: "profile_redness",
                     metricType: .discoloration
                 )
 
-                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                Divider().padding(.horizontal, Designs.Spacing.lg)
 
                 profileMetricRow(
                     title: "Acne",
@@ -434,7 +434,7 @@ public struct CelebratoryResultsView: View {
                     metricType: .pigmentation
                 )
 
-                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                Divider().padding(.horizontal, Designs.Spacing.lg)
 
                 profileMetricRow(
                     title: "Lines & Wrinkles",
@@ -445,7 +445,7 @@ public struct CelebratoryResultsView: View {
                     metricType: .wrinkles
                 )
 
-                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                Divider().padding(.horizontal, Designs.Spacing.lg)
 
                 profileMetricRow(
                     title: "Shine Detection",
@@ -456,7 +456,7 @@ public struct CelebratoryResultsView: View {
                     metricType: .hydration
                 )
 
-                Divider().padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                Divider().padding(.horizontal, Designs.Spacing.lg)
 
                 profileMetricRow(
                     title: "Pore Visibility",
@@ -467,15 +467,15 @@ public struct CelebratoryResultsView: View {
                     metricType: .pores
                 )
             }
-            .padding(.bottom, HeadspaceDesign.Spacing.md)
+            .padding(.bottom, Designs.Spacing.md)
         }
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
@@ -484,27 +484,27 @@ public struct CelebratoryResultsView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Tappable header row
             Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                withAnimation(Designs.Animation.spring) {
                     expandedProfileMetric = expandedProfileMetric == metricId ? nil : metricId
                 }
             } label: {
-                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                HStack(spacing: Designs.Spacing.md) {
                     // Icon
                     ZStack {
                         Circle()
-                            .fill(metricColor(score).opacity(0.12))
-                            .frame(width: 40, height: 40)
+                            .fill(metricColor(score).opacity(Designs.Opacity.veryLight))
+                            .frame(width: Designs.Sizes.iconMedium, height: Designs.Sizes.iconMedium)
 
                         Image(systemName: icon)
-                            .font(.system(size: 18, weight: .medium))
+                            .font(AppFont.cardTitle)
                             .foregroundColor(metricColor(score))
                     }
 
                     // Title and quality badge
                     VStack(alignment: .leading, spacing: 4) {
                         Text(title)
-                            .font(.gilroy(size: 16, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            .font(AppFont.subheadingPrimary)
+                            .foregroundColor(Designs.Colors.textPrimary)
 
                         qualityBadge(for: score)
                     }
@@ -513,42 +513,42 @@ public struct CelebratoryResultsView: View {
 
                     // Score
                     Text("\(score)")
-                        .font(.gilroy(size: 24, weight: .bold))
+                        .font(AppFont.title2)
                         .foregroundColor(metricColor(score))
 
                     // Chevron
-                    Image(systemName: expandedProfileMetric == metricId ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    Image(systemName: expandedProfileMetric == metricId ? SFSymbol.chevronUp : SFSymbol.chevronDown)
+                        .font(AppFont.metricLabel)
+                        .foregroundColor(Designs.Colors.textSecondary)
                 }
-                .padding(HeadspaceDesign.Spacing.lg)
+                .padding(Designs.Spacing.lg)
             }
 
             // Expanded diagnosis content
             if expandedProfileMetric == metricId {
-                VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+                VStack(alignment: .leading, spacing: Designs.Spacing.md) {
                     // Diagnosis text
                     Text(diagnosis)
-                        .font(.gilroy(size: 14, weight: .regular))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .font(AppFont.caption)
+                        .foregroundColor(Designs.Colors.textSecondary)
                         .lineSpacing(4)
                         .fixedSize(horizontal: false, vertical: true)
 
                     // Improvement suggestion (if applicable)
                     if let suggestion = improvementSuggestion(for: score, metricType: metricType) {
                         HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "lightbulb.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.orange)
+                            Image(systemName: SFSymbol.lightbulbFill)
+                                .font(AppFont.caption)
+                                .foregroundColor(Designs.Colors.warning)
 
                             Text(suggestion)
-                                .font(.gilroy(size: 14, weight: .medium))
-                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                                .font(AppFont.caption)
+                                .foregroundColor(Designs.Colors.textPrimary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        .padding(HeadspaceDesign.Spacing.md)
-                        .background(Color.orange.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                        .padding(Designs.Spacing.md)
+                        .background(Designs.Colors.warning.opacity(Designs.Opacity.veryLight))
+                        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                     }
 
                     // Help button
@@ -557,30 +557,30 @@ public struct CelebratoryResultsView: View {
                         hasViewedMetricHelp = true
                     } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: "questionmark.circle")
-                                .font(.system(size: 14))
+                            Image(systemName: SFSymbol.questionmarkCircle)
+                                .font(AppFont.caption)
                             Text("Learn more about \(title.lowercased())")
-                                .font(.gilroy(size: 13, weight: .medium))
+                                .font(AppFont.footnote)
                         }
-                        .foregroundColor(HeadspaceDesign.Colors.primary)
+                        .foregroundColor(Designs.Colors.primary)
                     }
                 }
-                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
-                .padding(.bottom, HeadspaceDesign.Spacing.lg)
+                .padding(.horizontal, Designs.Spacing.lg)
+                .padding(.bottom, Designs.Spacing.lg)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }
 
     private var firstTimeBanner: some View {
-        HStack(spacing: HeadspaceDesign.Spacing.md) {
-            Image(systemName: "lightbulb")
-                .font(.system(size: 20, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+        HStack(spacing: Designs.Spacing.md) {
+            Image(systemName: SFSymbol.lightbulb)
+                .font(AppFont.metricValue)
+                .foregroundColor(Designs.Colors.textSecondary)
 
             Text("New to skin metrics? Tap any metric to see details and tips")
-                .font(.gilroy(size: 15, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.bodySecondary)
+                .foregroundColor(Designs.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
@@ -589,25 +589,25 @@ public struct CelebratoryResultsView: View {
                 }
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.metricLabel)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(Color.blue.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
     }
 
     private var actionPlanSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.xl) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.xl) {
             // Section header
             Text("Recommended actions")
-                .font(.gilroy(size: 22, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.sectionHeader)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             // Actions
             if !emotionalMetrics.nextSteps.isEmpty {
-                VStack(spacing: HeadspaceDesign.Spacing.md) {
+                VStack(spacing: Designs.Spacing.md) {
                     ForEach(emotionalMetrics.nextSteps.prefix(3)) { step in
                         actionCard(step: step)
                     }
@@ -619,43 +619,43 @@ public struct CelebratoryResultsView: View {
     }
 
     private func actionCard(step: ActionableStep) -> some View {
-        HStack(spacing: HeadspaceDesign.Spacing.lg) {
+        HStack(spacing: Designs.Spacing.lg) {
             // Icon
             ZStack {
                 Circle()
-                    .fill(HeadspaceDesign.Colors.primary.opacity(0.12))
-                    .frame(width: 48, height: 48)
+                    .fill(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
+                    .frame(width: Designs.Sizes.cardIcon, height: Designs.Sizes.cardIcon)
 
                 Image(systemName: step.icon)
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                    .font(AppFont.sectionHeader)
+                    .foregroundColor(Designs.Colors.primary)
             }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(step.action)
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text("\(step.frequency) • \(step.timing)")
-                    .font(.gilroy(size: 14, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
         }
-        .padding(HeadspaceDesign.Spacing.xl)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.xl)
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
     private var defaultActionsCard: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.md) {
+        VStack(spacing: Designs.Spacing.md) {
             defaultActionItem(icon: "sun.max.fill", title: "Apply SPF daily", subtitle: "Protect from UV damage")
             defaultActionItem(icon: "drop.fill", title: "Stay hydrated", subtitle: "Drink water & moisturize")
             defaultActionItem(icon: "calendar", title: "Track progress", subtitle: "Weekly scans recommended")
@@ -663,25 +663,25 @@ public struct CelebratoryResultsView: View {
     }
 
     private func defaultActionItem(icon: String, title: String, subtitle: String) -> some View {
-        HStack(spacing: HeadspaceDesign.Spacing.lg) {
+        HStack(spacing: Designs.Spacing.lg) {
             ZStack {
                 Circle()
-                    .fill(HeadspaceDesign.Colors.primary.opacity(0.12))
-                    .frame(width: 48, height: 48)
+                    .fill(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
+                    .frame(width: Designs.Sizes.cardIcon, height: Designs.Sizes.cardIcon)
 
                 Image(systemName: icon)
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                    .font(AppFont.sectionHeader)
+                    .foregroundColor(Designs.Colors.primary)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(subtitle)
-                    .font(.gilroy(size: 14, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
@@ -689,28 +689,28 @@ public struct CelebratoryResultsView: View {
     }
 
     private var shareButton: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.md) {
+        VStack(spacing: Designs.Spacing.md) {
             // Primary: Share results
             Button {
                 onShareResults()
             } label: {
-                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                HStack(spacing: Designs.Spacing.md) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(AppFont.cardTitle)
 
                     Text("Share results")
-                        .font(.gilroy(size: 18, weight: .bold))
+                        .font(AppFont.headlineSecondary)
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
-                .background(HeadspaceDesign.Colors.primary)
-                .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+                .background(Designs.Colors.primary)
+                .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
                 .shadow(
-                    color: HeadspaceDesign.Shadows.button.color,
-                    radius: HeadspaceDesign.Shadows.button.radius,
-                    x: HeadspaceDesign.Shadows.button.x,
-                    y: HeadspaceDesign.Shadows.button.y
+                    color: Designs.Shadows.button.color,
+                    radius: Designs.Shadows.button.radius,
+                    x: Designs.Shadows.button.x,
+                    y: Designs.Shadows.button.y
                 )
             }
 
@@ -719,18 +719,18 @@ public struct CelebratoryResultsView: View {
                 onClose()
                 // User will return to home and can tap "Scan Now" again
             } label: {
-                HStack(spacing: HeadspaceDesign.Spacing.md) {
+                HStack(spacing: Designs.Spacing.md) {
                     Image(systemName: "camera.fill")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(AppFont.bodyPrimary)
 
                     Text("Scan again")
-                        .font(.gilroy(size: 16, weight: .semibold))
+                        .font(AppFont.subheadingPrimary)
                 }
-                .foregroundColor(HeadspaceDesign.Colors.primary)
+                .foregroundColor(Designs.Colors.primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(HeadspaceDesign.Colors.primary.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+                .background(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
+                .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
             }
         }
     }
@@ -738,16 +738,16 @@ public struct CelebratoryResultsView: View {
     // MARK: - Recommended Products Section
 
     private var recommendedProductsSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             Text("Recommended Products")
-                .font(.gilroy(size: 24, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.title2)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Text("Based on your skin analysis")
-                .font(.system(size: 14, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(.app(size: 14, weight: .regular))
+                .foregroundColor(Designs.Colors.textSecondary)
 
-            VStack(spacing: HeadspaceDesign.Spacing.md) {
+            VStack(spacing: Designs.Spacing.md) {
                 productCard(
                     name: "Hydrating Serum",
                     category: "Moisturizer",
@@ -771,56 +771,56 @@ public struct CelebratoryResultsView: View {
             }
 
             Text("Note: Product recommendations are placeholder examples")
-                .font(.system(size: 12, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                .font(.app(size: 12, weight: .regular))
+                .foregroundColor(Designs.Colors.textTertiary)
                 .padding(.top, 8)
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
     }
 
     private func productCard(name: String, category: String, reason: String, priority: String) -> some View {
-        HStack(spacing: HeadspaceDesign.Spacing.md) {
+        HStack(spacing: Designs.Spacing.md) {
             // Placeholder product image
             RoundedRectangle(cornerRadius: 8)
-                .fill(HeadspaceDesign.Colors.primary.opacity(0.1))
-                .frame(width: 60, height: 60)
+                .fill(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
+                .frame(width: Designs.Sizes.metricRingMedium, height: Designs.Sizes.metricRingMedium)
                 .overlay(
                     Image(systemName: "sparkles")
-                        .font(.system(size: 24))
-                        .foregroundColor(HeadspaceDesign.Colors.primary)
+                        .font(AppFont.navIcon)
+                        .foregroundColor(Designs.Colors.primary)
                 )
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(name)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(.app(size: 15, weight: .semibold))
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(category)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(.app(size: 13, weight: .medium))
+                    .foregroundColor(Designs.Colors.textSecondary)
 
                 Text(reason)
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                    .font(.app(size: 12, weight: .regular))
+                    .foregroundColor(Designs.Colors.textTertiary)
             }
 
             Spacer()
 
             VStack {
                 Text(priority)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.app(size: 11, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(priority == "High" ? Color.orange : Color.blue)
+                    .background(priority == "High" ? Designs.Colors.warning : Designs.Colors.info)
                     .clipShape(Capsule())
             }
         }
-        .padding(HeadspaceDesign.Spacing.md)
-        .background(HeadspaceDesign.Colors.background)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+        .padding(Designs.Spacing.md)
+        .background(Designs.Colors.background)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
     }
 
     // MARK: - Helpers
@@ -838,9 +838,9 @@ public struct CelebratoryResultsView: View {
 
     private var scoreGradient: LinearGradient {
         switch emotionalMetrics.skinHealthScore {
-        case 80...100: return HeadspaceDesign.Colors.mintGradient
-        case 60..<80: return HeadspaceDesign.Colors.warmGradient
-        default: return HeadspaceDesign.Colors.peachGradient
+        case 80...100: return Designs.Colors.mintGradient
+        case 60..<80: return Designs.Colors.warmGradient
+        default: return Designs.Colors.peachGradient
         }
     }
 
@@ -857,10 +857,10 @@ public struct CelebratoryResultsView: View {
 
     private func metricColor(_ score: Int) -> Color {
         switch score {
-        case 80...100: return HeadspaceDesign.Colors.success
-        case 60..<80: return HeadspaceDesign.Colors.secondary
-        case 40..<60: return HeadspaceDesign.Colors.accent
-        default: return HeadspaceDesign.Colors.primary
+        case 80...100: return Designs.Colors.success
+        case 60..<80: return Designs.Colors.secondary
+        case 40..<60: return Designs.Colors.accent
+        default: return Designs.Colors.primary
         }
     }
 
@@ -870,11 +870,11 @@ public struct CelebratoryResultsView: View {
         let (label, color) = qualityLevel(for: score)
 
         Text(label)
-            .font(.gilroy(size: 11, weight: .semibold))
+            .font(AppFont.microBold)
             .foregroundColor(color)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(color.opacity(0.15))
+            .background(color.opacity(Designs.Opacity.veryLight + 0.05))
             .clipShape(Capsule())
     }
 
@@ -882,15 +882,15 @@ public struct CelebratoryResultsView: View {
     private func qualityLevel(for score: Int) -> (String, Color) {
         switch score {
         case 90...100:
-            return ("Excellent", HeadspaceDesign.Colors.success)
+            return ("Excellent", Designs.Colors.success)
         case 75..<90:
-            return ("Good", HeadspaceDesign.Colors.success)
+            return ("Good", Designs.Colors.success)
         case 60..<75:
-            return ("Fair", HeadspaceDesign.Colors.secondary)
+            return ("Fair", Designs.Colors.secondary)
         case 40..<60:
-            return ("Needs Attention", HeadspaceDesign.Colors.accent)
+            return ("Needs Attention", Designs.Colors.accent)
         default:
-            return ("Needs Improvement", HeadspaceDesign.Colors.primary)
+            return ("Needs Improvement", Designs.Colors.primary)
         }
     }
 
@@ -978,26 +978,26 @@ public struct CelebratoryResultsView: View {
     // MARK: - Animations
 
     private func animateEntrance() {
-        withAnimation(HeadspaceDesign.Animations.gentle.delay(0.1)) {
+        withAnimation(Designs.Animations.gentle.delay(0.1)) {
             showScore = true
         }
 
         // Animate score circle from 0 to target value
-        withAnimation(.easeOut(duration: 1.5).delay(0.3)) {
+        withAnimation(Designs.Animation.slowEaseOut.delay(0.3)) {
             animatedScore = CGFloat(emotionalMetrics.skinHealthScore)
         }
 
-        withAnimation(HeadspaceDesign.Animations.gentle.delay(0.3)) {
+        withAnimation(Designs.Animations.gentle.delay(0.3)) {
             showMetrics = true
         }
 
-        withAnimation(HeadspaceDesign.Animations.gentle.delay(0.5)) {
+        withAnimation(Designs.Animations.gentle.delay(0.5)) {
             showActions = true
         }
 
         // Show first-time banner after animations complete
         if !hasViewedMetricHelp {
-            withAnimation(HeadspaceDesign.Animations.gentle.delay(0.8)) {
+            withAnimation(Designs.Animations.gentle.delay(0.8)) {
                 showFirstTimeBanner = true
             }
         }
@@ -1013,40 +1013,40 @@ public struct CelebratoryResultsView: View {
                 switch status {
                 case .saving:
                     ProgressView()
-                        .tint(HeadspaceDesign.Colors.textSecondary)
+                        .tint(Designs.Colors.textSecondary)
                 case .saved:
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(HeadspaceDesign.Colors.success)
+                    Image(systemName: SFSymbol.checkmarkCircleFill)
+                        .foregroundColor(Designs.Colors.success)
                 case .failed, .queued:
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
+                    Image(systemName: SFSymbol.exclamationTriangleFill)
+                        .foregroundColor(Designs.Colors.warning)
                 case .coreDataUnavailable:
                     Image(systemName: "externaldrive.fill.badge.exclamationmark")
-                        .foregroundColor(.red)
+                        .foregroundColor(Designs.Colors.error)
                 }
             }
-            .frame(width: 20, height: 20)
+            .frame(width: Designs.Sizes.iconTiny, height: Designs.Sizes.iconTiny)
 
             // Status message
             VStack(alignment: .leading, spacing: 4) {
                 Text(statusTitle(for: status))
-                    .font(.gilroy(size: 16, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(statusMessage(for: status))
-                    .font(.gilroy(size: 14, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
         }
-        .padding(HeadspaceDesign.Spacing.md)
+        .padding(Designs.Spacing.md)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
+            RoundedRectangle(cornerRadius: Designs.Radius.md)
                 .fill(statusBackgroundColor(for: status))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
+            RoundedRectangle(cornerRadius: Designs.Radius.md)
                 .stroke(statusBorderColor(for: status), lineWidth: 1)
         )
     }
@@ -1084,11 +1084,11 @@ public struct CelebratoryResultsView: View {
     private func statusBackgroundColor(for status: SaveStatus) -> Color {
         switch status {
         case .saving:
-            return HeadspaceDesign.Colors.cardBackground
+            return Designs.Colors.cardBackground
         case .failed, .queued:
-            return Color.orange.opacity(0.1)
+            return Designs.Colors.warning.opacity(Designs.Opacity.veryLight)
         case .coreDataUnavailable:
-            return Color.red.opacity(0.1)
+            return Designs.Colors.error.opacity(Designs.Opacity.veryLight)
         case .saved:
             return .clear
         }
@@ -1097,11 +1097,11 @@ public struct CelebratoryResultsView: View {
     private func statusBorderColor(for status: SaveStatus) -> Color {
         switch status {
         case .saving:
-            return HeadspaceDesign.Colors.border
+            return Designs.Colors.border
         case .failed, .queued:
-            return Color.orange.opacity(0.3)
+            return Designs.Colors.warning.opacity(Designs.Opacity.medium)
         case .coreDataUnavailable:
-            return Color.red.opacity(0.4)
+            return Designs.Colors.error.opacity(Designs.Opacity.semiOpaque)
         case .saved:
             return .clear
         }
@@ -1113,31 +1113,31 @@ public struct CelebratoryResultsView: View {
     private func comparisonWarningBanner(warning: String) -> some View {
         HStack(spacing: 12) {
             // Warning icon
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.orange)
-                .frame(width: 20, height: 20)
+            Image(systemName: SFSymbol.exclamationTriangleFill)
+                .foregroundColor(Designs.Colors.warning)
+                .frame(width: Designs.Sizes.iconTiny, height: Designs.Sizes.iconTiny)
 
             // Warning message
             VStack(alignment: .leading, spacing: 4) {
                 Text("Comparison Unavailable")
-                    .font(.gilroy(size: 16, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(warning)
-                    .font(.gilroy(size: 14, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
         }
-        .padding(HeadspaceDesign.Spacing.md)
+        .padding(Designs.Spacing.md)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
-                .fill(Color.orange.opacity(0.1))
+            RoundedRectangle(cornerRadius: Designs.Radius.md)
+                .fill(Designs.Colors.warning.opacity(Designs.Opacity.veryLight))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
-                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: Designs.Radius.md)
+                .stroke(Designs.Colors.warning.opacity(Designs.Opacity.medium), lineWidth: Designs.Border.width)
         )
     }
 }

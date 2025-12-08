@@ -519,7 +519,7 @@ public class Face3DMetricsAnalyzer {
 
         // Sun damage analysis (runs AFTER normalization to use corrected scores)
         // Check if sun damage analysis is enabled in settings
-        let enableSunDamageAnalysis = UserDefaults.standard.bool(forKey: "enableSunDamageAnalysis")
+        let enableSunDamageAnalysis = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableSunDamageAnalysis)
 
         let sunDamageAnalysis: SunDamageAnalysis?
         if enableSunDamageAnalysis {

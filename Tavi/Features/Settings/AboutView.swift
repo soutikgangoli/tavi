@@ -26,175 +26,175 @@ public struct AboutView: View {
     public var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: HeadspaceDesign.Spacing.xl) {
+                VStack(spacing: Designs.Spacing.xl) {
                     // App icon and version
-                    VStack(spacing: HeadspaceDesign.Spacing.lg) {
+                    VStack(spacing: Designs.Spacing.lg) {
                         // App icon placeholder
                         ZStack {
                             RoundedRectangle(cornerRadius: 24)
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            HeadspaceDesign.Colors.primary,
-                                            HeadspaceDesign.Colors.secondary
+                                            Designs.Colors.primary,
+                                            Designs.Colors.secondary
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
                                 )
-                                .frame(width: 100, height: 100)
+                                .frame(width: Designs.Sizes.frameXXLarge, height: Designs.Sizes.frameXXLarge)
 
                             Image(systemName: "face.smiling")
-                                .font(.system(size: 48, weight: .medium))
+                                .font(.app(size: 48, weight: .medium))
                                 .foregroundColor(.white)
                         }
 
-                        VStack(spacing: HeadspaceDesign.Spacing.sm) {
-                            Text("Tavi")
-                                .font(.gilroy(size: 28, weight: .bold))
-                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        VStack(spacing: Designs.Spacing.sm) {
+                            Text(AppStrings.About.appName)
+                                .font(AppFont.pageTitle)
+                                .foregroundColor(Designs.Colors.textPrimary)
 
-                            Text("Version \(appVersion) (\(buildNumber))")
-                                .font(.gilroy(size: 14, weight: .medium))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            Text(AppStrings.About.version(appVersion, build: buildNumber))
+                                .font(AppFont.caption)
+                                .foregroundColor(Designs.Colors.textSecondary)
 
-                            Text("Skin Health Analysis")
-                                .font(.gilroy(size: 16, weight: .regular))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            Text(AppStrings.About.skinHealthAnalysis)
+                                .font(AppFont.bodyPrimary)
+                                .foregroundColor(Designs.Colors.textSecondary)
                         }
                     }
-                    .padding(.top, HeadspaceDesign.Spacing.xl)
+                    .padding(.top, Designs.Spacing.xl)
 
                     // About section
-                    VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
-                        Text("About")
-                            .font(.gilroy(size: 18, weight: .bold))
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    VStack(alignment: .leading, spacing: Designs.Spacing.lg) {
+                        Text(AppStrings.About.about)
+                            .font(AppFont.headlineSecondary)
+                            .foregroundColor(Designs.Colors.textPrimary)
 
                         Text("Tavi uses advanced 3D face scanning technology to analyze your skin health. Track your progress, unlock achievements, and get personalized recommendations for better skin care.")
-                            .font(.gilroy(size: 15, weight: .regular))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.bodySecondary)
+                            .foregroundColor(Designs.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(HeadspaceDesign.Spacing.lg)
+                    .padding(Designs.Spacing.lg)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(HeadspaceDesign.Colors.elevatedCard)
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+                    .background(Designs.Colors.elevatedCard)
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
 
                     // Features section
-                    VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+                    VStack(alignment: .leading, spacing: Designs.Spacing.md) {
                         Text("Features")
-                            .font(.gilroy(size: 18, weight: .bold))
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            .font(AppFont.headlineSecondary)
+                            .foregroundColor(Designs.Colors.textPrimary)
 
-                        VStack(spacing: HeadspaceDesign.Spacing.md) {
+                        VStack(spacing: Designs.Spacing.md) {
                             featureRow(icon: "camera.metering.center.weighted", title: "3D Face Scanning", description: "Advanced ARKit-powered analysis")
                             featureRow(icon: "chart.line.uptrend.xyaxis", title: "8 Skin Metrics", description: "Comprehensive skin health tracking")
-                            featureRow(icon: "flame.fill", title: "Gamification", description: "Challenges, streaks, and achievements")
+                            featureRow(icon: SFSymbol.flameFill, title: "Gamification", description: "Challenges, streaks, and achievements")
                             featureRow(icon: "lock.shield.fill", title: "Privacy First", description: "All data stays on your device")
                         }
                     }
-                    .padding(HeadspaceDesign.Spacing.lg)
+                    .padding(Designs.Spacing.lg)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(HeadspaceDesign.Colors.elevatedCard)
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+                    .background(Designs.Colors.elevatedCard)
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
 
                     // Support section
-                    VStack(spacing: HeadspaceDesign.Spacing.sm) {
+                    VStack(spacing: Designs.Spacing.sm) {
                         Button {
                             openEmail()
                         } label: {
                             HStack {
                                 Image(systemName: "envelope.fill")
-                                    .font(.system(size: 18))
+                                    .font(.app(size: 18))
 
-                                Text("Contact Support")
-                                    .font(.gilroy(size: 16, weight: .semibold))
+                                Text(AppStrings.Settings.contactSupport)
+                                    .font(AppFont.subheadingPrimary)
 
                                 Spacer()
 
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                                    .font(.app(size: 13, weight: .semibold))
+                                    .foregroundColor(Designs.Colors.textTertiary)
                             }
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                            .padding(HeadspaceDesign.Spacing.md)
-                            .background(HeadspaceDesign.Colors.elevatedCard)
-                            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                            .foregroundColor(Designs.Colors.textPrimary)
+                            .padding(Designs.Spacing.md)
+                            .background(Designs.Colors.elevatedCard)
+                            .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                         }
 
                         Button {
                             rateApp()
                         } label: {
                             HStack {
-                                Image(systemName: "star.fill")
-                                    .font(.system(size: 18))
+                                Image(systemName: SFSymbol.starFill)
+                                    .font(.app(size: 18))
 
-                                Text("Rate Tavi")
-                                    .font(.gilroy(size: 16, weight: .semibold))
+                                Text(AppStrings.Settings.rateApp)
+                                    .font(AppFont.subheadingPrimary)
 
                                 Spacer()
 
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                                    .font(.app(size: 13, weight: .semibold))
+                                    .foregroundColor(Designs.Colors.textTertiary)
                             }
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                            .padding(HeadspaceDesign.Spacing.md)
-                            .background(HeadspaceDesign.Colors.elevatedCard)
-                            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                            .foregroundColor(Designs.Colors.textPrimary)
+                            .padding(Designs.Spacing.md)
+                            .background(Designs.Colors.elevatedCard)
+                            .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                         }
 
                         Link(destination: URL(string: "https://example.com/faq")!) {
                             HStack {
                                 Image(systemName: "questionmark.circle.fill")
-                                    .font(.system(size: 18))
+                                    .font(.app(size: 18))
 
                                 Text("FAQ")
-                                    .font(.gilroy(size: 16, weight: .semibold))
+                                    .font(AppFont.subheadingPrimary)
 
                                 Spacer()
 
                                 Image(systemName: "arrow.up.forward")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                                    .font(.app(size: 13))
+                                    .foregroundColor(Designs.Colors.textTertiary)
                             }
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                            .padding(HeadspaceDesign.Spacing.md)
-                            .background(HeadspaceDesign.Colors.elevatedCard)
-                            .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+                            .foregroundColor(Designs.Colors.textPrimary)
+                            .padding(Designs.Spacing.md)
+                            .background(Designs.Colors.elevatedCard)
+                            .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                         }
                     }
 
                     // Credits section
-                    VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+                    VStack(alignment: .leading, spacing: Designs.Spacing.md) {
                         Text("Credits")
-                            .font(.gilroy(size: 18, weight: .bold))
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            .font(AppFont.headlineSecondary)
+                            .foregroundColor(Designs.Colors.textPrimary)
 
-                        Text("Developed with ❤️ using SwiftUI and ARKit")
-                            .font(.gilroy(size: 14, weight: .regular))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        Text(AppStrings.About.developedWithLove)
+                            .font(AppFont.caption)
+                            .foregroundColor(Designs.Colors.textSecondary)
 
-                        Text("© 2025 Tavi. All rights reserved.")
-                            .font(.gilroy(size: 13, weight: .regular))
-                            .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                        Text("© 2025 \(AppStrings.About.appName). \(AppStrings.About.allRightsReserved)")
+                            .font(AppFont.footnote)
+                            .foregroundColor(Designs.Colors.textTertiary)
                     }
-                    .padding(HeadspaceDesign.Spacing.lg)
+                    .padding(Designs.Spacing.lg)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(HeadspaceDesign.Colors.elevatedCard)
-                    .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+                    .background(Designs.Colors.elevatedCard)
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
 
                     Spacer().frame(height: 40)
                 }
-                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                .padding(.horizontal, Designs.Spacing.lg)
             }
-            .background(HeadspaceDesign.Colors.background)
-            .navigationTitle("About")
+            .background(Designs.Colors.background)
+            .navigationTitle(AppStrings.About.about)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button(AppStrings.Buttons.done) {
                         dismiss()
                     }
                 }
@@ -205,25 +205,25 @@ public struct AboutView: View {
     // MARK: - Feature Row
 
     private func featureRow(icon: String, title: String, description: String) -> some View {
-        HStack(spacing: HeadspaceDesign.Spacing.md) {
+        HStack(spacing: Designs.Spacing.md) {
             ZStack {
                 Circle()
-                    .fill(HeadspaceDesign.Colors.primary.opacity(0.15))
-                    .frame(width: 44, height: 44)
+                    .fill(Designs.Colors.primary.opacity(0.15))
+                    .frame(width: Designs.Sizes.iconMedium, height: Designs.Sizes.iconMedium)
 
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                    .font(.app(size: 20, weight: .semibold))
+                    .foregroundColor(Designs.Colors.primary)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.gilroy(size: 15, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.subheadingSecondary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(description)
-                    .font(.gilroy(size: 13, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.footnote)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()

@@ -182,12 +182,18 @@
 	<string>https://4ab4a0452feaae053c4661da191d4780@o4510306390835200.ingest.us.sentry.io/4510306395750400</string>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Resources/Fonts/Roboto-Thin.ttf</string>
-		<string>Resources/Fonts/Roboto-Light.ttf</string>
-		<string>Resources/Fonts/Roboto-Regular.ttf</string>
-		<string>Resources/Fonts/Roboto-Medium.ttf</string>
-		<string>Resources/Fonts/Roboto-Bold.ttf</string>
-		<string>Resources/Fonts/Roboto-Black.ttf</string>
+		<string>Resources/Fonts/GeneralSans-Extralight.otf</string>
+		<string>Resources/Fonts/GeneralSans-ExtralightItalic.otf</string>
+		<string>Resources/Fonts/GeneralSans-Light.otf</string>
+		<string>Resources/Fonts/GeneralSans-LightItalic.otf</string>
+		<string>Resources/Fonts/GeneralSans-Regular.otf</string>
+		<string>Resources/Fonts/GeneralSans-Italic.otf</string>
+		<string>Resources/Fonts/GeneralSans-Medium.otf</string>
+		<string>Resources/Fonts/GeneralSans-MediumItalic.otf</string>
+		<string>Resources/Fonts/GeneralSans-Semibold.otf</string>
+		<string>Resources/Fonts/GeneralSans-SemiboldItalic.otf</string>
+		<string>Resources/Fonts/GeneralSans-Bold.otf</string>
+		<string>Resources/Fonts/GeneralSans-BoldItalic.otf</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

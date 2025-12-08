@@ -16,37 +16,37 @@ public struct CardView<Content: View>: View {
 
     public var body: some View {
         content
-            .padding(DesignSystem.Spacing.medium)
-            .background(DesignSystem.Colors.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium))
+            .padding(Designs.Spacing.medium)
+            .background(Designs.Colors.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: Designs.CornerRadius.medium))
             .cardShadow()
     }
 }
 
 #Preview {
-    VStack(spacing: DesignSystem.Spacing.medium) {
+    VStack(spacing: Designs.Spacing.medium) {
         CardView {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
+            VStack(alignment: .leading, spacing: Designs.Spacing.small) {
                 Text("Card Title")
-                    .font(DesignSystem.Typography.headline)
-                    .foregroundColor(DesignSystem.Colors.textPrimary)
+                    .font(Designs.Typography.headline)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text("Card content goes here with medium-gray body text")
-                    .font(DesignSystem.Typography.body)
-                    .foregroundColor(DesignSystem.Colors.textSecondary)
+                    .font(Designs.Typography.body)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
         }
 
         CardView {
             HStack {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(DesignSystem.Colors.success)
+                    .foregroundColor(Designs.Colors.success)
 
                 Text("Success message")
-                    .font(DesignSystem.Typography.callout)
+                    .font(Designs.Typography.callout)
             }
         }
     }
     .padding()
-    .background(DesignSystem.Colors.backgroundSecondary)
+    .background(Designs.Colors.backgroundSecondary)
 }

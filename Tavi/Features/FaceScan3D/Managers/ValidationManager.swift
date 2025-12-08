@@ -32,11 +32,11 @@ public class ValidationManager: ObservableObject {
     private var baselineLighting: CGFloat?
     private var baselineColorTemperature: CGFloat?
 
-    @AppStorage("lightingStrictness") private var lightingStrictness: String = "Strict"
-    @AppStorage("detectGlasses") private var detectGlasses: Bool = true
-    @AppStorage("detectHands") private var detectHands: Bool = true
-    @AppStorage("detectHat") private var detectHat: Bool = true
-    @AppStorage("detectMakeup") private var detectMakeup: Bool = true
+    @AppStorage(AppDefaultsKey.lightingStrictness) private var lightingStrictness: String = "Strict"
+    @AppStorage(AppDefaultsKey.detectGlasses) private var detectGlasses: Bool = true
+    @AppStorage(AppDefaultsKey.detectHands) private var detectHands: Bool = true
+    @AppStorage(AppDefaultsKey.detectHat) private var detectHat: Bool = true
+    @AppStorage(AppDefaultsKey.detectMakeup) private var detectMakeup: Bool = true
 
     // MARK: - Initialization
 

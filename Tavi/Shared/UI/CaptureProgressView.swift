@@ -19,7 +19,7 @@ public struct CaptureProgressView: View {
     public var body: some View {
         ZStack {
             // Semi-transparent background
-            Color.black.opacity(0.7)
+            Color.black.opacity(Designs.Opacity.semiTransparent)
                 .ignoresSafeArea()
 
             VStack(spacing: 24) {
@@ -27,8 +27,8 @@ public struct CaptureProgressView: View {
                 ZStack {
                     // Background circle
                     Circle()
-                        .stroke(Color.white.opacity(0.3), lineWidth: 8)
-                        .frame(width: 120, height: 120)
+                        .stroke(Color.white.opacity(Designs.Opacity.medium), lineWidth: 8)
+                        .frame(width: Designs.Sizes.achievementIcon, height: Designs.Sizes.achievementIcon)
 
                     // Progress circle
                     Circle()
@@ -37,18 +37,18 @@ public struct CaptureProgressView: View {
                             progressColor,
                             style: StrokeStyle(lineWidth: 8, lineCap: .round)
                         )
-                        .frame(width: 120, height: 120)
+                        .frame(width: Designs.Sizes.achievementIcon, height: Designs.Sizes.achievementIcon)
                         .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: 0.3), value: progress.progressPercentage)
+                        .animation(Designs.Animation.standard, value: progress.progressPercentage)
 
                     // Icon or percentage
                     if progress.progressPercentage >= 1.0 {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 40, weight: .bold))
+                            .font(.app(size: 40, weight: .bold))
                             .foregroundStyle(.green)
                     } else {
                         Text("\(Int(progress.progressPercentage * 100))%")
-                            .font(.gilroy(size: 28, weight: .bold))
+                            .font(AppFont.pageTitle)
                             .foregroundStyle(.white)
                     }
                 }
@@ -63,11 +63,11 @@ public struct CaptureProgressView: View {
                     if let hint = progressHint {
                         Text(hint)
                             .font(.caption)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(.white.opacity(Designs.Opacity.semiTransparent))
                             .multilineTextAlignment(.center)
                     }
                 }
-                .padding(.horizontal, 32)
+                .padding(.horizontal, Designs.Spacing.xxLarge)
             }
         }
     }
@@ -75,11 +75,11 @@ public struct CaptureProgressView: View {
     private var progressColor: Color {
         switch progress {
         case .failed:
-            return .red
+            return Designs.Colors.error
         case .completed:
-            return .green
+            return Designs.ScoreColors.excellent
         default:
-            return .blue
+            return Designs.Colors.info
         }
     }
 

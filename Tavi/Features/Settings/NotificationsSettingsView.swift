@@ -12,11 +12,11 @@ import UserNotifications
 public struct NotificationsSettingsView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("scanRemindersEnabled") private var scanRemindersEnabled = false
-    @AppStorage("challengeNotificationsEnabled") private var challengeNotificationsEnabled = true
-    @AppStorage("achievementNotificationsEnabled") private var achievementNotificationsEnabled = true
-    @AppStorage("progressReportsEnabled") private var progressReportsEnabled = true
-    @AppStorage("scanReminderTime") private var scanReminderTimeData: Data = {
+    @AppStorage(AppDefaultsKey.scanRemindersEnabled) private var scanRemindersEnabled = false
+    @AppStorage(AppDefaultsKey.challengeNotificationsEnabled) private var challengeNotificationsEnabled = true
+    @AppStorage(AppDefaultsKey.achievementNotificationsEnabled) private var achievementNotificationsEnabled = true
+    @AppStorage(AppDefaultsKey.progressReportsEnabled) private var progressReportsEnabled = true
+    @AppStorage(AppDefaultsKey.scanReminderTime) private var scanReminderTimeData: Data = {
         let calendar = Calendar.current
         let components = DateComponents(hour: 20, minute: 0) // 8:00 PM
         let date = calendar.date(from: components) ?? Date()
@@ -42,20 +42,20 @@ public struct NotificationsSettingsView: View {
             List {
                 // Permissions section
                 Section {
-                    VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
-                        HStack(spacing: HeadspaceDesign.Spacing.md) {
+                    VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
+                        HStack(spacing: Designs.Spacing.md) {
                             Image(systemName: permissionIcon)
-                                .font(.system(size: 24))
+                                .font(.app(size: 24))
                                 .foregroundColor(permissionColor)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(permissionTitle)
-                                    .font(.gilroy(size: 16, weight: .semibold))
-                                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                                    .font(AppFont.subheadingPrimary)
+                                    .foregroundColor(Designs.Colors.textPrimary)
 
                                 Text(permissionSubtitle)
-                                    .font(.gilroy(size: 14, weight: .regular))
-                                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                                    .font(AppFont.caption)
+                                    .foregroundColor(Designs.Colors.textSecondary)
                             }
                         }
 
@@ -64,17 +64,17 @@ public struct NotificationsSettingsView: View {
                                 requestNotificationPermission()
                             } label: {
                                 Text("Enable Notifications")
-                                    .font(.gilroy(size: 15, weight: .semibold))
+                                    .font(AppFont.subheadingSecondary)
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 12)
-                                    .background(HeadspaceDesign.Colors.primary)
+                                    .background(Designs.Colors.primary)
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
                             }
-                            .padding(.top, HeadspaceDesign.Spacing.sm)
+                            .padding(.top, Designs.Spacing.sm)
                         }
                     }
-                    .padding(.vertical, HeadspaceDesign.Spacing.sm)
+                    .padding(.vertical, Designs.Spacing.sm)
                 } header: {
                     Text("Notification Permissions")
                 }
@@ -84,11 +84,11 @@ public struct NotificationsSettingsView: View {
                     Toggle(isOn: $scanRemindersEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Scan Reminders")
-                                .font(.gilroy(size: 16, weight: .medium))
+                                .font(AppFont.bodyMedium)
 
                             Text("Get reminded to scan regularly")
-                                .font(.gilroy(size: 13, weight: .regular))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                                .font(AppFont.footnote)
+                                .foregroundColor(Designs.Colors.textSecondary)
                         }
                     }
                     .disabled(notificationPermissionStatus != .authorized)
@@ -117,11 +117,11 @@ public struct NotificationsSettingsView: View {
                     Toggle(isOn: $challengeNotificationsEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Challenge Updates")
-                                .font(.gilroy(size: 16, weight: .medium))
+                                .font(AppFont.bodyMedium)
 
                             Text("Get notified about challenge milestones")
-                                .font(.gilroy(size: 13, weight: .regular))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                                .font(AppFont.footnote)
+                                .foregroundColor(Designs.Colors.textSecondary)
                         }
                     }
                     .disabled(notificationPermissionStatus != .authorized)
@@ -134,11 +134,11 @@ public struct NotificationsSettingsView: View {
                     Toggle(isOn: $achievementNotificationsEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Achievements")
-                                .font(.gilroy(size: 16, weight: .medium))
+                                .font(AppFont.bodyMedium)
 
                             Text("Get notified when you unlock achievements")
-                                .font(.gilroy(size: 13, weight: .regular))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                                .font(AppFont.footnote)
+                                .foregroundColor(Designs.Colors.textSecondary)
                         }
                     }
                     .disabled(notificationPermissionStatus != .authorized)
@@ -149,11 +149,11 @@ public struct NotificationsSettingsView: View {
                     Toggle(isOn: $progressReportsEnabled) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Progress Reports")
-                                .font(.gilroy(size: 16, weight: .medium))
+                                .font(AppFont.bodyMedium)
 
                             Text("Receive weekly summaries of your skin progress")
-                                .font(.gilroy(size: 13, weight: .regular))
-                                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                                .font(AppFont.footnote)
+                                .foregroundColor(Designs.Colors.textSecondary)
                         }
                     }
                     .disabled(notificationPermissionStatus != .authorized)
@@ -196,7 +196,7 @@ public struct NotificationsSettingsView: View {
         case .denied:
             return .red
         default:
-            return HeadspaceDesign.Colors.primary
+            return Designs.Colors.primary
         }
     }
 

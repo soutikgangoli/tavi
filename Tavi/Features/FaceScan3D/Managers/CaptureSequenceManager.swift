@@ -323,7 +323,7 @@ public class CaptureSequenceManager: ObservableObject {
         // Dynamically select frames based on High Quality Mode setting
         // Recommended (OFF): 3 frames (83-85% confidence)
         // Best Case (ON): 5 frames (90-92% confidence)
-        let enableHighRes = UserDefaults.standard.bool(forKey: "enableHighResCapture")
+        let enableHighRes = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
         let framesToCapture = enableHighRes ? ScanConfiguration.framesPerPoseBest : ScanConfiguration.framesPerPoseRecommended
         var captureSuccess = 0
         for _ in 0..<framesToCapture {

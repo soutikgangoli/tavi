@@ -50,9 +50,9 @@ class MemoryMonitor {
         AppLogger.app.warning("MEMORY WARNING RECEIVED - Taking action to reduce memory footprint")
 
         // 1. Reduce texture quality for future captures
-        let wasHighRes = UserDefaults.standard.bool(forKey: "enableHighResCapture")
+        let wasHighRes = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
         if wasHighRes {
-            UserDefaults.standard.set(false, forKey: "enableHighResCapture")
+            UserDefaults.standard.set(false, forKey: AppDefaultsKey.enableHighResCapture)
             AppLogger.app.info("Disabled high-resolution texture capture (4K → 2K)")
         }
 

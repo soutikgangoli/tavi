@@ -257,7 +257,7 @@ struct DebugROIRectangleView: View {
             .position(x: rect.midX, y: rect.midY)
             .overlay(
                 Text(roiType.displayName)
-                    .font(.system(size: 8, weight: .bold))
+                    .font(.app(size: 8, weight: .bold))
                     .foregroundColor(colorForROI(roiType))
                     .padding(2)
                     .background(Color.black.opacity(0.7))

@@ -57,7 +57,7 @@ struct TaviApp: App {
                     .zIndex(1)
                 }
             }
-            .animation(.easeOut(duration: 0.4), value: showLoadingScreen)
+            .animation(Designs.Animation.easeOut, value: showLoadingScreen)
         }
     }
 }

@@ -386,7 +386,7 @@ private struct DebugInfoView: View {
                 Text("Eye Angle: \(String(format: "%.1f°", eyeAngle * 180 / .pi))")
             }
         }
-        .font(.system(size: 10, design: .monospaced))
+        .font(.app(size: 10, design: .monospaced))
         .foregroundStyle(.white)
         .padding(6)
         .background(.black.opacity(0.7))

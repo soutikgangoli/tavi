@@ -48,19 +48,19 @@ public enum UserMetricType: String, CaseIterable, Identifiable {
     var gradientColors: [Color] {
         switch self {
         case .overall:
-            return [Color(red: 101/255, green: 188/255, blue: 126/255), Color(red: 142/255, green: 218/255, blue: 176/255)]
+            return Designs.Colors.metricOverallColors
         case .smoothness:
-            return [Color(red: 101/255, green: 188/255, blue: 126/255), Color(red: 142/255, green: 218/255, blue: 176/255)]
+            return Designs.Colors.metricOverallColors
         case .hydration:
-            return [Color(red: 95/255, green: 158/255, blue: 255/255), Color(red: 142/255, green: 188/255, blue: 255/255)]
+            return Designs.Colors.metricHydrationColors
         case .pigmentation:
-            return [HeadspaceDesign.Colors.secondary, Color(red: 255/255, green: 199/255, blue: 95/255)]
+            return Designs.Colors.metricPigmentationColors
         case .wrinkles:
-            return [Color(red: 180/255, green: 140/255, blue: 200/255), Color(red: 200/255, green: 170/255, blue: 220/255)]
+            return Designs.Colors.metricWrinklesColors
         case .elasticity:
-            return [Color(red: 255/255, green: 150/255, blue: 100/255), Color(red: 255/255, green: 180/255, blue: 130/255)]
+            return Designs.Colors.metricElasticityColors
         case .volume:
-            return [Color(red: 120/255, green: 180/255, blue: 255/255), Color(red: 150/255, green: 200/255, blue: 255/255)]
+            return Designs.Colors.metricVolumeColors
         }
     }
 }
@@ -140,7 +140,7 @@ public struct MetricDetailView: View {
             scenicBackground
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: HeadspaceDesign.Spacing.xl) {
+                VStack(spacing: Designs.Spacing.xl) {
                     // Header with back button
                     headerSection
 
@@ -164,7 +164,7 @@ public struct MetricDetailView: View {
                             historyTabContent
                         }
                     }
-                    .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                    .padding(.horizontal, Designs.Spacing.lg)
 
                     Spacer(minLength: 100)
                 }
@@ -181,9 +181,9 @@ public struct MetricDetailView: View {
     private var scenicBackground: some View {
         LinearGradient(
             colors: [
-                Color(red: 240/255, green: 248/255, blue: 255/255),
-                Color(red: 255/255, green: 252/255, blue: 245/255),
-                Color(red: 245/255, green: 250/255, blue: 255/255)
+                Designs.Colors.background,
+                Designs.Colors.cardBackground,
+                Designs.Colors.background
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -199,22 +199,22 @@ public struct MetricDetailView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                    .frame(width: 44, height: 44)
+                    .font(AppFont.metricValue)
+                    .foregroundColor(Designs.Colors.textPrimary)
+                    .frame(width: Designs.Sizes.iconMedium, height: Designs.Sizes.iconMedium)
             }
 
             Spacer()
 
-            VStack(spacing: 4) {
+            VStack(spacing: Designs.Spacing.xxSmall) {
                 Text(metricType.rawValue)
-                    .font(.gilroy(size: 20, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.title3)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 if let date = latestSession?.date {
                     Text("Today, \(formattedDate(date))")
-                        .font(.gilroy(size: 14, weight: .medium))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .font(AppFont.caption)
+                        .foregroundColor(Designs.Colors.textSecondary)
                 }
             }
 
@@ -224,13 +224,13 @@ public struct MetricDetailView: View {
                 showingInfo = true
             } label: {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-                    .frame(width: 44, height: 44)
+                    .font(AppFont.metricValue)
+                    .foregroundColor(Designs.Colors.textSecondary)
+                    .frame(width: Designs.Sizes.iconMedium, height: Designs.Sizes.iconMedium)
             }
         }
-        .padding(.horizontal, HeadspaceDesign.Spacing.lg)
-        .padding(.top, HeadspaceDesign.Spacing.md)
+        .padding(.horizontal, Designs.Spacing.lg)
+        .padding(.top, Designs.Spacing.md)
     }
 
     // MARK: - Large Hero Ring
@@ -239,13 +239,13 @@ public struct MetricDetailView: View {
         ZStack {
             // Background circle
             Circle()
-                .fill(Color.white.opacity(0.5))
-                .frame(width: 200, height: 200)
-                .shadow(color: Color.black.opacity(0.05), radius: 20, x: 0, y: 10)
+                .fill(Color.white.opacity(Designs.Opacity.semiOpaque))
+                .frame(width: Designs.Sizes.metricChart, height: Designs.Sizes.metricChart)
+                .shadow(color: Color.black.opacity(Designs.Opacity.veryLight / 2), radius: Designs.Spacing.lg, x: 0, y: Designs.Spacing.small)
 
             Circle()
                 .fill(Color.white)
-                .frame(width: 180, height: 180)
+                .frame(width: Designs.Sizes.metricChartSmall, height: Designs.Sizes.metricChartSmall)
 
             // Progress ring
             Circle()
@@ -258,28 +258,28 @@ public struct MetricDetailView: View {
                     ),
                     style: StrokeStyle(lineWidth: 16, lineCap: .round)
                 )
-                .frame(width: 180, height: 180)
+                .frame(width: Designs.Sizes.metricChartSmall, height: Designs.Sizes.metricChartSmall)
                 .rotationEffect(.degrees(-90))
-                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: latestScore)
+                .animation(Designs.Animation.gentleSpring, value: latestScore)
 
             // Score text
             VStack(spacing: 4) {
                 if sessions.isEmpty {
                     Text("—")
                         .font(.scoreFont(size: 56))
-                        .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                        .foregroundColor(Designs.Colors.textTertiary)
                 } else {
                     Text("\(Int(latestScore))%")
                         .font(.scoreFont(size: 56))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        .foregroundColor(Designs.Colors.textPrimary)
 
                     Text(qualityLabel(for: latestScore))
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .font(.app(size: 16, weight: .medium))
+                        .foregroundColor(Designs.Colors.textSecondary)
                 }
             }
         }
-        .padding(.vertical, HeadspaceDesign.Spacing.xl)
+        .padding(.vertical, Designs.Spacing.xl)
     }
 
     // MARK: - Normal Range
@@ -287,22 +287,22 @@ public struct MetricDetailView: View {
     private var normalRangeIndicator: some View {
         HStack(spacing: 8) {
             Image(systemName: "equal")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                .font(AppFont.metricLabel)
+                .foregroundColor(Designs.Colors.textTertiary)
 
             Text("Normal range")
-                .font(.gilroy(size: 14, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
 
             Text(metricType.normalRange)
-                .font(.gilroy(size: 14, weight: .semibold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.label)
+                .foregroundColor(Designs.Colors.textPrimary)
         }
-        .padding(.horizontal, HeadspaceDesign.Spacing.lg)
-        .padding(.vertical, HeadspaceDesign.Spacing.sm)
+        .padding(.horizontal, Designs.Spacing.lg)
+        .padding(.vertical, Designs.Spacing.sm)
         .background(
             Capsule()
-                .fill(Color.white.opacity(0.7))
+                .fill(Color.white.opacity(Designs.Opacity.semiTransparent))
         )
     }
 
@@ -312,15 +312,15 @@ public struct MetricDetailView: View {
         HStack(spacing: 0) {
             ForEach(Tab.allCases, id: \.self) { tab in
                 Button {
-                    withAnimation(HeadspaceDesign.Animations.smooth) {
+                    withAnimation(Designs.Animations.smooth) {
                         selectedTab = tab
                     }
                 } label: {
                     Text(tab.rawValue)
-                        .font(.system(size: 15, weight: selectedTab == tab ? .semibold : .medium, design: .rounded))
-                        .foregroundColor(selectedTab == tab ? HeadspaceDesign.Colors.primary : HeadspaceDesign.Colors.textSecondary)
+                        .font(.app(size: 15, weight: selectedTab == tab ? .semibold : .medium, design: .rounded))
+                        .foregroundColor(selectedTab == tab ? Designs.Colors.primary : Designs.Colors.textSecondary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, Designs.Spacing.small)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(selectedTab == tab ? Color.white : Color.clear)
@@ -328,12 +328,12 @@ public struct MetricDetailView: View {
                 }
             }
         }
-        .padding(4)
+                .padding(Designs.Spacing.xxSmall)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.5))
+                .fill(Color.white.opacity(Designs.Opacity.semiOpaque))
         )
-        .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+        .padding(.horizontal, Designs.Spacing.lg)
     }
 
     // MARK: - Overview Tab
@@ -350,93 +350,93 @@ public struct MetricDetailView: View {
     }
 
     private var emptyStateView: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.xl) {
-            VStack(spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(spacing: Designs.Spacing.xl) {
+            VStack(spacing: Designs.Spacing.lg) {
                 Image(systemName: "chart.bar.xaxis")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                    .font(AppFont.scoreMedium)
+                    .foregroundColor(Designs.Colors.textTertiary)
 
                 Text("No scan data yet")
-                    .font(.gilroy(size: 20, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headlinePrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text("Complete your first scan to start tracking your \(metricType.rawValue.lowercased()).")
-                    .font(.gilroy(size: 15, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.bodySecondary)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
-            .padding(HeadspaceDesign.Spacing.xxl)
+            .padding(Designs.Spacing.xxl)
             .background(
-                RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                    .fill(Color.white.opacity(0.7))
+                RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                    .fill(Color.white.opacity(Designs.Opacity.semiTransparent))
             )
 
             // Preview of what they'll see
-            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            VStack(alignment: .leading, spacing: Designs.Spacing.md) {
                 Text("What you'll see here:")
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 previewChartPlaceholder
             }
         }
-        .padding(.vertical, HeadspaceDesign.Spacing.xl)
+        .padding(.vertical, Designs.Spacing.xl)
     }
 
     private var previewChartPlaceholder: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.sm) {
+        VStack(spacing: Designs.Spacing.sm) {
             // Mock chart preview
             HStack(alignment: .bottom, spacing: 8) {
                 ForEach(0..<7) { index in
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(metricType.gradientColors[0].opacity(0.3))
-                        .frame(width: 30, height: CGFloat.random(in: 40...120))
+                        .fill(metricType.gradientColors[0].opacity(Designs.Opacity.medium))
+                        .frame(width: Designs.Sizes.frameWidthTiny, height: CGFloat.random(in: Designs.Sizes.frameMedium...Designs.Sizes.achievementIcon))
                 }
             }
-            .frame(height: 120)
+            .frame(height: Designs.Sizes.achievementIcon)
 
             Text("Your \(metricType.rawValue.lowercased()) progress over time")
-                .font(.gilroy(size: 14, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
         }
-        .padding(HeadspaceDesign.Spacing.lg)
+        .padding(Designs.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(Color.white.opacity(0.5))
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .fill(Color.white.opacity(Designs.Opacity.semiOpaque))
         )
     }
 
     private var baselineStateView: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.xl) {
+        VStack(spacing: Designs.Spacing.xl) {
             // Single point "chart"
             singlePointChart
 
             // Baseline message
-            VStack(spacing: HeadspaceDesign.Spacing.md) {
+            VStack(spacing: Designs.Spacing.md) {
                 Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 32, weight: .light))
-                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                    .font(AppFont.title)
+                    .foregroundColor(Designs.Colors.textTertiary)
 
                 Text("This is your baseline scan")
-                    .font(.gilroy(size: 18, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headlineSecondary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text("Complete another scan to see your progress trend over time.")
-                    .font(.gilroy(size: 14, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
-            .padding(HeadspaceDesign.Spacing.lg)
+            .padding(Designs.Spacing.lg)
             .background(
-                RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                    .fill(Color.white.opacity(0.7))
+                RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                    .fill(Color.white.opacity(Designs.Opacity.semiTransparent))
             )
         }
-        .padding(.vertical, HeadspaceDesign.Spacing.xl)
+        .padding(.vertical, Designs.Spacing.xl)
     }
 
     private var singlePointChart: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.md) {
+        VStack(spacing: Designs.Spacing.md) {
             if let session = sessions.first {
                 Chart {
                     PointMark(
@@ -447,22 +447,22 @@ public struct MetricDetailView: View {
                     .symbolSize(200)
                 }
                 .chartYScale(domain: 0...100)
-                .frame(height: 200)
+                .frame(height: Designs.Sizes.metricChart)
 
                 Text("Current: \(Int(latestScore))%")
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headline)
+                    .foregroundColor(Designs.Colors.textPrimary)
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
+        .padding(Designs.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(Color.white.opacity(0.7))
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .fill(Color.white.opacity(Designs.Opacity.semiTransparent))
         )
     }
 
     private var chartView: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(spacing: Designs.Spacing.lg) {
             // Time range filters
             timeRangeFilters
 
@@ -473,25 +473,25 @@ public struct MetricDetailView: View {
                 mainChart
             }
         }
-        .padding(.vertical, HeadspaceDesign.Spacing.md)
+        .padding(.vertical, Designs.Spacing.md)
     }
 
     private var timeRangeFilters: some View {
-        HStack(spacing: HeadspaceDesign.Spacing.sm) {
+        HStack(spacing: Designs.Spacing.sm) {
             ForEach(TimeRange.allCases, id: \.self) { range in
                 Button {
-                    withAnimation(HeadspaceDesign.Animations.smooth) {
+                    withAnimation(Designs.Animations.smooth) {
                         selectedTimeRange = range
                     }
                 } label: {
                     Text(range.rawValue)
-                        .font(.system(size: 14, weight: selectedTimeRange == range ? .semibold : .medium, design: .rounded))
-                        .foregroundColor(selectedTimeRange == range ? .white : HeadspaceDesign.Colors.textSecondary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                        .font(.app(size: 14, weight: selectedTimeRange == range ? .semibold : .medium, design: .rounded))
+                        .foregroundColor(selectedTimeRange == range ? .white : Designs.Colors.textSecondary)
+                        .padding(.horizontal, Designs.Spacing.medium)
+                        .padding(.vertical, Designs.Spacing.xSmall)
                         .background(
                             Capsule()
-                                .fill(selectedTimeRange == range ? HeadspaceDesign.Colors.primary : Color.white.opacity(0.5))
+                                .fill(selectedTimeRange == range ? Designs.Colors.primary : Color.white.opacity(Designs.Opacity.semiOpaque))
                         )
                 }
             }
@@ -499,7 +499,7 @@ public struct MetricDetailView: View {
     }
 
     private var mainChart: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.md) {
+        VStack(spacing: Designs.Spacing.md) {
             Chart {
                 ForEach(filteredSessions) { session in
                     LineMark(
@@ -524,59 +524,59 @@ public struct MetricDetailView: View {
 
                 // Average line
                 RuleMark(y: .value("Average", averageScore))
-                    .foregroundStyle(HeadspaceDesign.Colors.textTertiary.opacity(0.5))
+                    .foregroundStyle(Designs.Colors.textTertiary.opacity(Designs.Opacity.semiOpaque))
                     .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 5]))
             }
             .chartYScale(domain: 0...100)
-            .frame(height: 250)
+            .frame(height: Designs.Sizes.displayHeightChart)
 
             // Stats row (matching Apple Fitness design)
-            HStack(spacing: HeadspaceDesign.Spacing.xl) {
+            HStack(spacing: Designs.Spacing.xl) {
                 statItem(label: "Highest", value: Int(highestScore))
                 statItem(label: "Lowest", value: Int(lowestScore))
                 statItem(label: "Average", value: Int(averageScore))
             }
-            .padding(.top, HeadspaceDesign.Spacing.sm)
+            .padding(.top, Designs.Spacing.sm)
         }
-        .padding(HeadspaceDesign.Spacing.lg)
+        .padding(Designs.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(Color.white.opacity(0.7))
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .fill(Color.white.opacity(Designs.Opacity.semiTransparent))
         )
     }
 
     private func statItem(label: String, value: Int) -> some View {
         VStack(spacing: 4) {
             Text("\(value)")
-                .font(.gilroy(size: 28, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.pageTitle)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Text(label)
-                .font(.gilroy(size: 13, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.footnote)
+                .foregroundColor(Designs.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
 
     private var emptyTimeRangeView: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.md) {
+        VStack(spacing: Designs.Spacing.md) {
             Image(systemName: "calendar.badge.exclamationmark")
-                .font(.system(size: 40, weight: .light))
-                .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                .font(AppFont.custom(size: 40, weight: .light))
+                .foregroundColor(Designs.Colors.textTertiary)
 
             Text("No scans in this time range")
-                .font(.gilroy(size: 18, weight: .semibold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.headlineSecondary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Text("Try selecting a different time range or complete a new scan.")
-                .font(.gilroy(size: 14, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
                 .multilineTextAlignment(.center)
         }
-        .padding(HeadspaceDesign.Spacing.xl)
+        .padding(Designs.Spacing.xl)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(Color.white.opacity(0.7))
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .fill(Color.white.opacity(Designs.Opacity.semiTransparent))
         )
     }
 
@@ -592,36 +592,36 @@ public struct MetricDetailView: View {
     }
 
     private func overallBreakdownView(session: SessionResult) -> some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.lg) {
             Text("Metrics Breakdown")
-                .font(.gilroy(size: 20, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.headlinePrimary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             // Try to use full Face3DMetrics first (contains ALL calculated metrics)
             if let metrics = session.face3DMetrics {
                 // SKIN HEALTH METRICS (included in Overall Score - 5 metrics only)
                 Text("Skin Health Metrics (In Overall Score)")
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                    .padding(.top, 8)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
+                    .padding(.top, Designs.Spacing.xSmall)
 
                 Text("These 5 high-confidence metrics (70%+ confidence) are included in your Overall Score.")
-                    .font(.gilroy(size: 13, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.footnote)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .padding(.bottom, 4)
 
                 // 1. Smoothness (22.4%)
                 MetricBar(
                     label: "Smoothness (22.4%)",
                     score: Double(metrics.globalRoughnessScore),
-                    color: Color(red: 101/255, green: 188/255, blue: 126/255)
+                    color: Designs.Colors.metricOverallColors[0]
                 )
 
                 // 2. Pigmentation (22.4%)
                 MetricBar(
                     label: "Pigmentation (22.4%)",
                     score: Double(metrics.globalPigmentationScore),
-                    color: Color(red: 142/255, green: 218/255, blue: 176/255)
+                    color: Designs.Colors.metricOverallColors[1]
                 )
 
                 // 3. Pores (14.9%)
@@ -645,7 +645,7 @@ public struct MetricDetailView: View {
                     MetricBar(
                         label: "Acne (14.9%)",
                         score: Double(acne.overallScore),
-                        color: HeadspaceDesign.Colors.accent
+                        color: Designs.Colors.accent
                     )
                 }
 
@@ -654,12 +654,12 @@ public struct MetricDetailView: View {
                     .padding(.vertical, 8)
 
                 Text("Additional Indicators (Not in Overall Score)")
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textSecondary)
 
                 Text("These metrics provide supplementary insights but aren't included in the Overall Score due to measurement limitations.")
-                    .font(.gilroy(size: 13, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.footnote)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .padding(.bottom, 4)
 
                 // Elasticity (requires 2+ scans)
@@ -680,7 +680,7 @@ public struct MetricDetailView: View {
                 MetricBar(
                     label: "Hydration (proxy method)",
                     score: hydrationScore,
-                    color: Color(red: 95/255, green: 158/255, blue: 255/255)
+                    color: Designs.Colors.metricHydrationColors[0]
                 )
 
                 // Redness (measurement limitations)
@@ -706,14 +706,14 @@ public struct MetricDetailView: View {
                     .padding(.vertical, 8)
 
                 Text("Aging Indicators")
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textSecondary)
 
                 if let wrinkles = metrics.wrinkleAnalysis {
                     MetricBar(
                         label: "Wrinkles",
                         score: Double(wrinkles.overallScore),
-                        color: Color(red: 180/255, green: 140/255, blue: 200/255)
+                        color: Designs.Colors.metricWrinklesColors[0]
                     )
                 }
 
@@ -721,7 +721,7 @@ public struct MetricDetailView: View {
                     MetricBar(
                         label: "Volume",
                         score: Double(volume.overallScore),
-                        color: Color(red: 120/255, green: 180/255, blue: 255/255)
+                        color: Designs.Colors.metricVolumeColors[0]
                     )
                 }
 
@@ -730,20 +730,20 @@ public struct MetricDetailView: View {
                     .padding(.vertical, 8)
 
                 Text("Other Indicators")
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textSecondary)
 
                 MetricBar(
                     label: "Skin Health (Composite)",
                     score: Double(metrics.glowAnalysis?.skinHealthScore ?? 0),
-                    color: HeadspaceDesign.Colors.secondary
+                    color: Designs.Colors.secondary
                 )
 
                 if let sunDamage = metrics.sunDamageAnalysis {
                     MetricBar(
                         label: "Sun Protection",
                         score: Double(sunDamage.protectionScore),
-                        color: Color(red: 255/255, green: 199/255, blue: 95/255)
+                        color: Designs.Colors.metricPigmentationColors[1]
                     )
                 }
 
@@ -759,26 +759,26 @@ public struct MetricDetailView: View {
                 // Fallback to basic averaged metrics (for older scans without Face3DMetrics)
                 MetricBar(label: "Smoothness", score: session.textureAvg, color: Color(red: 101/255, green: 188/255, blue: 126/255))
                 MetricBar(label: "Hydration", score: session.moistureSpecular, color: Color(red: 95/255, green: 158/255, blue: 255/255))
-                MetricBar(label: "Evenness", score: session.pigmentationAvg, color: HeadspaceDesign.Colors.secondary)
+                MetricBar(label: "Evenness", score: session.pigmentationAvg, color: Designs.Colors.secondary)
                 MetricBar(label: "Sharpness", score: session.blurQuality, color: Color(red: 149/255, green: 165/255, blue: 166/255))
-                MetricBar(label: "Discoloration", score: 100 - session.discolorationIndex, color: HeadspaceDesign.Colors.accent)
+                MetricBar(label: "Discoloration", score: 100 - session.discolorationIndex, color: Designs.Colors.accent)
             }
         }
-        .padding(.vertical, HeadspaceDesign.Spacing.lg)
+        .padding(.vertical, Designs.Spacing.lg)
     }
 
     private var singleMetricBreakdownView: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(spacing: Designs.Spacing.lg) {
             Text("Score Ranges")
-                .font(.gilroy(size: 20, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.headlinePrimary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             ScoreRangeLegend()
         }
-        .padding(HeadspaceDesign.Spacing.lg)
+        .padding(Designs.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(Color.white.opacity(0.7))
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .fill(Color.white.opacity(Designs.Opacity.semiTransparent))
         )
     }
 
@@ -794,34 +794,34 @@ public struct MetricDetailView: View {
     }
 
     private var historyListView: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             Text("Scan History")
-                .font(.gilroy(size: 20, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.headlinePrimary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             ForEach(Array(sessions.enumerated()), id: \.element.id) { index, session in
                 historyRow(session: session, index: index)
             }
         }
-        .padding(.vertical, HeadspaceDesign.Spacing.lg)
+        .padding(.vertical, Designs.Spacing.lg)
     }
 
     private func historyRow(session: SessionResult, index: Int) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(formattedDate(session.date))
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(relativeDate(session.date))
-                    .font(.gilroy(size: 14, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
 
             Text("\(Int(getScore(for: session)))%")
-                .font(.gilroy(size: 20, weight: .bold))
+                .font(AppFont.headlinePrimary)
                 .foregroundColor(scoreColor(getScore(for: session)))
 
             if index < sessions.count - 1 {
@@ -832,18 +832,18 @@ public struct MetricDetailView: View {
                 if abs(trend) > 1 {
                     HStack(spacing: 4) {
                         Image(systemName: trend > 0 ? "arrow.up.right" : "arrow.down.right")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(AppFont.captionSmall)
                         Text("\(trend > 0 ? "+" : "")\(Int(trend))")
-                            .font(.gilroy(size: 14, weight: .semibold))
+                            .font(AppFont.label)
                     }
                     .foregroundColor(trend > 0 ? .green : .red)
                 }
             }
         }
-        .padding(HeadspaceDesign.Spacing.md)
+        .padding(Designs.Spacing.md)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
-                .fill(Color.white.opacity(0.7))
+            RoundedRectangle(cornerRadius: Designs.Radius.md)
+                .fill(Color.white.opacity(Designs.Opacity.semiTransparent))
         )
     }
 
@@ -891,10 +891,10 @@ public struct MetricDetailView: View {
 
     private func scoreColor(_ score: Double) -> Color {
         switch score {
-        case 85...100: return .green
-        case 70..<85: return Color(red: 101/255, green: 188/255, blue: 126/255)
-        case 50..<70: return .yellow
-        default: return .orange
+        case 85...100: return Designs.ScoreColors.excellent
+        case 70..<85: return Designs.ScoreColors.good
+        case 50..<70: return Designs.ScoreColors.fair
+        default: return Designs.ScoreColors.warning
         }
     }
 
@@ -932,26 +932,26 @@ private struct MetricBar: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.gilroy(size: 15, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                .frame(width: 110, alignment: .leading)
+                .font(AppFont.bodySecondary)
+                .foregroundColor(Designs.Colors.textPrimary)
+                .frame(width: Designs.Sizes.frameWidthMedium, alignment: .leading)
 
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(color.opacity(0.2))
+                        .fill(color.opacity(Designs.Opacity.light))
 
                     RoundedRectangle(cornerRadius: 4)
                         .fill(color)
                         .frame(width: geometry.size.width * CGFloat(score / 100))
                 }
             }
-            .frame(height: 8)
+            .frame(height: Designs.Sizes.progressIndicator)
 
             Text("\(Int(score))%")
-                .font(.gilroy(size: 14, weight: .semibold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                .frame(width: 50, alignment: .trailing)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textPrimary)
+                .frame(width: Designs.Sizes.frameWidthSmall, alignment: .trailing)
         }
         .padding(.vertical, 6)
     }
@@ -959,11 +959,11 @@ private struct MetricBar: View {
 
 struct ScoreRangeLegend: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
-            legendRow(color: .green, label: "Excellent", range: "85 - 100%")
-            legendRow(color: Color(red: 101/255, green: 188/255, blue: 126/255), label: "Good", range: "70 - 84%")
-            legendRow(color: .yellow, label: "Fair", range: "50 - 69%")
-            legendRow(color: .orange, label: "Needs Improvement", range: "0 - 49%")
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
+            legendRow(color: Designs.ScoreColors.excellent, label: "Excellent", range: "85 - 100%")
+            legendRow(color: Designs.ScoreColors.good, label: "Good", range: "70 - 84%")
+            legendRow(color: Designs.ScoreColors.fair, label: "Fair", range: "50 - 69%")
+            legendRow(color: Designs.ScoreColors.warning, label: "Needs Improvement", range: "0 - 49%")
         }
     }
 
@@ -971,17 +971,17 @@ struct ScoreRangeLegend: View {
         HStack {
             Circle()
                 .fill(color)
-                .frame(width: 12, height: 12)
+                .frame(width: Designs.Sizes.indicatorXSmall, height: Designs.Sizes.indicatorXSmall)
 
             Text(label)
-                .font(.gilroy(size: 15, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.bodySecondary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Spacer()
 
             Text(range)
-                .font(.gilroy(size: 14, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
         }
     }
 }
@@ -995,35 +995,35 @@ struct MetricInfoSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+                VStack(alignment: .leading, spacing: Designs.Spacing.lg) {
                     // What is this metric?
                     sectionHeader("What is \(metricType.rawValue)?")
                     Text(metricDescription)
-                        .font(.gilroy(size: 16, weight: .regular))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .font(AppFont.bodyPrimary)
+                        .foregroundColor(Designs.Colors.textSecondary)
 
                     // What affects this?
                     sectionHeader("What Affects This Metric?")
-                    VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.sm) {
+                    VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
                         ForEach(affectingFactors, id: \.self) { factor in
                             HStack(alignment: .top, spacing: 8) {
                                 Text("•")
                                 Text(factor)
                             }
-                            .font(.gilroy(size: 16, weight: .regular))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.bodyPrimary)
+                            .foregroundColor(Designs.Colors.textSecondary)
                         }
                     }
 
                     // Normal Range
                     sectionHeader("Normal Range")
                     Text(metricType.normalRange)
-                        .font(.gilroy(size: 16, weight: .semibold))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        .font(AppFont.subheadingPrimary)
+                        .foregroundColor(Designs.Colors.textPrimary)
                 }
-                .padding(HeadspaceDesign.Spacing.lg)
+                .padding(Designs.Spacing.lg)
             }
-            .background(HeadspaceDesign.Colors.background)
+            .background(Designs.Colors.background)
             .navigationTitle("About \(metricType.rawValue)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1038,8 +1038,8 @@ struct MetricInfoSheet: View {
 
     private func sectionHeader(_ text: String) -> some View {
         Text(text)
-            .font(.gilroy(size: 18, weight: .bold))
-            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+            .font(AppFont.headlineSecondary)
+            .foregroundColor(Designs.Colors.textPrimary)
     }
 
     private var metricDescription: String {

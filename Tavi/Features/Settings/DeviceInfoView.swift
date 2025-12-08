@@ -84,7 +84,7 @@ struct DeviceInfoView: View {
             Text("Optimized Settings")
         } footer: {
             Text("These settings are automatically optimized for your device to provide the best balance of performance and quality.")
-                .font(DesignSystem.Typography.caption)
+                .font(Designs.Typography.caption)
         }
     }
 
@@ -97,21 +97,21 @@ struct DeviceInfoView: View {
                     title: "High-End Device",
                     description: "All features enabled with real-time processing",
                     icon: "bolt.fill",
-                    color: DesignSystem.Colors.success
+                    color: Designs.Colors.success
                 )
             } else if capabilities.isLowEndDevice {
                 PerformanceBadge(
                     title: "Optimized Mode",
                     description: "Features adjusted for optimal performance",
                     icon: "gauge.medium",
-                    color: DesignSystem.Colors.warning
+                    color: Designs.Colors.warning
                 )
             } else {
                 PerformanceBadge(
                     title: "Balanced Mode",
                     description: "Good balance of features and performance",
                     icon: "checkmark.circle.fill",
-                    color: DesignSystem.Colors.info
+                    color: Designs.Colors.info
                 )
             }
         }
@@ -127,14 +127,14 @@ private struct InfoRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(DesignSystem.Typography.body)
-                .foregroundColor(DesignSystem.Colors.textPrimary)
+                .font(Designs.Typography.body)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Spacer()
 
             Text(value)
-                .font(DesignSystem.Typography.body)
-                .foregroundColor(DesignSystem.Colors.textSecondary)
+                .font(Designs.Typography.body)
+                .foregroundColor(Designs.Colors.textSecondary)
                 .multilineTextAlignment(.trailing)
         }
     }
@@ -149,19 +149,19 @@ private struct CapabilityRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(label)
-                    .font(DesignSystem.Typography.body)
-                    .foregroundColor(DesignSystem.Colors.textPrimary)
+                    .font(Designs.Typography.body)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(detail)
-                    .font(DesignSystem.Typography.caption)
-                    .foregroundColor(DesignSystem.Colors.textSecondary)
+                    .font(Designs.Typography.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
 
             Image(systemName: isSupported ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .foregroundColor(isSupported ? DesignSystem.Colors.success : DesignSystem.Colors.textTertiary)
-                .font(DesignSystem.Typography.title3)
+                .foregroundColor(isSupported ? Designs.Colors.success : Designs.Colors.textTertiary)
+                .font(Designs.Typography.title3)
         }
     }
 }
@@ -173,7 +173,7 @@ private struct PerformanceBadge: View {
     let color: Color
 
     var body: some View {
-        HStack(spacing: DesignSystem.Spacing.medium) {
+        HStack(spacing: Designs.Spacing.medium) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
@@ -181,16 +181,16 @@ private struct PerformanceBadge: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(DesignSystem.Typography.headline)
-                    .foregroundColor(DesignSystem.Colors.textPrimary)
+                    .font(Designs.Typography.headline)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(description)
-                    .font(DesignSystem.Typography.caption)
-                    .foregroundColor(DesignSystem.Colors.textSecondary)
+                    .font(Designs.Typography.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, DesignSystem.Spacing.small)
+        .padding(.vertical, Designs.Spacing.small)
     }
 }
 

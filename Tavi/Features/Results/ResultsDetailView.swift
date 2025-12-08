@@ -147,7 +147,7 @@ struct ResultsDetailView: View {
     func errorView(_ error: ResultsDetailViewErrorState) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 60))
+                .font(AppFont.displayLight)
                 .foregroundColor(.orange)
 
             Text("Unable to Load Results")
@@ -168,8 +168,8 @@ struct ResultsDetailView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: 200)
                     .padding(.vertical, 16)
-                    .background(Color.blue)
-                    .cornerRadius(12)
+                    .background(Designs.Colors.info)
+                    .cornerRadius(Designs.Radius.medium)
             }
             .padding(.top)
         }
@@ -204,7 +204,7 @@ struct ResultsDetailView: View {
 
                 // Image Display
                 heatmapImageView
-                    .frame(height: 300)
+                    .frame(height: Designs.Sizes.displayHeight)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 // Original/Heatmap Toggle
@@ -255,7 +255,7 @@ struct ResultsDetailView: View {
 
     var placeholderImage: some View {
         Rectangle()
-            .fill(Color.gray.opacity(0.2))
+            .fill(Designs.Colors.border.opacity(Designs.Opacity.light))
             .overlay {
                 Image(systemName: "face.smiling")
                     .font(.largeTitle)
@@ -269,55 +269,55 @@ struct ResultsDetailView: View {
         VStack(spacing: 12) {
             Text("Overall Skin Health")
                 .font(.headline)
-                .foregroundColor(HeadspaceDesign.Colors.secondary)
+                .foregroundColor(Designs.Colors.secondary)
 
             HStack(spacing: 16) {
                 // Circular Progress
                 ZStack {
                     Circle()
-                        .stroke(HeadspaceDesign.Colors.secondary.opacity(0.3), lineWidth: 12)
+                        .stroke(Designs.Colors.secondary.opacity(Designs.Opacity.medium), lineWidth: Designs.Border.widthThick * 8)
 
                     Circle()
                         .trim(from: 0, to: session.overallScore / 100)
-                        .stroke(HeadspaceDesign.Colors.secondary, lineWidth: 12)
+                        .stroke(Designs.Colors.secondary, lineWidth: 12)
                         .rotationEffect(.degrees(-90))
 
                     VStack(spacing: 4) {
                         Text("\(Int(session.overallScore))")
-                            .font(.system(size: 40, weight: .bold))
+                            .font(.app(size: 40, weight: .bold))
                             .foregroundColor(.yellow)
 
                         Text("/ 100")
                             .font(.caption)
-                            .foregroundColor(HeadspaceDesign.Colors.secondary.opacity(0.8))
+                            .foregroundColor(Designs.Colors.secondary.opacity(0.8))
                     }
                 }
-                .frame(width: 120, height: 120)
+                .frame(width: Designs.Sizes.displayMedium, height: Designs.Sizes.displayMedium)
 
                 // Grade
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Grade")
                         .font(.caption)
-                        .foregroundColor(HeadspaceDesign.Colors.secondary.opacity(0.8))
+                        .foregroundColor(Designs.Colors.secondary.opacity(0.8))
 
                     Text(session.grade.rawValue)
-                        .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(HeadspaceDesign.Colors.secondary)
+                        .font(.app(size: 48, weight: .bold))
+                        .foregroundColor(Designs.Colors.secondary)
 
                     Text(session.grade.description)
                         .font(.caption)
-                        .foregroundColor(HeadspaceDesign.Colors.secondary.opacity(0.8))
+                        .foregroundColor(Designs.Colors.secondary.opacity(0.8))
                 }
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(HeadspaceDesign.Colors.primary)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.primary)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
@@ -555,7 +555,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.orange.opacity(0.1))
+                        .fill(Designs.Colors.warning.opacity(Designs.Opacity.veryLight))
                 )
 
                 // Radiance (Luminosity)
@@ -615,7 +615,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.yellow.opacity(0.1))
+                        .fill(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
                 )
             }
 
@@ -681,8 +681,8 @@ struct ResultsDetailView: View {
                             .foregroundColor(.blue)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
+                            .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                            .cornerRadius(Designs.Radius.small)
                     }
 
                     Text("Weight in Overall Score: 22.4%")
@@ -692,7 +692,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
 
                 // 2. Pigmentation (22.4% weight, 80% confidence)
                 VStack(alignment: .leading, spacing: 8) {
@@ -713,8 +713,8 @@ struct ResultsDetailView: View {
                             .foregroundColor(.blue)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
+                            .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                            .cornerRadius(Designs.Radius.small)
                     }
 
                     Text("Weight in Overall Score: 22.4%")
@@ -724,7 +724,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
 
                 // 3. Pores (14.9% weight, 70-90% confidence)
                 if let pores = metrics.poreAnalysis {
@@ -746,8 +746,8 @@ struct ResultsDetailView: View {
                                 .foregroundColor(.blue)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
+                                .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                .cornerRadius(Designs.Radius.small)
                         }
 
                         Text("Weight in Overall Score: 14.9%")
@@ -761,7 +761,7 @@ struct ResultsDetailView: View {
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .cornerRadius(Designs.Radius.medium)
                 }
 
                 // 4. Discoloration (14.9% weight, 80% confidence)
@@ -783,8 +783,8 @@ struct ResultsDetailView: View {
                             .foregroundColor(.blue)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
+                            .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                            .cornerRadius(Designs.Radius.small)
                     }
 
                     Text("Weight in Overall Score: 14.9%")
@@ -794,7 +794,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
 
                 // 5. Acne (14.9% weight, 75-85% confidence)
                 if let acne = metrics.acneAnalysis {
@@ -816,8 +816,8 @@ struct ResultsDetailView: View {
                                 .foregroundColor(.blue)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
+                                .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
+                                .cornerRadius(Designs.Radius.small)
                         }
 
                         Text("Weight in Overall Score: 14.9%")
@@ -833,7 +833,7 @@ struct ResultsDetailView: View {
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .cornerRadius(Designs.Radius.medium)
                 }
             }
 
@@ -883,7 +883,7 @@ struct ResultsDetailView: View {
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .cornerRadius(Designs.Radius.medium)
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -904,7 +904,7 @@ struct ResultsDetailView: View {
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .cornerRadius(Designs.Radius.medium)
                 }
 
                 // Hydration
@@ -927,7 +927,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
 
                 // Redness
                 if let redness = metrics.rednessAnalysis {
@@ -954,7 +954,7 @@ struct ResultsDetailView: View {
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .cornerRadius(Designs.Radius.medium)
                 }
 
                 // Oil Control
@@ -978,7 +978,7 @@ struct ResultsDetailView: View {
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .cornerRadius(Designs.Radius.medium)
                 }
             }
 
@@ -1032,7 +1032,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
             }
 
             // Redness Analysis
@@ -1060,7 +1060,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
             }
 
             // Wrinkle Analysis (Expanded)
@@ -1109,7 +1109,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
             }
 
             // Elasticity Analysis
@@ -1154,7 +1154,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
             }
 
             // Volume Analysis
@@ -1233,7 +1233,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
             }
 
             // Topology Analysis (Scan Quality)
@@ -1276,7 +1276,7 @@ struct ResultsDetailView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
             }
         }
         }
@@ -1328,7 +1328,7 @@ struct ResultsDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
                     .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .cornerRadius(Designs.Radius.medium)
                 }
 
                 // Volume Card
@@ -1361,7 +1361,7 @@ struct ResultsDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
                     .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .cornerRadius(Designs.Radius.medium)
                 }
             }
         }
@@ -1407,9 +1407,9 @@ struct ResultsDetailView: View {
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color.blue)
-                    .cornerRadius(12)
+                    .frame(height: Designs.Sizes.displaySmall)
+                    .background(Designs.Colors.info)
+                    .cornerRadius(Designs.Radius.medium)
                 }
             }
 
@@ -1431,7 +1431,7 @@ struct ResultsDetailView: View {
                     .font(.headline)
                     .foregroundColor(.red)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
+                    .frame(height: Designs.Sizes.displaySmall)
             }
         }
     }
@@ -1717,7 +1717,7 @@ struct ResultsMetricCardWithConfidence: View {
                             .foregroundColor(confidenceColor)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(confidenceColor.opacity(0.15))
+                            .background(confidenceColor.opacity(Designs.Opacity.veryLight + 0.05))
                             .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
 
@@ -1744,15 +1744,15 @@ struct ResultsMetricCardWithConfidence: View {
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(height: 4)
+                            .fill(Designs.Colors.border.opacity(Designs.Opacity.light))
+                            .frame(height: Designs.Sizes.indicatorSmall)
 
                         RoundedRectangle(cornerRadius: 2)
                             .fill(confidenceColor)
                             .frame(width: geometry.size.width * CGFloat(confidence / 100), height: 4)
                     }
                 }
-                .frame(height: 4)
+                .frame(height: Designs.Sizes.frameHeightBarTiny)
             }
             .padding(.vertical, 8)
         }
@@ -1760,12 +1760,12 @@ struct ResultsMetricCardWithConfidence: View {
             // Core metric badge overlay
             if isCoreMetric {
                 Text("CORE")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(AppFont.microBold)
                     .foregroundColor(.white)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .background(Color.blue)
-                    .cornerRadius(4)
+                    .background(Designs.Colors.info)
+                    .cornerRadius(Designs.Radius.xSmall)
                     .offset(x: 8, y: 8)
             }
         }
@@ -1839,15 +1839,15 @@ struct CategoricalMetricCard: View {
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(height: 4)
+                            .fill(Designs.Colors.border.opacity(Designs.Opacity.light))
+                            .frame(height: Designs.Sizes.indicatorSmall)
 
                         RoundedRectangle(cornerRadius: 2)
                             .fill(confidenceColor)
                             .frame(width: geometry.size.width * CGFloat(confidence / 100), height: 4)
                     }
                 }
-                .frame(height: 4)
+                .frame(height: Designs.Sizes.frameHeightBarTiny)
             }
             .padding(.vertical, 8)
         }

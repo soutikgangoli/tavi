@@ -16,7 +16,7 @@ public struct ChallengeDetailView: View {
     public var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
-                VStack(spacing: HeadspaceDesign.Spacing.xl) {
+                VStack(spacing: Designs.Spacing.xl) {
                     if let challenge = challenge {
                         // Header Section
                         headerSection(challenge)
@@ -39,9 +39,9 @@ public struct ChallengeDetailView: View {
                         emptyState
                     }
                 }
-                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                .padding(.horizontal, Designs.Spacing.lg)
             }
-            .background(HeadspaceDesign.Colors.background)
+            .background(Designs.Colors.background)
             .navigationTitle("Glow Challenge")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -50,8 +50,8 @@ public struct ChallengeDetailView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.navIcon)
+                            .foregroundColor(Designs.Colors.textSecondary)
                     }
                 }
             }
@@ -68,26 +68,26 @@ public struct ChallengeDetailView: View {
             // Gradient header
             LinearGradient(
                 colors: [
-                    HeadspaceDesign.Colors.accent,  // Orange
-                    HeadspaceDesign.Colors.primary  // Red-orange
+                    Designs.Colors.accent,  // Orange
+                    Designs.Colors.primary  // Red-orange
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .frame(height: 180)
+            .frame(height: Designs.Sizes.displayHeightMedium - 20)
             .overlay(
-                VStack(spacing: HeadspaceDesign.Spacing.md) {
+                VStack(spacing: Designs.Spacing.md) {
                     Image(systemName: "flame.fill")
-                        .font(.system(size: 48, weight: .bold))
+                        .font(AppFont.scoreMedium)
                         .foregroundColor(.white)
 
                     Text("30-Day Glow Challenge")
-                        .font(.gilroy(size: 24, weight: .bold))
+                        .font(AppFont.title2)
                         .foregroundColor(.white)
 
                     Text("Started \(formatDate(challenge.startDate))")
-                        .font(.gilroy(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+                        .font(AppFont.caption)
+                        .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
                 }
             )
 
@@ -101,7 +101,7 @@ public struct ChallengeDetailView: View {
 
                 Divider()
                     .frame(maxHeight: 60)
-                    .background(HeadspaceDesign.Colors.textSecondary.opacity(0.2))
+                    .background(Designs.Colors.textSecondary.opacity(Designs.Opacity.light))
 
                 statItem(
                     title: "Progress",
@@ -111,7 +111,7 @@ public struct ChallengeDetailView: View {
 
                 Divider()
                     .frame(maxHeight: 60)
-                    .background(HeadspaceDesign.Colors.textSecondary.opacity(0.2))
+                    .background(Designs.Colors.textSecondary.opacity(Designs.Opacity.light))
 
                 statItem(
                     title: "Skin Health",
@@ -119,50 +119,50 @@ public struct ChallengeDetailView: View {
                     subtitle: "improvement"
                 )
             }
-            .padding(.vertical, HeadspaceDesign.Spacing.lg)
-            .background(HeadspaceDesign.Colors.elevatedCard)
+            .padding(.vertical, Designs.Spacing.lg)
+            .background(Designs.Colors.elevatedCard)
         }
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
     private func statItem(title: String, value: String, subtitle: String) -> some View {
         VStack(spacing: 4) {
             Text(title)
-                .font(.gilroy(size: 12, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.captionSmall)
+                .foregroundColor(Designs.Colors.textSecondary)
 
             Text(value)
-                .font(.gilroy(size: 28, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.pageTitle)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Text(subtitle)
-                .font(.gilroy(size: 11, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.micro)
+                .foregroundColor(Designs.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
 
     private func progressSection(_ challenge: GlowChallenge) -> some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             HStack {
                 Text("\(challenge.daysRemaining) days remaining")
-                    .font(.gilroy(size: 18, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headlineSecondary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Spacer()
 
                 if challenge.isCompleted {
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(AppFont.bodyPrimary)
                         Text("Completed!")
-                            .font(.gilroy(size: 14, weight: .semibold))
+                            .font(AppFont.label)
                     }
                     .foregroundColor(.green)
                 }
@@ -172,15 +172,15 @@ public struct ChallengeDetailView: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(HeadspaceDesign.Colors.textSecondary.opacity(0.15))
-                        .frame(height: 12)
+                        .fill(Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight + 0.05))
+                        .frame(height: Designs.Sizes.frameHeightBar)
 
                     RoundedRectangle(cornerRadius: 8)
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    HeadspaceDesign.Colors.accent,
-                                    HeadspaceDesign.Colors.primary
+                                    Designs.Colors.accent,
+                                    Designs.Colors.primary
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
@@ -192,24 +192,24 @@ public struct ChallengeDetailView: View {
                         )
                 }
             }
-            .frame(height: 12)
+            .frame(height: Designs.Sizes.frameHeightBar)
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
     private func calendarSection(_ challenge: GlowChallenge) -> some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             Text("Daily Check-Ins")
-                .font(.gilroy(size: 20, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.headlinePrimary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             // Calendar grid (30 days)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7), spacing: 8) {
@@ -218,14 +218,14 @@ public struct ChallengeDetailView: View {
                 }
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
@@ -239,108 +239,108 @@ public struct ChallengeDetailView: View {
                     isCheckedIn
                     ? LinearGradient(
                         colors: [
-                            HeadspaceDesign.Colors.accent,
-                            HeadspaceDesign.Colors.primary
+                            Designs.Colors.accent,
+                            Designs.Colors.primary
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                     : LinearGradient(
                         colors: [
-                            HeadspaceDesign.Colors.textSecondary.opacity(0.1),
-                            HeadspaceDesign.Colors.textSecondary.opacity(0.05)
+                            Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight),
+                            Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight / 2)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-                .frame(height: 44)
+                .frame(height: Designs.Sizes.iconMedium)
 
             if isCheckedIn {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(AppFont.metricLabel)
                     .foregroundColor(.white)
             } else {
                 Text("\(day)")
-                    .font(.system(size: 14, weight: isToday ? .bold : .medium, design: .rounded))
+                    .font(.app(size: 14, weight: isToday ? .bold : .medium, design: .rounded))
                     .foregroundColor(
                         isToday
-                        ? HeadspaceDesign.Colors.primary
-                        : HeadspaceDesign.Colors.textSecondary
+                        ? Designs.Colors.primary
+                        : Designs.Colors.textSecondary
                     )
             }
         }
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(isToday ? HeadspaceDesign.Colors.primary : Color.clear, lineWidth: 2)
+                .stroke(isToday ? Designs.Colors.primary : Color.clear, lineWidth: 2)
         )
     }
 
     private func glowChartSection(_ challenge: GlowChallenge) -> some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             HStack {
                 Text("Glow Improvement")
-                    .font(.gilroy(size: 20, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headlinePrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Spacer()
 
                 HStack(spacing: 4) {
                     if challenge.skinHealthImprovement > 0 {
                         Image(systemName: "arrow.up.right")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.green)
+                            .font(AppFont.metricLabel)
+                            .foregroundColor(Designs.ScoreColors.excellent)
                     } else if challenge.skinHealthImprovement < 0 {
                         Image(systemName: "arrow.down.right")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.red)
+                            .font(AppFont.metricLabel)
+                            .foregroundColor(Designs.Colors.error)
                     }
 
                     Text("\(challenge.skinHealthImprovement > 0 ? "+" : "")\(challenge.skinHealthImprovement)")
-                        .font(.gilroy(size: 20, weight: .bold))
+                        .font(AppFont.headlinePrimary)
                         .foregroundColor(
-                            challenge.skinHealthImprovement > 0 ? .green :
-                            challenge.skinHealthImprovement < 0 ? .red :
-                            HeadspaceDesign.Colors.textPrimary
+                            challenge.skinHealthImprovement > 0 ? Designs.ScoreColors.excellent :
+                            challenge.skinHealthImprovement < 0 ? Designs.Colors.error :
+                            Designs.Colors.textPrimary
                         )
                 }
             }
 
             // Simple bar chart showing baseline vs current
-            HStack(alignment: .bottom, spacing: HeadspaceDesign.Spacing.lg) {
+            HStack(alignment: .bottom, spacing: Designs.Spacing.lg) {
                 barChartItem(
                     label: "Baseline",
                     value: challenge.baselineSkinHealthScore,
                     maxValue: 100,
-                    color: HeadspaceDesign.Colors.textSecondary.opacity(0.4)
+                    color: Designs.Colors.textSecondary.opacity(Designs.Opacity.light)
                 )
 
                 barChartItem(
                     label: "Current",
                     value: challenge.currentSkinHealthScore,
                     maxValue: 100,
-                    color: HeadspaceDesign.Colors.secondary
+                    color: Designs.Colors.secondary
                 )
             }
-            .frame(height: 150)
+            .frame(height: Designs.Sizes.displayHeight / 2)
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
     private func barChartItem(label: String, value: Int, maxValue: Int, color: Color) -> some View {
-        VStack(spacing: HeadspaceDesign.Spacing.sm) {
+        VStack(spacing: Designs.Spacing.sm) {
             // Bar
             ZStack(alignment: .bottom) {
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(HeadspaceDesign.Colors.textSecondary.opacity(0.1))
+                    .fill(Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight))
                     .frame(maxWidth: .infinity, maxHeight: 150)
 
                 RoundedRectangle(cornerRadius: 6)
@@ -349,36 +349,36 @@ public struct ChallengeDetailView: View {
             }
 
             Text("\(value)")
-                .font(.gilroy(size: 18, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.headlineSecondary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Text(label)
-                .font(.gilroy(size: 14, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
 
     private func milestonesSection(_ challenge: GlowChallenge) -> some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             Text("Milestones")
-                .font(.gilroy(size: 20, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.headlinePrimary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
-            VStack(spacing: HeadspaceDesign.Spacing.md) {
+            VStack(spacing: Designs.Spacing.md) {
                 ForEach(ChallengeMilestone.allMilestones, id: \.days) { milestone in
                     milestoneRow(milestone: milestone, challenge: challenge)
                 }
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
-        .background(HeadspaceDesign.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.elevatedCard)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Shadows.card.color,
-            radius: HeadspaceDesign.Shadows.card.radius,
-            x: HeadspaceDesign.Shadows.card.x,
-            y: HeadspaceDesign.Shadows.card.y
+            color: Designs.Shadows.card.color,
+            radius: Designs.Shadows.card.radius,
+            x: Designs.Shadows.card.x,
+            y: Designs.Shadows.card.y
         )
     }
 
@@ -386,7 +386,7 @@ public struct ChallengeDetailView: View {
         let isUnlocked = challenge.daysCompleted >= milestone.days
         let isNext = !isUnlocked && (challenge.nextMilestone?.days == milestone.days)
 
-        return HStack(spacing: HeadspaceDesign.Spacing.md) {
+        return HStack(spacing: Designs.Spacing.md) {
             // Icon
             ZStack {
                 Circle()
@@ -394,78 +394,78 @@ public struct ChallengeDetailView: View {
                         isUnlocked
                         ? LinearGradient(
                             colors: [
-                                HeadspaceDesign.Colors.accent,
-                                HeadspaceDesign.Colors.primary
+                                Designs.Colors.accent,
+                                Designs.Colors.primary
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                         : LinearGradient(
                             colors: [
-                                HeadspaceDesign.Colors.textSecondary.opacity(0.2),
-                                HeadspaceDesign.Colors.textSecondary.opacity(0.1)
+                                Designs.Colors.textSecondary.opacity(Designs.Opacity.light),
+                                Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 48, height: 48)
+                        .frame(width: Designs.Sizes.cardIcon, height: Designs.Sizes.cardIcon)
 
                 if isUnlocked {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(AppFont.navIcon)
                         .foregroundColor(.white)
                 } else {
                     Text(milestone.emoji)
-                        .font(.system(size: 22))
+                        .font(AppFont.sectionHeader)
                 }
             }
 
             // Title and subtitle
             VStack(alignment: .leading, spacing: 4) {
                 Text(milestone.title)
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text("Day \(milestone.days) • \(milestone.reward)")
-                    .font(.gilroy(size: 14, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
 
             if isNext {
                 Text("Next")
-                    .font(.gilroy(size: 12, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                    .font(AppFont.captionSmall)
+                    .foregroundColor(Designs.Colors.primary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(HeadspaceDesign.Colors.primary.opacity(0.15))
+                    .background(Designs.Colors.primary.opacity(Designs.Opacity.veryLight + 0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }
         }
-        .padding(HeadspaceDesign.Spacing.md)
+        .padding(Designs.Spacing.md)
         .background(
             isUnlocked || isNext
-            ? HeadspaceDesign.Colors.background
+            ? Designs.Colors.background
             : Color.clear
         )
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md))
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
     }
 
     private var emptyState: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(spacing: Designs.Spacing.lg) {
             Image(systemName: "flame.fill")
-                .font(.system(size: 64))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.scoreDisplay)
+                .foregroundColor(Designs.Colors.textSecondary)
 
             Text("No Active Challenge")
-                .font(.gilroy(size: 24, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.title2)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Text("Complete your first scan to start the 30-day glow challenge")
-                .font(.gilroy(size: 16, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.bodyPrimary)
+                .foregroundColor(Designs.Colors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
         }

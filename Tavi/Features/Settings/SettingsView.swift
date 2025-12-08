@@ -10,12 +10,12 @@ import SwiftUI
 
 /// Main settings view
 public struct SettingsView: View {
-    @AppStorage("enableFaceMesh") private var enableFaceMesh: Bool = true
-    @AppStorage("enableHighResCapture") private var enableHighResCapture: Bool = false
-    @AppStorage("lightingStrictness") private var lightingStrictness: String = "Strict"
-    @AppStorage("enableHapticFeedback") private var enableHapticFeedback: Bool = true
-    @AppStorage("debugModeEnabled") private var debugModeEnabled: Bool = false
-    @AppStorage("skipOnboarding") private var skipOnboarding: Bool = false
+    @AppStorage(AppDefaultsKey.enableFaceMesh) private var enableFaceMesh: Bool = true
+    @AppStorage(AppDefaultsKey.enableHighResCapture) private var enableHighResCapture: Bool = false
+    @AppStorage(AppDefaultsKey.lightingStrictness) private var lightingStrictness: String = "Strict"
+    @AppStorage(AppDefaultsKey.enableHapticFeedback) private var enableHapticFeedback: Bool = true
+    @AppStorage(AppDefaultsKey.debugModeEnabled) private var debugModeEnabled: Bool = false
+    @AppStorage(AppDefaultsKey.skipOnboarding) private var skipOnboarding: Bool = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -32,9 +32,9 @@ public struct SettingsView: View {
         NavigationStack {
             Form {
                 // Scan Settings Section
-                Section(header: Text("Scan Settings"),
+                Section(header: Text(AppStrings.Settings.scanSettings),
                         footer: Text("High Quality Mode enables 4K texture (vs 2K) and 5 frames per pose (vs 3). Expected confidence: 90-92% (vs 83-85%). Uses 4x storage and takes longer to process.")) {
-                    Toggle("Show 3D Face Mesh", isOn: $enableFaceMesh)
+                    Toggle(AppStrings.Settings.show3DFaceMesh, isOn: $enableFaceMesh)
                         .accessibilityLabel("Show 3D face mesh during scan")
                         .accessibilityHint("Displays a 3D wireframe overlay of your face during scanning")
                         .accessibilityValue(enableFaceMesh ? "On" : "Off")
@@ -46,7 +46,7 @@ public struct SettingsView: View {
                             )
                         }
 
-                    Toggle("High Quality Mode", isOn: $enableHighResCapture)
+                    Toggle(AppStrings.Settings.highQualityMode, isOn: $enableHighResCapture)
                         .accessibilityLabel("Enable high quality mode (4K texture + 5 frames)")
                         .accessibilityHint("Clinical-grade accuracy with 90-92% confidence. Uses 4x storage and slower processing.")
                         .accessibilityValue(enableHighResCapture ? "On" : "Off")
@@ -58,7 +58,7 @@ public struct SettingsView: View {
                             )
                         }
 
-                    Toggle("Haptic Feedback", isOn: $enableHapticFeedback)
+                    Toggle(AppStrings.Settings.hapticFeedback, isOn: $enableHapticFeedback)
                         .accessibilityLabel("Enable haptic feedback during scan")
                         .accessibilityHint("Provides vibration feedback during face scanning process")
                         .accessibilityValue(enableHapticFeedback ? "On" : "Off")
@@ -72,9 +72,9 @@ public struct SettingsView: View {
                 }
 
                 // Lighting Strictness Section
-                Section(header: Text("Lighting Validation"),
+                Section(header: Text(AppStrings.Settings.lightingValidation),
                         footer: Text(lightingStrictnessDescription)) {
-                    Picker("Lighting Validation", selection: $lightingStrictness) {
+                    Picker(AppStrings.Settings.lightingValidationToggle, selection: $lightingStrictness) {
                         Text("Strict").tag("Strict")
                         Text("Relaxed").tag("Relaxed")
                         Text("Off").tag("Off")
@@ -89,7 +89,7 @@ public struct SettingsView: View {
                     NavigationLink {
                         CaptureSettingsView()
                     } label: {
-                        Label("Capture Settings", systemImage: "camera.fill")
+                        Label("Capture Settings", systemImage: SFSymbol.cameraFill)
                     }
                     .accessibilityLabel("Capture Settings")
                     .accessibilityHint("Opens advanced camera and capture configuration options")
@@ -97,14 +97,14 @@ public struct SettingsView: View {
                     NavigationLink {
                         DeviceInfoView()
                     } label: {
-                        Label("Device Information", systemImage: "info.circle.fill")
+                        Label("Device Information", systemImage: SFSymbol.infoCircleFill)
                     }
                     .accessibilityLabel("Device Information")
                     .accessibilityHint("Shows device capabilities and hardware specifications")
                 }
 
                 // Legal Section
-                Section(header: Text("Legal"),
+                Section(header: Text(AppStrings.Settings.legal),
                         footer: Text("View our privacy policy, terms of service, and get support for the app.")) {
                     Button {
                         AnalyticsManager.shared.trackAction("tap", target: "privacy_policy_link")
@@ -113,7 +113,7 @@ public struct SettingsView: View {
                         }
                     } label: {
                         HStack {
-                            Label("Privacy Policy", systemImage: "hand.raised.fill")
+                            Label(AppStrings.Settings.privacyPolicy, systemImage: "hand.raised.fill")
                             Spacer()
                             Image(systemName: "arrow.up.right.square")
                                 .font(.caption)
@@ -131,7 +131,7 @@ public struct SettingsView: View {
                         }
                     } label: {
                         HStack {
-                            Label("Terms of Service", systemImage: "doc.text.fill")
+                            Label(AppStrings.Settings.termsOfService, systemImage: "doc.text.fill")
                             Spacer()
                             Image(systemName: "arrow.up.right.square")
                                 .font(.caption)
@@ -182,7 +182,7 @@ public struct SettingsView: View {
                 // Onboarding Section
                 Section(header: Text("Onboarding"),
                         footer: Text("Skip onboarding screen on app launch. You can reset onboarding to see it again.")) {
-                    Toggle("Skip Onboarding", isOn: $skipOnboarding)
+                    Toggle(AppStrings.Settings.skipOnboarding, isOn: $skipOnboarding)
                         .accessibilityLabel("Skip onboarding screen on app launch")
                         .accessibilityHint("When enabled, the welcome tutorial will not be shown on app launch")
                         .accessibilityValue(skipOnboarding ? "On" : "Off")
@@ -194,8 +194,8 @@ public struct SettingsView: View {
                             )
                         }
 
-                    Button("Reset Onboarding") {
-                        UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+                    Button(AppStrings.Settings.resetOnboarding) {
+                        UserDefaults.standard.removeObject(forKey: AppDefaultsKey.hasCompletedOnboarding)
                         skipOnboarding = false
                         dismiss()
                     }
@@ -205,9 +205,9 @@ public struct SettingsView: View {
                 }
 
                 // Developer Section
-                Section(header: Text("Developer"),
+                Section(header: Text(AppStrings.Settings.developer),
                         footer: Text("Debug mode shows additional scan information. Verbose logging logs every 10 frames (vs 30) and may impact performance.")) {
-                    Toggle("Debug Mode", isOn: $debugModeEnabled)
+                    Toggle(AppStrings.Settings.showDebugOverlay, isOn: $debugModeEnabled)
                         .accessibilityLabel("Enable debug mode for additional scan information")
                         .accessibilityHint("Shows technical details and validation information during scans")
                         .accessibilityValue(debugModeEnabled ? "On" : "Off")
@@ -220,47 +220,47 @@ public struct SettingsView: View {
                 }
 
                 // Data Management Section
-                Section(header: Text("Data Management"),
+                Section(header: Text(AppStrings.Sections.dataManagement),
                         footer: Text("Warning: Deleting all data will permanently remove all scan results, progress history, and app settings. This action cannot be undone.")) {
                     Button(role: .destructive) {
                         showDeleteConfirmation = true
                     } label: {
-                        Label("Delete All Data", systemImage: "trash.fill")
+                        Label(AppStrings.Settings.deleteAllData, systemImage: SFSymbol.trashFill)
                     }
                     .accessibilityLabel("Delete all data")
                     .accessibilityHint("Permanently deletes all scan results, progress history, and settings. Requires confirmation.")
                 }
 
                 // Notifications Section
-                Section("Notifications") {
+                Section(AppStrings.Settings.notifications) {
                     NavigationLink {
                         NotificationsSettingsView()
                     } label: {
-                        Label("Notification Preferences", systemImage: "bell.fill")
+                        Label("Notification Preferences", systemImage: SFSymbol.bellFill)
                     }
                     .accessibilityLabel("Notification Preferences")
                     .accessibilityHint("Configure scan reminders and notification settings")
                 }
 
                 // Privacy Section
-                Section("Privacy") {
+                Section(AppStrings.Settings.privacy) {
                     NavigationLink {
                         PrivacySettingsView()
                     } label: {
-                        Label("Privacy & Data", systemImage: "lock.fill")
+                        Label(AppStrings.Titles.privacyData, systemImage: SFSymbol.lockFill)
                     }
-                    .accessibilityLabel("Privacy & Data")
+                    .accessibilityLabel(AppStrings.Titles.privacyData)
                     .accessibilityHint("Manage your data and privacy settings")
                 }
 
                 // About Section
-                Section("About") {
+                Section(AppStrings.About.about) {
                     NavigationLink {
                         AboutView()
                     } label: {
-                        Label("About Tavi", systemImage: "info.circle.fill")
+                        Label("\(AppStrings.About.about) \(AppStrings.About.appName)", systemImage: SFSymbol.infoCircleFill)
                     }
-                    .accessibilityLabel("About Tavi")
+                    .accessibilityLabel("\(AppStrings.About.about) \(AppStrings.About.appName)")
                     .accessibilityHint("Learn more about the app, features, and support")
 
                     HStack {
@@ -278,24 +278,24 @@ public struct SettingsView: View {
                     }
                 }
             }
-            .navigationTitle("Settings")
+            .navigationTitle(AppStrings.Titles.settings)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button(AppStrings.Buttons.done) {
                         dismiss()
                     }
-                    .accessibilityLabel("Done")
+                    .accessibilityLabel(AppStrings.Buttons.done)
                     .accessibilityHint("Closes settings and returns to previous screen")
                 }
             }
-            .alert("Delete All Data?", isPresented: $showDeleteConfirmation) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete", role: .destructive) {
+            .alert(AppStrings.Confirmations.deleteAllDataTitle, isPresented: $showDeleteConfirmation) {
+                Button(AppStrings.Buttons.cancel, role: .cancel) { }
+                Button(AppStrings.Buttons.delete, role: .destructive) {
                     deleteAllData()
                 }
             } message: {
-                Text("This will permanently delete all scan results, progress history, achievements, and app settings. This action cannot be undone.")
+                Text(AppStrings.Confirmations.deleteAllDataMessage)
             }
         }
     }
@@ -350,24 +350,24 @@ public struct SettingsView: View {
         UserDefaults.standard.synchronize()
 
         // Set defaults back to initial values
-        UserDefaults.standard.set(true, forKey: "enableFaceMesh")
-        UserDefaults.standard.set(false, forKey: "enableHighResCapture")
-        UserDefaults.standard.set("Strict", forKey: "lightingStrictness")
-        UserDefaults.standard.set(true, forKey: "enableHapticFeedback")
-        UserDefaults.standard.set(false, forKey: "debugModeEnabled")
-        UserDefaults.standard.set(false, forKey: "skipOnboarding")
-        UserDefaults.standard.set(true, forKey: "useRealtimeProcessing")
-        UserDefaults.standard.set(false, forKey: "enableSunDamageAnalysis")
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.enableFaceMesh)
+        UserDefaults.standard.set(false, forKey: AppDefaultsKey.enableHighResCapture)
+        UserDefaults.standard.set("Strict", forKey: AppDefaultsKey.lightingStrictness)
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.enableHapticFeedback)
+        UserDefaults.standard.set(false, forKey: AppDefaultsKey.debugModeEnabled)
+        UserDefaults.standard.set(false, forKey: AppDefaultsKey.skipOnboarding)
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.useRealtimeProcessing)
+        UserDefaults.standard.set(false, forKey: AppDefaultsKey.enableSunDamageAnalysis)
 
         // Edge case detection defaults
-        UserDefaults.standard.set(true, forKey: "detectGlasses")
-        UserDefaults.standard.set(true, forKey: "detectHands")
-        UserDefaults.standard.set(true, forKey: "detectHat")
-        UserDefaults.standard.set(true, forKey: "detectMakeup")
-        UserDefaults.standard.set(true, forKey: "detectHairCoverage")
-        UserDefaults.standard.set(true, forKey: "detectSunburn")
-        UserDefaults.standard.set(true, forKey: "detectEarrings")
-        UserDefaults.standard.set(true, forKey: "detectFacialHair")
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.detectGlasses)
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.detectHands)
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.detectHat)
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.detectMakeup)
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.detectHairCoverage)
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.detectSunburn)
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.detectEarrings)
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.detectFacialHair)
 
         AppLogger.storage.info("✅ Successfully cleared UserDefaults and reset to defaults")
     }

@@ -55,7 +55,7 @@ public struct HeatmapView: View {
                             ProgressView("Generating heatmap...")
                                 .padding()
                                 .background(.ultraThinMaterial)
-                                .cornerRadius(12)
+                                .cornerRadius(Designs.Radius.medium)
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -118,9 +118,9 @@ public struct HeatmapView: View {
                         Text(errorMessage)
                             .font(.caption)
                             .foregroundStyle(.red)
-                            .padding(8)
-                            .background(Color.red.opacity(0.1))
-                            .cornerRadius(8)
+                            .padding(Designs.Spacing.xSmall)
+                            .background(Color.red.opacity(Designs.Opacity.veryLight))
+                            .cornerRadius(Designs.Radius.small)
                     }
                 }
                 .padding()
@@ -422,8 +422,8 @@ struct ColorLegend: View {
                     startPoint: .leading,
                     endPoint: .trailing
                 )
-                .frame(height: 24)
-                .cornerRadius(4)
+                .frame(height: Designs.Sizes.iconSmall)
+                .cornerRadius(Designs.Radius.xSmall)
             }
 
             HStack {

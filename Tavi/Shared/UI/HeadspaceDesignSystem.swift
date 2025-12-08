@@ -9,6 +9,8 @@
 import SwiftUI
 
 /// Headspace-inspired design system with calming colors and smooth animations
+/// 
+/// @available(*, deprecated, message: "Use Designs instead. This system is being phased out in favor of the unified Designs system.")
 public struct HeadspaceDesign {
 
     // MARK: - Colors
@@ -87,96 +89,98 @@ public struct HeadspaceDesign {
     // MARK: - Typography
 
     /// Clean, minimalistic sans-serif typography system
-    /// Uses SF Pro (Apple's system font) for optimal readability and consistency
-    /// High contrast for scores and important metrics
+    /// Uses AppFont for centralized font management
+    /// To change fonts app-wide, update AppFont.swift
     public struct Typography {
 
         // MARK: - Base Font Function
 
-        /// Creates a clean sans-serif font with the specified size and weight
-        /// Uses SF Pro for optimal iOS readability
+        /// Creates an app font with the specified size and weight
+        public static func generalSans(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+            return AppFont.custom(size: size, weight: weight)
+        }
+
+        /// Legacy method name for backward compatibility
         public static func gilroy(size: CGFloat, weight: Font.Weight = .regular) -> Font {
-            // Use SF Pro (system font) for clean, modern look
-            // SF Pro is optimized for iOS and provides excellent readability
-            return Font.system(size: size, weight: weight, design: .default)
+            return AppFont.custom(size: size, weight: weight)
         }
 
         // MARK: - Semantic Font Styles
 
         /// Extra large display text for hero sections (40pt bold)
-        public static let displayLarge = Font.system(size: 40, weight: .bold, design: .default)
+        public static let displayLarge = AppFont.displayLarge
 
         /// Large display text for main scores (64pt bold, high contrast)
-        public static let scoreDisplay = Font.system(size: 64, weight: .bold, design: .rounded)
+        public static let scoreDisplay = AppFont.scoreDisplay
 
         /// Medium score display (48pt bold)
-        public static let scoreMedium = Font.system(size: 48, weight: .bold, design: .rounded)
+        public static let scoreMedium = AppFont.scoreMedium
 
         /// Small score display (32pt bold)
-        public static let scoreSmall = Font.system(size: 32, weight: .bold, design: .rounded)
+        public static let scoreSmall = AppFont.scoreSmall
 
         /// Page titles (28pt bold)
-        public static let pageTitle = Font.system(size: 28, weight: .bold, design: .default)
+        public static let pageTitle = AppFont.pageTitle
 
         /// Section headers (22pt semibold)
-        public static let sectionHeader = Font.system(size: 22, weight: .semibold, design: .default)
+        public static let sectionHeader = AppFont.sectionHeader
 
         /// Card titles (18pt semibold)
-        public static let cardTitle = Font.system(size: 18, weight: .semibold, design: .default)
+        public static let cardTitle = AppFont.cardTitle
 
         /// Body text - primary (16pt regular)
-        public static let bodyPrimary = Font.system(size: 16, weight: .regular, design: .default)
+        public static let bodyPrimary = AppFont.bodyPrimary
 
         /// Body text - medium weight (16pt medium)
-        public static let bodyMedium = Font.system(size: 16, weight: .medium, design: .default)
+        public static let bodyMedium = AppFont.bodyMedium
 
         /// Body text - secondary (15pt regular)
-        public static let bodySecondary = Font.system(size: 15, weight: .regular, design: .default)
+        public static let bodySecondary = AppFont.bodySecondary
 
         /// Caption text (14pt medium)
-        public static let caption = Font.system(size: 14, weight: .medium, design: .default)
+        public static let caption = AppFont.caption
 
         /// Small caption text (12pt regular)
-        public static let captionSmall = Font.system(size: 12, weight: .regular, design: .default)
+        public static let captionSmall = AppFont.captionSmall
 
         /// Label text (13pt semibold)
-        public static let label = Font.system(size: 13, weight: .semibold, design: .default)
+        public static let label = AppFont.label
 
         /// Button text (17pt semibold)
-        public static let button = Font.system(size: 17, weight: .semibold, design: .default)
+        public static let button = AppFont.button
 
         /// Tab bar text (10pt medium)
-        public static let tabBar = Font.system(size: 10, weight: .medium, design: .default)
+        public static let tabBar = AppFont.tabBar
 
         // MARK: - Legacy View Builders (for backward compatibility)
 
         public static func hero(_ text: String) -> some View {
             Text(text)
-                .font(.system(size: 34, weight: .bold, design: .default))
+                .font(AppFont.largeTitle)
                 .foregroundColor(Colors.textPrimary)
         }
 
         public static func title(_ text: String) -> some View {
             Text(text)
-                .font(.system(size: 24, weight: .bold, design: .default))
+                .font(AppFont.title2)
                 .foregroundColor(Colors.textPrimary)
         }
 
         public static func headline(_ text: String) -> some View {
             Text(text)
-                .font(.system(size: 18, weight: .semibold, design: .default))
+                .font(AppFont.cardTitle)
                 .foregroundColor(Colors.textPrimary)
         }
 
         public static func body(_ text: String) -> some View {
             Text(text)
-                .font(.system(size: 16, weight: .regular, design: .default))
+                .font(AppFont.bodyPrimary)
                 .foregroundColor(Colors.textSecondary)
         }
 
         public static func caption(_ text: String) -> some View {
             Text(text)
-                .font(.system(size: 14, weight: .medium, design: .default))
+                .font(AppFont.caption)
                 .foregroundColor(Colors.textTertiary)
         }
     }
@@ -313,22 +317,22 @@ public struct HeadspacePrimaryButton: View {
             HStack(spacing: HeadspaceDesign.Spacing.md) {
                 if let icon = icon {
                     Image(systemName: icon)
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(AppFont.navIcon)
                 }
 
                 Text(title)
-                    .font(.gilroy(size: 18, weight: .bold))
+                    .font(AppFont.button)
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
+            .padding(.vertical, HeadspaceDesign.Spacing.lg)
             .background(
                 RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
                     .fill(HeadspaceDesign.Colors.sunriseGradient)
             )
             .shadow(
                 color: HeadspaceDesign.Colors.primary.opacity(0.3),
-                radius: isPressed ? 8 : 15,
+                radius: isPressed ? 8 : 19,
                 x: 0,
                 y: isPressed ? 4 : 8
             )
@@ -370,24 +374,24 @@ public struct HeadspaceStickyButton: View {
             Spacer()
 
             Button(action: action) {
-                HStack(spacing: 12) {
+                HStack(spacing: HeadspaceDesign.Spacing.sm) {
                     Image(systemName: icon)
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(AppFont.sectionHeader)
 
                     Text(title)
-                        .font(.gilroy(size: 18, weight: .bold))
+                        .font(AppFont.button)
                 }
                 .foregroundColor(.white)
-                .padding(.horizontal, 32)
-                .padding(.vertical, 18)
+                .padding(.horizontal, HeadspaceDesign.Spacing.xxl)
+                .padding(.vertical, HeadspaceDesign.Spacing.lg)
                 .background(
                     Capsule()
                         .fill(HeadspaceDesign.Colors.sunriseGradient)
                         .shadow(
-                            color: HeadspaceDesign.Colors.primary.opacity(0.4),
-                            radius: isPressed ? 12 : 20,
+                            color: HeadspaceDesign.Colors.primary.opacity(0.2),
+                            radius: isPressed ? 12 : 24,
                             x: 0,
-                            y: isPressed ? 6 : 10
+                            y: isPressed ? 8 : 8
                         )
                 )
                 .scaleEffect(isPressed ? 0.95 : 1.0)
@@ -406,7 +410,7 @@ public struct HeadspaceStickyButton: View {
                         }
                     }
             )
-            .padding(.bottom, 32)
+            .padding(.bottom, HeadspaceDesign.Spacing.xxl)
         }
     }
 }
@@ -423,10 +427,10 @@ public struct HeadspaceBadge: View {
 
     public var body: some View {
         Text(text)
-            .font(.gilroy(size: 12, weight: .semibold))
+            .font(AppFont.label)
             .foregroundColor(color)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, HeadspaceDesign.Spacing.sm)
+            .padding(.vertical, HeadspaceDesign.Spacing.xs)
             .background(
                 Capsule()
                     .fill(color.opacity(0.15))
@@ -435,16 +439,5 @@ public struct HeadspaceBadge: View {
 }
 
 // MARK: - Font Extension
-
-extension Font {
-    /// Creates a clean sans-serif font with the specified size and weight
-    /// Uses SF Pro system font for optimal iOS readability
-    public static func gilroy(size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        return Font.system(size: size, weight: weight, design: .default)
-    }
-
-    /// High contrast score font (rounded design for friendly appearance)
-    public static func scoreFont(size: CGFloat) -> Font {
-        return Font.system(size: size, weight: .bold, design: .rounded)
-    }
-}
+// Note: Main font extensions are now defined in AppFont.swift
+// The extensions below are kept for backward compatibility and delegate to AppFont

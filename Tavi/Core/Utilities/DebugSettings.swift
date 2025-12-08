@@ -13,18 +13,18 @@ public struct DebugSettings {
 
     /// Check if debug mode is enabled in Settings
     public static var isDebugModeEnabled: Bool {
-        UserDefaults.standard.bool(forKey: "debugModeEnabled")
+        UserDefaults.standard.bool(forKey: AppDefaultsKey.debugModeEnabled)
     }
 
     /// Check if verbose logging is enabled (logs every 10-30 frames)
     public static var isVerboseLoggingEnabled: Bool {
         // Only enable verbose logging if both debug mode AND verbose flag are on
-        isDebugModeEnabled && UserDefaults.standard.bool(forKey: "verboseLoggingEnabled")
+        isDebugModeEnabled && UserDefaults.standard.bool(forKey: AppDefaultsKey.verboseLoggingEnabled)
     }
 
     /// Enable/disable verbose logging
     public static func setVerboseLogging(_ enabled: Bool) {
-        UserDefaults.standard.set(enabled, forKey: "verboseLoggingEnabled")
+        UserDefaults.standard.set(enabled, forKey: AppDefaultsKey.verboseLoggingEnabled)
     }
 
     /// Frame frequency for periodic logging (log every N frames)

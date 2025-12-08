@@ -38,8 +38,8 @@ struct FancyLoadingScreen: View {
                         .fill(
                             RadialGradient(
                                 colors: [
-                                    Color.white.opacity(0.02),
-                                    Color.blue.opacity(0.04),
+                                    Color.white.opacity(Designs.Opacity.veryLight / 5),
+                                    Color.blue.opacity(Designs.Opacity.veryLight / 2.5),
                                     Color.clear
                                 ],
                                 center: .center,
@@ -77,8 +77,8 @@ struct FancyLoadingScreen: View {
                             .fill(
                                 RadialGradient(
                                     colors: [
-                                        Color.blue.opacity(0.4),
-                                        Color.blue.opacity(0.15),
+                                        Color.blue.opacity(Designs.Opacity.light),
+                                        Color.blue.opacity(Designs.Opacity.veryLight + 0.05),
                                         Color.clear
                                     ],
                                     center: .center,
@@ -102,17 +102,17 @@ struct FancyLoadingScreen: View {
                                     endPoint: .bottomTrailing
                                 )
                             )
-                            .frame(width: 140, height: 140)
-                            .shadow(color: .blue.opacity(0.6), radius: 35, x: 0, y: 12)
+                            .frame(width: Designs.Sizes.achievementIconLarge, height: Designs.Sizes.achievementIconLarge)
+                            .shadow(color: .blue.opacity(Designs.Opacity.semiOpaque + 0.1), radius: Designs.Spacing.xxxLarge - 5, x: 0, y: Designs.Spacing.small)
                             .scaleEffect(showLogo ? 1.0 : 0.5)
                             .opacity(showLogo ? 1.0 : 0.0)
 
                         // App icon content - slightly larger
                         Text("T")
-                            .font(.gilroy(size: 72, weight: .bold))
+                            .font(AppFont.scoreDisplayLarge)
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: [.white, Color.white.opacity(0.9)],
+                                    colors: [.white, Color.white.opacity(Designs.Opacity.almostOpaque)],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
@@ -123,22 +123,22 @@ struct FancyLoadingScreen: View {
 
                     // App name - better spacing
                     Text("Tavi")
-                        .font(.system(size: 48, weight: .bold))
+                        .font(.app(size: 48, weight: .bold))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [
                                     .white,
-                                    Color.white.opacity(0.95)
+                                    Color.white.opacity(Designs.Opacity.almostTransparent)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 4)
+                        .shadow(color: .black.opacity(Designs.Opacity.medium), radius: Designs.Spacing.small, x: 0, y: Designs.Spacing.xxSmall)
                         .opacity(showLogo ? 1.0 : 0.0)
                         .offset(y: showLogo ? 0 : 20)
                 }
-                .animation(.spring(response: 0.8, dampingFraction: 0.7), value: showLogo)
+                .animation(Designs.Animation.gentleSpring, value: showLogo)
 
                 Spacer()
 
@@ -146,9 +146,9 @@ struct FancyLoadingScreen: View {
                 VStack(spacing: 32) {
                     // Loading phase text - better hierarchy
                     Text(currentPhase.message)
-                        .font(.gilroy(size: 15, weight: .medium))
-                        .foregroundColor(.white.opacity(0.75))
-                        .animation(.easeInOut(duration: 0.3), value: currentPhase)
+                        .font(AppFont.bodySecondary)
+                        .foregroundColor(.white.opacity(Designs.Opacity.semiTransparent + 0.05))
+                        .animation(Designs.Animation.standard, value: currentPhase)
 
                     // Progress bar container - cleaner design
                     VStack(spacing: 16) {
@@ -157,8 +157,8 @@ struct FancyLoadingScreen: View {
                             ZStack(alignment: .leading) {
                                 // Background track - more visible
                                 RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color.white.opacity(0.12))
-                                    .frame(height: 10)
+                                    .fill(Color.white.opacity(Designs.Opacity.veryLight + 0.02))
+                                    .frame(height: Designs.Spacing.small)
 
                                 // Progress fill with gradient - more vibrant
                                 RoundedRectangle(cornerRadius: 10)
@@ -174,7 +174,7 @@ struct FancyLoadingScreen: View {
                                         )
                                     )
                                     .frame(width: geometry.size.width * (progress / 100), height: 10)
-                                    .shadow(color: .blue.opacity(0.6), radius: 10, x: 0, y: 3)
+                                    .shadow(color: .blue.opacity(Designs.Opacity.semiOpaque + 0.1), radius: Designs.Spacing.small, x: 0, y: Designs.Opacity.medium * 10)
 
                                 // Shimmer effect - more pronounced
                                 RoundedRectangle(cornerRadius: 10)
@@ -182,7 +182,7 @@ struct FancyLoadingScreen: View {
                                         LinearGradient(
                                             colors: [
                                                 Color.white.opacity(0),
-                                                Color.white.opacity(0.4),
+                                                Color.white.opacity(Designs.Opacity.light),
                                                 Color.white.opacity(0)
                                             ],
                                             startPoint: .leading,
@@ -196,13 +196,13 @@ struct FancyLoadingScreen: View {
                                     )
                             }
                         }
-                        .frame(height: 10)
+                        .frame(height: Designs.Spacing.small)
                         .frame(maxWidth: 320)
 
                         // Percentage text - larger, more readable
                         Text("\(Int(progress))%")
-                            .font(.gilroy(size: 20, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.95))
+                            .font(AppFont.headlinePrimary)
+                            .foregroundColor(.white.opacity(Designs.Opacity.almostTransparent))
                             .monospacedDigit()
                     }
                 }

@@ -120,14 +120,14 @@ public class EdgeCaseDetector {
         var recommendations: [String] = []
 
         // Load user preferences for edge case detection
-        let detectGlasses = UserDefaults.standard.object(forKey: "detectGlasses") as? Bool ?? true
-        let detectHands = UserDefaults.standard.object(forKey: "detectHands") as? Bool ?? true
-        let detectHat = UserDefaults.standard.object(forKey: "detectHat") as? Bool ?? true
-        let detectMakeup = UserDefaults.standard.object(forKey: "detectMakeup") as? Bool ?? true
-        let detectHairCoverage = UserDefaults.standard.object(forKey: "detectHairCoverage") as? Bool ?? true
-        let detectSunburn = UserDefaults.standard.object(forKey: "detectSunburn") as? Bool ?? true
-        let detectEarrings = UserDefaults.standard.object(forKey: "detectEarrings") as? Bool ?? true
-        let detectFacialHair = UserDefaults.standard.object(forKey: "detectFacialHair") as? Bool ?? true
+        let detectGlasses = UserDefaults.standard.object(forKey: AppDefaultsKey.detectGlasses) as? Bool ?? true
+        let detectHands = UserDefaults.standard.object(forKey: AppDefaultsKey.detectHands) as? Bool ?? true
+        let detectHat = UserDefaults.standard.object(forKey: AppDefaultsKey.detectHat) as? Bool ?? true
+        let detectMakeup = UserDefaults.standard.object(forKey: AppDefaultsKey.detectMakeup) as? Bool ?? true
+        let detectHairCoverage = UserDefaults.standard.object(forKey: AppDefaultsKey.detectHairCoverage) as? Bool ?? true
+        let detectSunburn = UserDefaults.standard.object(forKey: AppDefaultsKey.detectSunburn) as? Bool ?? true
+        let detectEarrings = UserDefaults.standard.object(forKey: AppDefaultsKey.detectEarrings) as? Bool ?? true
+        let detectFacialHair = UserDefaults.standard.object(forKey: AppDefaultsKey.detectFacialHair) as? Bool ?? true
 
         // LIGHTING DETECTION (First priority - blocks everything else if too dark/bright)
         let (brightness, lightingQuality) = detectLightingConditions(texture: texture, strictness: strictness)
@@ -1091,7 +1091,7 @@ public struct EdgeCaseWarningView: View {
     public var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 60))
+                .font(.app(size: 60))
                 .foregroundColor(.orange)
 
             Text("Scan Quality Warning")

@@ -54,7 +54,7 @@ public struct Face3DMetricsResultsView: View {
                 ProgressView("Computing metrics...")
                     .padding()
                     .background(.ultraThinMaterial)
-                    .cornerRadius(10)
+                    .cornerRadius(Designs.Radius.medium)
             }
         }
     }
@@ -72,9 +72,9 @@ public struct Face3DMetricsResultsView: View {
                 Image(systemName: "chevron.right")
             }
             .padding()
-            .background(Color.blue.opacity(0.1))
+            .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
             .foregroundColor(.blue)
-            .cornerRadius(12)
+            .cornerRadius(Designs.Radius.medium)
         }
     }
 
@@ -83,7 +83,7 @@ public struct Face3DMetricsResultsView: View {
     private var headerSection: some View {
         VStack(spacing: 8) {
             Image(systemName: "face.smiling")
-                .font(.system(size: 60))
+                .font(.app(size: 60))
                 .foregroundColor(.blue)
 
             Text("3D Face Analysis Complete")
@@ -103,7 +103,7 @@ public struct Face3DMetricsResultsView: View {
         .frame(maxWidth: .infinity)
         .padding()
         .background(.ultraThinMaterial)
-        .cornerRadius(12)
+        .cornerRadius(Designs.Radius.medium)
     }
 
     // MARK: - Global Metrics
@@ -136,8 +136,8 @@ public struct Face3DMetricsResultsView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(colorForScore(metrics.overallScore).opacity(0.15))
-                    .cornerRadius(12)
+                    .background(colorForScore(metrics.overallScore).opacity(Designs.Opacity.veryLight + 0.05))
+                    .cornerRadius(Designs.Radius.medium)
 
                     Divider()
 
@@ -183,7 +183,7 @@ public struct Face3DMetricsResultsView: View {
                 }
                 .padding()
                 .background(.ultraThinMaterial)
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
             }
         }
     }
@@ -220,15 +220,15 @@ public struct Face3DMetricsResultsView: View {
                     Image(systemName: "chevron.up.chevron.down")
                 }
                 .padding()
-                .background(Color.gray.opacity(0.2))
-                .cornerRadius(8)
+                .background(Designs.Colors.border.opacity(Designs.Opacity.light))
+                .cornerRadius(Designs.Radius.small)
             }
 
             Toggle("Show Heatmap", isOn: $showHeatmap)
         }
         .padding()
         .background(.ultraThinMaterial)
-        .cornerRadius(12)
+        .cornerRadius(Designs.Radius.medium)
     }
 
     // MARK: - Heatmap
@@ -245,29 +245,29 @@ public struct Face3DMetricsResultsView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxWidth: .infinity)
-                        .cornerRadius(12)
+                        .cornerRadius(Designs.Radius.medium)
 
                     // Legend
                     HStack {
                         Circle()
-                            .fill(Color.green)
-                            .frame(width: 20, height: 20)
+                            .fill(Designs.ScoreColors.excellent)
+                            .frame(width: Designs.Sizes.iconTiny, height: Designs.Sizes.iconTiny)
                         Text("Low")
                             .font(.caption)
 
                         Spacer()
 
                         Circle()
-                            .fill(Color.yellow)
-                            .frame(width: 20, height: 20)
+                            .fill(Designs.Colors.primary)
+                            .frame(width: Designs.Sizes.iconTiny, height: Designs.Sizes.iconTiny)
                         Text("Medium")
                             .font(.caption)
 
                         Spacer()
 
                         Circle()
-                            .fill(Color.red)
-                            .frame(width: 20, height: 20)
+                            .fill(Designs.Colors.error)
+                            .frame(width: Designs.Sizes.iconTiny, height: Designs.Sizes.iconTiny)
                         Text("High")
                             .font(.caption)
                     }
@@ -275,7 +275,7 @@ public struct Face3DMetricsResultsView: View {
                 }
                 .padding()
                 .background(.ultraThinMaterial)
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
             }
         }
     }
@@ -305,7 +305,7 @@ public struct Face3DMetricsResultsView: View {
                 }
                 .padding()
                 .background(.ultraThinMaterial)
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
             }
         }
     }
@@ -334,7 +334,7 @@ public struct Face3DMetricsResultsView: View {
         }
         .padding()
         .background(.ultraThinMaterial)
-        .cornerRadius(12)
+        .cornerRadius(Designs.Radius.medium)
     }
 
     // MARK: - Actions
@@ -429,7 +429,7 @@ private struct MetricCard: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.2))
+                        .fill(Designs.Colors.border.opacity(Designs.Opacity.light))
 
                     RoundedRectangle(cornerRadius: 4)
                         .fill(color)
@@ -440,8 +440,8 @@ private struct MetricCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(color.opacity(0.1))
-        .cornerRadius(8)
+        .background(color.opacity(Designs.Opacity.veryLight))
+        .cornerRadius(Designs.Radius.small)
     }
 }
 
@@ -473,7 +473,7 @@ private struct ScoreCard: View {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
-                .frame(width: 32)
+                .frame(width: Designs.Sizes.frameSmall)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -484,14 +484,14 @@ private struct ScoreCard: View {
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.gray.opacity(0.2))
+                            .fill(Designs.Colors.border.opacity(Designs.Opacity.light))
 
                         RoundedRectangle(cornerRadius: 4)
                             .fill(scoreColor)
                             .frame(width: geometry.size.width * CGFloat(score / 10.0))
                     }
                 }
-                .frame(height: 8)
+                .frame(height: Designs.Sizes.indicatorTiny)
             }
 
             Spacer()
@@ -508,8 +508,8 @@ private struct ScoreCard: View {
             }
         }
         .padding()
-        .background(scoreColor.opacity(0.1))
-        .cornerRadius(8)
+        .background(scoreColor.opacity(Designs.Opacity.veryLight))
+        .cornerRadius(Designs.Radius.small)
     }
 }
 
@@ -543,7 +543,7 @@ private struct ScoreCardWithExplanation: View {
                 Image(systemName: icon)
                     .font(.title2)
                     .foregroundColor(color)
-                    .frame(width: 32)
+                    .frame(width: Designs.Sizes.frameSmall)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
@@ -554,14 +554,14 @@ private struct ScoreCardWithExplanation: View {
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.gray.opacity(0.2))
+                                .fill(Designs.Colors.border.opacity(Designs.Opacity.light))
 
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(scoreColor)
                                 .frame(width: geometry.size.width * CGFloat(score / 10.0))
                         }
                     }
-                    .frame(height: 8)
+                    .frame(height: Designs.Sizes.indicatorTiny)
                 }
 
                 Spacer()
@@ -585,8 +585,8 @@ private struct ScoreCardWithExplanation: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
-        .background(scoreColor.opacity(0.1))
-        .cornerRadius(8)
+        .background(scoreColor.opacity(Designs.Opacity.veryLight))
+        .cornerRadius(Designs.Radius.small)
     }
 }
 
@@ -621,7 +621,7 @@ struct ROIMetricRow: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.gray.opacity(0.2))
+                        .fill(Designs.Colors.border.opacity(Designs.Opacity.light))
 
                     RoundedRectangle(cornerRadius: 3)
                         .fill(colorForValue(value))
@@ -671,8 +671,8 @@ struct ROIMetricRow: View {
             }
         }
         .padding()
-        .background(isSelected ? Color.blue.opacity(0.1) : Color.clear)
-        .cornerRadius(8)
+        .background(isSelected ? Designs.Colors.info.opacity(Designs.Opacity.veryLight) : Color.clear)
+        .cornerRadius(Designs.Radius.small)
     }
 
     private func metricDetail(_ label: String, _ value: Float) -> some View {

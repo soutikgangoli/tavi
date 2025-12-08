@@ -33,7 +33,7 @@ public struct ARKitErrorRecoveryView: View {
     public var body: some View {
         ZStack {
             // Semi-transparent background
-            Color.black.opacity(0.5)
+            Color.black.opacity(Designs.Opacity.semiOpaque)
                 .ignoresSafeArea()
 
             // Error card
@@ -44,10 +44,10 @@ public struct ARKitErrorRecoveryView: View {
                     ZStack {
                         Circle()
                             .fill(iconBackgroundColor)
-                            .frame(width: 80, height: 80)
+                            .frame(width: Designs.Sizes.frameXLarge, height: Designs.Sizes.frameXLarge)
 
                         Image(systemName: errorInfo.icon)
-                            .font(.system(size: 36))
+                            .font(.app(size: 36))
                             .foregroundColor(iconColor)
                     }
 
@@ -95,7 +95,7 @@ public struct ARKitErrorRecoveryView: View {
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.blue)
-                                    .frame(width: 20, alignment: .trailing)
+                                    .frame(width: Designs.Sizes.indicatorMedium, alignment: .trailing)
 
                                 Text(step)
                                     .font(.subheadline)
@@ -109,7 +109,7 @@ public struct ARKitErrorRecoveryView: View {
                     .padding(.vertical, 24)
                     .padding(.horizontal, 24)
                     .background(Color(uiColor: .secondarySystemBackground))
-                    .cornerRadius(12)
+                    .cornerRadius(Designs.Radius.medium)
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
                 }
@@ -128,7 +128,7 @@ public struct ARKitErrorRecoveryView: View {
                             .padding(.vertical, 16)
                             .background(Color.blue)
                             .foregroundColor(.white)
-                            .cornerRadius(12)
+                            .cornerRadius(Designs.Radius.medium)
                         }
                     }
 
@@ -144,7 +144,7 @@ public struct ARKitErrorRecoveryView: View {
                             .padding(.vertical, 16)
                             .background(Color(uiColor: .systemGray5))
                             .foregroundColor(.blue)
-                            .cornerRadius(12)
+                            .cornerRadius(Designs.Radius.medium)
                         }
                     }
 
@@ -162,8 +162,8 @@ public struct ARKitErrorRecoveryView: View {
             }
             .frame(maxWidth: 400)
             .background(Color(uiColor: .systemBackground))
-            .cornerRadius(20)
-            .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+            .cornerRadius(Designs.Radius.xLarge)
+            .shadow(color: Color.black.opacity(Designs.Opacity.medium), radius: Designs.Radius.xLarge, x: 0, y: Designs.Spacing.small)
             .padding(.horizontal, 24)
         }
     }
@@ -186,13 +186,13 @@ public struct ARKitErrorRecoveryView: View {
     private var iconBackgroundColor: Color {
         switch errorInfo.type {
         case .trackingLost, .insufficientFeatures, .sessionInterrupted:
-            return Color.orange.opacity(0.15)
+            return Color.orange.opacity(Designs.Opacity.veryLight)
         case .multipleFaces, .poorLighting, .cameraOccluded:
-            return Color.yellow.opacity(0.15)
+            return Color.yellow.opacity(Designs.Opacity.veryLight)
         case .configurationFailed, .sensorFailed, .permissionDenied, .deviceNotSupported:
-            return Color.red.opacity(0.15)
+            return Color.red.opacity(Designs.Opacity.veryLight)
         case .unknown:
-            return Color.gray.opacity(0.15)
+            return Color.gray.opacity(Designs.Opacity.veryLight)
         }
     }
 }

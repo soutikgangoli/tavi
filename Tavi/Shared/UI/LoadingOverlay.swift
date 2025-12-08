@@ -21,25 +21,25 @@ struct LoadingOverlay: View {
     var body: some View {
         ZStack {
             // Overlay background
-            DesignSystem.Colors.overlay
+            Designs.Colors.overlay
                 .ignoresSafeArea()
 
             // Loading card
-            VStack(spacing: DesignSystem.Spacing.large) {
+            VStack(spacing: Designs.Spacing.large) {
                 if showProgress {
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: DesignSystem.Colors.accent))
+                        .progressViewStyle(CircularProgressViewStyle(tint: Designs.Colors.accent))
                         .scaleEffect(1.5)
                 }
 
                 Text(message)
-                    .font(DesignSystem.Typography.headline)
-                    .foregroundColor(DesignSystem.Colors.textPrimary)
+                    .font(Designs.Typography.headline)
+                    .foregroundColor(Designs.Colors.textPrimary)
                     .multilineTextAlignment(.center)
             }
-            .padding(DesignSystem.Spacing.xxLarge)
-            .background(DesignSystem.Colors.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large))
+            .padding(Designs.Spacing.xxLarge)
+            .background(Designs.Colors.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: Designs.CornerRadius.large))
             .modalShadow()
         }
         .transition(.opacity.combined(with: .scale(scale: 0.9)))
@@ -62,7 +62,7 @@ struct LoadingOverlayModifier: ViewModifier {
                 LoadingOverlay(message: message)
             }
         }
-        .animation(DesignSystem.Animation.standard, value: isLoading)
+        .animation(Designs.Animation.standard, value: isLoading)
     }
 }
 
@@ -79,16 +79,16 @@ struct InlineLoadingView: View {
     let message: String
 
     var body: some View {
-        HStack(spacing: DesignSystem.Spacing.medium) {
+        HStack(spacing: Designs.Spacing.medium) {
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: DesignSystem.Colors.accent))
+                .progressViewStyle(CircularProgressViewStyle(tint: Designs.Colors.accent))
 
             Text(message)
-                .font(DesignSystem.Typography.body)
-                .foregroundColor(DesignSystem.Colors.textSecondary)
+                .font(Designs.Typography.body)
+                .foregroundColor(Designs.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .center)
-        .padding(DesignSystem.Spacing.large)
+        .padding(Designs.Spacing.large)
     }
 }
 
@@ -98,7 +98,7 @@ struct InlineLoadingView: View {
     ZStack {
         VStack {
             Text("Background Content")
-                .font(DesignSystem.Typography.title)
+                .font(Designs.Typography.title)
 
             Button("Tap Me") {}
                 .buttonStyle(PrimaryButtonStyle())
@@ -112,7 +112,7 @@ struct InlineLoadingView: View {
 #Preview("With Modifier") {
     VStack {
         Text("Content")
-            .font(DesignSystem.Typography.title)
+            .font(Designs.Typography.title)
 
         Button("Button") {}
             .buttonStyle(PrimaryButtonStyle())
@@ -125,5 +125,5 @@ struct InlineLoadingView: View {
     VStack {
         InlineLoadingView(message: "Loading results...")
     }
-    .background(DesignSystem.Colors.backgroundSecondary)
+    .background(Designs.Colors.backgroundSecondary)
 }

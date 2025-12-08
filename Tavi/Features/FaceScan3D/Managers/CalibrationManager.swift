@@ -734,6 +734,6 @@ public class CalibrationManager: ObservableObject {
 /// Shared settings for haptic feedback
 @MainActor
 public class HapticSettings: ObservableObject {
-    @AppStorage("enableHapticFeedback") var isEnabled: Bool = true
+    @AppStorage(AppDefaultsKey.enableHapticFeedback) var isEnabled: Bool = true
     static let shared = HapticSettings()
 }

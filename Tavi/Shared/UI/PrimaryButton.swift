@@ -28,7 +28,7 @@ public struct PrimaryButton: View {
 }
 
 #Preview {
-    VStack(spacing: DesignSystem.Spacing.medium) {
+    VStack(spacing: Designs.Spacing.medium) {
         PrimaryButton(title: "Get Started") {
             AppLogger.ui.info("Button tapped")
         }
@@ -39,5 +39,5 @@ public struct PrimaryButton: View {
         .disabled(true)
     }
     .padding()
-    .background(DesignSystem.Colors.backgroundSecondary)
+    .background(Designs.Colors.backgroundSecondary)
 }

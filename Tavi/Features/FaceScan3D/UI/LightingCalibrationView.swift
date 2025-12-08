@@ -75,7 +75,7 @@ public struct LightingCalibrationView: View {
                     // Icon and status
                     HStack(spacing: 12) {
                         Image(systemName: viewModel.lightingQuality.icon)
-                            .font(.system(size: 40))
+                            .font(.app(size: 40))
                             .foregroundColor(viewModel.lightingQuality.color)
 
                         VStack(alignment: .leading, spacing: 4) {
@@ -85,14 +85,14 @@ public struct LightingCalibrationView: View {
 
                             Text("Brightness: \(Int(viewModel.currentBrightness * 100))%")
                                 .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.white.opacity(Designs.Opacity.semiTransparent))
                         }
 
                         Spacer()
                     }
                     .padding()
-                    .background(viewModel.lightingQuality.color.opacity(0.3))
-                    .cornerRadius(12)
+                    .background(viewModel.lightingQuality.color.opacity(Designs.Opacity.medium))
+                    .cornerRadius(Designs.Radius.medium)
 
                     // Brightness meter
                     BrightnessMeterView(
@@ -107,8 +107,8 @@ public struct LightingCalibrationView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.gray.opacity(0.5))
-                                .cornerRadius(10)
+                                .background(Color.gray.opacity(Designs.Opacity.semiOpaque))
+                                .cornerRadius(Designs.Radius.medium)
                         }
 
                         Button(action: onComplete) {
@@ -116,15 +116,15 @@ public struct LightingCalibrationView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(viewModel.lightingQuality.canProceed ? Color.blue : Color.gray.opacity(0.5))
-                                .cornerRadius(10)
+                                .background(viewModel.lightingQuality.canProceed ? Color.blue : Color.gray.opacity(Designs.Opacity.semiOpaque))
+                                .cornerRadius(Designs.Radius.medium)
                         }
                         .disabled(!viewModel.lightingQuality.canProceed)
                     }
                 }
                 .padding()
-                .background(Color.black.opacity(0.7))
-                .cornerRadius(16)
+                .background(Color.black.opacity(Designs.Opacity.semiTransparent))
+                .cornerRadius(Designs.Radius.large)
                 .padding()
             }
         }
@@ -146,17 +146,17 @@ struct BrightnessMeterView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Target: 40-70%")
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(.white.opacity(Designs.Opacity.semiTransparent))
 
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     // Background track
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.white.opacity(0.2))
+                        .fill(Color.white.opacity(Designs.Opacity.light))
 
                     // Optimal zone (40-70%)
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.green.opacity(0.3))
+                        .fill(Color.green.opacity(Designs.Opacity.medium))
                         .frame(width: geometry.size.width * 0.3)  // 30% width for 40-70% range
                         .offset(x: geometry.size.width * 0.4)  // Start at 40%
 
@@ -168,7 +168,7 @@ struct BrightnessMeterView: View {
                     // Current position marker
                     Circle()
                         .fill(Color.white)
-                        .frame(width: 16, height: 16)
+                        .frame(width: Designs.Sizes.indicatorSmallCircle, height: Designs.Sizes.indicatorSmallCircle)
                         .overlay(
                             Circle()
                                 .stroke(quality.color, lineWidth: 3)
@@ -176,17 +176,17 @@ struct BrightnessMeterView: View {
                         .offset(x: geometry.size.width * CGFloat(brightness) - 8)
                 }
             }
-            .frame(height: 40)
+            .frame(height: Designs.Sizes.frameMedium)
 
             // Scale markers
             HStack {
                 Text("0%")
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(.white.opacity(Designs.Opacity.semiOpaque))
                 Spacer()
                 Text("25%")
                     .font(.caption2)
-                    .foregroundColor(.red.opacity(0.7))
+                    .foregroundColor(.red.opacity(Designs.Opacity.semiTransparent))
                 Spacer()
                 Text("40%")
                     .font(.caption2)
@@ -198,11 +198,11 @@ struct BrightnessMeterView: View {
                 Spacer()
                 Text("90%")
                     .font(.caption2)
-                    .foregroundColor(.orange.opacity(0.7))
+                    .foregroundColor(.orange.opacity(Designs.Opacity.semiTransparent))
                 Spacer()
                 Text("100%")
                     .font(.caption2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(.white.opacity(Designs.Opacity.semiOpaque))
             }
         }
     }

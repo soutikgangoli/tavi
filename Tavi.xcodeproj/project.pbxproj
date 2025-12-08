@@ -97,6 +97,10 @@
 		A19EAEDAEF7F731CE50142FF /* TextureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D022F426A297217275C6E6F /* TextureExtractor.swift */; };
 		A33DCEF17DACB170BA92523B /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F004FB0FB5D0FF29C951E78 /* LoadingView.swift */; };
 		A767C7593E42BD4FC5FE42BE /* HeadspaceDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92A5F472A028D41A7D5022D /* HeadspaceDesignSystem.swift */; };
+		APPFONT00000000000000001 /* AppFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = APPFONTREF0000000000001 /* AppFont.swift */; };
+		APPDEFAULTS0000000000001 /* AppDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = APPDEFAULTSREF00000001 /* AppDefaults.swift */; };
+		SFSYMBOLS00000000000001 /* SFSymbols.swift in Sources */ = {isa = PBXBuildFile; fileRef = SFSYMBOLSREF000000001 /* SFSymbols.swift */; };
+		E9573210E80E41F28D66126F /* AppStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B487B6E8A3D4EE9BE7E2267 /* AppStrings.swift */; };
 		A7B1FF885E4B85CE1B3CBE9C /* FancyLoadingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D02CD1F895E305C70B9EB943 /* FancyLoadingScreen.swift */; };
 		A7DE163D7E8001747B4E1A49 /* ARKitErrorRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD4B868FD501E75A8E9BB82 /* ARKitErrorRecoveryView.swift */; };
 		A98A28857E395A82F35ECCD7 /* DataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1551229E2CDA456D6F037D2E /* DataModels.swift */; };
@@ -112,6 +116,7 @@
 		C0630FC460D7CF61167C3BAE /* PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF92FAB265314F82481D94A /* PDFReportGenerator.swift */; };
 		C1147158F5469052492132EE /* MetricsOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D18BE57C1D993C59DC4ADEB /* MetricsOrchestrator.swift */; };
 		C119AE272490876698162196 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3B36ACDE83D0E9CE282988A /* DesignSystem.swift */; };
+		B28B09534138461AAE60C5AD /* Designs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D8D48D4A9F64B049464B579 /* Designs.swift */; };
 		C2408617079AB33A0A4DA5B3 /* CaptureSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75F3DACA88C2BAE8D02A5828 /* CaptureSettingsView.swift */; };
 		C2CD14A188607D92AA6FC1E0 /* MeshExtender.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFCD811AF2A9475C240EA1A2 /* MeshExtender.swift */; };
 		C4DD0672AD64A6B5809E3001 /* ScanError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B879F044F2ADC81FC65D2BF1 /* ScanError.swift */; };
@@ -158,12 +163,18 @@
 		8D9B6472508A45F8B640DD51 /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD6AAB9158A4E789D02EAF1 /* PrivacySettingsView.swift */; };
 		9AB3D2BD0F0747E08363488E /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AA6C0FB229431E83905FAD /* AboutView.swift */; };
 		A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* TaviModel.xcdatamodeld in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */; };
-		C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8 /* Roboto-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9 /* Roboto-Black.ttf */; };
-		E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0 /* Roboto-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1 /* Roboto-Bold.ttf */; };
-		G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2 /* Roboto-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3 /* Roboto-Light.ttf */; };
-		I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4 /* Roboto-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5 /* Roboto-Medium.ttf */; };
-		K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6 /* Roboto-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7 /* Roboto-Regular.ttf */; };
-		M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8 /* Roboto-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9 /* Roboto-Thin.ttf */; };
+		GS01BOLD000000000000000000000001 /* GeneralSans-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS01BOLDREF0000000000000000001 /* GeneralSans-Bold.otf */; };
+		GS02BOLDIT00000000000000000000002 /* GeneralSans-BoldItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS02BOLDITREF000000000000000002 /* GeneralSans-BoldItalic.otf */; };
+		GS03EXLT000000000000000000000003 /* GeneralSans-Extralight.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS03EXLTREF0000000000000000003 /* GeneralSans-Extralight.otf */; };
+		GS04EXLTIT0000000000000000000004 /* GeneralSans-ExtralightItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS04EXLTITREF00000000000000004 /* GeneralSans-ExtralightItalic.otf */; };
+		GS05ITALIC000000000000000000005 /* GeneralSans-Italic.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS05ITALICREF0000000000000005 /* GeneralSans-Italic.otf */; };
+		GS06LIGHT00000000000000000000006 /* GeneralSans-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS06LIGHTREF000000000000000006 /* GeneralSans-Light.otf */; };
+		GS07LIGHTIT000000000000000000007 /* GeneralSans-LightItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS07LIGHTITREF0000000000000007 /* GeneralSans-LightItalic.otf */; };
+		GS08MEDIUM0000000000000000000008 /* GeneralSans-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS08MEDIUMREF00000000000000008 /* GeneralSans-Medium.otf */; };
+		GS09MEDIT000000000000000000000009 /* GeneralSans-MediumItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS09MEDITREF0000000000000000009 /* GeneralSans-MediumItalic.otf */; };
+		GS10REGULAR0000000000000000000010 /* GeneralSans-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS10REGULARREF000000000000000010 /* GeneralSans-Regular.otf */; };
+		GS11SEMIBOLD000000000000000000011 /* GeneralSans-Semibold.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS11SEMIBOLDREF00000000000000011 /* GeneralSans-Semibold.otf */; };
+		GS12SEMIBOLDIT00000000000000000012 /* GeneralSans-SemiboldItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS12SEMIBOLDITREF000000000000012 /* GeneralSans-SemiboldItalic.otf */; };
 
 /* End PBXBuildFile section */
 
@@ -280,6 +291,9 @@
 		C88A19250798639E43BF42BE /* MetricsResultView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MetricsResultView.swift; path = MetricsResultView.swift; sourceTree = "<group>"; };
 		C8A9CDF62E0F4EF79AD9BA75 /* MemoryBudgetManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MemoryBudgetManager.swift; path = MemoryBudgetManager.swift; sourceTree = "<group>"; };
 		C92A5F472A028D41A7D5022D /* HeadspaceDesignSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeadspaceDesignSystem.swift; path = Tavi/Shared/UI/HeadspaceDesignSystem.swift; sourceTree = "<group>"; };
+		APPFONTREF0000000000001 /* AppFont.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppFont.swift; path = Tavi/Shared/UI/AppFont.swift; sourceTree = "<group>"; };
+		APPDEFAULTSREF00000001 /* AppDefaults.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppDefaults.swift; path = Tavi/Shared/AppDefaults.swift; sourceTree = "<group>"; };
+		SFSYMBOLSREF000000001 /* SFSymbols.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SFSymbols.swift; path = Tavi/Shared/SFSymbols.swift; sourceTree = "<group>"; };
 		CC31E88D5F06C27300AF247D /* TemporalTracker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TemporalTracker.swift; path = TemporalTracker.swift; sourceTree = "<group>"; };
 		CF675DA44DF685061893BCF7 /* GlowAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = GlowAnalyzer.swift; path = GlowAnalyzer.swift; sourceTree = "<group>"; };
 		CFCD811AF2A9475C240EA1A2 /* MeshExtender.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeshExtender.swift; path = MeshExtender.swift; sourceTree = "<group>"; };
@@ -300,6 +314,8 @@
 		E15BA5870167432044EA62D8 /* ARKitErrorAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ARKitErrorAnalyzer.swift; sourceTree = "<group>"; };
 		E15EC623A8C87285A2A33338 /* PoreAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PoreAnalyzer.swift; path = PoreAnalyzer.swift; sourceTree = "<group>"; };
 		E3B36ACDE83D0E9CE282988A /* DesignSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DesignSystem.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		8D8D48D4A9F64B049464B579 /* Designs.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Designs.swift; path = Designs.swift; sourceTree = "<group>"; };
+		4B487B6E8A3D4EE9BE7E2267 /* AppStrings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppStrings.swift; path = AppStrings.swift; sourceTree = "<group>"; };
 		E3FDB29A089E2E523A64A331 /* OutlierFilter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OutlierFilter.swift; path = OutlierFilter.swift; sourceTree = "<group>"; };
 		E46190D0CE9141D1FEE2B8B0 /* SkinToneNormalizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SkinToneNormalizer.swift; path = SkinToneNormalizer.swift; sourceTree = "<group>"; };
 		E557D608A8032801829AFAD3 /* MeshValidator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeshValidator.swift; path = MeshValidator.swift; sourceTree = "<group>"; };
@@ -323,12 +339,18 @@
 		9FD6AAB9158A4E789D02EAF1 /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PrivacySettingsView.swift; path = Tavi/Features/Settings/PrivacySettingsView.swift; sourceTree = "<group>"; };
 		52AA6C0FB229431E83905FAD /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AboutView.swift; path = Tavi/Features/Settings/AboutView.swift; sourceTree = "<group>"; };
 		B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "CoreData/TaviModel.xcdatamodeld"; sourceTree = "<group>"; };
-		D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9 /* Roboto-Black.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Black.ttf"; path = "Roboto-Black.ttf"; sourceTree = "<group>"; };
-		F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1 /* Roboto-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Bold.ttf"; path = "Roboto-Bold.ttf"; sourceTree = "<group>"; };
-		H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3 /* Roboto-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Light.ttf"; path = "Roboto-Light.ttf"; sourceTree = "<group>"; };
-		J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5 /* Roboto-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Medium.ttf"; path = "Roboto-Medium.ttf"; sourceTree = "<group>"; };
-		L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7 /* Roboto-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Regular.ttf"; path = "Roboto-Regular.ttf"; sourceTree = "<group>"; };
-		N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9 /* Roboto-Thin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Roboto-Thin.ttf"; path = "Roboto-Thin.ttf"; sourceTree = "<group>"; };
+		GS01BOLDREF0000000000000000001 /* GeneralSans-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-Bold.otf"; path = "GeneralSans-Bold.otf"; sourceTree = "<group>"; };
+		GS02BOLDITREF000000000000000002 /* GeneralSans-BoldItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-BoldItalic.otf"; path = "GeneralSans-BoldItalic.otf"; sourceTree = "<group>"; };
+		GS03EXLTREF0000000000000000003 /* GeneralSans-Extralight.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-Extralight.otf"; path = "GeneralSans-Extralight.otf"; sourceTree = "<group>"; };
+		GS04EXLTITREF00000000000000004 /* GeneralSans-ExtralightItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-ExtralightItalic.otf"; path = "GeneralSans-ExtralightItalic.otf"; sourceTree = "<group>"; };
+		GS05ITALICREF0000000000000005 /* GeneralSans-Italic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-Italic.otf"; path = "GeneralSans-Italic.otf"; sourceTree = "<group>"; };
+		GS06LIGHTREF000000000000000006 /* GeneralSans-Light.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-Light.otf"; path = "GeneralSans-Light.otf"; sourceTree = "<group>"; };
+		GS07LIGHTITREF0000000000000007 /* GeneralSans-LightItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-LightItalic.otf"; path = "GeneralSans-LightItalic.otf"; sourceTree = "<group>"; };
+		GS08MEDIUMREF00000000000000008 /* GeneralSans-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-Medium.otf"; path = "GeneralSans-Medium.otf"; sourceTree = "<group>"; };
+		GS09MEDITREF0000000000000000009 /* GeneralSans-MediumItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-MediumItalic.otf"; path = "GeneralSans-MediumItalic.otf"; sourceTree = "<group>"; };
+		GS10REGULARREF000000000000000010 /* GeneralSans-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-Regular.otf"; path = "GeneralSans-Regular.otf"; sourceTree = "<group>"; };
+		GS11SEMIBOLDREF00000000000000011 /* GeneralSans-Semibold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-Semibold.otf"; path = "GeneralSans-Semibold.otf"; sourceTree = "<group>"; };
+		GS12SEMIBOLDITREF000000000000012 /* GeneralSans-SemiboldItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-SemiboldItalic.otf"; path = "GeneralSans-SemiboldItalic.otf"; sourceTree = "<group>"; };
 
 /* End PBXFileReference section */
 
@@ -774,6 +796,8 @@
 				41ACBF8F0D22AE8491CD86B1 /* CaptureProgressView.swift */,
 				813438A5368386EB29168975 /* CardView.swift */,
 				E3B36ACDE83D0E9CE282988A /* DesignSystem.swift */,
+				8D8D48D4A9F64B049464B579 /* Designs.swift */,
+				4B487B6E8A3D4EE9BE7E2267 /* AppStrings.swift */,
 				3CCAD3E25DF463BD7440AB7A /* FaceBoundaryGuide.swift */,
 				DB705E9E7DC1403D34B3D22B /* FaceGuidanceView.swift */,
 				517033E2F35AECB6551F9E72 /* FaceIDStyleGuide.swift */,
@@ -825,6 +849,9 @@
 				F26EE79AEE3F8DEE65B3E851 /* Tavi */,
 				0D2FF3EF032AFC967799B42C /* InputValidator.swift */,
 				C92A5F472A028D41A7D5022D /* HeadspaceDesignSystem.swift */,
+				APPFONTREF0000000000001 /* AppFont.swift */,
+				APPDEFAULTSREF00000001 /* AppDefaults.swift */,
+				SFSYMBOLSREF000000001 /* SFSymbols.swift */,
 				D2F6ACDA1D1DB6D81FCAB766 /* ProgressGraphView.swift */,
 				98E189666A01A67AF35F23D9 /* AnalyticsManager.swift */,
 				F84777921DF0F4FCEF7C6FE4 /* SimdExtensions.swift */,
@@ -858,12 +885,18 @@
 		P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1 /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
-				D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9 /* Roboto-Black.ttf */,
-				F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1 /* Roboto-Bold.ttf */,
-				H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3 /* Roboto-Light.ttf */,
-				J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5 /* Roboto-Medium.ttf */,
-				L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7 /* Roboto-Regular.ttf */,
-				N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9 /* Roboto-Thin.ttf */,
+				GS01BOLDREF0000000000000000001 /* GeneralSans-Bold.otf */,
+				GS02BOLDITREF000000000000000002 /* GeneralSans-BoldItalic.otf */,
+				GS03EXLTREF0000000000000000003 /* GeneralSans-Extralight.otf */,
+				GS04EXLTITREF00000000000000004 /* GeneralSans-ExtralightItalic.otf */,
+				GS05ITALICREF0000000000000005 /* GeneralSans-Italic.otf */,
+				GS06LIGHTREF000000000000000006 /* GeneralSans-Light.otf */,
+				GS07LIGHTITREF0000000000000007 /* GeneralSans-LightItalic.otf */,
+				GS08MEDIUMREF00000000000000008 /* GeneralSans-Medium.otf */,
+				GS09MEDITREF0000000000000000009 /* GeneralSans-MediumItalic.otf */,
+				GS10REGULARREF000000000000000010 /* GeneralSans-Regular.otf */,
+				GS11SEMIBOLDREF00000000000000011 /* GeneralSans-Semibold.otf */,
+				GS12SEMIBOLDITREF000000000000012 /* GeneralSans-SemiboldItalic.otf */,
 			);
 			path = "Resources/Fonts";
 			sourceTree = "<group>";
@@ -923,12 +956,18 @@
 			files = (
 				FDDAA531EBDE8B051AC04C7E /* Assets.xcassets in Resources */,
 				A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* TaviModel.xcdatamodeld in Resources */,
-				C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8 /* Roboto-Black.ttf in Resources */,
-				E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0 /* Roboto-Bold.ttf in Resources */,
-				G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2 /* Roboto-Light.ttf in Resources */,
-				I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4 /* Roboto-Medium.ttf in Resources */,
-				K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6 /* Roboto-Regular.ttf in Resources */,
-				M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6A7B8 /* Roboto-Thin.ttf in Resources */,
+				GS01BOLD000000000000000000000001 /* GeneralSans-Bold.otf in Resources */,
+				GS02BOLDIT00000000000000000000002 /* GeneralSans-BoldItalic.otf in Resources */,
+				GS03EXLT000000000000000000000003 /* GeneralSans-Extralight.otf in Resources */,
+				GS04EXLTIT0000000000000000000004 /* GeneralSans-ExtralightItalic.otf in Resources */,
+				GS05ITALIC000000000000000000005 /* GeneralSans-Italic.otf in Resources */,
+				GS06LIGHT00000000000000000000006 /* GeneralSans-Light.otf in Resources */,
+				GS07LIGHTIT000000000000000000007 /* GeneralSans-LightItalic.otf in Resources */,
+				GS08MEDIUM0000000000000000000008 /* GeneralSans-Medium.otf in Resources */,
+				GS09MEDIT000000000000000000000009 /* GeneralSans-MediumItalic.otf in Resources */,
+				GS10REGULAR0000000000000000000010 /* GeneralSans-Regular.otf in Resources */,
+				GS11SEMIBOLD000000000000000000011 /* GeneralSans-Semibold.otf in Resources */,
+				GS12SEMIBOLDIT00000000000000000012 /* GeneralSans-SemiboldItalic.otf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -994,6 +1033,8 @@
 				E085DD9DDE26F344F10D5437 /* CaptureProgressView.swift in Sources */,
 				512168C37838858B858CFFA0 /* CardView.swift in Sources */,
 				C119AE272490876698162196 /* DesignSystem.swift in Sources */,
+				B28B09534138461AAE60C5AD /* Designs.swift in Sources */,
+				E9573210E80E41F28D66126F /* AppStrings.swift in Sources */,
 				24B152F9C1A36194DF9530D7 /* FaceBoundaryGuide.swift in Sources */,
 				C85C32222AD607BE72E01D95 /* FaceGuidanceView.swift in Sources */,
 				B5C6DD54747F64D7A64A5E31 /* FaceIDStyleGuide.swift in Sources */,
@@ -1078,6 +1119,9 @@
 				FDF6CF2E4577FCA4D7981B1B /* ProcessingPipeline.swift in Sources */,
 				C1147158F5469052492132EE /* MetricsOrchestrator.swift in Sources */,
 				A767C7593E42BD4FC5FE42BE /* HeadspaceDesignSystem.swift in Sources */,
+				APPFONT00000000000000001 /* AppFont.swift in Sources */,
+				APPDEFAULTS0000000000001 /* AppDefaults.swift in Sources */,
+				SFSYMBOLS00000000000001 /* SFSymbols.swift in Sources */,
 				30AA10E6033EE54E5E798ACA /* ProgressGraphView.swift in Sources */,
 				618188149B59412550AD32B9 /* AnalyticsManager.swift in Sources */,
 				ACB0D7B89495BEC09517B3F9 /* SimdExtensions.swift in Sources */,

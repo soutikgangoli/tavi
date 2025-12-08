@@ -280,15 +280,15 @@ public final class AdvancedMemoryMonitor: ObservableObject {
             // Clear URL cache + reduce texture quality
             URLCache.shared.removeAllCachedResponses()
 
-            if UserDefaults.standard.bool(forKey: "enableHighResCapture") {
-                UserDefaults.standard.set(false, forKey: "enableHighResCapture")
+            if UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture) {
+                UserDefaults.standard.set(false, forKey: AppDefaultsKey.enableHighResCapture)
                 logger.info("  Disabled high-resolution capture (4K → 2K)")
             }
 
         case .critical:
             // Aggressive cleanup
             URLCache.shared.removeAllCachedResponses()
-            UserDefaults.standard.set(false, forKey: "enableHighResCapture")
+            UserDefaults.standard.set(false, forKey: AppDefaultsKey.enableHighResCapture)
 
             // Clear temporary files
             clearTemporaryFiles()

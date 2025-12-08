@@ -29,7 +29,7 @@ public struct SocialSharingView: View {
     public var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: Designs.Spacing.xLarge) {
                     // Share type picker
                     Picker("Share Type", selection: $selectedShareType) {
                         ForEach(ShareType.allCases, id: \.self) { type in
@@ -97,17 +97,17 @@ public struct SocialSharingView: View {
     }
 
     private func placeholderCard(message: String) -> some View {
-        VStack(spacing: 12) {
+        VStack(spacing: Designs.Spacing.small) {
             Image(systemName: "photo.on.rectangle.angled")
-                .font(.system(size: 48))
+                .font(AppFont.scoreMedium)
                 .foregroundStyle(.secondary)
 
             Text(message)
-                .font(.subheadline)
+                .font(AppFont.subheadline)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 300)
+        .frame(height: Designs.Sizes.displayHeight)
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color(uiColor: .secondarySystemBackground))
@@ -115,7 +115,7 @@ public struct SocialSharingView: View {
     }
 
     private var shareButtonsSection: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Designs.Spacing.medium) {
             Text("Share to:")
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -133,13 +133,13 @@ public struct SocialSharingView: View {
                 .padding()
                 .background(Color.blue)
                 .foregroundColor(.white)
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
             }
             .accessibilityLabel("More sharing options")
             .accessibilityHint("Opens system share sheet with all available sharing methods")
 
             // Social platforms (placeholders)
-            HStack(spacing: 12) {
+            HStack(spacing: Designs.Spacing.small) {
                 SocialButton(icon: "photo", label: "Instagram", color: .pink) {
                     shareToInstagram()
                 }
@@ -164,9 +164,9 @@ public struct SocialSharingView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.gray.opacity(0.2))
+                .background(Color.gray.opacity(Designs.Opacity.light))
                 .foregroundColor(.primary)
-                .cornerRadius(12)
+                .cornerRadius(Designs.Radius.medium)
             }
             .accessibilityLabel("Copy shareable text")
             .accessibilityHint("Copies progress text to clipboard for sharing")
@@ -323,12 +323,12 @@ struct ProgressShareCard: View {
         ZStack {
             // Background gradient
             LinearGradient(
-                colors: [scoreColor.opacity(0.3), scoreColor.opacity(0.1)],
+                colors: [scoreColor.opacity(Designs.Opacity.medium), scoreColor.opacity(Designs.Opacity.veryLight)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
-            VStack(spacing: 20) {
+            VStack(spacing: Designs.Spacing.large) {
                 // App branding
                 Text("Tavi")
                     .font(.caption)
@@ -336,25 +336,23 @@ struct ProgressShareCard: View {
                     .foregroundStyle(.secondary)
 
                 // Big score
-                VStack(spacing: 8) {
+                VStack(spacing: Designs.Spacing.xSmall) {
                     Text("\(metrics.skinHealthScore)")
-                        .font(.system(size: 72, weight: .bold))
+                        .font(AppFont.custom(size: 72, weight: .bold))
                         .foregroundColor(scoreColor)
 
                     Text("Skin Health Index")
-                        .font(.title3)
-                        .fontWeight(.semibold)
+                        .font(AppFont.title3)
                 }
 
                 // Message
                 Text(metrics.primaryInsight)
-                    .font(.title3)
-                    .fontWeight(.medium)
+                    .font(AppFont.title3)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+                    .padding(.horizontal, Designs.Spacing.xxLarge)
 
                 // Mini sub-scores
-                HStack(spacing: 16) {
+                HStack(spacing: Designs.Spacing.medium) {
                     MiniScore(iconName: "sparkles", value: metrics.radiance)
                     MiniScore(iconName: "waveform.path", value: metrics.smoothness)
                     MiniScore(iconName: "circle.hexagongrid.fill", value: metrics.evenness)
@@ -362,9 +360,9 @@ struct ProgressShareCard: View {
                     MiniScore(iconName: "drop.fill", value: metrics.freshness)
                 }
             }
-            .padding(32)
+            .padding(Designs.Spacing.xxLarge)
         }
-        .frame(height: 400)
+        .frame(height: Designs.Sizes.displayHeightXLarge)
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 
@@ -386,42 +384,41 @@ struct AchievementShareCard: View {
         ZStack {
             // Background
             LinearGradient(
-                colors: [.yellow.opacity(0.3), .orange.opacity(0.2)],
+                colors: [.yellow.opacity(Designs.Opacity.medium), .orange.opacity(Designs.Opacity.light)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
-            VStack(spacing: 20) {
+            VStack(spacing: Designs.Spacing.large) {
                 Text("Achievement Unlocked!")
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundColor(.orange)
 
                 Text(achievement.emoji)
-                    .font(.system(size: 80))
+                    .font(AppFont.scoreDisplayLarge)
 
-                VStack(spacing: 8) {
+                VStack(spacing: Designs.Spacing.xSmall) {
                     Text(achievement.title)
-                        .font(.title)
-                        .fontWeight(.bold)
+                        .font(AppFont.title)
                         .multilineTextAlignment(.center)
 
                     Text(achievement.description)
-                        .font(.body)
+                        .font(AppFont.body)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, Designs.Spacing.xxLarge)
                 }
 
                 if let date = achievement.unlockedDate {
                     Text(date.formatted(date: .abbreviated, time: .omitted))
-                        .font(.caption)
+                        .font(AppFont.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
-            .padding(32)
+            .padding(Designs.Spacing.xxLarge)
         }
-        .frame(height: 400)
+        .frame(height: Designs.Sizes.displayHeightXLarge)
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
@@ -433,34 +430,32 @@ struct StreakShareCard: View {
         ZStack {
             // Background
             LinearGradient(
-                colors: [.orange.opacity(0.3), .red.opacity(0.2)],
+                colors: [.orange.opacity(Designs.Opacity.medium), .red.opacity(Designs.Opacity.light)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
-            VStack(spacing: 20) {
+            VStack(spacing: Designs.Spacing.large) {
                 Text(streak.streakEmoji)
-                    .font(.system(size: 80))
+                    .font(AppFont.scoreDisplayLarge)
 
-                VStack(spacing: 8) {
+                VStack(spacing: Designs.Spacing.xSmall) {
                     Text("\(streak.currentStreak)")
-                        .font(.system(size: 72, weight: .bold))
+                        .font(AppFont.custom(size: 72, weight: .bold))
                         .foregroundColor(.orange)
 
                     Text("Day Streak")
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        .font(AppFont.title2)
                 }
 
                 Text(streak.streakMessage)
-                    .font(.title3)
-                    .fontWeight(.medium)
+                    .font(AppFont.title3)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+                    .padding(.horizontal, Designs.Spacing.xxLarge)
 
                 // Stats
-                HStack(spacing: 32) {
-                    VStack(spacing: 4) {
+                HStack(spacing: Designs.Spacing.xxLarge) {
+                    VStack(spacing: Designs.Spacing.xxSmall) {
                         Text("\(streak.longestStreak)")
                             .font(.title2)
                             .fontWeight(.bold)
@@ -469,7 +464,7 @@ struct StreakShareCard: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    VStack(spacing: 4) {
+                    VStack(spacing: Designs.Spacing.xxSmall) {
                         Text("\(streak.totalScans)")
                             .font(.title2)
                             .fontWeight(.bold)
@@ -479,9 +474,9 @@ struct StreakShareCard: View {
                     }
                 }
             }
-            .padding(32)
+            .padding(Designs.Spacing.xxLarge)
         }
-        .frame(height: 400)
+        .frame(height: Designs.Sizes.displayHeightXLarge)
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
@@ -493,23 +488,21 @@ struct ChallengeShareCard: View {
         ZStack {
             // Background
             LinearGradient(
-                colors: [.purple.opacity(0.3), .pink.opacity(0.2)],
+                colors: [.purple.opacity(Designs.Opacity.medium), .pink.opacity(Designs.Opacity.light)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
-            VStack(spacing: 20) {
+            VStack(spacing: Designs.Spacing.large) {
                 Text("🏆")
-                    .font(.system(size: 80))
+                    .font(AppFont.scoreDisplayLarge)
 
-                VStack(spacing: 8) {
+                VStack(spacing: Designs.Spacing.xSmall) {
                     Text("30-Day Glow Challenge")
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        .font(AppFont.title2)
 
                     Text("Day \(challenge.daysCompleted)/\(challenge.goalDays)")
-                        .font(.title)
-                        .fontWeight(.bold)
+                        .font(AppFont.title)
                         .foregroundColor(.purple)
                 }
 
@@ -517,20 +510,20 @@ struct ChallengeShareCard: View {
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.white.opacity(0.3))
-                            .frame(height: 20)
+                            .fill(Color.white.opacity(Designs.Opacity.medium))
+                            .frame(height: Designs.Sizes.frameHeightBarMedium)
 
                         RoundedRectangle(cornerRadius: 10)
                             .fill(Color.purple)
                             .frame(width: geometry.size.width * challenge.progressPercentage / 100, height: 20)
                     }
                 }
-                .frame(height: 20)
-                .padding(.horizontal, 32)
+                .frame(height: Designs.Sizes.frameHeightBarMedium)
+                .padding(.horizontal, Designs.Spacing.xxLarge)
 
                 // Improvement
-                HStack(spacing: 32) {
-                    VStack(spacing: 4) {
+                HStack(spacing: Designs.Spacing.xxLarge) {
+                    VStack(spacing: Designs.Spacing.xxSmall) {
                         Text("\(challenge.baselineSkinHealthScore)")
                             .font(.title2)
                             .fontWeight(.bold)
@@ -542,7 +535,7 @@ struct ChallengeShareCard: View {
                     Image(systemName: "arrow.right")
                         .foregroundColor(.purple)
 
-                    VStack(spacing: 4) {
+                    VStack(spacing: Designs.Spacing.xxSmall) {
                         Text("\(challenge.currentSkinHealthScore)")
                             .font(.title2)
                             .fontWeight(.bold)
@@ -553,9 +546,9 @@ struct ChallengeShareCard: View {
                     }
                 }
             }
-            .padding(32)
+            .padding(Designs.Spacing.xxLarge)
         }
-        .frame(height: 400)
+        .frame(height: Designs.Sizes.displayHeightXLarge)
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
@@ -567,10 +560,10 @@ struct MiniScore: View {
     let value: Int
 
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: Designs.Spacing.xxxSmall) {
             Image(systemName: iconName)
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.9))
+                .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
             Text("\(value)")
                 .font(.caption2)
                 .fontWeight(.semibold)
@@ -586,11 +579,11 @@ struct SocialButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 8) {
+            VStack(spacing: Designs.Spacing.xSmall) {
                 Image(systemName: icon)
                     .font(.title2)
                     .foregroundColor(.white)
-                    .frame(width: 56, height: 56)
+                    .frame(width: Designs.Sizes.buttonHeight, height: Designs.Sizes.buttonHeight)
                     .background(
                         Circle()
                             .fill(color)

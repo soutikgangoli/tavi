@@ -22,7 +22,7 @@ public struct CelebrationView: View {
         ZStack {
             // Background
             LinearGradient(
-                colors: [celebrationColor.opacity(0.2), celebrationColor.opacity(0.05)],
+                colors: [celebrationColor.opacity(Designs.Opacity.light), celebrationColor.opacity(Designs.Opacity.veryLight / 2)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -33,21 +33,21 @@ public struct CelebrationView: View {
 
                 // Celebration icon with animation
                 celebrationIcon
-                    .font(.system(size: 100))
+                    .font(.app(size: 100))
                     .foregroundColor(celebrationColor)
                     .scaleEffect(scale)
                     .opacity(opacity)
 
                 // Main message
                 Text(celebrationMessage)
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.app(size: 28, weight: .bold))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                     .opacity(opacity)
 
                 // Subtitle
                 Text(celebrationSubtitle)
-                    .font(.system(size: 18))
+                    .font(.app(size: 18))
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
@@ -74,7 +74,7 @@ public struct CelebrationView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(celebrationColor)
-                        .cornerRadius(15)
+                        .cornerRadius(Designs.Radius.large)
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 30)
@@ -177,8 +177,8 @@ struct ImprovementRow: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color.white.opacity(0.7))
-        .cornerRadius(10)
+        .background(Color.white.opacity(Designs.Opacity.semiTransparent))
+        .cornerRadius(Designs.Radius.medium)
     }
 }
 
@@ -260,7 +260,7 @@ public struct MilestoneView: View {
                     .shadow(color: milestone.color.opacity(0.3), radius: 10)
 
                 Image(systemName: milestone.icon)
-                    .font(.system(size: 50))
+                    .font(.app(size: 50))
                     .foregroundColor(.white)
             }
 
@@ -282,8 +282,8 @@ public struct MilestoneView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(10)
+                    .background(Color.gray.opacity(Designs.Opacity.veryLight))
+                    .cornerRadius(Designs.Radius.medium)
             }
         }
         .padding()
@@ -349,11 +349,11 @@ public struct StreakTracker: View {
             // Current streak
             VStack {
                 Image(systemName: "flame.fill")
-                    .font(.system(size: 40))
+                    .font(.app(size: 40))
                     .foregroundColor(.orange)
 
                 Text("\(currentStreak)")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.app(size: 32, weight: .bold))
 
                 Text("Day Streak")
                     .font(.caption)
@@ -361,16 +361,16 @@ public struct StreakTracker: View {
             }
 
             Divider()
-                .frame(height: 60)
+                .frame(height: Designs.Sizes.frameMedium + 20)
 
             // Longest streak
             VStack {
                 Image(systemName: "trophy.fill")
-                    .font(.system(size: 40))
+                    .font(.app(size: 40))
                     .foregroundColor(.yellow)
 
                 Text("\(longestStreak)")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.app(size: 32, weight: .bold))
 
                 Text("Best Streak")
                     .font(.caption)
@@ -378,7 +378,7 @@ public struct StreakTracker: View {
             }
         }
         .padding()
-        .background(Color.gray.opacity(0.05))
-        .cornerRadius(15)
+        .background(Color.gray.opacity(Designs.Opacity.veryLight / 2))
+        .cornerRadius(Designs.Radius.large)
     }
 }

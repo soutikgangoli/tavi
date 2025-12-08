@@ -69,7 +69,7 @@ public struct Comparison3DView: View {
                     .frame(width: geometry.size.width / 2)
                 }
             }
-            .frame(height: 300)
+            .frame(height: Designs.Sizes.displayHeight)
 
             // Synchronized controls
             ComparisonControlsView(
@@ -160,7 +160,7 @@ struct Scene3DContainerView: View {
                 // Fallback if no image available
                 VStack {
                     Image(systemName: "photo")
-                        .font(.system(size: 40))
+                        .font(.app(size: 40))
                         .foregroundColor(.gray)
                     Text("No image available")
                         .font(.caption)
@@ -168,7 +168,7 @@ struct Scene3DContainerView: View {
                 }
             }
         }
-        .cornerRadius(10)
+        .cornerRadius(Designs.Radius.medium)
         .padding()
     }
 
@@ -222,7 +222,7 @@ struct ComparisonControlsView: View {
             .padding(.horizontal)
         }
         .padding()
-        .background(Color.gray.opacity(0.05))
+        .background(Color.gray.opacity(Designs.Opacity.veryLight / 2))
     }
 }
 
@@ -373,7 +373,7 @@ struct MetricComparisonRow: View {
         HStack(spacing: 8) {
             // Metric name
             Text(name)
-                .font(.system(size: 15, weight: .medium))
+                .font(.app(size: 15, weight: .medium))
                 .foregroundColor(.primary)
 
             Spacer()
@@ -382,31 +382,31 @@ struct MetricComparisonRow: View {
             HStack(spacing: 4) {
                 // Current value
                 Text(String(format: "%.1f", after))
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.app(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
 
                 Text(unit)
-                    .font(.system(size: 13))
+                    .font(.app(size: 13))
                     .foregroundColor(.secondary)
 
                 // Delta in colored badge
                 if abs(change) > 0.01 {
                     HStack(spacing: 3) {
                         Image(systemName: changeIcon)
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.app(size: 10, weight: .bold))
 
                         Text(String(format: "%.1f", abs(change)))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.app(size: 13, weight: .semibold))
 
                         Text("pts")
-                            .font(.system(size: 11))
+                            .font(.app(size: 11))
                     }
                     .foregroundColor(changeColor)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
                         Capsule()
-                            .fill(changeColor.opacity(0.15))
+                            .fill(changeColor.opacity(Designs.Opacity.veryLight + 0.05))
                     )
                 }
             }
@@ -416,7 +416,7 @@ struct MetricComparisonRow: View {
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color(uiColor: .systemBackground))
-                .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                .shadow(color: Color.black.opacity(Designs.Opacity.veryLight / 2), radius: Designs.Border.widthThick, x: 0, y: Designs.Border.width)
         )
     }
 }
@@ -453,21 +453,21 @@ struct OverallImprovementBanner: View {
             // Main summary
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 28))
+                    .font(.app(size: 28))
                     .foregroundColor(dominantColor)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(summary)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.app(size: 16, weight: .semibold))
                         .foregroundColor(.primary)
 
                     HStack(spacing: 16) {
                         if improved > 0 {
                             HStack(spacing: 4) {
                                 Image(systemName: "arrow.up")
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.app(size: 10, weight: .bold))
                                 Text("\(improved) improved")
-                                    .font(.system(size: 13))
+                                    .font(.app(size: 13))
                             }
                             .foregroundColor(.green)
                         }
@@ -475,9 +475,9 @@ struct OverallImprovementBanner: View {
                         if declined > 0 {
                             HStack(spacing: 4) {
                                 Image(systemName: "arrow.down")
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.app(size: 10, weight: .bold))
                                 Text("\(declined) declined")
-                                    .font(.system(size: 13))
+                                    .font(.app(size: 13))
                             }
                             .foregroundColor(.red)
                         }
@@ -485,9 +485,9 @@ struct OverallImprovementBanner: View {
                         if unchanged > 0 {
                             HStack(spacing: 4) {
                                 Image(systemName: "minus")
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.app(size: 10, weight: .bold))
                                 Text("\(unchanged) stable")
-                                    .font(.system(size: 13))
+                                    .font(.app(size: 13))
                             }
                             .foregroundColor(.gray)
                         }
@@ -503,7 +503,7 @@ struct OverallImprovementBanner: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(dominantColor.opacity(0.3), lineWidth: 1)
+                    .stroke(dominantColor.opacity(Designs.Opacity.medium), lineWidth: Designs.Border.width)
             )
         }
     }

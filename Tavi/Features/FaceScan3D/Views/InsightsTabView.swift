@@ -29,7 +29,7 @@ public struct InsightsTabView: View {
             scenicBackground
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: HeadspaceDesign.Spacing.xl) {
+                VStack(spacing: Designs.Spacing.xl) {
                     // Title
                     titleSection
 
@@ -44,7 +44,7 @@ public struct InsightsTabView: View {
 
                     Spacer(minLength: 100)
                 }
-                .padding(.horizontal, HeadspaceDesign.Spacing.lg)
+                .padding(.horizontal, Designs.Spacing.lg)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -70,46 +70,46 @@ public struct InsightsTabView: View {
     private var titleSection: some View {
         HStack {
             Text("Insights")
-                .font(.gilroy(size: 34, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.largeTitle)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Spacer()
         }
-        .padding(.top, HeadspaceDesign.Spacing.md)
+        .padding(.top, Designs.Spacing.md)
     }
 
     // MARK: - Empty State (0 scans)
 
     private var emptyStateContent: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.xl) {
+        VStack(spacing: Designs.Spacing.xl) {
             // Main empty state card
-            VStack(spacing: HeadspaceDesign.Spacing.lg) {
+            VStack(spacing: Designs.Spacing.lg) {
                 Image(systemName: "lightbulb")
-                    .font(.system(size: 56, weight: .light))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                    .font(AppFont.displayLight)
+                    .foregroundColor(Designs.Colors.primary)
 
                 Text("Start Your Skin Journey")
-                    .font(.gilroy(size: 24, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.title2)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text("Complete your first scan to get personalized insights and recommendations tailored to your skin health.")
-                    .font(.gilroy(size: 16, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.bodyPrimary)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(HeadspaceDesign.Spacing.xxl)
+            .padding(Designs.Spacing.xxl)
             .background(
-                RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                    .fill(HeadspaceDesign.Colors.elevatedCard)
-                    .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
+                RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                    .fill(Designs.Colors.elevatedCard)
+                    .shadow(color: Color.black.opacity(Designs.Opacity.veryLight / 3), radius: Designs.Spacing.small, x: 0, y: Designs.Spacing.xxSmall + 1)
             )
 
             // Feature preview cards
-            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            VStack(alignment: .leading, spacing: Designs.Spacing.md) {
                 Text("What You'll Get")
-                    .font(.gilroy(size: 20, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headlinePrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 featurePreviewCard(
                     icon: "chart.line.uptrend.xyaxis",
@@ -118,7 +118,7 @@ public struct InsightsTabView: View {
                 )
 
                 featurePreviewCard(
-                    icon: "lightbulb.fill",
+                    icon: SFSymbol.lightbulbFill,
                     title: "Personalized Recommendations",
                     description: "Get tips based on your unique data"
                 )
@@ -133,35 +133,35 @@ public struct InsightsTabView: View {
     }
 
     private func featurePreviewCard(icon: String, title: String, description: String) -> some View {
-        HStack(spacing: HeadspaceDesign.Spacing.md) {
+        HStack(spacing: Designs.Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 28, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.primary)
-                .frame(width: 44, height: 44)
+                .font(AppFont.pageTitle)
+                .foregroundColor(Designs.Colors.primary)
+                .frame(width: Designs.Sizes.iconMedium, height: Designs.Sizes.iconMedium)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.gilroy(size: 16, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(description)
-                    .font(.gilroy(size: 14, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
 
             Spacer()
         }
-        .padding(HeadspaceDesign.Spacing.lg)
+        .padding(Designs.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
-                .fill(HeadspaceDesign.Colors.elevatedCard)
+            RoundedRectangle(cornerRadius: Designs.Radius.md)
+                .fill(Designs.Colors.elevatedCard)
         )
     }
 
     // MARK: - Baseline State (1 scan)
 
     private var baselineStateContent: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.xl) {
+        VStack(spacing: Designs.Spacing.xl) {
             // Header
             forYouHeader(text: "Based on your first scan...")
 
@@ -176,43 +176,43 @@ public struct InsightsTabView: View {
     }
 
     private func forYouHeader(text: String) -> some View {
-        HStack(spacing: HeadspaceDesign.Spacing.sm) {
-            Image(systemName: "lightbulb.fill")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.primary)
+        HStack(spacing: Designs.Spacing.sm) {
+            Image(systemName: SFSymbol.lightbulbFill)
+                .font(AppFont.cardTitle)
+                .foregroundColor(Designs.Colors.primary)
 
             Text("For You")
-                .font(.gilroy(size: 16, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.subheadingPrimary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Spacer()
         }
-        .padding(.vertical, HeadspaceDesign.Spacing.sm)
-        .padding(.horizontal, HeadspaceDesign.Spacing.md)
+        .padding(.vertical, Designs.Spacing.sm)
+        .padding(.horizontal, Designs.Spacing.md)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.sm)
-                .fill(HeadspaceDesign.Colors.primary.opacity(0.1))
+            RoundedRectangle(cornerRadius: Designs.Radius.sm)
+                .fill(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
         )
     }
 
     private var baselineEstablishedCard: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.lg) {
             HStack {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 24, weight: .semibold))
+                Image(systemName: SFSymbol.checkmarkCircleFill)
+                    .font(AppFont.navIcon)
                     .foregroundColor(.green)
 
                 Text("Baseline Established")
-                    .font(.gilroy(size: 20, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headlinePrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Spacer()
             }
 
             if let session = sessions.first {
                 Text("Your first scan is complete! We've established your baseline metrics:")
-                    .font(.gilroy(size: 15, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.bodySecondary)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -227,49 +227,49 @@ public struct InsightsTabView: View {
                         baselineMetricRow(label: "Hydration", value: avgMoisture)
                     }
                 }
-                .padding(.vertical, HeadspaceDesign.Spacing.sm)
+                .padding(.vertical, Designs.Spacing.sm)
 
                 Text("Complete another scan to see progress.")
-                    .font(.gilroy(size: 14, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
+        .padding(Designs.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(HeadspaceDesign.Colors.elevatedCard)
-                .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .fill(Designs.Colors.elevatedCard)
+                .shadow(color: Color.black.opacity(Designs.Opacity.veryLight / 3.33), radius: Designs.Spacing.small, x: 0, y: Designs.Spacing.xxSmall + 1)
         )
     }
 
     private func baselineMetricRow(label: String, value: Double) -> some View {
         HStack {
             Circle()
-                .fill(HeadspaceDesign.Colors.primary)
-                .frame(width: 6, height: 6)
+                .fill(Designs.Colors.primary)
+                .frame(width: Designs.Sizes.indicatorSmall + 2, height: Designs.Sizes.indicatorSmall + 2)
 
             Text(label)
-                .font(.gilroy(size: 15, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.bodySecondary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Spacer()
 
             Text("\(Int(value))%")
-                .font(.gilroy(size: 15, weight: .semibold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.subheadingSecondary)
+                .foregroundColor(Designs.Colors.textPrimary)
         }
     }
 
     private var currentStatusCard: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             HStack {
-                Image(systemName: "info.circle")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                Image(systemName: SFSymbol.infoCircle)
+                    .font(AppFont.cardTitle)
+                    .foregroundColor(Designs.Colors.textSecondary)
 
                 Text("Your Metrics")
-                    .font(.gilroy(size: 18, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headlineSecondary)
+                    .foregroundColor(Designs.Colors.textPrimary)
             }
 
             if let session = sessions.first, let metrics = session.skinMetrics {
@@ -277,8 +277,8 @@ public struct InsightsTabView: View {
                     // Skin Health Metrics (Included in Overall Score - 5 metrics)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Skin Health (In Overall Score)")
-                            .font(.gilroy(size: 14, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                            .font(AppFont.label)
+                            .foregroundColor(Designs.Colors.textPrimary)
 
                         VStack(spacing: 12) {
                             // 1. Smoothness (22.4%)
@@ -307,8 +307,8 @@ public struct InsightsTabView: View {
                     // Additional Indicators (Not in Overall Score - 4 metrics)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Additional Indicators")
-                            .font(.gilroy(size: 14, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.label)
+                            .foregroundColor(Designs.Colors.textSecondary)
 
                         VStack(spacing: 12) {
                             // Elasticity (requires 2+ scans)
@@ -338,8 +338,8 @@ public struct InsightsTabView: View {
                     // Aging Indicators
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Aging Indicators")
-                            .font(.gilroy(size: 14, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.label)
+                            .foregroundColor(Designs.Colors.textSecondary)
 
                         VStack(spacing: 12) {
                             if let wrinkles = metrics.wrinkleAnalysis {
@@ -357,8 +357,8 @@ public struct InsightsTabView: View {
                     // Other Indicators
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Other Indicators")
-                            .font(.gilroy(size: 14, weight: .semibold))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.label)
+                            .foregroundColor(Designs.Colors.textSecondary)
 
                         VStack(spacing: 12) {
                             metricProgressBar(label: "Skin Health", score: Double(metrics.glowAnalysis?.skinHealthScore ?? 0), color: .yellow)
@@ -371,44 +371,44 @@ public struct InsightsTabView: View {
                 }
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
+        .padding(Designs.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(HeadspaceDesign.Colors.elevatedCard)
-                .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .fill(Designs.Colors.elevatedCard)
+                .shadow(color: Color.black.opacity(Designs.Opacity.veryLight / 3.33), radius: Designs.Spacing.small, x: 0, y: Designs.Spacing.xxSmall + 1)
         )
     }
 
     private func metricProgressBar(label: String, score: Double, color: Color) -> some View {
         HStack {
             Text(label)
-                .font(.gilroy(size: 14, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                .frame(width: 100, alignment: .leading)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textPrimary)
+                .frame(width: Designs.Sizes.frameXXLarge, alignment: .leading)
 
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(color.opacity(0.2))
+                        .fill(color.opacity(Designs.Opacity.light))
 
                     RoundedRectangle(cornerRadius: 4)
                         .fill(color)
                         .frame(width: geometry.size.width * CGFloat(score / 100))
                 }
             }
-            .frame(height: 8)
+            .frame(height: Designs.Sizes.indicatorTiny)
 
             Text("\(Int(score))%")
-                .font(.gilroy(size: 14, weight: .semibold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
-                .frame(width: 45, alignment: .trailing)
+                .font(AppFont.label)
+                .foregroundColor(Designs.Colors.textPrimary)
+                .frame(width: Designs.Sizes.frameMedium + 5, alignment: .trailing)
         }
     }
 
     // MARK: - Insights Content (2+ scans)
 
     private var insightsContent: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.xl) {
+        VStack(spacing: Designs.Spacing.xl) {
             // Header
             forYouHeader(text: "Based on your \(sessions.count) scans...")
 
@@ -429,26 +429,26 @@ public struct InsightsTabView: View {
     }
 
     private var insightCardsSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.lg) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.lg) {
             // Premium section header
             HStack {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                Image(systemName: SFSymbol.sparkles)
+                    .font(AppFont.navIcon)
+                    .foregroundColor(Designs.Colors.primary)
 
                 Text("Recommendations")
-                    .font(.gilroy(size: 22, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.sectionHeader)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Spacer()
 
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.secondary)
+                    .font(AppFont.cardTitle)
+                    .foregroundColor(Designs.Colors.secondary)
             }
-            .padding(.horizontal, HeadspaceDesign.Spacing.sm)
+            .padding(.horizontal, Designs.Spacing.sm)
 
-            VStack(spacing: HeadspaceDesign.Spacing.md) {
+            VStack(spacing: Designs.Spacing.md) {
                 // Calculate improvements and declines
                 let improvements = calculateImprovements()
                 let declines = calculateDeclines()
@@ -497,7 +497,7 @@ public struct InsightsTabView: View {
 
         return InsightCard(
             icon: "star.fill",
-            iconColor: HeadspaceDesign.Colors.primary,
+            iconColor: Designs.Colors.primary,
             title: "Recommendation",
             content: recommendation.message,
             actionText: "Learn More"
@@ -524,7 +524,7 @@ public struct InsightsTabView: View {
     private func steadyProgressCard() -> some View {
         InsightCard(
             icon: "chart.line.flattrend.xyaxis",
-            iconColor: HeadspaceDesign.Colors.textSecondary,
+            iconColor: Designs.Colors.textSecondary,
             title: "Steady Progress",
             content: "Your skin metrics are stable. Keep up your current routine to maintain these results.",
             actionText: nil
@@ -532,29 +532,29 @@ public struct InsightsTabView: View {
     }
 
     private var progressTrendsSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             Text("Progress Trends")
-                .font(.gilroy(size: 20, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.headlinePrimary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             if filteredSessions.count >= 2 {
                 progressChart
             } else {
                 Text("Not enough data in selected time range")
-                    .font(.gilroy(size: 15, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-                    .padding(HeadspaceDesign.Spacing.lg)
+                    .font(AppFont.bodySecondary)
+                    .foregroundColor(Designs.Colors.textSecondary)
+                    .padding(Designs.Spacing.lg)
                     .frame(maxWidth: .infinity)
                     .background(
-                        RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                            .fill(HeadspaceDesign.Colors.elevatedCard)
+                        RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                            .fill(Designs.Colors.elevatedCard)
                     )
             }
         }
     }
 
     private var progressChart: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.md) {
+        VStack(spacing: Designs.Spacing.md) {
             // Time range filters
             timeRangeFilters
 
@@ -592,38 +592,38 @@ public struct InsightsTabView: View {
                     AxisValueLabel(format: .dateTime.month().day())
                 }
             }
-            .frame(height: 200)
+            .frame(height: Designs.Sizes.displayHeightMedium)
 
             // Legend
-            HStack(spacing: HeadspaceDesign.Spacing.md) {
+            HStack(spacing: Designs.Spacing.md) {
                 legendItem(color: .green, label: "Overall")
                 legendItem(color: .orange, label: "Glow")
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
+        .padding(Designs.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(HeadspaceDesign.Colors.elevatedCard)
-                .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .fill(Designs.Colors.elevatedCard)
+                .shadow(color: Color.black.opacity(Designs.Opacity.veryLight / 3.33), radius: Designs.Spacing.small, x: 0, y: Designs.Spacing.xxSmall + 1)
         )
     }
 
     private var timeRangeFilters: some View {
-        HStack(spacing: HeadspaceDesign.Spacing.sm) {
+        HStack(spacing: Designs.Spacing.sm) {
             ForEach(TimeRange.allCases, id: \.self) { range in
                 Button {
-                    withAnimation(HeadspaceDesign.Animations.smooth) {
+                    withAnimation(Designs.Animations.smooth) {
                         selectedTimeRange = range
                     }
                 } label: {
                     Text(range.rawValue)
-                        .font(.system(size: 13, weight: selectedTimeRange == range ? .semibold : .medium, design: .rounded))
-                        .foregroundColor(selectedTimeRange == range ? .white : HeadspaceDesign.Colors.textSecondary)
+                        .font(.app(size: 13, weight: selectedTimeRange == range ? .semibold : .medium, design: .rounded))
+                        .foregroundColor(selectedTimeRange == range ? .white : Designs.Colors.textSecondary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(
                             Capsule()
-                                .fill(selectedTimeRange == range ? HeadspaceDesign.Colors.primary : HeadspaceDesign.Colors.elevatedCard)
+                                .fill(selectedTimeRange == range ? Designs.Colors.primary : Designs.Colors.elevatedCard)
                         )
                 }
             }
@@ -634,11 +634,11 @@ public struct InsightsTabView: View {
         HStack(spacing: 6) {
             RoundedRectangle(cornerRadius: 2)
                 .fill(color)
-                .frame(width: 16, height: 3)
+                .frame(width: Designs.Sizes.indicatorSmallCircle, height: Designs.Sizes.indicatorSmall / 4)
 
             Text(label)
-                .font(.gilroy(size: 12, weight: .medium))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.captionSmall)
+                .foregroundColor(Designs.Colors.textSecondary)
         }
     }
 
@@ -654,15 +654,15 @@ public struct InsightsTabView: View {
     }
 
     private var topMetricsSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             HStack {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.secondary)
+                    .font(AppFont.cardTitle)
+                    .foregroundColor(Designs.Colors.secondary)
 
                 Text("Top 3 Metrics")
-                    .font(.gilroy(size: 18, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headlineSecondary)
+                    .foregroundColor(Designs.Colors.textPrimary)
             }
 
             let topMetrics = getTopMetrics().prefix(3)
@@ -670,41 +670,41 @@ public struct InsightsTabView: View {
             ForEach(Array(topMetrics.enumerated()), id: \.element.0) { index, metric in
                 HStack {
                     Text("\(index + 1).")
-                        .font(.gilroy(size: 16, weight: .bold))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
-                        .frame(width: 30, alignment: .leading)
+                        .font(AppFont.subheadingPrimary)
+                        .foregroundColor(Designs.Colors.textSecondary)
+                        .frame(width: Designs.Sizes.indicatorLarge, alignment: .leading)
 
                     Text(metric.0)
-                        .font(.gilroy(size: 16, weight: .medium))
-                        .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                        .font(AppFont.bodyMedium)
+                        .foregroundColor(Designs.Colors.textPrimary)
 
                     Spacer()
 
                     Text("\(Int(metric.1))%")
-                        .font(.gilroy(size: 16, weight: .bold))
+                        .font(AppFont.subheadingPrimary)
                         .foregroundColor(scoreColor(metric.1))
 
                     Text("[\(metric.2)]")
-                        .font(.gilroy(size: 14, weight: .regular))
-                        .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                        .font(AppFont.caption)
+                        .foregroundColor(Designs.Colors.textSecondary)
                 }
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
+        .padding(Designs.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(HeadspaceDesign.Colors.elevatedCard)
-                .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .fill(Designs.Colors.elevatedCard)
+                .shadow(color: Color.black.opacity(Designs.Opacity.veryLight / 3.33), radius: Designs.Spacing.small, x: 0, y: Designs.Spacing.xxSmall + 1)
         )
     }
 
     // MARK: - Educational Content
 
     private var educationalContentSection: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             Text("Educational Content")
-                .font(.gilroy(size: 20, weight: .bold))
-                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                .font(AppFont.headlinePrimary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             educationalArticleRow(icon: "book.fill", title: "Understanding Your Baseline")
             educationalArticleRow(icon: "sparkles", title: "What Affects Glow?")
@@ -719,24 +719,24 @@ public struct InsightsTabView: View {
         } label: {
             HStack {
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
-                    .frame(width: 32)
+                    .font(AppFont.cardTitle)
+                    .foregroundColor(Designs.Colors.primary)
+                    .frame(width: Designs.Sizes.frameSmall)
 
                 Text(title)
-                    .font(.gilroy(size: 16, weight: .medium))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                Image(systemName: SFSymbol.chevronRight)
+                    .font(AppFont.metricLabel)
+                    .foregroundColor(Designs.Colors.textTertiary)
             }
-            .padding(HeadspaceDesign.Spacing.md)
+            .padding(Designs.Spacing.md)
             .background(
-                RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
-                    .fill(HeadspaceDesign.Colors.elevatedCard)
+                RoundedRectangle(cornerRadius: Designs.Radius.md)
+                    .fill(Designs.Colors.elevatedCard)
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -941,7 +941,7 @@ public struct InsightsTabView: View {
     // MARK: - What You Should Be Doing Section
     
     private var whatYouShouldBeDoingSection: some View {
-        VStack(spacing: HeadspaceDesign.Spacing.md) {
+        VStack(spacing: Designs.Spacing.md) {
             // Pull recommendations from stored scan results (previous scan)
             let recommendations = getStoredRecommendations()
             let products = getStoredProductRecommendations()
@@ -959,35 +959,35 @@ public struct InsightsTabView: View {
     }
     
     private func recommendationsCard(recommendations: [String]) -> some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             HStack {
                 Image(systemName: "star.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                    .font(AppFont.sectionHeader)
+                    .foregroundColor(Designs.Colors.primary)
                 
                 Text("Your Personalized Action Plan")
-                    .font(.gilroy(size: 18, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headlineSecondary)
+                    .foregroundColor(Designs.Colors.textPrimary)
                 
                 Spacer()
             }
             
             Text("Based on your latest scan, here's what will help you achieve your best skin:")
-                .font(.gilroy(size: 14, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
                 .padding(.bottom, 4)
             
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(Array(recommendations.enumerated()), id: \.offset) { index, rec in
                     HStack(alignment: .top, spacing: 12) {
                         Circle()
-                            .fill(HeadspaceDesign.Colors.primary)
-                            .frame(width: 6, height: 6)
+                            .fill(Designs.Colors.primary)
+                            .frame(width: Designs.Sizes.indicatorSmall + 2, height: Designs.Sizes.indicatorSmall + 2)
                             .padding(.top, 6)
                         
                         Text(rec)
-                            .font(.gilroy(size: 15, weight: .regular))
-                            .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                            .font(AppFont.bodySecondary)
+                            .foregroundColor(Designs.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                         
                         Spacer()
@@ -995,11 +995,11 @@ public struct InsightsTabView: View {
                 }
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
+        .padding(Designs.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(HeadspaceDesign.Colors.elevatedCard)
-                .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .fill(Designs.Colors.elevatedCard)
+                .shadow(color: Color.black.opacity(Designs.Opacity.veryLight / 3.33), radius: Designs.Spacing.small, x: 0, y: Designs.Spacing.xxSmall + 1)
         )
     }
     
@@ -1009,43 +1009,43 @@ public struct InsightsTabView: View {
             ZStack {
                 LinearGradient(
                     colors: [
-                        HeadspaceDesign.Colors.primary,
-                        HeadspaceDesign.Colors.primary.opacity(0.8)
+                        Designs.Colors.primary,
+                        Designs.Colors.primary.opacity(Designs.Opacity.semiTransparent)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                .frame(height: 100)
+                .frame(height: Designs.Sizes.frameXXLarge)
 
-                HStack(spacing: HeadspaceDesign.Spacing.sm) {
+                HStack(spacing: Designs.Spacing.sm) {
                     Image(systemName: "crown.fill")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(AppFont.pageTitle)
                         .foregroundColor(.white)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Premium Recommendations")
-                            .font(.gilroy(size: 20, weight: .bold))
+                            .font(AppFont.headlinePrimary)
                             .foregroundColor(.white)
 
                         Text("Curated for your skin")
-                            .font(.gilroy(size: 14, weight: .medium))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(AppFont.caption)
+                            .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
                     }
 
                     Spacer()
 
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
+                    Image(systemName: SFSymbol.sparkles)
+                        .font(AppFont.navIcon)
+                        .foregroundColor(.white.opacity(Designs.Opacity.semiTransparent))
                 }
-                .padding(HeadspaceDesign.Spacing.lg)
+                .padding(Designs.Spacing.lg)
             }
 
             // Products list on white background
-            VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+            VStack(alignment: .leading, spacing: Designs.Spacing.md) {
                 Text("These products are specifically chosen to address your skin's unique needs:")
-                    .font(.gilroy(size: 14, weight: .regular))
-                    .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .padding(.bottom, 4)
 
                 VStack(alignment: .leading, spacing: 16) {
@@ -1057,52 +1057,52 @@ public struct InsightsTabView: View {
                                     .fill(
                                         LinearGradient(
                                             colors: [
-                                                HeadspaceDesign.Colors.primary,
-                                                HeadspaceDesign.Colors.secondary
+                                                Designs.Colors.primary,
+                                                Designs.Colors.secondary
                                             ],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         )
                                     )
-                                    .frame(width: 40, height: 40)
+                                    .frame(width: Designs.Sizes.frameMedium, height: Designs.Sizes.frameMedium)
 
                                 Text("\(index + 1)")
-                                    .font(.gilroy(size: 16, weight: .bold))
+                                    .font(AppFont.subheadingPrimary)
                                     .foregroundColor(.white)
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(product.name)
-                                    .font(.gilroy(size: 16, weight: .bold))
-                                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                                    .font(AppFont.subheadingPrimary)
+                                    .foregroundColor(Designs.Colors.textPrimary)
 
                                 Text(product.category.uppercased())
-                                    .font(.gilroy(size: 11, weight: .semibold))
-                                    .foregroundColor(HeadspaceDesign.Colors.primary)
+                                    .font(AppFont.microBold)
+                                    .foregroundColor(Designs.Colors.primary)
                                     .tracking(0.5)
                             }
 
                             Spacer()
 
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                            Image(systemName: SFSymbol.chevronRight)
+                                .font(AppFont.metricLabel)
+                                .foregroundColor(Designs.Colors.textTertiary)
                         }
                         .padding(.vertical, 8)
                         .padding(.horizontal, 12)
                         .background(
-                            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.md)
-                                .fill(HeadspaceDesign.Colors.primary.opacity(0.05))
+                            RoundedRectangle(cornerRadius: Designs.Radius.md)
+                                .fill(Designs.Colors.primary.opacity(Designs.Opacity.veryLight / 2))
                         )
                     }
                 }
             }
-            .padding(HeadspaceDesign.Spacing.lg)
-            .background(HeadspaceDesign.Colors.elevatedCard)
+            .padding(Designs.Spacing.lg)
+            .background(Designs.Colors.elevatedCard)
         }
-        .clipShape(RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg))
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
-            color: HeadspaceDesign.Colors.primary.opacity(0.2),
+            color: Designs.Colors.primary.opacity(Designs.Opacity.light),
             radius: 15,
             x: 0,
             y: 8
@@ -1398,26 +1398,26 @@ struct InsightCard: View {
     let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: HeadspaceDesign.Spacing.md) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
             HStack {
                 Image(systemName: icon)
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(AppFont.sectionHeader)
                     .foregroundColor(iconColor)
 
                 Text(title)
-                    .font(.gilroy(size: 18, weight: .bold))
-                    .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                    .font(AppFont.headlineSecondary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Spacer()
 
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(HeadspaceDesign.Colors.textTertiary)
+                    .font(AppFont.metricLabel)
+                    .foregroundColor(Designs.Colors.textTertiary)
             }
 
             Text(content)
-                .font(.gilroy(size: 15, weight: .regular))
-                .foregroundColor(HeadspaceDesign.Colors.textSecondary)
+                .font(AppFont.bodySecondary)
+                .foregroundColor(Designs.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let tips = tips {
@@ -1426,33 +1426,33 @@ struct InsightCard: View {
                         HStack(alignment: .top, spacing: 8) {
                             Circle()
                                 .fill(iconColor)
-                                .frame(width: 6, height: 6)
+                                .frame(width: Designs.Sizes.indicatorSmall + 2, height: Designs.Sizes.indicatorSmall + 2)
                                 .padding(.top, 6)
 
                             Text(tip)
-                                .font(.gilroy(size: 14, weight: .medium))
-                                .foregroundColor(HeadspaceDesign.Colors.textPrimary)
+                                .font(AppFont.caption)
+                                .foregroundColor(Designs.Colors.textPrimary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
-                .padding(.top, HeadspaceDesign.Spacing.sm)
+                .padding(.top, Designs.Spacing.sm)
             }
 
             if let actionText = actionText {
                 Button(action: action) {
                     Text(actionText)
-                        .font(.gilroy(size: 15, weight: .semibold))
-                        .foregroundColor(HeadspaceDesign.Colors.primary)
+                        .font(AppFont.subheadingSecondary)
+                        .foregroundColor(Designs.Colors.primary)
                 }
-                .padding(.top, HeadspaceDesign.Spacing.sm)
+                .padding(.top, Designs.Spacing.sm)
             }
         }
-        .padding(HeadspaceDesign.Spacing.lg)
+        .padding(Designs.Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: HeadspaceDesign.Radius.lg)
-                .fill(HeadspaceDesign.Colors.elevatedCard)
-                .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
+            RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                .fill(Designs.Colors.elevatedCard)
+                .shadow(color: Color.black.opacity(Designs.Opacity.veryLight / 3.33), radius: Designs.Spacing.small, x: 0, y: Designs.Spacing.xxSmall + 1)
         )
     }
 }
