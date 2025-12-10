@@ -232,11 +232,18 @@ struct ResultsDetailView: View {
     @ViewBuilder
     var heatmapImageView: some View {
         if showingOriginal {
+            // Try thumbnail first, fallback to full face image
             if let thumbnail = session.thumbnailImage {
                 Image(uiImage: thumbnail)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .id("original-\(session.id)")
+            } else if let faceImage = session.faceUIImage {
+                // Fallback to full face image for older scans
+                Image(uiImage: faceImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .id("face-\(session.id)")
             } else {
                 placeholderImage
             }
@@ -247,49 +254,74 @@ struct ResultsDetailView: View {
                     .aspectRatio(contentMode: .fit)
                     .id("heatmap-\(selectedHeatmap.rawValue)-\(session.id)")
             } else {
-                placeholderImage
-                    .id("placeholder-\(selectedHeatmap.rawValue)")
+                // Show original image as fallback when heatmap not available
+                if let thumbnail = session.thumbnailImage {
+                    Image(uiImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .id("fallback-thumbnail-\(session.id)")
+                } else if let faceImage = session.faceUIImage {
+                    Image(uiImage: faceImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .id("fallback-face-\(session.id)")
+                } else {
+                    placeholderImage
+                        .id("placeholder-\(selectedHeatmap.rawValue)")
+                }
             }
         }
     }
 
     var placeholderImage: some View {
         Rectangle()
-            .fill(Designs.Colors.border.opacity(Designs.Opacity.light))
+            .fill(Designs.Colors.cardBackground)
             .overlay {
-                Image(systemName: "face.smiling")
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
+                VStack(spacing: Designs.Spacing.sm) {
+                    Image(systemName: "face.smiling")
+                        .font(.largeTitle)
+                        .foregroundColor(Designs.Colors.textTertiary)
+                    Text("No image available")
+                        .font(.caption)
+                        .foregroundColor(Designs.Colors.textTertiary)
+                }
             }
     }
 
-    // MARK: - Overall Score Card
+    // MARK: - Overall Score Card (Ultrahuman-style dark theme)
 
     var overallScoreCard: some View {
         VStack(spacing: 12) {
             Text("Overall Skin Health")
                 .font(.headline)
-                .foregroundColor(Designs.Colors.secondary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             HStack(spacing: 16) {
                 // Circular Progress
                 ZStack {
                     Circle()
-                        .stroke(Designs.Colors.secondary.opacity(Designs.Opacity.medium), lineWidth: Designs.Border.widthThick * 8)
+                        .stroke(Designs.Colors.border.opacity(Designs.Opacity.medium), lineWidth: 12)
 
                     Circle()
                         .trim(from: 0, to: session.overallScore / 100)
-                        .stroke(Designs.Colors.secondary, lineWidth: 12)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Designs.Colors.primary, Designs.ScoreColors.excellent],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                        )
                         .rotationEffect(.degrees(-90))
 
                     VStack(spacing: 4) {
                         Text("\(Int(session.overallScore))")
                             .font(.app(size: 40, weight: .bold))
-                            .foregroundColor(.yellow)
+                            .foregroundColor(Designs.Colors.primary)
 
                         Text("/ 100")
                             .font(.caption)
-                            .foregroundColor(Designs.Colors.secondary.opacity(0.8))
+                            .foregroundColor(Designs.Colors.textSecondary)
                     }
                 }
                 .frame(width: Designs.Sizes.displayMedium, height: Designs.Sizes.displayMedium)
@@ -298,20 +330,20 @@ struct ResultsDetailView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Grade")
                         .font(.caption)
-                        .foregroundColor(Designs.Colors.secondary.opacity(0.8))
+                        .foregroundColor(Designs.Colors.textSecondary)
 
                     Text(session.grade.rawValue)
                         .font(.app(size: 48, weight: .bold))
-                        .foregroundColor(Designs.Colors.secondary)
+                        .foregroundColor(Designs.Colors.scoreColor(for: Int(session.overallScore)))
 
                     Text(session.grade.description)
                         .font(.caption)
-                        .foregroundColor(Designs.Colors.secondary.opacity(0.8))
+                        .foregroundColor(Designs.Colors.textSecondary)
                 }
             }
         }
         .padding(Designs.Spacing.lg)
-        .background(Designs.Colors.primary)
+        .background(Designs.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
         .shadow(
             color: Designs.Shadows.card.color,
@@ -469,23 +501,24 @@ struct ResultsDetailView: View {
 
     func wrinkleColor(for depth: WrinkleDepth) -> Color {
         switch depth {
-        case .fine: return .green
-        case .moderate: return .orange
-        case .deep: return .red
+        case .fine: return Designs.ScoreColors.excellent     // Green
+        case .moderate: return Designs.ScoreColors.fair      // Yellow
+        case .deep: return Designs.ScoreColors.poor          // Red
         }
     }
 
-    // MARK: - Glow vs Radiance Breakdown
+    // MARK: - Glow vs Radiance Breakdown (Simplified colors)
 
     func glowRadianceBreakdown(_ analysis: GlowAnalysis) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Glow vs Radiance Analysis")
                 .font(.headline)
+                .foregroundColor(Designs.Colors.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Text("Understanding the difference between your skin's overall health and pure luminosity.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundColor(Designs.Colors.textSecondary)
 
             // Side-by-side comparison
             HStack(spacing: 16) {
@@ -493,129 +526,142 @@ struct ResultsDetailView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "sparkles")
-                            .foregroundColor(.orange)
+                            .foregroundColor(Designs.Colors.textSecondary)
                         Text("Glow (Health)")
                             .font(.subheadline)
                             .fontWeight(.semibold)
+                            .foregroundColor(Designs.Colors.textPrimary)
                     }
 
                     Text("\(Int(analysis.skinHealthScore))/100")
                         .font(.title)
                         .fontWeight(.bold)
-                        .foregroundColor(.orange)
+                        .foregroundColor(scoreColorFor(analysis.skinHealthScore))
 
                     Text("Overall health index")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(Designs.Colors.textSecondary)
 
                     Divider()
+                        .background(Designs.Colors.border)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Components:")
                             .font(.caption)
                             .fontWeight(.semibold)
+                            .foregroundColor(Designs.Colors.textSecondary)
 
                         HStack {
                             Text("Smoothness")
                                 .font(.caption2)
+                                .foregroundColor(Designs.Colors.textSecondary)
                             Spacer()
                             Text("\(Int(analysis.smoothnessContribution))")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundColor(Designs.Colors.textTertiary)
                         }
 
                         HStack {
                             Text("Evenness")
                                 .font(.caption2)
+                                .foregroundColor(Designs.Colors.textSecondary)
                             Spacer()
                             Text("\(Int(analysis.evennessContribution))")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundColor(Designs.Colors.textTertiary)
                         }
 
                         HStack {
                             Text("Discoloration")
                                 .font(.caption2)
+                                .foregroundColor(Designs.Colors.textSecondary)
                             Spacer()
                             Text("\(Int(analysis.discolorationContribution))")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundColor(Designs.Colors.textTertiary)
                         }
 
                         HStack {
                             Text("Specular")
                                 .font(.caption2)
+                                .foregroundColor(Designs.Colors.textSecondary)
                             Spacer()
                             Text("\(Int(analysis.specularContribution))")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundColor(Designs.Colors.textTertiary)
                         }
                     }
                 }
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Designs.Colors.warning.opacity(Designs.Opacity.veryLight))
+                        .fill(Designs.Colors.cardBackground)
                 )
 
                 // Radiance (Luminosity)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "sun.max")
-                            .foregroundColor(.yellow)
+                            .foregroundColor(Designs.Colors.textSecondary)
                         Text("Radiance (Brightness)")
                             .font(.subheadline)
                             .fontWeight(.semibold)
+                            .foregroundColor(Designs.Colors.textPrimary)
                     }
 
                     Text("\(Int(analysis.radianceScore))/100")
                         .font(.title)
                         .fontWeight(.bold)
-                        .foregroundColor(.yellow)
+                        .foregroundColor(scoreColorFor(analysis.radianceScore))
 
                     Text("Pure luminosity")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(Designs.Colors.textSecondary)
 
                     Divider()
+                        .background(Designs.Colors.border)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Components:")
                             .font(.caption)
                             .fontWeight(.semibold)
+                            .foregroundColor(Designs.Colors.textSecondary)
 
                         HStack {
                             Text("LAB L* Lightness")
                                 .font(.caption2)
+                                .foregroundColor(Designs.Colors.textSecondary)
                             Spacer()
                             Text("\(Int(analysis.labLightness * 100))")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundColor(Designs.Colors.textTertiary)
                         }
 
                         HStack {
                             Text("Specular Highlights")
                                 .font(.caption2)
+                                .foregroundColor(Designs.Colors.textSecondary)
                             Spacer()
                             Text("\(Int(analysis.specularHighlightRatio * 100))")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundColor(Designs.Colors.textTertiary)
                         }
 
                         HStack {
                             Text("Luminosity Index")
                                 .font(.caption2)
+                                .foregroundColor(Designs.Colors.textSecondary)
                             Spacer()
                             Text("\(Int(analysis.luminosityIndex))")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundColor(Designs.Colors.textTertiary)
                         }
                     }
                 }
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
+                        .fill(Designs.Colors.cardBackground)
                 )
             }
 
@@ -623,18 +669,113 @@ struct ResultsDetailView: View {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "lightbulb.fill")
                     .font(.caption)
-                    .foregroundColor(.yellow)
+                    .foregroundColor(Designs.Colors.textSecondary)
                 Text("**Glow** measures overall skin health (texture + tone + shine), while **Radiance** measures how much light your skin reflects (physics-based brightness).")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(Designs.Colors.textSecondary)
             }
             .padding(.top, 4)
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(uiColor: .secondarySystemBackground))
+                .fill(Designs.Colors.cardElevated)
         )
+    }
+
+    /// Helper function to get score-based color
+    private func scoreColorFor(_ value: Float) -> Color {
+        switch value {
+        case 80...100: return Designs.ScoreColors.excellent  // Green
+        case 60..<80: return Designs.ScoreColors.fair        // Yellow
+        default: return Designs.ScoreColors.poor             // Red
+        }
+    }
+
+    /// Reusable clinical metric row with simplified colors
+    @ViewBuilder
+    private func clinicalMetricRow(icon: String, title: String, score: Int, confidence: Int, weight: String, extraInfo: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(Designs.Colors.textSecondary)
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(Designs.Colors.textPrimary)
+            }
+
+            HStack {
+                Text("Score:")
+                    .font(.subheadline)
+                    .foregroundColor(Designs.Colors.textSecondary)
+                Text("\(score)/100")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Designs.Colors.scoreColor(for: score))
+                Spacer()
+                Text("\(confidence)%")
+                    .font(.caption)
+                    .foregroundColor(Designs.Colors.textTertiary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Designs.Colors.border.opacity(0.3))
+                    .cornerRadius(Designs.Radius.small)
+            }
+
+            Text("Weight in Overall Score: \(weight)")
+                .font(.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
+
+            if let extra = extraInfo {
+                Text(extra)
+                    .font(.caption)
+                    .foregroundColor(Designs.Colors.textTertiary)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Designs.Colors.cardBackground)
+        .cornerRadius(Designs.Radius.medium)
+    }
+
+    /// Reusable additional indicator row (not in overall score)
+    @ViewBuilder
+    private func additionalIndicatorRow(icon: String, title: String, score: Int?, confidence: Int?, info: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(Designs.Colors.textSecondary)
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(Designs.Colors.textPrimary)
+            }
+
+            if let score = score {
+                HStack {
+                    Text("Score:")
+                        .font(.subheadline)
+                        .foregroundColor(Designs.Colors.textSecondary)
+                    Text("\(score)/100")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(Designs.Colors.scoreColor(for: score))
+                }
+            }
+
+            Text(info)
+                .font(.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
+
+            if let confidence = confidence {
+                Text("\(confidence)% confidence")
+                    .font(.caption)
+                    .foregroundColor(Designs.Colors.textTertiary)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Designs.Colors.cardBackground)
+        .cornerRadius(Designs.Radius.medium)
     }
 
     // MARK: - Full Clinical Breakdown
@@ -655,185 +796,63 @@ struct ResultsDetailView: View {
                 Text("Skin Health Metrics")
                     .font(.title2)
                     .fontWeight(.bold)
+                    .foregroundColor(Designs.Colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text("These high-confidence metrics (70%+ confidence) are included in your Overall Score calculation.")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .padding(.bottom, 4)
 
                 // 1. Smoothness (22.4% weight, 85% confidence)
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "waveform.path")
-                            .foregroundColor(.green)
-                        Text("Smoothness")
-                            .font(.headline)
-                    }
-
-                    HStack {
-                        Text("Score: \(Int(metrics.globalRoughnessScore))/100")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("\(Int(metrics.smoothnessConfidence))% confidence")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
-                            .cornerRadius(Designs.Radius.small)
-                    }
-
-                    Text("Weight in Overall Score: 22.4%")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-                .cornerRadius(Designs.Radius.medium)
+                clinicalMetricRow(
+                    icon: "waveform.path",
+                    title: "Smoothness",
+                    score: Int(metrics.globalRoughnessScore),
+                    confidence: Int(metrics.smoothnessConfidence),
+                    weight: "22.4%"
+                )
 
                 // 2. Pigmentation (22.4% weight, 80% confidence)
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "circle.fill")
-                            .foregroundColor(.purple)
-                        Text("Pigmentation")
-                            .font(.headline)
-                    }
-
-                    HStack {
-                        Text("Score: \(Int(metrics.globalPigmentationScore))/100")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("\(Int(metrics.pigmentationConfidence))% confidence")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
-                            .cornerRadius(Designs.Radius.small)
-                    }
-
-                    Text("Weight in Overall Score: 22.4%")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-                .cornerRadius(Designs.Radius.medium)
+                clinicalMetricRow(
+                    icon: "paintpalette",
+                    title: "Pigmentation",
+                    score: Int(metrics.globalPigmentationScore),
+                    confidence: Int(metrics.pigmentationConfidence),
+                    weight: "22.4%"
+                )
 
                 // 3. Pores (14.9% weight, 70-90% confidence)
                 if let pores = metrics.poreAnalysis {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "circle.grid.cross.fill")
-                                .foregroundColor(.gray)
-                            Text("Pores")
-                                .font(.headline)
-                        }
-
-                        HStack {
-                            Text("Score: \(Int(pores.visibilityScore))/100")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text("\(Int(pores.confidence))% confidence")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
-                                .cornerRadius(Designs.Radius.small)
-                        }
-
-                        Text("Weight in Overall Score: 14.9%")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Text("Dominant Size: \(pores.dominantSize.rawValue) • Density: \(String(format: "%.1f", pores.density)) pores/cm²")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(Designs.Radius.medium)
+                    clinicalMetricRow(
+                        icon: "circle.grid.cross.fill",
+                        title: "Pores",
+                        score: Int(pores.visibilityScore),
+                        confidence: Int(pores.confidence),
+                        weight: "14.9%",
+                        extraInfo: "Dominant Size: \(pores.dominantSize.rawValue) • Density: \(String(format: "%.1f", pores.density)) pores/cm²"
+                    )
                 }
 
                 // 4. Discoloration (14.9% weight, 80% confidence)
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "circle.hexagongrid")
-                            .foregroundColor(.orange)
-                        Text("Discoloration")
-                            .font(.headline)
-                    }
-
-                    HStack {
-                        Text("Score: \(Int(metrics.globalDiscolorationScore))/100")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("\(Int(metrics.discolorationConfidence))% confidence")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
-                            .cornerRadius(Designs.Radius.small)
-                    }
-
-                    Text("Weight in Overall Score: 14.9%")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-                .cornerRadius(Designs.Radius.medium)
+                clinicalMetricRow(
+                    icon: "circle.lefthalf.filled",
+                    title: "Discoloration",
+                    score: Int(metrics.globalDiscolorationScore),
+                    confidence: Int(metrics.discolorationConfidence),
+                    weight: "14.9%"
+                )
 
                 // 5. Acne (14.9% weight, 75-85% confidence)
                 if let acne = metrics.acneAnalysis {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "circle.hexagongrid.fill")
-                                .foregroundColor(.red)
-                            Text("Acne")
-                                .font(.headline)
-                        }
-
-                        HStack {
-                            Text("Score: \(Int(acne.overallScore))/100")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text("\(Int(acne.confidence))% confidence")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
-                                .cornerRadius(Designs.Radius.small)
-                        }
-
-                        Text("Weight in Overall Score: 14.9%")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        if !acne.blemishes.isEmpty {
-                            Text("Detected: \(acne.blemishes.count) blemishes • Severity: \(acne.severity.rawValue)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(Designs.Radius.medium)
+                    clinicalMetricRow(
+                        icon: "allergens",
+                        title: "Acne",
+                        score: Int(acne.overallScore),
+                        confidence: Int(acne.confidence),
+                        weight: "14.9%",
+                        extraInfo: acne.blemishes.isEmpty ? nil : "Detected: \(acne.blemishes.count) blemishes • Severity: \(acne.severity.rawValue)"
+                    )
                 }
             }
 
@@ -845,140 +864,62 @@ struct ResultsDetailView: View {
                 Text("Additional Indicators")
                     .font(.title2)
                     .fontWeight(.bold)
+                    .foregroundColor(Designs.Colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text("These metrics provide supplementary insights but aren't included in the Overall Score calculation due to measurement limitations.")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Designs.Colors.textSecondary)
                     .padding(.bottom, 4)
 
                 // Elasticity
                 if let elasticity = metrics.elasticityAnalysis {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "arrow.clockwise")
-                                .foregroundColor(.blue)
-                            Text("Elasticity")
-                                .font(.headline)
-                        }
-
-                        Text("Score: \(Int(elasticity.overallScore))/100")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Text("Level: \(elasticity.elasticityLevel.rawValue) • Recovery Rate: \(String(format: "%.2f", elasticity.recoveryRate))")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        if elasticity.isTemporal {
-                            Text("\(Int(elasticity.confidence))% confidence")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("Requires 2+ scans for temporal analysis")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(Designs.Radius.medium)
+                    additionalIndicatorRow(
+                        icon: "arrow.clockwise",
+                        title: "Elasticity",
+                        score: Int(elasticity.overallScore),
+                        confidence: elasticity.isTemporal ? Int(elasticity.confidence) : nil,
+                        info: "Level: \(elasticity.elasticityLevel.rawValue) • Recovery Rate: \(String(format: "%.2f", elasticity.recoveryRate))"
+                    )
                 } else {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "arrow.clockwise")
-                                .foregroundColor(.blue)
-                            Text("Elasticity")
-                                .font(.headline)
-                        }
-
-                        Text("Not yet available")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Text("Elasticity requires comparing multiple scans over time to measure skin firmness changes.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(Designs.Radius.medium)
+                    additionalIndicatorRow(
+                        icon: "arrow.clockwise",
+                        title: "Elasticity",
+                        score: nil,
+                        confidence: nil,
+                        info: "Requires 2+ scans for temporal analysis"
+                    )
                 }
 
                 // Hydration
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "drop.fill")
-                            .foregroundColor(.cyan)
-                        Text("Hydration")
-                            .font(.headline)
-                    }
-
-                    Text("Score: \(Int(calculateHydrationScore(from: metrics)))/100")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    Text("Proxy method based on surface properties • \(Int(metrics.hydrationConfidence))% confidence")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray6))
-                .cornerRadius(Designs.Radius.medium)
+                additionalIndicatorRow(
+                    icon: "drop.fill",
+                    title: "Hydration",
+                    score: Int(calculateHydrationScore(from: metrics)),
+                    confidence: Int(metrics.hydrationConfidence),
+                    info: "Proxy method based on surface properties"
+                )
 
                 // Redness
                 if let redness = metrics.rednessAnalysis {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "flame.fill")
-                                .foregroundColor(.pink)
-                            Text("Redness")
-                                .font(.headline)
-                        }
-
-                        Text("Score: \(Int(redness.overallScore))/100")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Text("Level: \(redness.rednessLevel.rawValue)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Text("\(Int(redness.confidence))% confidence")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(Designs.Radius.medium)
+                    additionalIndicatorRow(
+                        icon: "flame.fill",
+                        title: "Redness",
+                        score: Int(redness.overallScore),
+                        confidence: Int(redness.confidence),
+                        info: "Level: \(redness.rednessLevel.rawValue)"
+                    )
                 }
 
                 // Oil Control
                 if let oilScore = metrics.globalSpecularScore {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "sparkles")
-                                .foregroundColor(.yellow)
-                            Text("Oil Control")
-                                .font(.headline)
-                        }
-
-                        Text("Score: \(Int(oilScore))/100")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Text("Sebum management and shine control")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(Designs.Radius.medium)
+                    additionalIndicatorRow(
+                        icon: "sparkles",
+                        title: "Oil Control",
+                        score: Int(oilScore),
+                        confidence: nil,
+                        info: "Sebum management and shine control"
+                    )
                 }
             }
 
@@ -1642,7 +1583,7 @@ struct ResultsDetailViewErrorState {
     let error: Error
 }
 
-// MARK: - Metric Card
+// MARK: - Metric Card (Simplified - 1 header color, 1 subheader color, score-based % color)
 
 struct ResultsMetricCard: View {
 
@@ -1655,16 +1596,16 @@ struct ResultsMetricCard: View {
             VStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.title2)
-                    .foregroundColor(scoreColor)
+                    .foregroundColor(Designs.Colors.textSecondary) // Unified icon color
 
                 Text(title)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(Designs.Colors.textSecondary) // Subheader color
 
                 Text("\(Int(value))%")
                     .font(.title3)
                     .fontWeight(.bold)
-                    .foregroundColor(scoreColor)
+                    .foregroundColor(scoreColor) // Only % gets score-based color
             }
             .padding(.vertical, 8)
         }
@@ -1672,14 +1613,14 @@ struct ResultsMetricCard: View {
 
     var scoreColor: Color {
         switch value {
-        case 80...100: return .green
-        case 60..<80: return .orange
-        default: return .red
+        case 80...100: return Designs.ScoreColors.excellent  // Green
+        case 60..<80: return Designs.ScoreColors.fair        // Yellow
+        default: return Designs.ScoreColors.poor             // Red
         }
     }
 }
 
-// MARK: - Enhanced Metric Card with Confidence
+// MARK: - Enhanced Metric Card with Confidence (Simplified colors)
 
 struct ResultsMetricCardWithConfidence: View {
 
@@ -1688,7 +1629,7 @@ struct ResultsMetricCardWithConfidence: View {
     let confidence: Double  // 0-100
     let icon: String
     let unit: String?  // Optional unit (%, categorical value, etc.)
-    var isCoreMetric: Bool = false  // NEW: Badge for core metrics
+    var isCoreMetric: Bool = false  // Badge for core metrics
 
     init(title: String, value: Double, confidence: Double, icon: String, unit: String? = "%", isCoreMetric: Bool = false) {
         self.title = title
@@ -1706,65 +1647,65 @@ struct ResultsMetricCardWithConfidence: View {
                     HStack {
                         Image(systemName: icon)
                             .font(.title3)
-                            .foregroundColor(scoreColor)
+                            .foregroundColor(Designs.Colors.textSecondary) // Unified icon color
 
                         Spacer()
 
-                        // Confidence badge
-                        Text("\(Int(confidence))% confidence")
+                        // Confidence badge - subtle gray
+                        Text("\(Int(confidence))%")
                             .font(.caption2)
                             .fontWeight(.semibold)
-                            .foregroundColor(confidenceColor)
+                            .foregroundColor(Designs.Colors.textTertiary)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(confidenceColor.opacity(Designs.Opacity.veryLight + 0.05))
+                            .background(Designs.Colors.border.opacity(0.3))
                             .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
 
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                if let unit = unit {
-                    Text("\(Int(value))\(unit)")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(scoreColor)
+                    Text(title)
+                        .font(.caption)
+                        .foregroundColor(Designs.Colors.textSecondary) // Subheader color
                         .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    Text(displayValue)
-                        .font(.callout)
-                        .fontWeight(.semibold)
-                        .foregroundColor(scoreColor)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
 
-                // Confidence bar
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Designs.Colors.border.opacity(Designs.Opacity.light))
-                            .frame(height: Designs.Sizes.indicatorSmall)
-
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(confidenceColor)
-                            .frame(width: geometry.size.width * CGFloat(confidence / 100), height: 4)
+                    if let unit = unit {
+                        Text("\(Int(value))\(unit)")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(scoreColor) // Only % gets score-based color
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        Text(displayValue)
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                            .foregroundColor(scoreColor)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
+
+                    // Confidence bar - subtle gray
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Designs.Colors.border.opacity(0.3))
+                                .frame(height: Designs.Sizes.indicatorSmall)
+
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Designs.Colors.textTertiary)
+                                .frame(width: geometry.size.width * CGFloat(confidence / 100), height: 4)
+                        }
+                    }
+                    .frame(height: Designs.Sizes.frameHeightBarTiny)
                 }
-                .frame(height: Designs.Sizes.frameHeightBarTiny)
+                .padding(.vertical, 8)
             }
-            .padding(.vertical, 8)
-        }
 
             // Core metric badge overlay
             if isCoreMetric {
                 Text("CORE")
                     .font(AppFont.microBold)
-                    .foregroundColor(.white)
+                    .foregroundColor(Designs.Colors.background)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .background(Designs.Colors.info)
+                    .background(Designs.Colors.primary)
                     .cornerRadius(Designs.Radius.xSmall)
                     .offset(x: 8, y: 8)
             }
@@ -1772,28 +1713,19 @@ struct ResultsMetricCardWithConfidence: View {
     }
 
     var displayValue: String {
-        // For categorical values (no unit)
         return "\(Int(value))"
     }
 
     var scoreColor: Color {
         switch value {
-        case 80...100: return .green
-        case 60..<80: return .orange
-        default: return .red
-        }
-    }
-
-    var confidenceColor: Color {
-        switch confidence {
-        case 75...100: return .green
-        case 50..<75: return .orange
-        default: return .yellow
+        case 80...100: return Designs.ScoreColors.excellent  // Green
+        case 60..<80: return Designs.ScoreColors.fair        // Yellow
+        default: return Designs.ScoreColors.poor             // Red
         }
     }
 }
 
-// MARK: - Categorical Metric Card (for wrinkles, etc.)
+// MARK: - Categorical Metric Card (for wrinkles, etc. - Simplified colors)
 
 struct CategoricalMetricCard: View {
 
@@ -1801,7 +1733,7 @@ struct CategoricalMetricCard: View {
     let category: String  // e.g., "Fine Lines", "Moderate", "Deep"
     let confidence: Double  // 0-100
     let icon: String
-    let color: Color
+    let color: Color  // Score-based color for the category value
 
     var body: some View {
         CardView {
@@ -1809,55 +1741,47 @@ struct CategoricalMetricCard: View {
                 HStack {
                     Image(systemName: icon)
                         .font(.title3)
-                        .foregroundColor(color)
+                        .foregroundColor(Designs.Colors.textSecondary) // Unified icon color
 
                     Spacer()
 
-                    // Confidence badge
+                    // Confidence badge - subtle gray
                     Text("\(Int(confidence))%")
                         .font(.caption2)
                         .fontWeight(.semibold)
-                        .foregroundColor(confidenceColor)
+                        .foregroundColor(Designs.Colors.textTertiary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(confidenceColor.opacity(0.15))
+                        .background(Designs.Colors.border.opacity(0.3))
                         .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
 
                 Text(title)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(Designs.Colors.textSecondary) // Subheader color
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(category)
                     .font(.callout)
                     .fontWeight(.semibold)
-                    .foregroundColor(color)
+                    .foregroundColor(color) // Only category value gets score-based color
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Confidence bar
+                // Confidence bar - subtle gray
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(Designs.Colors.border.opacity(Designs.Opacity.light))
+                            .fill(Designs.Colors.border.opacity(0.3))
                             .frame(height: Designs.Sizes.indicatorSmall)
 
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(confidenceColor)
+                            .fill(Designs.Colors.textTertiary)
                             .frame(width: geometry.size.width * CGFloat(confidence / 100), height: 4)
                     }
                 }
                 .frame(height: Designs.Sizes.frameHeightBarTiny)
             }
             .padding(.vertical, 8)
-        }
-    }
-
-    var confidenceColor: Color {
-        switch confidence {
-        case 75...100: return .green
-        case 50..<75: return .orange
-        default: return .yellow
         }
     }
 }

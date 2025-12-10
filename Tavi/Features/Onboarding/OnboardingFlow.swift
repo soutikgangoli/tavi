@@ -3,12 +3,30 @@
 //  Tavi
 //
 //  First-time user onboarding with tutorial screens
-//  Explains metrics and scan process
+//  Gentler Streak inspired - warm, friendly, welcoming design
 //
 
 import SwiftUI
 
-/// Onboarding flow coordinator
+// MARK: - Gentler Streak Inspired Colors
+
+private enum OnboardingColors {
+    // Warm cream background
+    static let background = Color(red: 252/255, green: 250/255, blue: 245/255)
+    // Soft warm gray for text
+    static let textPrimary = Color(red: 60/255, green: 60/255, blue: 60/255)
+    static let textSecondary = Color(red: 120/255, green: 115/255, blue: 110/255)
+    // Coral/orange accent (like the heart mascot)
+    static let accentCoral = Color(red: 235/255, green: 120/255, blue: 90/255)
+    // Soft teal for secondary actions
+    static let accentTeal = Color(red: 75/255, green: 160/255, blue: 150/255)
+    // Soft green for positive
+    static let softGreen = Color(red: 130/255, green: 190/255, blue: 140/255)
+    // Warm card background
+    static let cardBackground = Color.white
+}
+
+/// Onboarding flow coordinator - Gentler Streak inspired design
 public struct OnboardingFlowView: View {
 
     @Environment(\.dismiss) private var dismiss
@@ -17,148 +35,191 @@ public struct OnboardingFlowView: View {
 
     private let pages: [OnboardingPage] = [
         OnboardingPage(
-            title: "What's Your Name?",
+            title: "Hi there,",
+            subtitle: "What's your name?",
             description: "Let's personalize your experience",
-            imageName: "person.circle.fill",
-            color: .blue,
+            imageName: "person.crop.circle",
             requiresInput: true
         ),
         OnboardingPage(
-            title: "3D Face Scan in 1 Minute",
-            description: "We'll guide you through five quick poses to capture your face in 3D.\n\n• Clinical-grade AI skin analysis\n• Track changes over time\n• 100% on-device privacy\n\nLet's begin.",
-            imageName: "face.smiling",
-            color: .blue
+            title: "Track Your Skin",
+            subtitle: "Simple. Private. Insightful.",
+            description: "Quick 3D face scans to monitor your skin health over time.\n\n✓ Clinical-grade AI analysis\n✓ 100% on-device privacy\n✓ Track changes & progress",
+            imageName: "viewfinder.circle",
+            requiresInput: false
         )
     ]
 
     public var body: some View {
-        VStack {
-            // Skip button
-            HStack {
-                Spacer()
-                Button("Skip") {
-                    // Skip tutorial, but still save name if entered
-                    if !userName.isEmpty {
-                        try? UserProfileManager.shared.updateName(userName)
+        ZStack {
+            // Warm cream background
+            OnboardingColors.background
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Top bar with skip
+                HStack {
+                    Spacer()
+                    Button("Skip") {
+                        completeOnboarding()
                     }
-                    UserDefaults.standard.set(true, forKey: AppDefaultsKey.hasCompletedOnboarding)
-                    dismiss()
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(OnboardingColors.textSecondary)
                 }
-                .foregroundColor(.gray)
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+
+                // Page indicator dots
+                HStack(spacing: 8) {
+                    ForEach(0..<pages.count, id: \.self) { index in
+                        Capsule()
+                            .fill(index == currentPage ? OnboardingColors.accentCoral : OnboardingColors.textSecondary.opacity(0.3))
+                            .frame(width: index == currentPage ? 24 : 8, height: 8)
+                            .animation(.spring(response: 0.3), value: currentPage)
+                    }
+                }
                 .padding(.top, 20)
-                .padding(.trailing, 20)
-            }
 
-            // Page indicator
-            HStack(spacing: 8) {
-                ForEach(0..<pages.count, id: \.self) { index in
-                    Circle()
-                        .fill(index == currentPage ? Color.blue : Color.gray.opacity(0.3))
-                        .frame(width: 8, height: 8)
-                }
-            }
-            .padding(.top, 10)
-
-            TabView(selection: $currentPage) {
-                ForEach(0..<pages.count, id: \.self) { index in
-                    if pages[index].requiresInput {
-                        OnboardingPageView(page: pages[index], userName: $userName)
-                            .tag(index)
-                    } else {
-                        OnboardingPageView(page: pages[index])
-                            .tag(index)
+                // Content
+                TabView(selection: $currentPage) {
+                    ForEach(0..<pages.count, id: \.self) { index in
+                        OnboardingPageView(
+                            page: pages[index],
+                            userName: pages[index].requiresInput ? $userName : .constant("")
+                        )
+                        .tag(index)
                     }
                 }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
+                .tabViewStyle(.page(indexDisplayMode: .never))
 
-            // Action buttons
-            HStack(spacing: 20) {
-                if currentPage > 0 {
-                    Button("Back") {
-                        withAnimation {
-                            currentPage -= 1
+                // Bottom action area
+                VStack(spacing: 16) {
+                    // Main action button
+                    Button {
+                        if currentPage < pages.count - 1 {
+                            withAnimation(.spring(response: 0.4)) {
+                                currentPage += 1
+                            }
+                        } else {
+                            completeOnboarding()
+                        }
+                    } label: {
+                        HStack {
+                            Text(currentPage < pages.count - 1 ? "Continue" : "Get Started")
+                                .font(.system(size: 18, weight: .semibold))
+
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(OnboardingColors.accentCoral)
+                        )
+                    }
+
+                    // Back button (if not first page)
+                    if currentPage > 0 {
+                        Button {
+                            withAnimation(.spring(response: 0.4)) {
+                                currentPage -= 1
+                            }
+                        } label: {
+                            Text("Back")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(OnboardingColors.textSecondary)
                         }
                     }
-                    .foregroundColor(.gray)
                 }
-
-                Spacer()
-
-                if currentPage < pages.count - 1 {
-                    Button("Next") {
-                        withAnimation {
-                            currentPage += 1
-                        }
-                    }
-                    .fontWeight(.semibold)
-                } else {
-                    Button("Get Started") {
-                        // Save user name to profile
-                        if !userName.isEmpty {
-                            try? UserProfileManager.shared.updateName(userName)
-                        }
-
-                        // Mark onboarding as complete
-                        UserDefaults.standard.set(true, forKey: AppDefaultsKey.hasCompletedOnboarding)
-                        dismiss()
-                    }
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 30)
-                    .padding(.vertical, 12)
-                    .background(Color.blue)
-                    .cornerRadius(Designs.CornerRadius.xxLarge)
-                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 40)
             }
-            .padding(.horizontal, 30)
-            .padding(.bottom, 40)
         }
+    }
+
+    private func completeOnboarding() {
+        // Save user name if entered
+        if !userName.isEmpty {
+            try? UserProfileManager.shared.updateName(userName)
+        }
+        // Mark onboarding as complete
+        UserDefaults.standard.set(true, forKey: AppDefaultsKey.hasCompletedOnboarding)
+        dismiss()
     }
 }
 
-/// Single onboarding page
+/// Single onboarding page - Gentler Streak style
 struct OnboardingPageView: View {
     let page: OnboardingPage
     @Binding var userName: String
-
-    init(page: OnboardingPage, userName: Binding<String> = .constant("")) {
-        self.page = page
-        self._userName = userName
-    }
+    @FocusState private var isNameFieldFocused: Bool
 
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 0) {
             Spacer()
 
-            // Icon
-            Image(systemName: page.imageName)
-                .font(AppFont.scoreDisplayLarge)
-                .foregroundColor(page.color)
+            // Illustration area
+            ZStack {
+                // Soft background circle
+                Circle()
+                    .fill(OnboardingColors.accentCoral.opacity(0.1))
+                    .frame(width: 180, height: 180)
+
+                // Icon
+                Image(systemName: page.imageName)
+                    .font(.system(size: 80, weight: .light))
+                    .foregroundColor(OnboardingColors.accentCoral)
+            }
+            .padding(.bottom, 40)
 
             // Title
             Text(page.title)
-                .font(.app(size: 32, weight: .bold))
+                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .foregroundColor(OnboardingColors.textPrimary)
                 .multilineTextAlignment(.center)
+
+            // Subtitle
+            if let subtitle = page.subtitle {
+                Text(subtitle)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(OnboardingColors.accentTeal)
+                    .padding(.top, 4)
+            }
 
             // Description
             Text(page.description)
-                .font(.app(size: 18))
-                .foregroundColor(.gray)
+                .font(.system(size: 17, weight: .regular))
+                .foregroundColor(OnboardingColors.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                .lineSpacing(4)
+                .padding(.horizontal, 32)
+                .padding(.top, 16)
 
-            // Input field for name if required
+            // Name input field (if required)
             if page.requiresInput {
-                TextField("Enter your name", text: $userName)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.app(size: 18))
-                    .padding(.horizontal, 40)
-                    .padding(.top, 20)
-                    .autocapitalization(.words)
-                    .disableAutocorrection(true)
+                VStack(spacing: 8) {
+                    TextField("Your name", text: $userName)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(OnboardingColors.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 24)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(OnboardingColors.cardBackground)
+                                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+                        )
+                        .focused($isNameFieldFocused)
+                        .autocapitalization(.words)
+                        .disableAutocorrection(true)
+                }
+                .padding(.horizontal, 40)
+                .padding(.top, 32)
             }
 
+            Spacer()
             Spacer()
         }
     }
@@ -167,21 +228,156 @@ struct OnboardingPageView: View {
 /// Onboarding page data
 struct OnboardingPage {
     let title: String
+    let subtitle: String?
     let description: String
     let imageName: String
-    let color: Color
     let requiresInput: Bool
 
-    init(title: String, description: String, imageName: String, color: Color, requiresInput: Bool = false) {
+    init(title: String, subtitle: String? = nil, description: String, imageName: String, requiresInput: Bool = false) {
         self.title = title
+        self.subtitle = subtitle
         self.description = description
         self.imageName = imageName
-        self.color = color
         self.requiresInput = requiresInput
     }
 }
 
-/// Metric explanation view (detailed)
+// MARK: - Info/Tutorial Cards View (shown before first scan)
+
+/// Info screen shown before the first scan - Gentler Streak style
+public struct ScanInfoView: View {
+    @Environment(\.dismiss) private var dismiss
+    let onContinue: () -> Void
+
+    private let infoCards: [InfoCard] = [
+        InfoCard(
+            icon: "sun.max.fill",
+            title: "Good Lighting",
+            description: "Find a well-lit spot with even, natural light for the best results.",
+            color: Color(red: 255/255, green: 200/255, blue: 60/255)
+        ),
+        InfoCard(
+            icon: "face.smiling",
+            title: "Center Your Face",
+            description: "Position yourself 12-18 inches from the camera, face centered.",
+            color: Color(red: 235/255, green: 120/255, blue: 90/255)
+        ),
+        InfoCard(
+            icon: "hand.raised.fill",
+            title: "Stay Still",
+            description: "Keep relaxed and still during the quick capture process.",
+            color: Color(red: 75/255, green: 160/255, blue: 150/255)
+        )
+    ]
+
+    public var body: some View {
+        ZStack {
+            // Warm cream background
+            OnboardingColors.background
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Header
+                VStack(spacing: 8) {
+                    Text("Before You Scan")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(OnboardingColors.textPrimary)
+
+                    Text("A few tips for the best results")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(OnboardingColors.textSecondary)
+                }
+                .padding(.top, 40)
+                .padding(.bottom, 32)
+
+                // Info cards
+                VStack(spacing: 16) {
+                    ForEach(infoCards) { card in
+                        InfoCardView(card: card)
+                    }
+                }
+                .padding(.horizontal, 24)
+
+                Spacer()
+
+                // Continue button
+                Button {
+                    onContinue()
+                } label: {
+                    HStack {
+                        Text("I'm Ready")
+                            .font(.system(size: 18, weight: .semibold))
+
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(OnboardingColors.accentCoral)
+                    )
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 40)
+            }
+        }
+    }
+}
+
+/// Info card data
+struct InfoCard: Identifiable {
+    let id = UUID()
+    let icon: String
+    let title: String
+    let description: String
+    let color: Color
+}
+
+/// Single info card - Gentler Streak style
+struct InfoCardView: View {
+    let card: InfoCard
+
+    var body: some View {
+        HStack(spacing: 16) {
+            // Icon circle
+            ZStack {
+                Circle()
+                    .fill(card.color.opacity(0.15))
+                    .frame(width: 56, height: 56)
+
+                Image(systemName: card.icon)
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundColor(card.color)
+            }
+
+            // Text content
+            VStack(alignment: .leading, spacing: 4) {
+                Text(card.title)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(OnboardingColors.textPrimary)
+
+                Text(card.description)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(OnboardingColors.textSecondary)
+                    .lineSpacing(2)
+            }
+
+            Spacer()
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(OnboardingColors.cardBackground)
+                .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
+        )
+    }
+}
+
+// MARK: - Metric Explanation View
+
+/// Metric explanation view (detailed) - Updated styling
 public struct MetricExplanationView: View {
     let metric: AnalysisMetricType
 
@@ -190,63 +386,74 @@ public struct MetricExplanationView: View {
             VStack(alignment: .leading, spacing: 20) {
                 // Header
                 HStack {
-                    Image(systemName: metric.iconName)
-                        .font(AppFont.custom(size: 40, weight: .regular))
-                        .foregroundColor(metric.color)
+                    ZStack {
+                        Circle()
+                            .fill(OnboardingColors.accentCoral.opacity(0.15))
+                            .frame(width: 60, height: 60)
 
-                    VStack(alignment: .leading) {
+                        Image(systemName: metric.iconName)
+                            .font(.system(size: 28, weight: .medium))
+                            .foregroundColor(OnboardingColors.accentCoral)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(metric.name)
-                            .font(.title)
-                            .bold()
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(OnboardingColors.textPrimary)
 
                         Text(metric.tagline)
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(OnboardingColors.textSecondary)
                     }
                 }
                 .padding()
 
                 Divider()
 
-                // What it is
-                SectionView(title: "What It Measures") {
+                // Content sections
+                MetricSectionView(title: "What It Measures") {
                     Text(metric.whatItMeasures)
-                        .font(.body)
+                        .font(.system(size: 16))
+                        .foregroundColor(OnboardingColors.textPrimary)
                 }
 
-                // Why it matters
-                SectionView(title: "Why It Matters") {
+                MetricSectionView(title: "Why It Matters") {
                     Text(metric.whyItMatters)
-                        .font(.body)
+                        .font(.system(size: 16))
+                        .foregroundColor(OnboardingColors.textPrimary)
                 }
 
-                // How we measure it
-                SectionView(title: "How We Measure It") {
+                MetricSectionView(title: "How We Measure It") {
                     Text(metric.howWeMeasure)
-                        .font(.body)
+                        .font(.system(size: 16))
+                        .foregroundColor(OnboardingColors.textPrimary)
                 }
 
-                // What affects it
-                SectionView(title: "What Affects This Metric") {
+                MetricSectionView(title: "What Affects This Metric") {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(metric.affectingFactors, id: \.self) { factor in
-                            HStack {
-                                Image(systemName: "circle.fill")
-                                    .font(AppFont.custom(size: 6, weight: .regular))
+                            HStack(spacing: 8) {
+                                Circle()
+                                    .fill(OnboardingColors.accentTeal)
+                                    .frame(width: 6, height: 6)
                                 Text(factor)
+                                    .font(.system(size: 15))
+                                    .foregroundColor(OnboardingColors.textPrimary)
                             }
                         }
                     }
                 }
 
-                // Tips to improve
-                SectionView(title: "How to Improve") {
-                    VStack(alignment: .leading, spacing: 8) {
+                MetricSectionView(title: "How to Improve") {
+                    VStack(alignment: .leading, spacing: 10) {
                         ForEach(metric.improvementTips, id: \.self) { tip in
-                            HStack(alignment: .top) {
-                                Text("•")
-                                    .bold()
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(OnboardingColors.softGreen)
                                 Text(tip)
+                                    .font(.system(size: 15))
+                                    .foregroundColor(OnboardingColors.textPrimary)
                             }
                         }
                     }
@@ -254,10 +461,35 @@ public struct MetricExplanationView: View {
             }
             .padding()
         }
+        .background(OnboardingColors.background)
         .navigationTitle(metric.name)
     }
 }
 
+/// Section view for metric explanations
+struct MetricSectionView<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                .foregroundColor(OnboardingColors.textPrimary)
+
+            content
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(OnboardingColors.cardBackground)
+                        .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 2)
+                )
+        }
+    }
+}
+
+// Keep the old SectionView for backward compatibility if needed elsewhere
 struct SectionView<Content: View>: View {
     let title: String
     @ViewBuilder let content: Content
@@ -266,11 +498,14 @@ struct SectionView<Content: View>: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.headline)
+                .foregroundColor(OnboardingColors.textPrimary)
 
             content
                 .padding()
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(Designs.CornerRadius.medium)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(OnboardingColors.cardBackground)
+                )
         }
     }
 }
@@ -287,22 +522,12 @@ extension AnalysisMetricType {
         case .discoloration: return "paintpalette"
         case .specular: return "sparkles"
         case .luminance: return "sun.max.fill"
-        case .brightness: return "sun.max.fill"  // Alias for luminance
+        case .brightness: return "sun.max.fill"
         }
     }
 
     var color: Color {
-        switch self {
-        case .roughness: return .blue
-        case .wrinkles: return .purple
-        case .hydration: return .cyan
-        case .pores: return .green
-        case .pigmentation: return .orange
-        case .discoloration: return .red
-        case .specular: return .yellow
-        case .luminance: return .white
-        case .brightness: return .white  // Alias for luminance
-        }
+        OnboardingColors.accentCoral // Unified warm accent
     }
 
     var tagline: String {
@@ -315,7 +540,7 @@ extension AnalysisMetricType {
         case .discoloration: return "Color uniformity"
         case .specular: return "Shine & oil control"
         case .luminance: return "Overall brightness"
-        case .brightness: return "Overall brightness"  // Alias for luminance
+        case .brightness: return "Overall brightness"
         }
     }
 
@@ -501,7 +726,7 @@ public enum AnalysisMetricType: String, Codable, Identifiable {
     case discoloration
     case specular
     case luminance
-    case brightness  // Alias for luminance
+    case brightness
 
     var name: String {
         switch self {
@@ -518,85 +743,59 @@ public enum AnalysisMetricType: String, Codable, Identifiable {
     }
 
     /// Get the metric value from ROI metrics (for ROI-level visualization)
-    /// NOTE: This uses proxies for some metrics. Use getValue(from: Face3DMetrics) when full metrics are available.
     func getValue(from roiMetrics: ROI3DMetrics) -> Float {
         switch self {
         case .roughness: return roiMetrics.roughnessProxy
-        case .wrinkles: 
-            // IMPROVED: Use roughness score as proxy (more accurate than raw proxy)
-            // Wrinkles correlate with surface roughness - higher roughness = more wrinkles likely
-            return roiMetrics.roughnessScore / 100.0  // Normalize to 0-1 range
+        case .wrinkles:
+            return roiMetrics.roughnessScore / 100.0
         case .hydration:
-            // IMPROVED: Use moisture proxy if available (from hydration estimate)
-            // Falls back to inverse pigmentation as secondary proxy
             if roiMetrics.moistureProxy.moistureIndex > 0 {
                 return Float(roiMetrics.moistureProxy.moistureIndex)
             }
             return 1.0 - roiMetrics.pigmentationIndex
         case .pores:
-            // IMPROVED: Use roughness score as proxy (pores contribute to surface roughness)
-            // Higher roughness score = smoother surface = smaller pores
-            return (100.0 - roiMetrics.roughnessScore) / 100.0  // Inverted: higher score = smaller pores
+            return (100.0 - roiMetrics.roughnessScore) / 100.0
         case .pigmentation: return roiMetrics.pigmentationIndex
-        case .discoloration: 
-            // IMPROVED: Use discoloration score if available, otherwise pigmentation index
-            // Discoloration is related to but distinct from pigmentation
+        case .discoloration:
             return roiMetrics.pigmentationIndex
         case .specular: return roiMetrics.specularProxy ?? 0
-        case .luminance: 
-            // IMPROVED: Use average luminance if available, otherwise pigmentation index
-            return roiMetrics.averageLuminance / 255.0  // Normalize to 0-1
-        case .brightness: 
-            // Same as luminance
+        case .luminance:
+            return roiMetrics.averageLuminance / 255.0
+        case .brightness:
             return roiMetrics.averageLuminance / 255.0
         }
     }
-    
-    /// Get the metric value from full Face3DMetrics (uses real analyzer results when available)
-    /// This is the preferred method when full metrics are available
+
+    /// Get the metric value from full Face3DMetrics
     func getValue(from metrics: Face3DMetrics) -> Float {
         switch self {
         case .roughness:
-            // Use global roughness proxy (raw measurement)
             return metrics.globalRoughnessProxy
         case .wrinkles:
-            // REAL: Use wrinkle analysis if available
             if let wrinkleAnalysis = metrics.wrinkleAnalysis {
-                // Convert overall score (0-100) to 0-1 range
                 return wrinkleAnalysis.overallScore / 100.0
             }
-            // Fallback: Use roughness score as proxy
             return metrics.globalRoughnessScore / 100.0
         case .hydration:
-            // REAL: Use hydration estimate if available
             if let hydration = metrics.hydrationEstimate {
                 return hydration.overallScore / 100.0
             }
-            // Fallback: Use average moisture proxy from ROI metrics
             let avgMoisture = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex }.reduce(0.0, +) / Double(metrics.roiMetrics.count)
             return Float(avgMoisture)
         case .pores:
-            // REAL: Use pore analysis if available
             if let poreAnalysis = metrics.poreAnalysis {
-                // Convert visibility score (0-100, higher = more visible = worse) to 0-1 (inverted)
                 return (100.0 - poreAnalysis.visibilityScore) / 100.0
             }
-            // Fallback: Use roughness score as proxy
             return (100.0 - metrics.globalRoughnessScore) / 100.0
         case .pigmentation:
-            // REAL: Use global pigmentation index
             return metrics.globalPigmentationIndex
         case .discoloration:
-            // REAL: Use global discoloration index
             return metrics.globalDiscolorationIndex
         case .specular:
-            // REAL: Use specular proxy if available
             return metrics.globalSpecularProxy ?? 0
         case .luminance:
-            // REAL: Use average luminance
             return metrics.globalAverageLuminance / 255.0
         case .brightness:
-            // REAL: Use glow analysis radiance if available, otherwise luminance
             if let glowAnalysis = metrics.glowAnalysis {
                 return glowAnalysis.radianceScore / 100.0
             }

@@ -107,7 +107,7 @@ public struct Comparison3DView: View {
     }
 }
 
-/// Comparison header with dates
+/// Comparison header with dates (Dark theme)
 struct ComparisonHeaderView: View {
     let beforeDate: Date
     let afterDate: Date
@@ -118,10 +118,11 @@ struct ComparisonHeaderView: View {
             Text("Progress Comparison")
                 .font(.title2)
                 .bold()
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Text("\(daysBetween) days between scans")
                 .font(.subheadline)
-                .foregroundColor(.gray)
+                .foregroundColor(Designs.Colors.textSecondary)
 
             HStack {
                 Text(beforeDate, style: .date)
@@ -131,7 +132,7 @@ struct ComparisonHeaderView: View {
                 Text(afterDate, style: .date)
                     .font(.caption)
             }
-            .foregroundColor(.secondary)
+            .foregroundColor(Designs.Colors.textTertiary)
         }
         .padding()
     }
@@ -147,10 +148,9 @@ struct Scene3DContainerView: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(Color.gray.opacity(0.1))
+                .fill(Designs.Colors.cardBackground)
 
-            if let imageData = showHeatmap ? getHeatmapData() : sessionResult.thumbnail,
-               let uiImage = UIImage(data: imageData) {
+            if let uiImage = getDisplayImage() {
                 Image(uiImage: uiImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -158,18 +158,46 @@ struct Scene3DContainerView: View {
                     .padding(8)
             } else {
                 // Fallback if no image available
-                VStack {
+                VStack(spacing: Designs.Spacing.sm) {
                     Image(systemName: "photo")
                         .font(.app(size: 40))
-                        .foregroundColor(.gray)
+                        .foregroundColor(Designs.Colors.textTertiary)
                     Text("No image available")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(Designs.Colors.textTertiary)
+                    Text("Older scans may not have images")
+                        .font(.caption2)
+                        .foregroundColor(Designs.Colors.textTertiary.opacity(0.7))
                 }
             }
         }
         .cornerRadius(Designs.Radius.medium)
         .padding()
+    }
+
+    /// Get the image to display with multiple fallbacks
+    private func getDisplayImage() -> UIImage? {
+        if showHeatmap {
+            // Try heatmap first, then fallback to regular image
+            if let heatmapData = getHeatmapData(),
+               let heatmapImage = UIImage(data: heatmapData) {
+                return heatmapImage
+            }
+        }
+
+        // Try thumbnail first (preferred - smaller/faster)
+        if let thumbnailData = sessionResult.thumbnail,
+           let thumbnailImage = UIImage(data: thumbnailData) {
+            return thumbnailImage
+        }
+
+        // Fallback to full face image if thumbnail not available
+        if let faceData = sessionResult.faceImage,
+           let faceImage = UIImage(data: faceData) {
+            return faceImage
+        }
+
+        return nil
     }
 
     private func getHeatmapData() -> Data? {
@@ -188,7 +216,7 @@ struct Scene3DContainerView: View {
     }
 }
 
-/// Synchronized controls
+/// Synchronized controls (Dark theme)
 struct ComparisonControlsView: View {
     @Binding var rotationAngle: Float
     @Binding var showHeatmap: Bool
@@ -200,7 +228,9 @@ struct ComparisonControlsView: View {
             VStack {
                 Text("Rotation")
                     .font(.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
                 Slider(value: $rotationAngle, in: -180...180)
+                    .tint(Designs.Colors.primary)
                     .padding(.horizontal)
             }
 
@@ -208,8 +238,10 @@ struct ComparisonControlsView: View {
             HStack {
                 Text("Heatmap")
                     .font(.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
                 Toggle("", isOn: $showHeatmap)
                     .labelsHidden()
+                    .tint(Designs.Colors.primary)
             }
 
             // Metric selector
@@ -222,7 +254,7 @@ struct ComparisonControlsView: View {
             .padding(.horizontal)
         }
         .padding()
-        .background(Color.gray.opacity(Designs.Opacity.veryLight / 2))
+        .background(Designs.Colors.cardBackground)
     }
 }
 
@@ -338,7 +370,7 @@ struct MetricComparisonList: View {
     }
 }
 
-/// Single metric comparison row - clean single line with inline deltas
+/// Single metric comparison row - clean single line with inline deltas (Dark theme)
 struct MetricComparisonRow: View {
     let name: String
     let before: Float
@@ -360,8 +392,8 @@ struct MetricComparisonRow: View {
     }
 
     var changeColor: Color {
-        if abs(change) < 0.01 { return .gray }  // No significant change
-        return isImproved ? .green : .red
+        if abs(change) < 0.01 { return Designs.Colors.textTertiary }  // No significant change
+        return isImproved ? Designs.ScoreColors.excellent : Designs.ScoreColors.poor
     }
 
     var changeIcon: String {
@@ -374,7 +406,7 @@ struct MetricComparisonRow: View {
             // Metric name
             Text(name)
                 .font(.app(size: 15, weight: .medium))
-                .foregroundColor(.primary)
+                .foregroundColor(Designs.Colors.textPrimary)
 
             Spacer()
 
@@ -383,11 +415,11 @@ struct MetricComparisonRow: View {
                 // Current value
                 Text(String(format: "%.1f", after))
                     .font(.app(size: 15, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(Designs.Colors.textPrimary)
 
                 Text(unit)
                     .font(.app(size: 13))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Designs.Colors.textSecondary)
 
                 // Delta in colored badge
                 if abs(change) > 0.01 {
@@ -406,7 +438,7 @@ struct MetricComparisonRow: View {
                     .padding(.vertical, 4)
                     .background(
                         Capsule()
-                            .fill(changeColor.opacity(Designs.Opacity.veryLight + 0.05))
+                            .fill(changeColor.opacity(0.2))
                     )
                 }
             }
@@ -415,13 +447,12 @@ struct MetricComparisonRow: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color(uiColor: .systemBackground))
-                .shadow(color: Color.black.opacity(Designs.Opacity.veryLight / 2), radius: Designs.Border.widthThick, x: 0, y: Designs.Border.width)
+                .fill(Designs.Colors.cardBackground)
         )
     }
 }
 
-/// Overall improvement summary banner
+/// Overall improvement summary banner (Dark theme)
 struct OverallImprovementBanner: View {
     let improved: Int
     let declined: Int
@@ -430,11 +461,11 @@ struct OverallImprovementBanner: View {
 
     private var dominantColor: Color {
         if improved > declined {
-            return .green
+            return Designs.ScoreColors.excellent
         } else if declined > improved {
-            return .orange
+            return Designs.ScoreColors.warning
         } else {
-            return .blue
+            return Designs.Colors.primary
         }
     }
 
@@ -459,7 +490,7 @@ struct OverallImprovementBanner: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(summary)
                         .font(.app(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(Designs.Colors.textPrimary)
 
                     HStack(spacing: 16) {
                         if improved > 0 {
@@ -469,7 +500,7 @@ struct OverallImprovementBanner: View {
                                 Text("\(improved) improved")
                                     .font(.app(size: 13))
                             }
-                            .foregroundColor(.green)
+                            .foregroundColor(Designs.ScoreColors.excellent)
                         }
 
                         if declined > 0 {
@@ -479,7 +510,7 @@ struct OverallImprovementBanner: View {
                                 Text("\(declined) declined")
                                     .font(.app(size: 13))
                             }
-                            .foregroundColor(.red)
+                            .foregroundColor(Designs.ScoreColors.poor)
                         }
 
                         if unchanged > 0 {
@@ -489,7 +520,7 @@ struct OverallImprovementBanner: View {
                                 Text("\(unchanged) stable")
                                     .font(.app(size: 13))
                             }
-                            .foregroundColor(.gray)
+                            .foregroundColor(Designs.Colors.textTertiary)
                         }
                     }
                 }
@@ -499,11 +530,11 @@ struct OverallImprovementBanner: View {
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(dominantColor.opacity(0.1))
+                    .fill(dominantColor.opacity(0.15))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(dominantColor.opacity(Designs.Opacity.medium), lineWidth: Designs.Border.width)
+                    .stroke(dominantColor.opacity(0.3), lineWidth: Designs.Border.width)
             )
         }
     }

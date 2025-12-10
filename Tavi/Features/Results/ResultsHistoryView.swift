@@ -2,16 +2,25 @@
 //  ResultsHistoryView.swift
 //  Tavi
 //
+//  Gentler Streak themed history view
 //  Created on 2025-10-27.
 //
 
 import SwiftUI
 import CoreData
 
-/// History list showing all past skin analysis sessions
+/// History list showing all past skin analysis sessions (Gentler Streak theme)
 struct ResultsHistoryView: View {
 
     @Environment(\.managedObjectContext) private var viewContext
+
+    // Gentler Streak colors
+    private let gsBackground = Designs.GentlerStreak.background
+    private let gsTextPrimary = Designs.GentlerStreak.textPrimary
+    private let gsTextSecondary = Designs.GentlerStreak.textSecondary
+    private let gsAccentCoral = Designs.GentlerStreak.accentCoral
+    private let gsAccentTeal = Designs.GentlerStreak.accentTeal
+    private let gsCardBackground = Designs.GentlerStreak.cardBackground
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)],
@@ -51,21 +60,33 @@ struct ResultsHistoryView: View {
     }
 
     var body: some View {
-        Group {
-            if let error = errorState {
-                errorView(error)
-            } else {
-                contentView
+        ZStack {
+            // Full screen background
+            gsBackground.ignoresSafeArea()
+
+            Group {
+                if let error = errorState {
+                    errorView(error)
+                } else {
+                    contentView
+                }
             }
         }
-        .navigationTitle("Analysis History")
+        .navigationTitle("History")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {
                     InsightsTabView()
                 } label: {
-                    Label("Insights", systemImage: "chart.line.uptrend.xyaxis")
+                    ZStack {
+                        Circle()
+                            .fill(gsAccentCoral.opacity(0.15))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(gsAccentCoral)
+                    }
                 }
             }
         }
@@ -203,11 +224,11 @@ struct ResultsHistoryView: View {
         }
     }
 
-    // MARK: - Filter Chips
+    // MARK: - Filter Chips (Gentler Streak Style)
 
     private var filterChipsView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Designs.Spacing.sm) {
+            HStack(spacing: 10) {
                 ForEach(TimeFilter.allCases, id: \.self) { filter in
                     filterChip(filter)
                 }
@@ -217,27 +238,29 @@ struct ResultsHistoryView: View {
 
     private func filterChip(_ filter: TimeFilter) -> some View {
         Button {
-            selectedTimeFilter = filter
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                selectedTimeFilter = filter
+            }
         } label: {
             Text(filter.rawValue)
-                .font(.app(size: 14, weight: selectedTimeFilter == filter ? .semibold : .medium, design: .rounded))
+                .font(.system(size: 14, weight: selectedTimeFilter == filter ? .semibold : .medium, design: .rounded))
                 .foregroundColor(
                     selectedTimeFilter == filter
                     ? .white
-                    : Designs.Colors.textPrimary
+                    : gsTextPrimary
                 )
                 .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
                 .background(
                     selectedTimeFilter == filter
-                    ? Designs.Colors.primary
-                    : Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight)
+                    ? gsAccentCoral
+                    : gsTextSecondary.opacity(0.1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .clipShape(Capsule())
         }
     }
 
-    // MARK: - Enhanced Session Card
+    // MARK: - Enhanced Session Card (Gentler Streak Style)
 
     private func enhancedSessionCard(_ session: SessionResult) -> some View {
         VStack(spacing: 0) {
@@ -245,43 +268,45 @@ struct ResultsHistoryView: View {
             Button {
                 selectedSession = session
             } label: {
-                HStack(spacing: 12) {
+                HStack(spacing: 14) {
                     // Score circle
                     ZStack {
                         Circle()
-                            .fill(scoreColor(session.overallScore).opacity(Designs.Opacity.veryLight + 0.05))
-                            .frame(width: Designs.Sizes.frameWidthSmall, height: Designs.Sizes.frameWidthSmall)
+                            .fill(gentlerScoreColor(session.overallScore).opacity(0.15))
+                            .frame(width: 52, height: 52)
 
                         Text("\(Int(session.overallScore))")
-                            .font(AppFont.headlineSecondary)
-                            .foregroundColor(scoreColor(session.overallScore))
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(gentlerScoreColor(session.overallScore))
                     }
 
-                    // Name, Date Time, Score% in one line
+                    // Name, Date Time
                     VStack(alignment: .leading, spacing: 4) {
                         Text(session.relativeDate)
-                            .font(AppFont.subheadingPrimary)
-                            .foregroundColor(Designs.Colors.textPrimary)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(gsTextPrimary)
 
                         Text(formattedDateTime(session.date))
-                            .font(AppFont.caption)
-                            .foregroundColor(Designs.Colors.textSecondary)
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(gsTextSecondary)
                     }
 
                     Spacer()
 
                     // Chevron
                     Image(systemName: "chevron.right")
-                        .font(AppFont.metricLabel)
-                        .foregroundColor(Designs.Colors.textTertiary)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(gsTextSecondary)
                 }
-                .padding(Designs.Spacing.md)
+                .padding(16)
             }
             .buttonStyle(PlainButtonStyle())
 
             // Compare button (for non-latest scans)
             if let latestSession = sessions.first, session.id != latestSession.id {
-                Divider()
+                Rectangle()
+                    .fill(gsTextSecondary.opacity(0.1))
+                    .frame(height: 1)
 
                 NavigationLink {
                     Comparison3DView(
@@ -291,34 +316,33 @@ struct ResultsHistoryView: View {
                 } label: {
                     HStack {
                         Image(systemName: "arrow.left.arrow.right")
-                            .font(AppFont.metricLabel)
+                            .font(.system(size: 14, weight: .medium))
 
                         Text("Compare with Latest")
-                            .font(AppFont.label)
+                            .font(.system(size: 14, weight: .medium))
 
                         Spacer()
 
                         Image(systemName: "chevron.right")
-                            .font(AppFont.captionSmall)
+                            .font(.system(size: 12, weight: .medium))
                     }
-                    .foregroundColor(Designs.Colors.primary)
-                    .padding(Designs.Spacing.sm)
-                    .padding(.horizontal, Designs.Spacing.xs)
+                    .foregroundColor(gsAccentTeal)
+                    .padding(12)
+                    .padding(.horizontal, 4)
                 }
             }
         }
-        .background(Designs.Colors.elevatedCard)
-        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
-        .shadow(
-            color: Designs.Shadows.card.color.opacity(Designs.Opacity.semiOpaque),
-            radius: Designs.Shadows.card.radius / 2,
-            x: Designs.Shadows.card.x,
-            y: Designs.Shadows.card.y
-        )
+        .background(gsCardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
     }
 
-    private func scoreColor(_ score: Double) -> Color {
-        return Designs.ScoreColors.color(for: Int(score))
+    private func gentlerScoreColor(_ score: Double) -> Color {
+        switch score {
+        case 80...100: return Designs.GentlerStreak.softGreen
+        case 60..<80: return Designs.GentlerStreak.softYellow
+        default: return Designs.GentlerStreak.softRed
+        }
     }
 
     private func formattedDateTime(_ date: Date) -> String {
@@ -343,24 +367,45 @@ struct ResultsHistoryView: View {
         }
     }
 
-    // MARK: - Empty State
+    // MARK: - Empty State (Gentler Streak Style - Curved Card)
 
     private var emptyStateView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "face.smiling")
-                .font(AppFont.scoreDisplayLarge)
-                .foregroundStyle(.secondary)
+        VStack(spacing: 24) {
+            Spacer()
 
-            Text("No Analysis Yet")
-                .font(.title2)
-                .fontWeight(.semibold)
+            // Curved empty state card
+            VStack(spacing: 24) {
+                ZStack {
+                    Circle()
+                        .fill(gsAccentCoral.opacity(0.12))
+                        .frame(width: 100, height: 100)
 
-            Text("Complete your first skin analysis\nto see your results here")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+                    Image(systemName: "face.smiling")
+                        .font(.system(size: 44, weight: .medium))
+                        .foregroundColor(gsAccentCoral)
+                }
+
+                VStack(spacing: 8) {
+                    Text("No History Yet")
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(gsTextPrimary)
+
+                    Text("Complete your first skin scan\nto see your results here")
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundColor(gsTextSecondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .padding(32)
+            .background(
+                RoundedRectangle(cornerRadius: 32) // More curved for empty state
+                    .fill(gsCardBackground)
+                    .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 4)
+            )
+            .padding(.horizontal, 24)
+
+            Spacer()
         }
-        .padding()
     }
 
     // MARK: - Actions

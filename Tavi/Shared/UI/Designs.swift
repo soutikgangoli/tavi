@@ -151,13 +151,13 @@ public enum Designs {
         /// Peach gradient (alias for warmGradient)
         public static let peachGradient = warmGradient
 
-        // MARK: Metric Gradient Colors
+        // MARK: Metric Gradient Colors (Ultrahuman-style - vibrant on dark)
 
-        /// Overall/Smoothness metric gradient (green tones)
+        /// Overall/Smoothness metric gradient (cyan tones)
         public static let metricOverallGradient = LinearGradient(
             colors: [
-                Color(red: 101/255, green: 188/255, blue: 126/255),
-                Color(red: 142/255, green: 218/255, blue: 176/255)
+                Color(red: 0/255, green: 212/255, blue: 255/255),
+                Color(red: 48/255, green: 209/255, blue: 88/255)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -166,18 +166,18 @@ public enum Designs {
         /// Hydration metric gradient (blue tones)
         public static let metricHydrationGradient = LinearGradient(
             colors: [
-                Color(red: 95/255, green: 158/255, blue: 255/255),
-                Color(red: 142/255, green: 188/255, blue: 255/255)
+                Color(red: 10/255, green: 132/255, blue: 255/255),
+                Color(red: 90/255, green: 200/255, blue: 250/255)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
 
-        /// Pigmentation metric gradient (yellow/peach tones)
+        /// Pigmentation metric gradient (gold tones)
         public static let metricPigmentationGradient = LinearGradient(
             colors: [
-                secondary,
-                Color(red: 255/255, green: 199/255, blue: 95/255)
+                Color(red: 255/255, green: 199/255, blue: 0/255),
+                Color(red: 255/255, green: 149/255, blue: 0/255)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -186,8 +186,8 @@ public enum Designs {
         /// Wrinkles metric gradient (purple tones)
         public static let metricWrinklesGradient = LinearGradient(
             colors: [
-                Color(red: 180/255, green: 140/255, blue: 200/255),
-                Color(red: 200/255, green: 170/255, blue: 220/255)
+                Color(red: 191/255, green: 90/255, blue: 242/255),
+                Color(red: 148/255, green: 55/255, blue: 255/255)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -196,18 +196,18 @@ public enum Designs {
         /// Elasticity metric gradient (orange tones)
         public static let metricElasticityGradient = LinearGradient(
             colors: [
-                Color(red: 255/255, green: 150/255, blue: 100/255),
-                Color(red: 255/255, green: 180/255, blue: 130/255)
+                Color(red: 255/255, green: 159/255, blue: 10/255),
+                Color(red: 255/255, green: 69/255, blue: 58/255)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
 
-        /// Volume metric gradient (light blue tones)
+        /// Volume metric gradient (cyan tones)
         public static let metricVolumeGradient = LinearGradient(
             colors: [
-                Color(red: 120/255, green: 180/255, blue: 255/255),
-                Color(red: 150/255, green: 200/255, blue: 255/255)
+                Color(red: 100/255, green: 210/255, blue: 255/255),
+                Color(red: 50/255, green: 173/255, blue: 230/255)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -217,38 +217,38 @@ public enum Designs {
 
         /// Overall/Smoothness metric colors
         public static let metricOverallColors: [Color] = [
-            Color(red: 101/255, green: 188/255, blue: 126/255),
-            Color(red: 142/255, green: 218/255, blue: 176/255)
+            Color(red: 0/255, green: 212/255, blue: 255/255),
+            Color(red: 48/255, green: 209/255, blue: 88/255)
         ]
 
         /// Hydration metric colors
         public static let metricHydrationColors: [Color] = [
-            Color(red: 95/255, green: 158/255, blue: 255/255),
-            Color(red: 142/255, green: 188/255, blue: 255/255)
+            Color(red: 10/255, green: 132/255, blue: 255/255),
+            Color(red: 90/255, green: 200/255, blue: 250/255)
         ]
 
         /// Pigmentation metric colors
         public static let metricPigmentationColors: [Color] = [
-            secondary,
-            Color(red: 255/255, green: 199/255, blue: 95/255)
+            Color(red: 255/255, green: 199/255, blue: 0/255),
+            Color(red: 255/255, green: 149/255, blue: 0/255)
         ]
 
         /// Wrinkles metric colors
         public static let metricWrinklesColors: [Color] = [
-            Color(red: 180/255, green: 140/255, blue: 200/255),
-            Color(red: 200/255, green: 170/255, blue: 220/255)
+            Color(red: 191/255, green: 90/255, blue: 242/255),
+            Color(red: 148/255, green: 55/255, blue: 255/255)
         ]
 
         /// Elasticity metric colors
         public static let metricElasticityColors: [Color] = [
-            Color(red: 255/255, green: 150/255, blue: 100/255),
-            Color(red: 255/255, green: 180/255, blue: 130/255)
+            Color(red: 255/255, green: 159/255, blue: 10/255),
+            Color(red: 255/255, green: 69/255, blue: 58/255)
         ]
 
         /// Volume metric colors
         public static let metricVolumeColors: [Color] = [
-            Color(red: 120/255, green: 180/255, blue: 255/255),
-            Color(red: 150/255, green: 200/255, blue: 255/255)
+            Color(red: 100/255, green: 210/255, blue: 255/255),
+            Color(red: 50/255, green: 173/255, blue: 230/255)
         ]
 
         // MARK: Score Colors
@@ -265,38 +265,72 @@ public enum Designs {
         }
     }
 
-    // MARK: - Score Colors
+    // MARK: - Gentler Streak Colors (Warm, friendly theme for home/onboarding)
+
+    public enum GentlerStreak {
+        /// Warm cream background
+        public static let background = Color(red: 252/255, green: 250/255, blue: 245/255)
+
+        /// Soft warm gray for primary text
+        public static let textPrimary = Color(red: 60/255, green: 60/255, blue: 60/255)
+
+        /// Soft warm gray for secondary text
+        public static let textSecondary = Color(red: 120/255, green: 115/255, blue: 110/255)
+
+        /// Coral/orange accent
+        public static let accentCoral = Color(red: 235/255, green: 120/255, blue: 90/255)
+
+        /// Soft teal accent
+        public static let accentTeal = Color(red: 75/255, green: 160/255, blue: 150/255)
+
+        /// Soft green for good scores
+        public static let softGreen = Color(red: 130/255, green: 190/255, blue: 140/255)
+
+        /// Soft red/coral for lower scores
+        public static let softRed = Color(red: 220/255, green: 100/255, blue: 100/255)
+
+        /// Soft yellow for medium scores
+        public static let softYellow = Color(red: 240/255, green: 190/255, blue: 80/255)
+
+        /// Card background (white)
+        public static let cardBackground = Color.white
+
+        /// Progress bar track
+        public static let progressTrack = Color(red: 230/255, green: 228/255, blue: 223/255)
+    }
+
+    // MARK: - Score Colors (Ultrahuman-style - vibrant on dark)
 
     public enum ScoreColors {
-        /// Excellent (90-100)
-        public static let excellent = Color(red: 76/255, green: 217/255, blue: 100/255)
+        /// Excellent (90-100) - Bright green
+        public static let excellent = Color(red: 48/255, green: 209/255, blue: 88/255)
 
-        /// Good (80-89)
-        public static let good = Color(red: 101/255, green: 188/255, blue: 126/255)
+        /// Good (80-89) - Cyan
+        public static let good = Color(red: 0/255, green: 212/255, blue: 255/255)
 
-        /// Fair (50-79)
-        public static let fair = Color(red: 149/255, green: 218/255, blue: 176/255)
+        /// Fair (50-79) - Yellow
+        public static let fair = Color(red: 255/255, green: 214/255, blue: 10/255)
 
-        /// Warning (30-49)
-        public static let warning = Color(red: 255/255, green: 204/255, blue: 0/255)
+        /// Warning (30-49) - Orange
+        public static let warning = Color(red: 255/255, green: 159/255, blue: 10/255)
 
-        /// Poor (0-29)
-        public static let poor = Color(red: 255/255, green: 59/255, blue: 48/255)
+        /// Poor (0-29) - Red
+        public static let poor = Color(red: 255/255, green: 69/255, blue: 58/255)
 
-        /// Graph blue light
-        public static let graphBlueLight = Color(red: 99/255, green: 179/255, blue: 237/255)
+        /// Graph cyan light
+        public static let graphBlueLight = Color(red: 0/255, green: 212/255, blue: 255/255)
 
-        /// Graph blue dark
-        public static let graphBlueDark = Color(red: 56/255, green: 149/255, blue: 211/255)
+        /// Graph cyan dark
+        public static let graphBlueDark = Color(red: 0/255, green: 150/255, blue: 200/255)
 
         /// Achievement green
-        public static let achievementGreen = Color(red: 0.3, green: 0.8, blue: 0.5)
+        public static let achievementGreen = Color(red: 48/255, green: 209/255, blue: 88/255)
 
-        /// Achievement green background
-        public static let achievementGreenBackground = Color(red: 0.6, green: 0.9, blue: 0.7)
+        /// Achievement green background (darker for dark theme)
+        public static let achievementGreenBackground = Color(red: 48/255, green: 209/255, blue: 88/255).opacity(0.2)
 
         /// Pink accent
-        public static let pinkAccent = Color(red: 255/255, green: 159/255, blue: 243/255)
+        public static let pinkAccent = Color(red: 255/255, green: 55/255, blue: 95/255)
 
         /// Returns the appropriate color for a given score
         public static func color(for score: Int) -> Color {
@@ -310,20 +344,20 @@ public enum Designs {
         }
     }
 
-    // MARK: - Status Indicator Colors
+    // MARK: - Status Indicator Colors (Ultrahuman-style)
 
     public enum Status {
         /// Status indicator - active/good (green)
-        public static let active = Color(red: 76/255, green: 217/255, blue: 100/255)
-        
+        public static let active = Color(red: 48/255, green: 209/255, blue: 88/255)
+
         /// Status indicator - warning (yellow)
-        public static let warning = Color(red: 255/255, green: 204/255, blue: 0/255)
-        
+        public static let warning = Color(red: 255/255, green: 214/255, blue: 10/255)
+
         /// Status indicator - inactive/neutral (gray)
-        public static let inactive = Color(uiColor: .systemGray)
-        
+        public static let inactive = Color(red: 99/255, green: 99/255, blue: 102/255)
+
         /// Status indicator - error (red)
-        public static let error = Color(red: 255/255, green: 59/255, blue: 48/255)
+        public static let error = Color(red: 255/255, green: 69/255, blue: 58/255)
     }
 
     // MARK: - Opacity
@@ -545,37 +579,28 @@ public enum Designs {
         public static let widthThin: CGFloat = 0.5
     }
 
-    // MARK: - Shadows
+    // MARK: - Shadows (Dark theme - minimal, sophisticated)
 
     public enum Shadows {
-        /// Card shadow (subtle)
+        /// Card shadow (subtle - dark theme uses minimal shadows)
         public static let card = Shadow(
-            color: Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
-                ? UIColor.black.withAlphaComponent(0.3)
-                : UIColor.black.withAlphaComponent(0.08)
-            }),
+            color: Color.black.opacity(0.4),
             radius: 8,
             x: 0,
-            y: 2
+            y: 4
         )
 
         /// Soft shadow
         public static let soft = Shadow(
-            color: Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
-                ? UIColor.black.withAlphaComponent(0.3)
-                : UIColor.black.withAlphaComponent(0.04)
-            }),
-            radius: 8,
+            color: Color.black.opacity(0.3),
+            radius: 6,
             x: 0,
             y: 2
         )
 
-        /// Button shadow
+        /// Button shadow (subtle glow for dark theme)
         public static let button = Shadow(
-            color: Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
-                ? UIColor.black.withAlphaComponent(0.4)
-                : UIColor.black.withAlphaComponent(0.08)
-            }),
+            color: Color.black.opacity(0.5),
             radius: 12,
             x: 0,
             y: 4
@@ -583,24 +608,18 @@ public enum Designs {
 
         /// Elevated shadow (for modals, sheets)
         public static let elevated = Shadow(
-            color: Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
-                ? UIColor.black.withAlphaComponent(0.4)
-                : UIColor.black.withAlphaComponent(0.12)
-            }),
+            color: Color.black.opacity(0.6),
             radius: 16,
             x: 0,
-            y: 6
+            y: 8
         )
 
         /// Modal shadow (heaviest)
         public static let modal = Shadow(
-            color: Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
-                ? UIColor.black.withAlphaComponent(0.5)
-                : UIColor.black.withAlphaComponent(0.2)
-            }),
-            radius: 20,
+            color: Color.black.opacity(0.7),
+            radius: 24,
             x: 0,
-            y: 8
+            y: 10
         )
     }
 

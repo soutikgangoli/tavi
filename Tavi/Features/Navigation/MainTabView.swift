@@ -60,7 +60,7 @@ public struct MainTabView: View {
                 }
             }
             .ignoresSafeArea(.keyboard) // Prevent tab bar from moving with keyboard
-            .animation(Designs.Animation.quick, value: selectedTab)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedTab)
 
             // Custom tab bar overlay (on top)
             CustomTabBar(selectedTab: $selectedTab, showScanFlow: $showScanFlow)
@@ -76,150 +76,272 @@ public struct MainTabView: View {
     }
 }
 
-// MARK: - Custom Tab Bar
+// MARK: - Custom Tab Bar (Gentler Streak Style)
+// Floating pill-shaped white container with coral floating indicator behind selected tab
 
 struct CustomTabBar: View {
     @Binding var selectedTab: MainTabView.Tab
     @Binding var showScanFlow: Bool
 
+    // Gentler Streak Colors (centralized)
+    private let background = Designs.GentlerStreak.background
+    private let cardBackground = Designs.GentlerStreak.cardBackground
+    private let coral = Designs.GentlerStreak.accentCoral
+    private let textPrimary = Designs.GentlerStreak.textPrimary
+    private let textSecondary = Designs.GentlerStreak.textSecondary
+
     var body: some View {
-        HStack(spacing: 0) {
-            // Tab 1: Home
-            TabBarButton(
-                icon: "house.fill",
-                label: "Home",
-                isSelected: selectedTab == .home
-            ) {
-                selectedTab = .home
-            }
-            .frame(maxWidth: .infinity)
+        VStack(spacing: 0) {
+            Spacer()
 
-            // Tab 2: History
-            TabBarButton(
-                icon: SFSymbol.chartBarFill,
-                label: "History",
-                isSelected: selectedTab == .history
-            ) {
-                withAnimation {
-                    selectedTab = .history
+            // Floating pill-shaped tab bar container
+            HStack(spacing: 0) {
+                // Tab 1: Home - heart icon
+                GentlerTabButton(
+                    icon: "heart.fill",
+                    label: "Home",
+                    isSelected: selectedTab == .home,
+                    accentColor: coral,
+                    textColor: textPrimary,
+                    secondaryColor: textSecondary
+                ) {
+                    selectTab(.home)
                 }
-            }
-            .frame(maxWidth: .infinity)
-
-            // Tab 3: Scan (Center elevated button)
-            CenterScanButton {
-                showScanFlow = true
-            }
-            .frame(maxWidth: .infinity)
-            .offset(y: -10) // Elevate above tab bar
-
-            // Tab 4: Insights
-            TabBarButton(
-                icon: SFSymbol.lightbulbFill,
-                label: "Insights",
-                isSelected: selectedTab == .insights
-            ) {
-                withAnimation {
-                    selectedTab = .insights
-                }
-            }
-            .frame(maxWidth: .infinity)
-
-            // Tab 5: Profile
-            TabBarButton(
-                icon: SFSymbol.personFill,
-                label: "Profile",
-                isSelected: selectedTab == .profile
-            ) {
-                selectedTab = .profile
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .padding(.horizontal, Designs.Spacing.xSmall)
-        .padding(.top, Designs.Spacing.xSmall)
-        .padding(.bottom, Designs.Spacing.large) // Safe area padding
-        .background(
-            Rectangle()
-                .fill(Designs.Colors.background)
-                .shadow(
-                    color: Color.black.opacity(Designs.Opacity.veryLight / 2),
-                    radius: 8,
-                    x: 0,
-                    y: -2
+                .background(
+                    Group {
+                        if selectedTab == .home {
+                            floatingPillIndicator
+                        }
+                    }
                 )
+
+                // Tab 2: History - clock icon (shorter label)
+                GentlerTabButton(
+                    icon: "clock.fill",
+                    label: "History",
+                    isSelected: selectedTab == .history,
+                    accentColor: coral,
+                    textColor: textPrimary,
+                    secondaryColor: textSecondary
+                ) {
+                    selectTab(.history)
+                }
+                .background(
+                    Group {
+                        if selectedTab == .history {
+                            floatingPillIndicator
+                        }
+                    }
+                )
+
+                // Tab 3: Scan (Center button with camera icon) - properly centered
+                GentlerCenterButton(accentColor: coral) {
+                    let impact = UIImpactFeedbackGenerator(style: .medium)
+                    impact.impactOccurred()
+                    showScanFlow = true
+                }
+                .frame(width: 72) // Fixed width to ensure proper centering
+
+                // Tab 4: Insights - grid icon
+                GentlerTabButton(
+                    icon: "square.grid.2x2.fill",
+                    label: "Insights",
+                    isSelected: selectedTab == .insights,
+                    accentColor: coral,
+                    textColor: textPrimary,
+                    secondaryColor: textSecondary
+                ) {
+                    selectTab(.insights)
+                }
+                .background(
+                    Group {
+                        if selectedTab == .insights {
+                            floatingPillIndicator
+                        }
+                    }
+                )
+
+                // Tab 5: Profile - person icon
+                GentlerTabButton(
+                    icon: "person.fill",
+                    label: "Profile",
+                    isSelected: selectedTab == .profile,
+                    accentColor: coral,
+                    textColor: textPrimary,
+                    secondaryColor: textSecondary
+                ) {
+                    selectTab(.profile)
+                }
+                .background(
+                    Group {
+                        if selectedTab == .profile {
+                            floatingPillIndicator
+                        }
+                    }
+                )
+            }
+            .frame(height: 64)
+            .background(
+                // Apple Liquid Glass - fluid frosted glass with visible border
+                ZStack {
+                    // Base: Ultra-transparent blur
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                        .opacity(0.85)
+
+                    // Subtle inner glow at top edge
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.3),
+                                    Color.clear
+                                ],
+                                startPoint: .top,
+                                endPoint: .center
+                            )
+                        )
+                        .padding(1.5)
+
+                    // Apple-style fluid border - visible but elegant
+                    Capsule()
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.7),
+                                    Color.white.opacity(0.3),
+                                    Color.white.opacity(0.4)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.5
+                        )
+                }
+                .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 8)
+            )
+            .padding(.horizontal, 20)
+            .padding(.bottom, 28)
+        }
+        .background(Color.clear) // Transparent background so page content shows behind
+    }
+
+    // MARK: - Floating Pill Indicator (Coral/peach behind selected tab)
+
+    private var floatingPillIndicator: some View {
+        Capsule()
+            .fill(coral.opacity(0.18))
+            .frame(width: 56, height: 48)
+            .animation(.spring(response: 0.35, dampingFraction: 0.55, blendDuration: 0), value: selectedTab)
+    }
+
+    /// Select tab with haptic feedback and bouncy animation
+    private func selectTab(_ tab: MainTabView.Tab) {
+        guard selectedTab != tab else { return }
+
+        let impact = UIImpactFeedbackGenerator(style: .light)
+        impact.impactOccurred()
+
+        // Bouncier spring animation
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.55, blendDuration: 0)) {
+            selectedTab = tab
+        }
+    }
+}
+
+// MARK: - Gentler Streak Style Tab Button
+
+struct GentlerTabButton: View {
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let accentColor: Color
+    let textColor: Color
+    let secondaryColor: Color
+    let action: () -> Void
+
+    @State private var isPressed = false
+
+    var body: some View {
+        Button {
+            action()
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: isSelected ? 20 : 18, weight: isSelected ? .semibold : .medium))
+                    .foregroundColor(isSelected ? accentColor : secondaryColor)
+                    .scaleEffect(isSelected ? 1.1 : 1.0)
+
+                Text(label)
+                    .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
+                    .foregroundColor(isSelected ? accentColor : secondaryColor)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .scaleEffect(isPressed ? 0.85 : 1.0)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        // Bouncy animations
+        .animation(.spring(response: 0.3, dampingFraction: 0.5, blendDuration: 0), value: isSelected)
+        .animation(.spring(response: 0.2, dampingFraction: 0.5, blendDuration: 0), value: isPressed)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    if !isPressed { isPressed = true }
+                }
+                .onEnded { _ in
+                    isPressed = false
+                }
         )
     }
 }
 
-// MARK: - Tab Bar Button
+// MARK: - Gentler Streak Center Scan Button
 
-struct TabBarButton: View {
-    let icon: String
-    let label: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: Designs.Spacing.xxSmall) {
-                Image(systemName: icon)
-                    .font(isSelected ? AppFont.custom(size: 24, weight: .semibold) : AppFont.navIcon)
-                    .foregroundColor(isSelected ? Designs.Colors.primary : Designs.Colors.textTertiary)
-
-                Text(label)
-                    .font(.app(size: 10, weight: isSelected ? .semibold : .medium, design: .rounded))
-                    .foregroundColor(isSelected ? Designs.Colors.primary : Designs.Colors.textTertiary)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
-
-// MARK: - Center Scan Button
-
-struct CenterScanButton: View {
+struct GentlerCenterButton: View {
+    let accentColor: Color
     let action: () -> Void
     @State private var isPressed = false
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            action()
+        } label: {
             ZStack {
+                // Coral circle with subtle shadow
                 Circle()
-                    .fill(Designs.Colors.primary)
-                    .frame(width: Designs.Sizes.tabBarIcon, height: Designs.Sizes.tabBarIcon)
-                    .shadow(
-                        color: Designs.Colors.primary.opacity(Designs.Opacity.light),
-                        radius: isPressed ? 8 : 12,
-                        x: 0,
-                        y: isPressed ? 4 : 6
-                    )
+                    .fill(accentColor)
+                    .frame(width: 48, height: 48)
+                    .shadow(color: accentColor.opacity(0.35), radius: 10, x: 0, y: 4)
 
-                Image(systemName: SFSymbol.cameraFill)
-                    .font(AppFont.custom(size: 24, weight: .semibold))
-                    .foregroundColor(Designs.Colors.secondary)
+                // Camera icon
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.white)
             }
-            .scaleEffect(isPressed ? 0.92 : 1.0)
+            .scaleEffect(isPressed ? 0.82 : 1.0)
+            // Bouncy animation
+            .animation(.spring(response: 0.25, dampingFraction: 0.45, blendDuration: 0), value: isPressed)
         }
         .buttonStyle(PlainButtonStyle())
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
-                    withAnimation(Designs.Animation.quick) {
+                    if !isPressed {
                         isPressed = true
+                        let impact = UIImpactFeedbackGenerator(style: .light)
+                        impact.impactOccurred()
                     }
                 }
                 .onEnded { _ in
-                    withAnimation(Designs.Animation.quick) {
-                        isPressed = false
-                    }
+                    isPressed = false
                 }
         )
     }
 }
 
-// MARK: - Profile Tab
+// MARK: - Profile Tab (Gentler Streak Theme)
 
 struct ProfileTabView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -284,82 +406,133 @@ struct ProfileTabView: View {
         return latest.overallScore - oldestRelevant.overallScore
     }
 
+    // Gentler Streak theme colors
+    private let gsBackground = Designs.GentlerStreak.background
+    private let gsTextPrimary = Designs.GentlerStreak.textPrimary
+    private let gsTextSecondary = Designs.GentlerStreak.textSecondary
+    private let gsAccentCoral = Designs.GentlerStreak.accentCoral
+    private let gsAccentTeal = Designs.GentlerStreak.accentTeal
+    private let gsCardBackground = Designs.GentlerStreak.cardBackground
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .center, spacing: Designs.Spacing.xl) {
-                // Profile header
-                VStack(spacing: Designs.Spacing.md) {
+            VStack(alignment: .center, spacing: 24) {
+                // Profile header - Gentler Streak style
+                VStack(spacing: 16) {
                     ZStack {
                         Circle()
-                            .fill(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
-                            .frame(width: Designs.Sizes.profileIcon, height: Designs.Sizes.profileIcon)
+                            .fill(gsAccentCoral.opacity(0.15))
+                            .frame(width: 80, height: 80)
 
                         Text(String(userName.prefix(1)).uppercased())
-                            .font(AppFont.scoreSmall)
-                            .foregroundColor(Designs.Colors.primary)
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(gsAccentCoral)
                     }
 
                     Text(userName)
-                        .font(AppFont.pageTitle)
-                        .foregroundColor(Designs.Colors.textPrimary)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(gsTextPrimary)
 
                     if !userEmail.isEmpty {
                         Text(userEmail)
-                            .font(AppFont.caption)
-                            .foregroundColor(Designs.Colors.textSecondary)
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(gsTextSecondary)
                     }
                 }
-                .padding(.top, Designs.Spacing.xl)
+                .padding(.top, 24)
 
                 // Challenge card (if active)
                 if let challenge = GamificationManager.shared.getCurrentChallenge(), challenge.isActive {
-                    challengeCard(challenge)
+                    gentlerChallengeCard(challenge)
                 }
 
                 // Achievements horizontal carousel
-                achievementsCarousel
+                gentlerAchievementsCarousel
 
-                // Stats section
-                VStack(alignment: .leading, spacing: Designs.Spacing.md) {
+                // Stats section - Gentler Streak style
+                VStack(alignment: .leading, spacing: 16) {
                     Text("Stats")
-                        .font(AppFont.headlineSecondary)
-                        .foregroundColor(Designs.Colors.textPrimary)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(gsTextPrimary)
 
-                    VStack(spacing: Designs.Spacing.sm) {
-                        StatRow(label: "Total Scans", value: "\(totalScans)")
-                        StatRow(label: "Current Streak", value: currentStreak > 0 ? "\(currentStreak) days" : "-", icon: SFSymbol.flameFill, iconColor: Designs.Colors.secondary)
-                        StatRow(label: "Longest Streak", value: longestStreak > 0 ? "\(longestStreak) days" : "-")
-                        StatRow(label: "Average Score", value: totalScans > 0 ? "\(Int(averageScore))" : "-")
-                        StatRow(label: "Best Score", value: totalScans > 0 ? "\(Int(bestScore))" : "-")
-                        if let improvement = thirtyDayImprovement {
-                            StatRow(
-                                label: "30-Day Improvement",
-                                value: improvement > 0 ? "+\(Int(improvement))" : "\(Int(improvement))",
-                                icon: improvement > 0 ? SFSymbol.arrowUpRight : "arrow.down.right",
-                                iconColor: improvement > 0 ? .green : .red
-                            )
+                    if totalScans == 0 {
+                        // Empty state for stats
+                        VStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(gsAccentTeal.opacity(0.12))
+                                    .frame(width: 60, height: 60)
+
+                                Image(systemName: "chart.bar.fill")
+                                    .font(.system(size: 24, weight: .medium))
+                                    .foregroundColor(gsAccentTeal)
+                            }
+
+                            Text("No stats yet")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(gsTextPrimary)
+
+                            Text("Complete your first scan to see your stats")
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundColor(gsTextSecondary)
+                                .multilineTextAlignment(.center)
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding(24)
+                        .background(gsCardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+                    } else {
+                        // Stats with data
+                        VStack(spacing: 12) {
+                            GentlerStatRow(label: "Total Scans", value: "\(totalScans)", accentColor: gsAccentCoral, textPrimary: gsTextPrimary, textSecondary: gsTextSecondary)
+                            if currentStreak > 0 {
+                                GentlerStatRow(label: "Current Streak", value: "\(currentStreak) days", icon: "flame.fill", iconColor: gsAccentCoral, accentColor: gsAccentCoral, textPrimary: gsTextPrimary, textSecondary: gsTextSecondary)
+                            }
+                            if longestStreak > 0 {
+                                GentlerStatRow(label: "Longest Streak", value: "\(longestStreak) days", accentColor: gsAccentCoral, textPrimary: gsTextPrimary, textSecondary: gsTextSecondary)
+                            }
+                            GentlerStatRow(label: "Average Score", value: "\(Int(averageScore))", accentColor: gsAccentCoral, textPrimary: gsTextPrimary, textSecondary: gsTextSecondary)
+                            GentlerStatRow(label: "Best Score", value: "\(Int(bestScore))", accentColor: gsAccentCoral, textPrimary: gsTextPrimary, textSecondary: gsTextSecondary)
+                            if let improvement = thirtyDayImprovement {
+                                GentlerStatRow(
+                                    label: "30-Day Change",
+                                    value: improvement > 0 ? "+\(Int(improvement))" : "\(Int(improvement))",
+                                    icon: improvement > 0 ? "arrow.up.right" : "arrow.down.right",
+                                    iconColor: improvement > 0 ? Designs.GentlerStreak.softGreen : Designs.GentlerStreak.softRed,
+                                    accentColor: gsAccentCoral,
+                                    textPrimary: gsTextPrimary,
+                                    textSecondary: gsTextSecondary
+                                )
+                            }
+                        }
+                        .padding(16)
+                        .background(gsCardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
                     }
-                    .padding(Designs.Spacing.lg)
-                    .background(Designs.Colors.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
                 }
 
                 Spacer()
             }
-            .padding(.horizontal, Designs.Spacing.lg)
+            .padding(.horizontal, 20)
             .padding(.bottom, 100) // Extra space for tab bar
         }
-        .background(Designs.Colors.background)
+        .background(gsBackground.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     showSettings = true
                 } label: {
-                    Image(systemName: SFSymbol.gearshapeFill)
-                        .font(AppFont.metricValue)
-                        .foregroundColor(Designs.Colors.textSecondary)
+                    ZStack {
+                        Circle()
+                            .fill(gsAccentCoral.opacity(0.15))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(gsAccentCoral)
+                    }
                 }
             }
         }
@@ -383,198 +556,193 @@ struct ProfileTabView: View {
         }
     }
 
-    // MARK: - Challenge Card
+}
 
-    private func challengeCard(_ challenge: GlowChallenge) -> some View {
+// MARK: - Gentler Streak Profile Helper Views
+
+private struct GentlerStatRow: View {
+    let label: String
+    let value: String
+    var icon: String? = nil
+    var iconColor: Color? = nil
+    let accentColor: Color
+    let textPrimary: Color
+    let textSecondary: Color
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(textSecondary)
+
+            Spacer()
+
+            HStack(spacing: 6) {
+                if let icon = icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(iconColor ?? textPrimary)
+                }
+
+                Text(value)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(iconColor ?? textPrimary)
+            }
+        }
+    }
+}
+
+// MARK: - Gentler Streak Challenge Card
+
+extension ProfileTabView {
+    func gentlerChallengeCard(_ challenge: GlowChallenge) -> some View {
         Button {
             showChallengeDetail = true
         } label: {
-            VStack(spacing: Designs.Spacing.xxxSmall) {
-                // Solid lavender header
-                Designs.Colors.accent
-                    .frame(height: Designs.Sizes.frameXXLarge)
-                .overlay(
-                    HStack(spacing: Designs.Spacing.md) {
-                        Image(systemName: SFSymbol.flameFill)
-                            .font(AppFont.scoreSmall)
+            VStack(spacing: 0) {
+                // Coral header
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.2))
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("30-Day Skin Challenge")
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.white)
 
-                        VStack(alignment: .leading, spacing: Designs.Spacing.xxSmall) {
-                            Text("30-Day Glow Challenge")
-                                .font(AppFont.headlineSecondary)
-                                .foregroundColor(.white)
-
-                            Text("Day \(challenge.daysCompleted) of 30")
-                                .font(AppFont.caption)
-                                .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
-                        }
-
-                        Spacer()
+                        Text("Day \(challenge.daysCompleted) of 30")
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(.white.opacity(0.8))
                     }
-                    .padding(Designs.Spacing.lg)
-                )
 
-                // Progress bar + stats
-                VStack(spacing: Designs.Spacing.md) {
-                    // Progress bar
+                    Spacer()
+                }
+                .padding(16)
+                .background(gsAccentCoral)
+
+                // Progress section
+                VStack(spacing: 12) {
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: Designs.Radius.xSmall)
-                                .fill(Color.gray.opacity(Designs.Opacity.light))
-                                .frame(height: Designs.Sizes.progressIndicator)
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Designs.GentlerStreak.progressTrack)
+                                .frame(height: 8)
 
-                            RoundedRectangle(cornerRadius: Designs.Radius.xSmall)
-                                .fill(Designs.Colors.accent)
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(gsAccentCoral)
                                 .frame(
                                     width: geometry.size.width * CGFloat(challenge.progressPercentage) / 100,
-                                    height: Designs.Sizes.progressIndicator
+                                    height: 8
                                 )
                         }
                     }
-                    .frame(height: Designs.Sizes.progressIndicator)
+                    .frame(height: 8)
 
                     HStack {
                         Text("\(Int(challenge.progressPercentage))% complete")
-                            .font(AppFont.caption)
-                            .foregroundColor(Designs.Colors.textPrimary)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(gsTextSecondary)
 
                         Spacer()
 
                         if challenge.skinHealthImprovement > 0 {
-                            HStack(spacing: Designs.Spacing.xxSmall) {
-                                Image(systemName: SFSymbol.arrowUpRight)
-                                    .font(AppFont.custom(size: 11, weight: .bold))
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 12, weight: .bold))
                                 Text("+\(challenge.skinHealthImprovement) skin health")
-                                    .font(AppFont.footnote)
+                                    .font(.system(size: 13, weight: .medium))
                             }
-                            .foregroundColor(.green)
+                            .foregroundColor(Designs.GentlerStreak.softGreen)
                         }
                     }
                 }
-                .padding(Designs.Spacing.lg)
-                .background(Designs.Colors.cardBackground)
+                .padding(16)
+                .background(gsCardBackground)
             }
-            .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
-            .shadow(
-                color: Designs.Shadows.card.color,
-                radius: Designs.Shadows.card.radius,
-                x: Designs.Shadows.card.x,
-                y: Designs.Shadows.card.y
-            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(PlainButtonStyle())
     }
 
-    // MARK: - Achievements Carousel
-
-    private var achievementsCarousel: some View {
-        VStack(alignment: .leading, spacing: Designs.Spacing.md) {
+    var gentlerAchievementsCarousel: some View {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Achievements")
-                .font(AppFont.headlineSecondary)
-                .foregroundColor(Designs.Colors.textPrimary)
-                .padding(.horizontal, Designs.Spacing.lg)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundColor(gsTextPrimary)
+                .padding(.horizontal, 20)
 
             let achievements = GamificationManager.shared.getAchievements()
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Designs.Spacing.md) {
+                HStack(spacing: 16) {
                     ForEach(achievements, id: \.id) { achievement in
-                        achievementBadgeCompact(achievement)
+                        gentlerAchievementBadge(achievement)
                     }
                 }
-                .padding(.horizontal, Designs.Spacing.lg)
+                .padding(.horizontal, 20)
             }
         }
-        .padding(.horizontal, -Designs.Spacing.lg) // Offset container padding
+        .padding(.horizontal, -20)
     }
 
-    private func achievementBadgeCompact(_ achievement: Achievement) -> some View {
+    func gentlerAchievementBadge(_ achievement: Achievement) -> some View {
         Button {
             showAchievementDetail = achievement
         } label: {
-            VStack(spacing: Designs.Spacing.xSmall) {
+            VStack(spacing: 8) {
                 ZStack {
                     Circle()
                         .fill(
                             achievement.isUnlocked
-                            ? Designs.ScoreColors.achievementGreenBackground.opacity(Designs.Opacity.light)
-                            : Designs.Colors.textSecondary.opacity(Designs.Opacity.veryLight)
+                            ? gsAccentCoral.opacity(0.15)
+                            : gsTextSecondary.opacity(0.1)
                         )
-                        .frame(width: Designs.Sizes.iconLarge, height: Designs.Sizes.iconLarge)
+                        .frame(width: 56, height: 56)
 
                     Image(systemName: achievement.iconName)
-                        .font(AppFont.custom(size: 24, weight: .semibold))
+                        .font(.system(size: 24, weight: .semibold))
                         .foregroundColor(
                             achievement.isUnlocked
-                            ? Designs.ScoreColors.achievementGreen
-                            : Designs.Colors.textSecondary.opacity(Designs.Opacity.light)
+                            ? gsAccentCoral
+                            : gsTextSecondary.opacity(0.4)
                         )
 
-                    // Unlocked checkmark badge
                     if achievement.isUnlocked {
                         VStack {
                             Spacer()
                             HStack {
                                 Spacer()
                                 Circle()
-                                    .fill(Designs.ScoreColors.achievementGreen)
-                                    .frame(width: Designs.Sizes.badgeSmall, height: Designs.Sizes.badgeSmall)
+                                    .fill(Designs.GentlerStreak.softGreen)
+                                    .frame(width: 18, height: 18)
                                     .overlay(
-                                        Image(systemName: SFSymbol.checkmark)
-                                            .font(AppFont.tabBar)
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 10, weight: .bold))
                                             .foregroundColor(.white)
                                     )
                             }
                         }
-                        .frame(width: Designs.Sizes.iconLarge, height: Designs.Sizes.iconLarge)
+                        .frame(width: 56, height: 56)
                     }
                 }
 
                 Text(achievement.title)
-                    .font(AppFont.label)
-                    .foregroundColor(
-                        achievement.isUnlocked
-                        ? Designs.Colors.textPrimary
-                        : Designs.Colors.textSecondary
-                    )
+                    .font(.system(size: 12, weight: achievement.isUnlocked ? .semibold : .regular))
+                    .foregroundColor(achievement.isUnlocked ? gsTextPrimary : gsTextSecondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
-                    .frame(width: Designs.Sizes.frameMedium + 30, height: Designs.Sizes.frameSmall)
+                    .frame(width: 70, height: 32)
             }
-            .frame(width: Designs.Sizes.frameXLarge)
+            .frame(width: 80)
         }
         .buttonStyle(PlainButtonStyle())
-    }
-}
-
-// MARK: - Profile Helper Views
-
-private struct StatRow: View {
-    let label: String
-    let value: String
-    var icon: String? = nil
-    var iconColor: Color? = nil
-
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(AppFont.bodySecondary)
-                .foregroundColor(Designs.Colors.textSecondary)
-
-            Spacer()
-
-            HStack(spacing: Designs.Spacing.xxSmall) {
-                if let icon = icon {
-                    Image(systemName: icon)
-                        .font(AppFont.metricLabel)
-                        .foregroundColor(iconColor ?? Designs.Colors.textPrimary)
-                }
-
-                Text(value)
-                    .font(AppFont.subheadingPrimary)
-                    .foregroundColor(iconColor ?? Designs.Colors.textPrimary)
-            }
-        }
     }
 }
 
