@@ -93,6 +93,7 @@
 		950DEFDE84BC32059DB81F4F /* AlbedoEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8749084C99272D44C6B23230 /* AlbedoEstimator.swift */; };
 		9BDEF23C95B23B8F3CB96098 /* ColorTemperatureNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98CFAE6E1ACD147FCD17FF69 /* ColorTemperatureNormalizer.swift */; };
 		9E47A5E348E3F07CE6C3666E /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058616E444A18736A88D60C2 /* PrimaryButton.swift */; };
+		AGSP0002000000000000002B /* AppleGlassSegmentedPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AGSP0001000000000000001A /* AppleGlassSegmentedPicker.swift */; };
 		9F9180BC48FD44EDB8A5EC14 /* StreamingMeshMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D50E5227FC5623C8E7600E1 /* StreamingMeshMerger.swift */; };
 		A19EAEDAEF7F731CE50142FF /* TextureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D022F426A297217275C6E6F /* TextureExtractor.swift */; };
 		A33DCEF17DACB170BA92523B /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F004FB0FB5D0FF29C951E78 /* LoadingView.swift */; };
@@ -181,6 +182,7 @@
 /* Begin PBXFileReference section */
 		04D06A6C52C4438A958C7367 /* RednessAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RednessAnalyzer.swift; path = RednessAnalyzer.swift; sourceTree = "<group>"; };
 		058616E444A18736A88D60C2 /* PrimaryButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PrimaryButton.swift; path = PrimaryButton.swift; sourceTree = "<group>"; };
+		AGSP0001000000000000001A /* AppleGlassSegmentedPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppleGlassSegmentedPicker.swift; path = AppleGlassSegmentedPicker.swift; sourceTree = "<group>"; };
 		068C72346597C2B3DDBCC141 /* ICPAligner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ICPAligner.swift; path = ICPAligner.swift; sourceTree = "<group>"; };
 		06BE7572AD186CB93CA75F9B /* SocialSharingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SocialSharingView.swift; path = SocialSharingView.swift; sourceTree = "<group>"; };
 		07948E26B89D4CE590D0BA2F /* MemoryDiagnosticsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MemoryDiagnosticsView.swift; path = MemoryDiagnosticsView.swift; sourceTree = "<group>"; };
@@ -807,6 +809,7 @@
 				3F004FB0FB5D0FF29C951E78 /* LoadingView.swift */,
 				C88A19250798639E43BF42BE /* MetricsResultView.swift */,
 				058616E444A18736A88D60C2 /* PrimaryButton.swift */,
+				AGSP0001000000000000001A /* AppleGlassSegmentedPicker.swift */,
 				99ECC296944DB75ACEDE6944 /* ROIOverlay.swift */,
 				4EA0B928BDDC607328EB67CA /* ScoreSummaryView.swift */,
 				D02CD1F895E305C70B9EB943 /* FancyLoadingScreen.swift */,
@@ -1044,6 +1047,7 @@
 				A33DCEF17DACB170BA92523B /* LoadingView.swift in Sources */,
 				03D338EC807D5676AC7D731E /* MetricsResultView.swift in Sources */,
 				9E47A5E348E3F07CE6C3666E /* PrimaryButton.swift in Sources */,
+				AGSP0002000000000000002B /* AppleGlassSegmentedPicker.swift in Sources */,
 				5F01EF04627914182E03905F /* ROIOverlay.swift in Sources */,
 				02CF69BF75CDB39C166D3AF6 /* ScoreSummaryView.swift in Sources */,
 				6546DD646FE2A6BB36A489ED /* TaviApp.swift in Sources */,
