@@ -158,7 +158,7 @@ public struct HomeView: View {
             }
             .padding(.horizontal, 20)
         }
-        .background(HomeColors.background.ignoresSafeArea())
+        .background(Color.white.ignoresSafeArea())
     }
 
     // MARK: - First Time User (0 Scans) - Modern Gentler Streak Style
@@ -246,7 +246,7 @@ public struct HomeView: View {
                         .foregroundColor(HomeColors.textSecondary)
                 }
 
-                // CTA Button - 3D pop-out effect
+                // CTA Button - Bright light green
                 HStack(spacing: 8) {
                     Text("Begin Scan")
                         .font(.system(size: 17, weight: .semibold))
@@ -256,43 +256,12 @@ public struct HomeView: View {
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding(.vertical, 18)
                 .background(
-                    ZStack {
-                        // Bottom shadow layer for 3D depth
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(HomeColors.accentCoral.opacity(0.6))
-                            .offset(y: 4)
-
-                        // Main button with gradient for 3D effect
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        HomeColors.accentCoral.opacity(1.0),
-                                        HomeColors.accentCoral.opacity(0.85)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-
-                        // Top highlight for glossy effect
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.25),
-                                        Color.white.opacity(0.0)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .center
-                                )
-                            )
-                            .padding(1)
-                    }
+                    RoundedRectangle(cornerRadius: 28)
+                        .fill(Color(red: 72/255, green: 199/255, blue: 142/255)) // Bright light green
                 )
-                .shadow(color: HomeColors.accentCoral.opacity(0.3), radius: 8, x: 0, y: 4)
+                .shadow(color: Color(red: 72/255, green: 199/255, blue: 142/255).opacity(0.35), radius: 8, x: 0, y: 4)
             }
             .padding(24)
             .background(
@@ -312,11 +281,8 @@ public struct HomeView: View {
                 .padding(16)
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.white)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(HomeColors.textSecondary.opacity(0.12), lineWidth: 1)
-                        )
+                        .fill(HomeColors.cardBackground)
+                        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 4)
                 )
 
             // Other feature pills in horizontal scroll

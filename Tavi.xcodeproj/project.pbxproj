@@ -177,6 +177,15 @@
 		GS11SEMIBOLD000000000000000000011 /* GeneralSans-Semibold.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS11SEMIBOLDREF00000000000000011 /* GeneralSans-Semibold.otf */; };
 		GS12SEMIBOLDIT00000000000000000012 /* GeneralSans-SemiboldItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS12SEMIBOLDITREF000000000000012 /* GeneralSans-SemiboldItalic.otf */; };
 
+		A8F3C9465EE24572AD31E80A /* AnalyzerCommon.metal in Sources */ = {isa = PBXBuildFile; fileRef = AC2831201652495C93067A85 /* AnalyzerCommon.metal */; };
+		0ECD5B8277D34D5F8F7036CA /* HydrationAnalysis.metal in Sources */ = {isa = PBXBuildFile; fileRef = 6C81A101E1294DBEB7F7310B /* HydrationAnalysis.metal */; };
+		5C050C61F3C84012BBD14E62 /* PoreDetection.metal in Sources */ = {isa = PBXBuildFile; fileRef = AB146B2985764E9C95A98654 /* PoreDetection.metal */; };
+		E4D22E5F13924E1EAE5E45DF /* RednessAnalysis.metal in Sources */ = {isa = PBXBuildFile; fileRef = DA3860CC62964D9CBF987578 /* RednessAnalysis.metal */; };
+		3453FC2B50F0471493760C19 /* GlowAnalysis.metal in Sources */ = {isa = PBXBuildFile; fileRef = C9EC0840422B42E784F5A70D /* GlowAnalysis.metal */; };
+		BDC6714190EB434489D4C144 /* DarknessDetection.metal in Sources */ = {isa = PBXBuildFile; fileRef = 2E24D81379E9495D8508DBF0 /* DarknessDetection.metal */; };
+		A7A6DCE377134090B5FBF8BA /* MetalAnalyzerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF4E2692C2A946D0A0A4B73F /* MetalAnalyzerBase.swift */; };
+		C0F3993E3C6041DA9391CB67 /* MetalCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53FE875236804804B26E36C6 /* MetalCapabilities.swift */; };
+		53630421068048BD8793AC0F /* TexturePool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77DFF9227E74486891B591C5 /* TexturePool.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -354,6 +363,15 @@
 		GS11SEMIBOLDREF00000000000000011 /* GeneralSans-Semibold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-Semibold.otf"; path = "GeneralSans-Semibold.otf"; sourceTree = "<group>"; };
 		GS12SEMIBOLDITREF000000000000012 /* GeneralSans-SemiboldItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "GeneralSans-SemiboldItalic.otf"; path = "GeneralSans-SemiboldItalic.otf"; sourceTree = "<group>"; };
 
+		AC2831201652495C93067A85 /* AnalyzerCommon.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = AnalyzerCommon.metal; sourceTree = "<group>"; };
+		6C81A101E1294DBEB7F7310B /* HydrationAnalysis.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = HydrationAnalysis.metal; sourceTree = "<group>"; };
+		AB146B2985764E9C95A98654 /* PoreDetection.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = PoreDetection.metal; sourceTree = "<group>"; };
+		DA3860CC62964D9CBF987578 /* RednessAnalysis.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = RednessAnalysis.metal; sourceTree = "<group>"; };
+		C9EC0840422B42E784F5A70D /* GlowAnalysis.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = GlowAnalysis.metal; sourceTree = "<group>"; };
+		2E24D81379E9495D8508DBF0 /* DarknessDetection.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = DarknessDetection.metal; sourceTree = "<group>"; };
+		DF4E2692C2A946D0A0A4B73F /* MetalAnalyzerBase.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetalAnalyzerBase.swift; sourceTree = "<group>"; };
+		53FE875236804804B26E36C6 /* MetalCapabilities.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetalCapabilities.swift; sourceTree = "<group>"; };
+		77DFF9227E74486891B591C5 /* TexturePool.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TexturePool.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -756,7 +774,16 @@
 				5CD7BC84D72050B8AAB1A979 /* MetalTextureProcessor.swift */,
 				4BFAC0A6C236BEF06EE79A94 /* MetalHelpers.swift */,
 				8F6708C1F9166922CDCAB4DC /* TextureProcessing.metal */,
-			);
+							AC2831201652495C93067A85 /* AnalyzerCommon.metal */,
+				6C81A101E1294DBEB7F7310B /* HydrationAnalysis.metal */,
+				AB146B2985764E9C95A98654 /* PoreDetection.metal */,
+				DA3860CC62964D9CBF987578 /* RednessAnalysis.metal */,
+				C9EC0840422B42E784F5A70D /* GlowAnalysis.metal */,
+				2E24D81379E9495D8508DBF0 /* DarknessDetection.metal */,
+				DF4E2692C2A946D0A0A4B73F /* MetalAnalyzerBase.swift */,
+				53FE875236804804B26E36C6 /* MetalCapabilities.swift */,
+				77DFF9227E74486891B591C5 /* TexturePool.swift */,
+);
 			name = Metal;
 			path = Metal;
 			sourceTree = "<group>";
@@ -1137,7 +1164,16 @@
 				7DA93A8B2C994E4AB8B77D80 /* NotificationsSettingsView.swift in Sources */,
 				8D9B6472508A45F8B640DD51 /* PrivacySettingsView.swift in Sources */,
 				9AB3D2BD0F0747E08363488E /* AboutView.swift in Sources */,
-			);
+							A8F3C9465EE24572AD31E80A /* AnalyzerCommon.metal in Sources */,
+				0ECD5B8277D34D5F8F7036CA /* HydrationAnalysis.metal in Sources */,
+				5C050C61F3C84012BBD14E62 /* PoreDetection.metal in Sources */,
+				E4D22E5F13924E1EAE5E45DF /* RednessAnalysis.metal in Sources */,
+				3453FC2B50F0471493760C19 /* GlowAnalysis.metal in Sources */,
+				BDC6714190EB434489D4C144 /* DarknessDetection.metal in Sources */,
+				A7A6DCE377134090B5FBF8BA /* MetalAnalyzerBase.swift in Sources */,
+				C0F3993E3C6041DA9391CB67 /* MetalCapabilities.swift in Sources */,
+				53630421068048BD8793AC0F /* TexturePool.swift in Sources */,
+);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */

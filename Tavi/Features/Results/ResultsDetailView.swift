@@ -1915,15 +1915,21 @@ struct CategoricalMetricCard: View {
     let color: Color  // Score-based color for the category value
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
             HStack {
-                Image(systemName: icon)
-                    .foregroundColor(Designs.GentlerStreak.accentTeal)  // Unified icon color
-                    .font(.title3)
+                ZStack {
+                    Circle()
+                        .fill(Designs.GentlerStreak.accentTeal.opacity(Designs.Opacity.veryLight))
+                        .frame(width: Designs.Sizes.iconMedium, height: Designs.Sizes.iconMedium)
+
+                    Image(systemName: icon)
+                        .foregroundColor(Designs.GentlerStreak.accentTeal)
+                        .font(AppFont.cardTitle)
+                }
 
                 Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
             }
 
             Text(category)
@@ -1931,13 +1937,13 @@ struct CategoricalMetricCard: View {
                 .foregroundColor(color)  // Keep score-based color for text
 
             Text("\(Int(confidence))% confidence")
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textTertiary)
         }
         .frame(maxWidth: .infinity, minHeight: 100, alignment: .leading)
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(Designs.Radius.medium)
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
     }
 }
 
@@ -1949,15 +1955,21 @@ struct RegionalScoreCard: View {
     let value: Double
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
             HStack {
-                Image(systemName: iconForRegion)
-                    .foregroundColor(colorForRegion)
-                    .font(.title3)
+                ZStack {
+                    Circle()
+                        .fill(colorForRegion.opacity(Designs.Opacity.veryLight))
+                        .frame(width: Designs.Sizes.iconMedium, height: Designs.Sizes.iconMedium)
+
+                    Image(systemName: iconForRegion)
+                        .foregroundColor(colorForRegion)
+                        .font(AppFont.cardTitle)
+                }
 
                 Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
             }
 
             Spacer()
@@ -1967,14 +1979,14 @@ struct RegionalScoreCard: View {
                 .foregroundColor(scoreColor)
 
             Text(scoreDescription)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(AppFont.caption)
+                .foregroundColor(Designs.Colors.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: 110) // Fixed height for uniform cards
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(Designs.Radius.medium)
+        .padding(Designs.Spacing.lg)
+        .background(Designs.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
     }
 
     var iconForRegion: String {

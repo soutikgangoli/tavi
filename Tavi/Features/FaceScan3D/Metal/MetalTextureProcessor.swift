@@ -385,9 +385,9 @@ private extension Logger {
 // MARK: - UIImage Extension
 
 private extension UIImage {
-    /// Resize image to specified size
+    /// Resize image to specified size with automatic screen scale for best quality
     func resize(to size: CGSize) -> UIImage? {
-        UIGraphicsBeginImageContextWithOptions(size, false, 1.0)
+        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
         defer { UIGraphicsEndImageContext() }
 
         draw(in: CGRect(origin: .zero, size: size))

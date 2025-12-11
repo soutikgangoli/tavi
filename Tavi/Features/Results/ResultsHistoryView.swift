@@ -62,7 +62,7 @@ struct ResultsHistoryView: View {
     var body: some View {
         ZStack {
             // Full screen background
-            gsBackground.ignoresSafeArea()
+            Color.white.ignoresSafeArea()
 
             Group {
                 if let error = errorState {

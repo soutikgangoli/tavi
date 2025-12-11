@@ -206,10 +206,35 @@ public class SpecularAnalyzer {
 
     /// Compute specular proxy using saturation threshold
     /// Specular highlights have low saturation
+    /// FIXED: Now uses adaptive saturation threshold based on average skin saturation
     public func computeSpecularProxySaturation(_ sample: ROITextureSample) -> Float {
         guard !sample.pixels.isEmpty else {
             return 0
         }
+
+        // SKIN-TONE ADAPTIVE: Calculate baseline saturation for this skin region
+        // Darker skin may naturally have lower saturation, so threshold should adapt
+        var totalSaturation: Float = 0
+        var validPixelCount = 0
+
+        for pixel in sample.pixels {
+            let luminance = 0.2126 * pixel.x + 0.7152 * pixel.y + 0.0722 * pixel.z
+            guard luminance >= 0.1 else { continue }  // Skip very dark pixels
+
+            let maxChannel = max(pixel.x, pixel.y, pixel.z)
+            let minChannel = min(pixel.x, pixel.y, pixel.z)
+            let saturation = maxChannel > 0 ? (maxChannel - minChannel) / maxChannel : 0
+            totalSaturation += saturation
+            validPixelCount += 1
+        }
+
+        // Calculate adaptive saturation threshold
+        // If average saturation is low (darker skin), use lower threshold
+        // If average saturation is high (lighter/more colorful skin), use higher threshold
+        let avgSaturation = validPixelCount > 0 ? totalSaturation / Float(validPixelCount) : 0.2
+        // Threshold = 40-60% of average saturation, clamped to reasonable range
+        // This ensures specular detection works regardless of skin tone
+        let adaptiveSaturationThreshold = max(0.08, min(0.25, avgSaturation * 0.5))
 
         var specularPixelCount = 0
 
@@ -227,8 +252,8 @@ public class SpecularAnalyzer {
             let minChannel = min(pixel.x, pixel.y, pixel.z)
             let saturation = maxChannel > 0 ? (maxChannel - minChannel) / maxChannel : 0
 
-            // Low saturation = specular
-            if saturation < 0.15 {
+            // Low saturation = specular (using adaptive threshold)
+            if saturation < adaptiveSaturationThreshold {
                 specularPixelCount += 1
             }
         }

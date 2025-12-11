@@ -8,6 +8,8 @@
 
 import UIKit
 import Accelerate
+import Metal
+import simd
 
 /// Pore size classification
 public enum PoreSize: String, Codable, Sendable {
@@ -90,6 +92,70 @@ public struct PoreAnalysis: Codable, Sendable {
 /// Pore analyzer using texture frequency analysis
 class PoreAnalyzer {
 
+    // MARK: - GPU Acceleration
+
+    /// Metal analyzer for GPU-accelerated analysis (if available)
+    private var metalAnalyzer: MetalAnalyzerBase?
+
+    /// Texture pool for efficient GPU memory management
+    private var texturePool: TexturePool?
+
+    /// Use GPU acceleration if available
+    private let useGPU: Bool
+
+    // MARK: - Initialization
+
+    init() {
+        // Check if GPU acceleration is available
+        self.useGPU = MetalCapabilities.shared.supportsGPUAnalysis
+
+        if useGPU {
+            do {
+                self.metalAnalyzer = try MetalAnalyzerBase()
+                if let device = metalAnalyzer?.device {
+                    self.texturePool = TexturePool(device: device, maxPoolSize: 4)
+                }
+                AppLogger.metrics.info("✅ PoreAnalyzer: GPU acceleration enabled")
+            } catch {
+                AppLogger.metrics.warning("⚠️ PoreAnalyzer: Failed to initialize Metal - falling back to CPU")
+                self.metalAnalyzer = nil
+                self.texturePool = nil
+            }
+        } else {
+            AppLogger.metrics.info("ℹ️ PoreAnalyzer: Using CPU analysis (GPU not supported)")
+        }
+    }
+
+    deinit {
+        // Clean up GPU resources
+        texturePool?.clear()
+    }
+
+    // MARK: - Performance Optimization
+
+    private let maxAnalysisSize: Int = 1024
+
+    private func downsample(_ image: CGImage, maxSize: Int? = nil) -> CGImage? {
+        let targetSize = maxSize ?? maxAnalysisSize
+        let scale = min(1.0, Double(targetSize) / Double(max(image.width, image.height)))
+        if scale >= 1.0 { return image }
+
+        let newWidth = Int(Double(image.width) * scale)
+        let newHeight = Int(Double(image.height) * scale)
+
+        let colorSpace = image.colorSpace ?? CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil, width: newWidth, height: newHeight,
+            bitsPerComponent: 8, bytesPerRow: newWidth * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+        return context.makeImage()
+    }
+
     // MARK: - Public API
 
     /// Analyze pore visibility from high-resolution texture
@@ -102,11 +168,30 @@ class PoreAnalyzer {
             return PoreAnalysis(visibility: 0, density: 0, averageSize: 0, sizeDistribution: emptyDistribution, regionalScores: [:], confidence: 0)
         }
 
+        // GPU PATH: Use full resolution analysis on GPU
+        if useGPU, let metalAnalyzer = metalAnalyzer {
+            AppLogger.metrics.info("   🎨 Using GPU acceleration (full resolution)")
+            return analyzePoresGPU(texture: texture, metalAnalyzer: metalAnalyzer)
+        }
+
+        // CPU FALLBACK: Downsample to 1024x1024 max for efficient processing
+        AppLogger.metrics.info("   💻 Using CPU analysis (with downsampling)")
+        let analysisImage: CGImage
+        let analysisTexture: UIImage
+        if let downsampled = downsample(cgImage) {
+            analysisImage = downsampled
+            analysisTexture = UIImage(cgImage: downsampled)
+            AppLogger.metrics.info("   📐 Downsampled \(cgImage.width)x\(cgImage.height) → \(downsampled.width)x\(downsampled.height)")
+        } else {
+            analysisImage = cgImage
+            analysisTexture = texture
+        }
+
         // High-frequency texture energy correlates with visible pores
-        let highFreqEnergy = calculateHighFrequencyEnergy(image: texture)
+        let highFreqEnergy = calculateHighFrequencyEnergy(image: analysisTexture)
 
         // Detect individual pores using local minima in high-pass filtered image
-        let poreDetectionResult = detectPores(image: cgImage)
+        let poreDetectionResult = detectPores(image: analysisImage)
 
         // Calculate pore density (pores per cm²)
         // Assume texture covers ~10cm x 10cm of face (approximate)
@@ -177,7 +262,487 @@ class PoreAnalyzer {
         )
     }
 
-    // MARK: - Private Methods
+    // MARK: - GPU Acceleration Methods
+
+    /// GPU-accelerated pore analysis (full resolution, no downsampling)
+    private func analyzePoresGPU(texture: UIImage, metalAnalyzer: MetalAnalyzerBase) -> PoreAnalysis {
+        let startTime = CFAbsoluteTimeGetCurrent()
+
+        do {
+            // Convert UIImage to Metal texture
+            guard let inputTexture = MetalHelpers.textureFromUIImage(texture, device: metalAnalyzer.device) else {
+                AppLogger.metrics.error("❌ GPU: Failed to convert image to texture - falling back to CPU")
+                return analyzePoresCPU(texture: texture)
+            }
+
+            let width = inputTexture.width
+            let height = inputTexture.height
+            AppLogger.metrics.info("   📏 Analyzing full resolution: \(width)x\(height)")
+
+            // STEP 1: Calculate adaptive skin brightness threshold
+            let adaptiveThreshold = try calculateSkinBrightnessGPU(
+                inputTexture: inputTexture,
+                metalAnalyzer: metalAnalyzer
+            )
+            AppLogger.metrics.debug("   🎯 Adaptive darkness threshold: \(String(format: "%.3f", adaptiveThreshold))")
+
+            // STEP 2: Compute Laplacian map
+            let laplacianTexture = try computeLaplacianGPU(
+                inputTexture: inputTexture,
+                metalAnalyzer: metalAnalyzer
+            )
+
+            // STEP 3: Detect pores as local maxima
+            let poreDetectionResult = try detectPoresGPU(
+                inputTexture: inputTexture,
+                laplacianTexture: laplacianTexture,
+                adaptiveThreshold: adaptiveThreshold,
+                metalAnalyzer: metalAnalyzer
+            )
+
+            // STEP 4: Calculate high-frequency energy for visibility score
+            let highFreqEnergy = calculateHighFreqEnergyFromLaplacian(
+                laplacianTexture: laplacianTexture,
+                width: width,
+                height: height
+            )
+
+            // Calculate pore density (pores per cm²)
+            let faceAreaCm2: Float = 100.0
+            let density = Float(poreDetectionResult.poreCount) / faceAreaCm2
+
+            // Classify pores by size
+            let sizeDistribution = classifyPoreSizes(pores: poreDetectionResult.poreLocations)
+
+            // Analyze regional distribution
+            let regionalScores = try analyzeRegionalPoresGPU(
+                inputTexture: inputTexture,
+                laplacianTexture: laplacianTexture,
+                adaptiveThreshold: adaptiveThreshold,
+                metalAnalyzer: metalAnalyzer
+            )
+
+            // Convert to visibility score (0-100)
+            let visibility = min(100, highFreqEnergy * 10)
+
+            // Calculate confidence
+            let confidence = calculateConfidence(
+                poreCount: poreDetectionResult.poreCount,
+                averagePoreSize: poreDetectionResult.averagePoreSize,
+                imageResolution: (width: width, height: height),
+                skinBrightness: adaptiveThreshold * 255.0
+            )
+
+            let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+            AppLogger.metrics.info("✅ Pore analysis complete (GPU):")
+            AppLogger.metrics.info("   Visibility: \(String(format: "%.1f", visibility))/100 (Score: \(String(format: "%.1f", 100 - visibility)))")
+            AppLogger.metrics.info("   Density: \(String(format: "%.1f", density)) pores/cm²")
+            AppLogger.metrics.info("   Avg size: \(String(format: "%.2f", poreDetectionResult.averagePoreSize)) pixels")
+            AppLogger.metrics.info("   Size distribution: Small=\(sizeDistribution.smallCount), Medium=\(sizeDistribution.mediumCount), Large=\(sizeDistribution.largeCount), VeryLarge=\(sizeDistribution.veryLargeCount)")
+            AppLogger.metrics.info("   Confidence: \(String(format: "%.1f", confidence))%")
+            AppLogger.metrics.info("   GPU time: \(String(format: "%.1f", elapsed))ms")
+
+            return PoreAnalysis(
+                visibility: visibility,
+                density: density,
+                averageSize: poreDetectionResult.averagePoreSize,
+                sizeDistribution: sizeDistribution,
+                regionalScores: regionalScores,
+                confidence: confidence
+            )
+
+        } catch {
+            AppLogger.metrics.error("❌ GPU analysis failed: \(error.localizedDescription) - falling back to CPU")
+            return analyzePoresCPU(texture: texture)
+        }
+    }
+
+    /// Helper to run CPU analysis (extracted from main method)
+    private func analyzePoresCPU(texture: UIImage) -> PoreAnalysis {
+        guard let cgImage = texture.cgImage else {
+            let emptyDistribution = PoreSizeDistribution(smallCount: 0, mediumCount: 0, largeCount: 0, veryLargeCount: 0)
+            return PoreAnalysis(visibility: 0, density: 0, averageSize: 0, sizeDistribution: emptyDistribution, regionalScores: [:], confidence: 0)
+        }
+
+        // Downsample for CPU
+        let analysisImage: CGImage
+        let analysisTexture: UIImage
+        if let downsampled = downsample(cgImage) {
+            analysisImage = downsampled
+            analysisTexture = UIImage(cgImage: downsampled)
+            AppLogger.metrics.info("   📐 CPU: Downsampled \(cgImage.width)x\(cgImage.height) → \(downsampled.width)x\(downsampled.height)")
+        } else {
+            analysisImage = cgImage
+            analysisTexture = texture
+        }
+
+        let highFreqEnergy = calculateHighFrequencyEnergy(image: analysisTexture)
+        let poreDetectionResult = detectPores(image: analysisImage)
+        let faceAreaCm2: Float = 100.0
+        let density = Float(poreDetectionResult.poreCount) / faceAreaCm2
+
+        var smallCount = 0, mediumCount = 0, largeCount = 0, veryLargeCount = 0
+        for pore in poreDetectionResult.poreLocations {
+            if pore.size < 3.0 { smallCount += 1 }
+            else if pore.size < 6.0 { mediumCount += 1 }
+            else if pore.size < 10.0 { largeCount += 1 }
+            else { veryLargeCount += 1 }
+        }
+
+        let sizeDistribution = PoreSizeDistribution(
+            smallCount: smallCount,
+            mediumCount: mediumCount,
+            largeCount: largeCount,
+            veryLargeCount: veryLargeCount
+        )
+
+        let regionalScores = analyzeRegionalPores(image: cgImage, poreLocations: poreDetectionResult.poreLocations)
+        let visibility = min(100, highFreqEnergy * 10)
+        let confidence = calculateConfidence(
+            poreCount: poreDetectionResult.poreCount,
+            averagePoreSize: poreDetectionResult.averagePoreSize,
+            imageResolution: (width: cgImage.width, height: cgImage.height),
+            skinBrightness: poreDetectionResult.skinBrightness
+        )
+
+        return PoreAnalysis(
+            visibility: visibility,
+            density: density,
+            averageSize: poreDetectionResult.averagePoreSize,
+            sizeDistribution: sizeDistribution,
+            regionalScores: regionalScores,
+            confidence: confidence
+        )
+    }
+
+    /// Calculate average skin brightness using GPU
+    private func calculateSkinBrightnessGPU(
+        inputTexture: MTLTexture,
+        metalAnalyzer: MetalAnalyzerBase
+    ) throws -> Float {
+        let pipeline = try metalAnalyzer.loadPipeline(named: "calculateSkinBrightness")
+
+        // Create output buffer
+        let resultBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.size)
+
+        // Execute
+        try metalAnalyzer.executeSync(operation: "calculateSkinBrightness") { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+            }
+
+            encoder.setComputePipelineState(pipeline)
+            encoder.setTexture(inputTexture, index: 0)
+            encoder.setBuffer(resultBuffer, offset: 0, index: 0)
+
+            let (threadgroups, threadsPerGroup) = metalAnalyzer.calculateThreadgroups(
+                pipeline: pipeline,
+                width: inputTexture.width,
+                height: inputTexture.height
+            )
+
+            encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+            encoder.endEncoding()
+        }
+
+        // Read result and convert to adaptive threshold
+        let brightnessPtr = resultBuffer.contents().assumingMemoryBound(to: Float.self)
+        let avgBrightness = brightnessPtr.pointee
+
+        // Calculate adaptive threshold (matches CPU logic)
+        let adaptiveMultiplier = calculateAdaptiveMultiplier(brightness: avgBrightness * 255.0)
+        // FIXED: Lowered min from 50 to 30 to support very dark skin (Fitzpatrick V-VI)
+        let threshold = max(30.0, min(180.0, avgBrightness * 255.0 * adaptiveMultiplier)) / 255.0
+
+        return threshold
+    }
+
+    /// Compute Laplacian map on GPU
+    private func computeLaplacianGPU(
+        inputTexture: MTLTexture,
+        metalAnalyzer: MetalAnalyzerBase
+    ) throws -> MTLTexture {
+        let pipeline = try metalAnalyzer.loadPipeline(named: "computePoreLaplacian")
+
+        // Create output texture
+        let laplacianTexture = try metalAnalyzer.createTexture(
+            width: inputTexture.width,
+            height: inputTexture.height,
+            format: .rgba8Unorm
+        )
+
+        // Execute
+        try metalAnalyzer.executeSync(operation: "computePoreLaplacian") { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+            }
+
+            encoder.setComputePipelineState(pipeline)
+            encoder.setTexture(inputTexture, index: 0)
+            encoder.setTexture(laplacianTexture, index: 1)
+
+            let (threadgroups, threadsPerGroup) = metalAnalyzer.calculateThreadgroups(
+                pipeline: pipeline,
+                width: inputTexture.width,
+                height: inputTexture.height
+            )
+
+            encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+            encoder.endEncoding()
+        }
+
+        return laplacianTexture
+    }
+
+    /// Pore detection result structure
+    private struct GPUPoreDetectionResult {
+        let poreCount: Int
+        let averagePoreSize: Float
+        let poreLocations: [(x: Int, y: Int, size: Float)]
+    }
+
+    /// Detect pores using GPU
+    private func detectPoresGPU(
+        inputTexture: MTLTexture,
+        laplacianTexture: MTLTexture,
+        adaptiveThreshold: Float,
+        metalAnalyzer: MetalAnalyzerBase
+    ) throws -> GPUPoreDetectionResult {
+        let pipeline = try metalAnalyzer.loadPipeline(named: "detectPoreMaxima")
+
+        // Maximum pores we can store (buffer size limit)
+        let maxPores: UInt32 = 10000
+
+        // Create buffers
+        let poreCountBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<UInt32>.size)
+        let poreLocationsBuffer = try metalAnalyzer.createBuffer(
+            length: MemoryLayout<SIMD4<Float>>.stride * Int(maxPores)  // (x, y, intensity, size)
+        )
+        var maxPoresVar = maxPores
+        let maxPoresBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<UInt32>.size)
+        memcpy(maxPoresBuffer.contents(), &maxPoresVar, MemoryLayout<UInt32>.size)
+
+        var threshold = adaptiveThreshold
+        let thresholdBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.size)
+        memcpy(thresholdBuffer.contents(), &threshold, MemoryLayout<Float>.size)
+
+        // Initialize pore count to 0
+        memset(poreCountBuffer.contents(), 0, MemoryLayout<UInt32>.size)
+
+        // Execute
+        try metalAnalyzer.executeSync(operation: "detectPoreMaxima") { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+            }
+
+            encoder.setComputePipelineState(pipeline)
+            encoder.setTexture(inputTexture, index: 0)
+            encoder.setTexture(laplacianTexture, index: 1)
+            encoder.setBuffer(poreCountBuffer, offset: 0, index: 0)
+            encoder.setBuffer(poreLocationsBuffer, offset: 0, index: 1)
+            encoder.setBuffer(maxPoresBuffer, offset: 0, index: 2)
+            encoder.setBuffer(thresholdBuffer, offset: 0, index: 3)
+
+            let (threadgroups, threadsPerGroup) = metalAnalyzer.calculateThreadgroups(
+                pipeline: pipeline,
+                width: inputTexture.width,
+                height: inputTexture.height
+            )
+
+            encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+            encoder.endEncoding()
+        }
+
+        // Read results
+        let poreCountPtr = poreCountBuffer.contents().assumingMemoryBound(to: UInt32.self)
+        let detectedPoreCount = min(Int(poreCountPtr.pointee), Int(maxPores))
+
+        let poreLocationsPtr = poreLocationsBuffer.contents().assumingMemoryBound(to: SIMD4<Float>.self)
+
+        var poreLocations: [(x: Int, y: Int, size: Float)] = []
+        var totalSize: Float = 0
+
+        for i in 0..<detectedPoreCount {
+            let pore = poreLocationsPtr[i]
+            let x = Int(pore.x)
+            let y = Int(pore.y)
+            let size = pore.w  // w component contains size
+            poreLocations.append((x, y, size))
+            totalSize += size
+        }
+
+        let avgSize = detectedPoreCount > 0 ? totalSize / Float(detectedPoreCount) : 0
+
+        return GPUPoreDetectionResult(
+            poreCount: detectedPoreCount,
+            averagePoreSize: avgSize,
+            poreLocations: poreLocations
+        )
+    }
+
+    /// Calculate high-frequency energy from Laplacian texture
+    private func calculateHighFreqEnergyFromLaplacian(
+        laplacianTexture: MTLTexture,
+        width: Int,
+        height: Int
+    ) -> Float {
+        // Read back Laplacian data
+        let bytesPerRow = width * 4
+        var pixelData = [UInt8](repeating: 0, count: width * height * 4)
+
+        let region = MTLRegion(
+            origin: MTLOrigin(x: 0, y: 0, z: 0),
+            size: MTLSize(width: width, height: height, depth: 1)
+        )
+
+        laplacianTexture.getBytes(
+            &pixelData,
+            bytesPerRow: bytesPerRow,
+            from: region,
+            mipmapLevel: 0
+        )
+
+        // Calculate average energy
+        var totalEnergy: Float = 0
+        var count = 0
+
+        for i in stride(from: 0, to: pixelData.count, by: 4) {
+            let energy = Float(pixelData[i]) / 255.0
+            totalEnergy += energy
+            count += 1
+        }
+
+        return count > 0 ? totalEnergy / Float(count) : 0
+    }
+
+    /// Classify pores by size
+    private func classifyPoreSizes(pores: [(x: Int, y: Int, size: Float)]) -> PoreSizeDistribution {
+        var smallCount = 0
+        var mediumCount = 0
+        var largeCount = 0
+        var veryLargeCount = 0
+
+        for pore in pores {
+            if pore.size < 3.0 {
+                smallCount += 1
+            } else if pore.size < 6.0 {
+                mediumCount += 1
+            } else if pore.size < 10.0 {
+                largeCount += 1
+            } else {
+                veryLargeCount += 1
+            }
+        }
+
+        return PoreSizeDistribution(
+            smallCount: smallCount,
+            mediumCount: mediumCount,
+            largeCount: largeCount,
+            veryLargeCount: veryLargeCount
+        )
+    }
+
+    /// Analyze regional pores using GPU
+    private func analyzeRegionalPoresGPU(
+        inputTexture: MTLTexture,
+        laplacianTexture: MTLTexture,
+        adaptiveThreshold: Float,
+        metalAnalyzer: MetalAnalyzerBase
+    ) throws -> [String: Float] {
+        let pipeline = try metalAnalyzer.loadPipeline(named: "analyzeRegionalPores")
+
+        // Define face regions
+        let regions: [String: (minX: Float, maxX: Float, minY: Float, maxY: Float)] = [
+            "forehead": (0.3, 0.7, 0.1, 0.3),
+            "leftCheek": (0.1, 0.4, 0.4, 0.7),
+            "rightCheek": (0.6, 0.9, 0.4, 0.7),
+            "nose": (0.4, 0.6, 0.3, 0.6),
+            "chin": (0.35, 0.65, 0.7, 0.9)
+        ]
+
+        var regionalScores: [String: Float] = [:]
+
+        for (regionName, bounds) in regions {
+            let (threadgroups, threadsPerGroup) = metalAnalyzer.calculateThreadgroups(
+                pipeline: pipeline,
+                width: inputTexture.width,
+                height: inputTexture.height
+            )
+            let numThreadgroups = threadgroups.width * threadgroups.height
+
+            // Create buffers
+            struct PartialResults {
+                var totalPoreCount: Float
+                var totalPoreSize: Float
+                var skinBrightnessSum: Float
+                var validPixelCount: Float
+            }
+
+            let resultsBuffer = try metalAnalyzer.createBuffer(
+                length: MemoryLayout<PartialResults>.stride * numThreadgroups
+            )
+
+            var boundsVec = SIMD4<Float>(bounds.minX, bounds.maxX, bounds.minY, bounds.maxY)
+            let boundsBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<SIMD4<Float>>.size)
+            memcpy(boundsBuffer.contents(), &boundsVec, MemoryLayout<SIMD4<Float>>.size)
+
+            var threshold = adaptiveThreshold
+            let thresholdBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.size)
+            memcpy(thresholdBuffer.contents(), &threshold, MemoryLayout<Float>.size)
+
+            var threadgroupsPerRow = UInt32(threadgroups.width)
+            let threadgroupsPerRowBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<UInt32>.size)
+            memcpy(threadgroupsPerRowBuffer.contents(), &threadgroupsPerRow, MemoryLayout<UInt32>.size)
+
+            // Execute
+            try metalAnalyzer.executeSync(operation: "analyzeRegionalPores") { commandBuffer in
+                guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                    throw GPUAnalysisError.commandBufferFailed("Failed to create encoder")
+                }
+
+                encoder.setComputePipelineState(pipeline)
+                encoder.setTexture(inputTexture, index: 0)
+                encoder.setTexture(laplacianTexture, index: 1)
+                encoder.setBuffer(resultsBuffer, offset: 0, index: 0)
+                encoder.setBuffer(boundsBuffer, offset: 0, index: 1)
+                encoder.setBuffer(thresholdBuffer, offset: 0, index: 2)
+                encoder.setBuffer(threadgroupsPerRowBuffer, offset: 0, index: 3)
+
+                encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+                encoder.endEncoding()
+            }
+
+            // Reduce results
+            let resultsPtr = resultsBuffer.contents().assumingMemoryBound(to: PartialResults.self)
+            var totalPoreCount: Float = 0
+            var totalPoreSize: Float = 0
+            var totalValidPixels: Float = 0
+
+            for i in 0..<numThreadgroups {
+                let result = resultsPtr[i]
+                totalPoreCount += result.totalPoreCount
+                totalPoreSize += result.totalPoreSize
+                totalValidPixels += result.validPixelCount
+            }
+
+            // Calculate regional score
+            if totalValidPixels > 0 {
+                let regionArea = (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY)
+                let density = totalPoreCount / (regionArea * 100.0)
+                let avgSize = totalPoreCount > 0 ? totalPoreSize / totalPoreCount : 0
+
+                // Score: 100 = no pores, 0 = many large pores
+                let score = max(0, 100 - (density * 50 + avgSize * 2))
+                regionalScores[regionName] = score
+            } else {
+                regionalScores[regionName] = 50.0
+            }
+        }
+
+        return regionalScores
+    }
+
+    // MARK: - CPU Methods (Private)
 
     /// Calculate high-frequency energy (indicates pores)
     private func calculateHighFrequencyEnergy(image: UIImage) -> Float {
@@ -270,7 +835,8 @@ class PoreAnalyzer {
         // Pores are typically 20-30% darker than surrounding skin
         // Use LIGHTING-AWARE adaptive multiplier for better accuracy across lighting conditions
         let adaptiveMultiplier = calculateAdaptiveMultiplier(brightness: avgSkinBrightness)
-        let minDarkness = UInt8(max(50, min(180, Int(avgSkinBrightness * adaptiveMultiplier))))
+        // FIXED: Lowered min from 50 to 30 to support very dark skin (Fitzpatrick V-VI)
+        let minDarkness = UInt8(max(30, min(180, Int(avgSkinBrightness * adaptiveMultiplier))))
 
         AppLogger.metrics.debug("Adaptive pore threshold: \(minDarkness) (skin brightness: \(avgSkinBrightness))")
 
@@ -326,16 +892,29 @@ class PoreAnalyzer {
 
     /// Calculate adaptive multiplier based on lighting conditions
     /// Adjusts pore detection threshold for different lighting scenarios
+    /// FIXED: Uses linear interpolation to avoid discontinuous 17% jumps at boundaries
     private func calculateAdaptiveMultiplier(brightness: Float) -> Float {
-        // Optimal lighting: 100-200 brightness → use 0.7 (standard)
-        // Too dark: <80 → use 0.6 (more sensitive)
-        // Too bright: >220 → use 0.75 (less sensitive)
-        if brightness < 80 {
-            return 0.6  // Lower threshold for dark conditions
-        } else if brightness > 220 {
-            return 0.75  // Higher threshold for bright conditions
+        // Zones:
+        // Very dark (<60): 0.6 (most sensitive)
+        // Dark transition (60-100): linear 0.6 → 0.7
+        // Optimal (100-200): 0.7 (standard)
+        // Bright transition (200-240): linear 0.7 → 0.75
+        // Very bright (>240): 0.75 (least sensitive)
+
+        if brightness < 60 {
+            return 0.6  // Very dark - most sensitive
+        } else if brightness < 100 {
+            // Linear interpolation from 0.6 to 0.7 over brightness 60-100
+            let t = (brightness - 60) / 40.0  // 0 to 1
+            return 0.6 + t * 0.1
+        } else if brightness <= 200 {
+            return 0.7  // Optimal lighting range
+        } else if brightness < 240 {
+            // Linear interpolation from 0.7 to 0.75 over brightness 200-240
+            let t = (brightness - 200) / 40.0  // 0 to 1
+            return 0.7 + t * 0.05
         } else {
-            return 0.7  // Optimal range
+            return 0.75  // Very bright - least sensitive
         }
     }
 
@@ -394,14 +973,24 @@ class PoreAnalyzer {
     /// Measure pore size by flood-fill like expansion
     private func measurePoreSize(data: [UInt8], centerX: Int, centerY: Int, width: Int, height: Int) -> Float {
         let centerValue = data[centerY * width + centerX]
-        let threshold = centerValue + 30  // Pore boundary threshold
+        // FIXED: Use percentage (15% brighter) instead of fixed +30 offset
+        // This ensures consistent pore boundary detection across all skin tones
+        // Indian skin center ~120 → threshold ~138 (was 150 with +30)
+        let threshold = UInt8(min(255, Int(Float(centerValue) * 1.15)))
 
         var size: Float = 1.0
         var visited = Set<Int>()
         var queue = [(centerX, centerY)]
         visited.insert(centerY * width + centerX)
 
-        while !queue.isEmpty && size < 100 {  // Limit max pore size to 100 pixels
+        // FIXED: Scale max pore size based on resolution (was fixed 100 pixels)
+        // Reference: 100 pixels at 1024px resolution = ~1cm diameter pore
+        // 4096px → 400 pixels, 512px → 50 pixels
+        let referenceSize = 1024
+        let resolutionScale = Float(max(width, height)) / Float(referenceSize)
+        let maxPoreSize = Float(100) * resolutionScale
+
+        while !queue.isEmpty && size < maxPoreSize {
             let (x, y) = queue.removeFirst()
 
             for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
@@ -482,7 +1071,10 @@ class PoreAnalyzer {
         imageResolution: (width: Int, height: Int),
         skinBrightness: Float
     ) -> Float {
-        var confidence: Float = 70.0  // Base confidence for pore detection
+        // STANDARDIZED: Direct texture measurement (pore detection)
+        // Base: 75 (direct texture measurement)
+        // Range: 45-95 (never 100% due to inherent limitations)
+        var confidence: Float = 75.0  // Base confidence for direct texture measurement
 
         // Factor 1: Image resolution
         let totalPixels = imageResolution.width * imageResolution.height
@@ -494,15 +1086,16 @@ class PoreAnalyzer {
             confidence -= 10
         }
 
-        // Factor 2: Lighting conditions - NOW MORE ACCURATE with adaptive thresholds
+        // Factor 2: Lighting conditions - STANDARDIZED across all analyzers
+        // Excellent: +10, Good: +5, Suboptimal: -5, Poor: -15
         if skinBrightness >= 100 && skinBrightness <= 200 {
-            confidence += 15  // Optimal lighting (increased from +10)
+            confidence += 10  // Optimal lighting range
         } else if skinBrightness >= 80 && skinBrightness <= 220 {
-            confidence += 8   // Good lighting (increased from +5)
+            confidence += 5   // Good lighting
         } else if skinBrightness < 60 || skinBrightness > 240 {
-            confidence -= 10  // Poor lighting (reduced from -15, since we handle it better)
+            confidence -= 15  // Poor lighting
         } else {
-            confidence -= 3   // Suboptimal (reduced from -5)
+            confidence -= 5   // Suboptimal
         }
 
         // Factor 3: Detection count (more pores = more reliable statistics)
@@ -521,9 +1114,7 @@ class PoreAnalyzer {
             confidence -= 10  // Suspiciously large (likely false positives)
         }
 
-        // Clamp to 40-95% range
-        // Never 100% confident (texture analysis has inherent limitations)
-        // Never below 40% (still provides useful relative information)
-        return max(40, min(95, confidence))
+        // Clamp to 45-95 range (standardized for direct texture analysis)
+        return max(45, min(95, confidence))
     }
 }

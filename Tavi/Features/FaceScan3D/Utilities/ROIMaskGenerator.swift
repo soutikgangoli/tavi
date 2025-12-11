@@ -113,10 +113,11 @@ public class ROIMaskGenerator {
         var mask = Array(repeating: Array(repeating: false, count: width), count: height)
 
         // For each pixel, check if UV is in bounds
+        // V is now in screen coordinate system (0=top, 1=bottom)
         for y in 0..<height {
             for x in 0..<width {
                 let u = Float(x) / Float(width)
-                let v = 1.0 - Float(y) / Float(height)  // Flip V (texture coordinate convention)
+                let v = Float(y) / Float(height)
 
                 if bounds.contains(u: u, v: v) {
                     mask[y][x] = true
@@ -168,9 +169,9 @@ public class ROITextureSampler {
 
                 pixels.append(SIMD3<Float>(r, g, b))
 
-                // Calculate UV coordinate
+                // Calculate UV coordinate (V is in screen coordinates: 0=top, 1=bottom)
                 let u = Float(x) / Float(width)
-                let v = 1.0 - Float(y) / Float(height)  // Flip V
+                let v = Float(y) / Float(height)
                 uvCoordinates.append(SIMD2<Float>(u, v))
             }
         }

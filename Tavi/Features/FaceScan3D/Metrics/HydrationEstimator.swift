@@ -16,6 +16,7 @@
 
 import UIKit
 import simd
+import Metal
 
 /// Hydration estimation result (indirect measurement)
 public struct HydrationEstimate: Codable, Sendable {
@@ -50,6 +51,78 @@ enum HydrationLevel: String, Codable {
 /// Hydration estimator
 class HydrationEstimator {
 
+    // MARK: - GPU Acceleration
+
+    /// Metal analyzer for GPU-accelerated analysis (if available)
+    private var metalAnalyzer: MetalAnalyzerBase?
+
+    /// Texture pool for efficient GPU memory management
+    private var texturePool: TexturePool?
+
+    /// Use GPU acceleration if available
+    private let useGPU: Bool
+
+    // MARK: - Initialization
+
+    init() {
+        // Check if GPU acceleration is available
+        self.useGPU = MetalCapabilities.shared.supportsGPUAnalysis
+
+        if useGPU {
+            do {
+                self.metalAnalyzer = try MetalAnalyzerBase()
+                if let device = metalAnalyzer?.device {
+                    self.texturePool = TexturePool(device: device, maxPoolSize: 4)
+                }
+                AppLogger.metrics.info("✅ HydrationEstimator: GPU acceleration enabled")
+            } catch {
+                AppLogger.metrics.warning("⚠️ HydrationEstimator: Failed to initialize Metal - falling back to CPU")
+                self.metalAnalyzer = nil
+                self.texturePool = nil
+            }
+        } else {
+            AppLogger.metrics.info("ℹ️ HydrationEstimator: Using CPU analysis (GPU not supported)")
+        }
+    }
+
+    deinit {
+        // Clean up GPU resources
+        texturePool?.clear()
+    }
+
+    // MARK: - Performance Optimization
+
+    /// Maximum texture size for CPU analysis (1024x1024 provides good balance of accuracy and performance)
+    private let maxAnalysisSize: Int = 1024
+
+    /// Downsample image to max size for efficient processing
+    /// 4096x4096 → 1024x1024 = 16x fewer pixels, minimal accuracy impact for statistical analysis
+    private func downsample(_ image: CGImage, maxSize: Int? = nil) -> CGImage? {
+        let targetSize = maxSize ?? maxAnalysisSize
+        let scale = min(1.0, Double(targetSize) / Double(max(image.width, image.height)))
+
+        // No downsampling needed if already small enough
+        if scale >= 1.0 { return image }
+
+        let newWidth = Int(Double(image.width) * scale)
+        let newHeight = Int(Double(image.height) * scale)
+
+        let colorSpace = image.colorSpace ?? CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil,
+            width: newWidth,
+            height: newHeight,
+            bitsPerComponent: 8,
+            bytesPerRow: newWidth * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+        return context.makeImage()
+    }
+
     // MARK: - Public API
 
     /// Estimate hydration using multi-method ensemble
@@ -64,16 +137,38 @@ class HydrationEstimator {
 
         AppLogger.metrics.info("💧 Estimating skin hydration (multi-method ensemble)...")
 
+        // GPU PATH: Use full resolution (4096x4096) analysis on GPU
+        if useGPU, let metalAnalyzer = metalAnalyzer {
+            AppLogger.metrics.info("   🎨 Using GPU acceleration (full resolution)")
+            return estimateHydrationGPU(
+                texture: texture,
+                roughnessScore: roughnessScore,
+                geometry: geometry,
+                metalAnalyzer: metalAnalyzer
+            )
+        }
+
+        // CPU FALLBACK: Downsample texture to max 1024x1024 for efficient processing
+        // Statistical analysis accuracy is preserved at this resolution
+        AppLogger.metrics.info("   💻 Using CPU analysis (with downsampling)")
+        let analysisTexture: UIImage
+        if let cgImage = texture.cgImage, let downsampled = downsample(cgImage) {
+            analysisTexture = UIImage(cgImage: downsampled)
+            AppLogger.metrics.info("   📐 Downsampled \(cgImage.width)x\(cgImage.height) → \(downsampled.width)x\(downsampled.height)")
+        } else {
+            analysisTexture = texture
+        }
+
         // Method 1: Specularity analysis (hydrated skin reflects more light)
-        let specularityScore = analyzeSpecularity(texture: texture)
+        let specularityScore = analyzeSpecularity(texture: analysisTexture)
         AppLogger.metrics.info("   Method 1 (Specularity): \(String(format: "%.1f", specularityScore))/100")
 
         // Method 2: Texture frequency analysis (hydrated skin is smoother)
-        let textureScore = analyzeTextureFrequency(texture: texture)
+        let textureScore = analyzeTextureFrequency(texture: analysisTexture)
         AppLogger.metrics.info("   Method 2 (Texture): \(String(format: "%.1f", textureScore))/100")
 
         // Method 3: Color variance analysis (hydrated skin is more uniform)
-        let varianceScore = analyzeColorVariance(texture: texture)
+        let varianceScore = analyzeColorVariance(texture: analysisTexture)
         AppLogger.metrics.info("   Method 3 (Variance): \(String(format: "%.1f", varianceScore))/100")
 
         // Ensemble: Weighted average of all three methods
@@ -93,7 +188,7 @@ class HydrationEstimator {
 
         // Analyze regional hydration across different face areas
         let regionalScores = analyzeRegionalHydration(
-            texture: texture,
+            texture: analysisTexture,
             roughnessScore: roughnessScore,
             geometry: geometry
         )
@@ -125,7 +220,395 @@ class HydrationEstimator {
         )
     }
 
-    // MARK: - Private Methods
+    // MARK: - GPU Acceleration Methods
+
+    /// GPU-accelerated hydration analysis (full resolution, no downsampling)
+    private func estimateHydrationGPU(
+        texture: UIImage,
+        roughnessScore: Float,
+        geometry: FaceMeshGeometry,
+        metalAnalyzer: MetalAnalyzerBase
+    ) -> HydrationEstimate {
+        let startTime = CFAbsoluteTimeGetCurrent()
+
+        do {
+            // Convert UIImage to Metal texture
+            guard let inputTexture = MetalHelpers.textureFromUIImage(texture, device: metalAnalyzer.device) else {
+                AppLogger.metrics.error("❌ GPU: Failed to convert image to texture - falling back to CPU")
+                return estimateHydrationCPU(texture: texture, roughnessScore: roughnessScore, geometry: geometry)
+            }
+
+            let width = inputTexture.width
+            let height = inputTexture.height
+            AppLogger.metrics.info("   📏 Analyzing full resolution: \(width)x\(height)")
+
+            // STEP 1: Calculate adaptive threshold
+            let adaptiveThreshold = try calculateAdaptiveThresholdGPU(
+                inputTexture: inputTexture,
+                metalAnalyzer: metalAnalyzer
+            )
+            AppLogger.metrics.debug("   🎯 Adaptive threshold: \(String(format: "%.3f", adaptiveThreshold))")
+
+            // STEP 2: Analyze hydration (all three methods in single GPU pass)
+            let results = try analyzeHydrationGPU(
+                inputTexture: inputTexture,
+                adaptiveThreshold: adaptiveThreshold,
+                metalAnalyzer: metalAnalyzer
+            )
+
+            let specularityScore = results.specularity
+            let textureScore = results.texture
+            let varianceScore = results.variance
+
+            AppLogger.metrics.info("   Method 1 (Specularity): \(String(format: "%.1f", specularityScore))/100")
+            AppLogger.metrics.info("   Method 2 (Texture): \(String(format: "%.1f", textureScore))/100")
+            AppLogger.metrics.info("   Method 3 (Variance): \(String(format: "%.1f", varianceScore))/100")
+
+            // Ensemble: Weighted average
+            let score = (specularityScore * 0.40 + textureScore * 0.35 + varianceScore * 0.25)
+
+            let level: HydrationLevel
+            if score < 40 {
+                level = .veryDry
+            } else if score < 60 {
+                level = .dry
+            } else if score < 80 {
+                level = .normal
+            } else {
+                level = .wellHydrated
+            }
+
+            // Regional analysis (GPU)
+            let regionalScores = try analyzeRegionalHydrationGPU(
+                inputTexture: inputTexture,
+                adaptiveThreshold: adaptiveThreshold,
+                metalAnalyzer: metalAnalyzer
+            )
+
+            // Calculate confidence
+            let confidence = calculateConfidence(
+                specularity: specularityScore,
+                regionalScores: regionalScores,
+                methodAgreement: calculateMethodAgreement(
+                    method1: specularityScore,
+                    method2: textureScore,
+                    method3: varianceScore
+                )
+            )
+
+            let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+            AppLogger.metrics.info("✅ Hydration estimate (GPU): \(level.rawValue) (\(String(format: "%.1f", score))/100)")
+            AppLogger.metrics.info("   GPU time: \(String(format: "%.1f", elapsed))ms")
+            AppLogger.metrics.info("   Confidence: \(String(format: "%.0f", confidence))% (indirect measurement)")
+
+            return HydrationEstimate(
+                overallScore: score,
+                level: level,
+                regionalScores: regionalScores,
+                specularityScore: specularityScore,
+                textureScore: textureScore,
+                varianceScore: varianceScore,
+                confidence: confidence
+            )
+
+        } catch {
+            AppLogger.metrics.error("❌ GPU analysis failed: \(error.localizedDescription) - falling back to CPU")
+            return estimateHydrationCPU(texture: texture, roughnessScore: roughnessScore, geometry: geometry)
+        }
+    }
+
+    /// Helper to run CPU analysis (extracted from main method)
+    private func estimateHydrationCPU(
+        texture: UIImage,
+        roughnessScore: Float,
+        geometry: FaceMeshGeometry
+    ) -> HydrationEstimate {
+        // Downsample for CPU
+        let analysisTexture: UIImage
+        if let cgImage = texture.cgImage, let downsampled = downsample(cgImage) {
+            analysisTexture = UIImage(cgImage: downsampled)
+            AppLogger.metrics.info("   📐 CPU: Downsampled \(cgImage.width)x\(cgImage.height) → \(downsampled.width)x\(downsampled.height)")
+        } else {
+            analysisTexture = texture
+        }
+
+        let specularityScore = analyzeSpecularity(texture: analysisTexture)
+        let textureScore = analyzeTextureFrequency(texture: analysisTexture)
+        let varianceScore = analyzeColorVariance(texture: analysisTexture)
+
+        let score = (specularityScore * 0.40 + textureScore * 0.35 + varianceScore * 0.25)
+
+        let level: HydrationLevel
+        if score < 40 {
+            level = .veryDry
+        } else if score < 60 {
+            level = .dry
+        } else if score < 80 {
+            level = .normal
+        } else {
+            level = .wellHydrated
+        }
+
+        let regionalScores = analyzeRegionalHydration(
+            texture: analysisTexture,
+            roughnessScore: roughnessScore,
+            geometry: geometry
+        )
+
+        let confidence = calculateConfidence(
+            specularity: specularityScore,
+            regionalScores: regionalScores,
+            methodAgreement: calculateMethodAgreement(
+                method1: specularityScore,
+                method2: textureScore,
+                method3: varianceScore
+            )
+        )
+
+        return HydrationEstimate(
+            overallScore: score,
+            level: level,
+            regionalScores: regionalScores,
+            specularityScore: specularityScore,
+            textureScore: textureScore,
+            varianceScore: varianceScore,
+            confidence: confidence
+        )
+    }
+
+    /// Calculate adaptive threshold using GPU
+    private func calculateAdaptiveThresholdGPU(
+        inputTexture: MTLTexture,
+        metalAnalyzer: MetalAnalyzerBase
+    ) throws -> Float {
+        // Load pipeline
+        let pipeline = try metalAnalyzer.loadPipeline(named: "calculateAdaptiveThreshold")
+
+        // Create output buffer
+        let resultBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.size)
+
+        // Execute
+        try metalAnalyzer.executeSync(operation: "calculateAdaptiveThreshold") { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+            }
+
+            encoder.setComputePipelineState(pipeline)
+            encoder.setTexture(inputTexture, index: 0)
+            encoder.setBuffer(resultBuffer, offset: 0, index: 0)
+
+            let (threadgroups, threadsPerGroup) = metalAnalyzer.calculateThreadgroups(
+                pipeline: pipeline,
+                width: inputTexture.width,
+                height: inputTexture.height
+            )
+
+            encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+            encoder.endEncoding()
+        }
+
+        // Read result
+        let resultPtr = resultBuffer.contents().assumingMemoryBound(to: Float.self)
+        return resultPtr.pointee
+    }
+
+    /// Analyze hydration using GPU (single pass)
+    private func analyzeHydrationGPU(
+        inputTexture: MTLTexture,
+        adaptiveThreshold: Float,
+        metalAnalyzer: MetalAnalyzerBase
+    ) throws -> (specularity: Float, texture: Float, variance: Float) {
+        // Load pipeline
+        let pipeline = try metalAnalyzer.loadPipeline(named: "analyzeHydration")
+
+        // Calculate threadgroup configuration
+        let (threadgroups, threadsPerGroup) = metalAnalyzer.calculateThreadgroups(
+            pipeline: pipeline,
+            width: inputTexture.width,
+            height: inputTexture.height
+        )
+
+        let numThreadgroups = threadgroups.width * threadgroups.height
+
+        // Create buffer for partial results (one per threadgroup)
+        struct PartialResults {
+            var specularPixelCount: Float
+            var textureEnergySum: Float
+            var luminanceSum: Float
+            var luminanceSqSum: Float
+            var validPixelCount: Float
+        }
+
+        let resultsBuffer = try metalAnalyzer.createBuffer(
+            length: MemoryLayout<PartialResults>.stride * numThreadgroups
+        )
+
+        // Create threshold buffer
+        var threshold = adaptiveThreshold
+        let thresholdBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.size)
+        memcpy(thresholdBuffer.contents(), &threshold, MemoryLayout<Float>.size)
+
+        // Create threadgroupsPerRow buffer (required for linear index calculation)
+        var threadgroupsPerRow = UInt32(threadgroups.width)
+        let threadgroupsPerRowBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<UInt32>.size)
+        memcpy(threadgroupsPerRowBuffer.contents(), &threadgroupsPerRow, MemoryLayout<UInt32>.size)
+
+        // Execute kernel
+        try metalAnalyzer.executeSync(operation: "analyzeHydration") { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+            }
+
+            encoder.setComputePipelineState(pipeline)
+            encoder.setTexture(inputTexture, index: 0)
+            encoder.setBuffer(resultsBuffer, offset: 0, index: 0)
+            encoder.setBuffer(thresholdBuffer, offset: 0, index: 1)
+            encoder.setBuffer(threadgroupsPerRowBuffer, offset: 0, index: 2)
+
+            encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+            encoder.endEncoding()
+        }
+
+        // Reduce partial results on CPU (small array)
+        let resultsPtr = resultsBuffer.contents().assumingMemoryBound(to: PartialResults.self)
+        var totalSpecular: Float = 0
+        var totalTexture: Float = 0
+        var totalLuminance: Float = 0
+        var totalLuminanceSq: Float = 0
+        var totalPixels: Float = 0
+
+        for i in 0..<numThreadgroups {
+            let result = resultsPtr[i]
+            totalSpecular += result.specularPixelCount
+            totalTexture += result.textureEnergySum
+            totalLuminance += result.luminanceSum
+            totalLuminanceSq += result.luminanceSqSum
+            totalPixels += result.validPixelCount
+        }
+
+        // Calculate scores with NaN guards
+        // FIXED: Added NaN/Inf guards to prevent garbage output from GPU errors
+        let specularRatio = totalPixels > 0 ? totalSpecular / totalPixels : 0
+        let specularityScoreRaw = min(100, specularRatio * 1000)
+        let specularityScore = specularityScoreRaw.isNaN || specularityScoreRaw.isInfinite ? 50.0 : specularityScoreRaw
+
+        let avgTextureEnergy = totalPixels > 0 ? totalTexture / totalPixels : 0
+        let textureScoreRaw = max(0, min(100, 100 - (avgTextureEnergy * 500)))
+        let textureScore = textureScoreRaw.isNaN || textureScoreRaw.isInfinite ? 50.0 : textureScoreRaw
+
+        let meanLuminance = totalPixels > 0 ? totalLuminance / totalPixels : 0
+        let variance = totalPixels > 0 ? (totalLuminanceSq / totalPixels) - (meanLuminance * meanLuminance) : 0
+        let stdDev = sqrt(max(0, variance))
+        let varianceScoreRaw = max(0, min(100, 100 - (stdDev / 3.0)))
+        let varianceScore = varianceScoreRaw.isNaN || varianceScoreRaw.isInfinite ? 50.0 : varianceScoreRaw
+
+        return (specularityScore, textureScore, varianceScore)
+    }
+
+    /// Analyze regional hydration using GPU
+    private func analyzeRegionalHydrationGPU(
+        inputTexture: MTLTexture,
+        adaptiveThreshold: Float,
+        metalAnalyzer: MetalAnalyzerBase
+    ) throws -> [String: Float] {
+        let pipeline = try metalAnalyzer.loadPipeline(named: "analyzeRegionalHydration")
+
+        // Define face regions
+        let regions: [String: (minX: Float, maxX: Float, minY: Float, maxY: Float)] = [
+            "forehead": (0.3, 0.7, 0.1, 0.3),
+            "leftCheek": (0.1, 0.4, 0.4, 0.7),
+            "rightCheek": (0.6, 0.9, 0.4, 0.7),
+            "nose": (0.4, 0.6, 0.3, 0.6),
+            "chin": (0.35, 0.65, 0.7, 0.9),
+            "underEye": (0.3, 0.7, 0.3, 0.45)
+        ]
+
+        var regionalScores: [String: Float] = [:]
+
+        for (regionName, bounds) in regions {
+            // Calculate threadgroup config
+            let (threadgroups, threadsPerGroup) = metalAnalyzer.calculateThreadgroups(
+                pipeline: pipeline,
+                width: inputTexture.width,
+                height: inputTexture.height
+            )
+            let numThreadgroups = threadgroups.width * threadgroups.height
+
+            // Create buffers
+            struct PartialResults {
+                var specularPixelCount: Float
+                var textureEnergySum: Float
+                var validPixelCount: Float
+                var luminanceSum: Float
+                var luminanceSqSum: Float
+            }
+
+            let resultsBuffer = try metalAnalyzer.createBuffer(
+                length: MemoryLayout<PartialResults>.stride * numThreadgroups
+            )
+
+            var boundsVec = SIMD4<Float>(bounds.minX, bounds.maxX, bounds.minY, bounds.maxY)
+            let boundsBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<SIMD4<Float>>.size)
+            memcpy(boundsBuffer.contents(), &boundsVec, MemoryLayout<SIMD4<Float>>.size)
+
+            var threshold = adaptiveThreshold
+            let thresholdBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.size)
+            memcpy(thresholdBuffer.contents(), &threshold, MemoryLayout<Float>.size)
+
+            // Create threadgroupsPerRow buffer (required for linear index calculation)
+            var threadgroupsPerRow = UInt32(threadgroups.width)
+            let threadgroupsPerRowBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<UInt32>.size)
+            memcpy(threadgroupsPerRowBuffer.contents(), &threadgroupsPerRow, MemoryLayout<UInt32>.size)
+
+            // Execute
+            try metalAnalyzer.executeSync(operation: "analyzeRegionalHydration") { commandBuffer in
+                guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                    throw GPUAnalysisError.commandBufferFailed("Failed to create encoder")
+                }
+
+                encoder.setComputePipelineState(pipeline)
+                encoder.setTexture(inputTexture, index: 0)
+                encoder.setBuffer(resultsBuffer, offset: 0, index: 0)
+                encoder.setBuffer(boundsBuffer, offset: 0, index: 1)
+                encoder.setBuffer(thresholdBuffer, offset: 0, index: 2)
+                encoder.setBuffer(threadgroupsPerRowBuffer, offset: 0, index: 3)
+
+                encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+                encoder.endEncoding()
+            }
+
+            // Reduce results
+            let resultsPtr = resultsBuffer.contents().assumingMemoryBound(to: PartialResults.self)
+            var totalSpecular: Float = 0
+            var totalTexture: Float = 0
+            var totalPixels: Float = 0
+
+            for i in 0..<numThreadgroups {
+                let result = resultsPtr[i]
+                totalSpecular += result.specularPixelCount
+                totalTexture += result.textureEnergySum
+                totalPixels += result.validPixelCount
+            }
+
+            // Calculate regional score
+            if totalPixels > 0 {
+                let specularRatio = totalSpecular / totalPixels
+                let regionalSpecularity = min(100, specularRatio * 1000)
+
+                let avgTexture = totalTexture / totalPixels
+                let regionalSmoothness = max(0, min(100, 100 - (avgTexture * 500)))
+
+                let hydrationScore = regionalSpecularity * 0.6 + regionalSmoothness * 0.4
+                regionalScores[regionName] = hydrationScore
+            } else {
+                regionalScores[regionName] = 50.0
+            }
+        }
+
+        return regionalScores
+    }
+
+    // MARK: - CPU Methods (Private)
 
     private func analyzeSpecularity(texture: UIImage) -> Float {
         // Detect bright specular highlights (hydrated skin reflects more)
@@ -193,10 +676,12 @@ class HydrationEstimator {
         let avgB = Float(bSum) / Float(count)
         let avgBrightness = (avgR + avgG + avgB) / 3.0
 
-        // Adaptive threshold: 70% of max possible brightness for this skin tone
-        // Darker skin: lower absolute brightness, but same relative threshold
+        // Adaptive threshold: 75% of max possible brightness for this skin tone
+        // FIXED: Lowered minimum from 150 to 100 for Indian skin (Fitzpatrick III-IV)
+        // Indian skin avgBrightness ~100-140 → maxPossible ~150-210 → threshold ~112-157
+        // Previous min of 150 was often ABOVE max possible for Indian skin!
         let maxPossible = min(255.0, avgBrightness * 1.5)
-        return UInt8(max(150, min(220, maxPossible * 0.7)))
+        return UInt8(max(100, min(220, maxPossible * 0.75)))
     }
 
     /// Method 2: Analyze texture frequency (high-frequency = rough = dehydrated)
@@ -273,8 +758,8 @@ class HydrationEstimator {
                 let g = Float(ptr[offset + 1])
                 let b = Float(ptr[offset + 2])
 
-                // Luminance (perceived brightness)
-                let intensity = 0.299 * r + 0.587 * g + 0.114 * b
+                // FIXED: Standardized on BT.709 (sRGB) for consistency
+                let intensity = 0.2126 * r + 0.7152 * g + 0.0722 * b
                 intensities.append(intensity)
             }
         }
@@ -368,6 +853,7 @@ class HydrationEstimator {
     }
 
     /// Analyze specularity in a specific region
+    /// FIXED: Now uses adaptive threshold based on region's skin tone
     private func analyzeSpecularityInRegion(image: CGImage) -> Float {
         let width = image.width
         let height = image.height
@@ -378,10 +864,36 @@ class HydrationEstimator {
             return 50
         }
 
-        var brightPixels = 0
-        let brightnessThreshold: UInt8 = 200
         let totalPixels = width * height
+        guard totalPixels > 0 else { return 50 }
 
+        // SKIN-TONE ADAPTIVE: Calculate threshold based on region's average brightness
+        // This ensures dark skin can still detect specular highlights
+        var rSum: Int = 0, gSum: Int = 0, bSum: Int = 0
+        for y in 0..<height {
+            for x in 0..<width {
+                let offset = (y * width + x) * 4
+                rSum += Int(ptr[offset])
+                gSum += Int(ptr[offset + 1])
+                bSum += Int(ptr[offset + 2])
+            }
+        }
+
+        let avgR = Float(rSum) / Float(totalPixels)
+        let avgG = Float(gSum) / Float(totalPixels)
+        let avgB = Float(bSum) / Float(totalPixels)
+        let avgBrightness = (avgR + avgG + avgB) / 3.0
+
+        // Adaptive threshold: 70-80% brighter than average skin tone
+        // For very dark skin (avg ~60): threshold ~80-90 (FIXED: was 120, blocked dark skin)
+        // For dark skin (avg ~80): threshold ~100-120
+        // For light skin (avg ~180): threshold ~200-220
+        // This ensures relative specularity detection works for all skin tones
+        let maxPossible = min(255.0, avgBrightness * 1.5)
+        // FIXED: Lowered min from 120 to 80 to support very dark skin (Fitzpatrick V-VI)
+        let brightnessThreshold = UInt8(max(80, min(220, maxPossible * 0.75)))
+
+        var brightPixels = 0
         for y in 0..<height {
             for x in 0..<width {
                 let offset = (y * width + x) * 4
@@ -420,8 +932,8 @@ class HydrationEstimator {
                 let g = Float(ptr[offset + 1])
                 let b = Float(ptr[offset + 2])
 
-                // Luminance
-                let intensity = 0.299 * r + 0.587 * g + 0.114 * b
+                // FIXED: Standardized on BT.709 (sRGB) for consistency
+                let intensity = 0.2126 * r + 0.7152 * g + 0.0722 * b
                 intensities.append(intensity)
             }
         }
@@ -444,18 +956,21 @@ class HydrationEstimator {
         regionalScores: [String: Float],
         methodAgreement: Float
     ) -> Float {
+        // STANDARDIZED: Indirect proxy measurement (hydration estimation)
+        // Base: 60 (lower due to indirect measurement nature)
+        // Range: 35-80 (capped due to inherent uncertainty in proxy methods)
         var confidence: Float = 60.0  // Base confidence for indirect measurement
 
-        // Factor 1: Lighting conditions (via specularity)
+        // Factor 1: Lighting conditions - STANDARDIZED across all analyzers
+        // Excellent: +10, Good: +5, Suboptimal: -5, Poor: -15
         if specularity < 10 {
-            // Too dark/underlit - low specularity readings
-            confidence -= 20
+            confidence -= 15  // Too dark/underlit
         } else if specularity > 90 {
-            // Overlit - excessive specularity may indicate artificial lighting/flash
-            confidence -= 15
+            confidence -= 15  // Overlit - excessive specularity
         } else if specularity >= 20 && specularity <= 70 {
-            // Good lighting range
-            confidence += 10
+            confidence += 10  // Optimal lighting range
+        } else {
+            confidence += 5   // Good but not optimal
         }
 
         // Factor 2: Regional consistency
@@ -469,22 +984,20 @@ class HydrationEstimator {
             if stdDev < 15 {
                 confidence += 10
             } else if stdDev > 30 {
-                // High variance = inconsistent = lower confidence
-                confidence -= 10
+                confidence -= 10  // High variance = inconsistent
             }
         }
 
-        // Factor 3: Method agreement (NEW for ensemble)
-        // High agreement between methods = higher confidence
+        // Factor 3: Method agreement (ensemble reliability)
         if methodAgreement >= 80 {
-            confidence += 15  // Strong agreement
+            confidence += 10  // Strong agreement (standardized from 15)
         } else if methodAgreement >= 60 {
-            confidence += 10  // Good agreement
+            confidence += 5   // Good agreement (standardized from 10)
         } else if methodAgreement < 40 {
             confidence -= 15  // Poor agreement (methods disagree)
         }
 
-        // Clamp between 30-80% (slightly higher max due to ensemble reliability)
-        return max(30, min(80, confidence))
+        // Clamp to 35-80 range (standardized for indirect proxy analysis)
+        return max(35, min(80, confidence))
     }
 }

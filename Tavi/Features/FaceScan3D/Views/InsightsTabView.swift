@@ -38,7 +38,7 @@ public struct InsightsTabView: View {
 
     public var body: some View {
         ZStack {
-            gsBackground.ignoresSafeArea()
+            Color.white.ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {

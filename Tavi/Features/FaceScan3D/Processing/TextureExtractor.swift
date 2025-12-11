@@ -109,8 +109,8 @@ class TextureExtractor {
             maxY = max(maxY, screenPos.y)
         }
 
-        // Add padding (10%)
-        let padding: CGFloat = 0.1
+        // Add padding (20%) - increased from 10% to reduce zoomed-in appearance
+        let padding: CGFloat = 0.2
         let width = maxX - minX
         let height = maxY - minY
         let paddedMinX = minX - width * padding

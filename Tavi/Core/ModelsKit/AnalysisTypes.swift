@@ -218,7 +218,7 @@ public enum ColorMapType: String, Codable {
 // MARK: - Heatmap Type
 
 /// Type of heatmap visualization
-public enum HeatmapType: String, Codable, CaseIterable, Hashable {
+public enum HeatmapType: String, Codable, CaseIterable, Hashable, Sendable {
     case composite
     case sharpness
     case texture
@@ -798,25 +798,26 @@ public class ROIBuilder {
         // Note: This is a simplified implementation
         guard !vertexIndices.isEmpty else { return nil }
 
+        // ROI bounds in screen coordinates (V: 0=top, 1=bottom)
         return FaceROISet(
-            forehead: region == .forehead ? CGRect(x: 0.3, y: 0.7, width: 0.4, height: 0.25) : .zero,
-            leftCheek: region == .leftCheek ? CGRect(x: 0.15, y: 0.35, width: 0.3, height: 0.3) : .zero,
-            rightCheek: region == .rightCheek ? CGRect(x: 0.55, y: 0.35, width: 0.3, height: 0.3) : .zero,
-            nose: region == .noseBridge ? CGRect(x: 0.4, y: 0.45, width: 0.2, height: 0.25) : .zero,
-            chin: region == .chin ? CGRect(x: 0.35, y: 0.1, width: 0.3, height: 0.25) : .zero
+            forehead: region == .forehead ? CGRect(x: 0.25, y: 0.08, width: 0.5, height: 0.20) : .zero,
+            leftCheek: region == .leftCheek ? CGRect(x: 0.10, y: 0.35, width: 0.28, height: 0.23) : .zero,
+            rightCheek: region == .rightCheek ? CGRect(x: 0.62, y: 0.35, width: 0.28, height: 0.23) : .zero,
+            nose: region == .noseBridge ? CGRect(x: 0.38, y: 0.32, width: 0.24, height: 0.20) : .zero,
+            chin: region == .chin ? CGRect(x: 0.30, y: 0.60, width: 0.40, height: 0.20) : .zero
         )
     }
 
     /// Compute ROIs from ARFaceGeometry
     public func computeROIsFromARKit(geometry: FaceMeshGeometry) -> FaceROISet {
         // Extract ROIs from FaceMeshGeometry using UV mapping
-        // ARKit provides standard UV layout for face
+        // ROI bounds in screen coordinates (V: 0=top, 1=bottom)
         return FaceROISet(
-            forehead: CGRect(x: 0.3, y: 0.7, width: 0.4, height: 0.25),
-            leftCheek: CGRect(x: 0.15, y: 0.35, width: 0.3, height: 0.3),
-            rightCheek: CGRect(x: 0.55, y: 0.35, width: 0.3, height: 0.3),
-            nose: CGRect(x: 0.4, y: 0.45, width: 0.2, height: 0.25),
-            chin: CGRect(x: 0.35, y: 0.1, width: 0.3, height: 0.25)
+            forehead: CGRect(x: 0.25, y: 0.08, width: 0.5, height: 0.20),
+            leftCheek: CGRect(x: 0.10, y: 0.35, width: 0.28, height: 0.23),
+            rightCheek: CGRect(x: 0.62, y: 0.35, width: 0.28, height: 0.23),
+            nose: CGRect(x: 0.38, y: 0.32, width: 0.24, height: 0.20),
+            chin: CGRect(x: 0.30, y: 0.60, width: 0.40, height: 0.20)
         )
     }
 

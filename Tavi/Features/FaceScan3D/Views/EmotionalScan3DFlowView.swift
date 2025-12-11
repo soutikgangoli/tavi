@@ -14,17 +14,37 @@ public struct EmotionalScan3DFlowView: View {
     @StateObject private var viewModel = FaceScan3DViewModel()
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
-    
+
     // Use PersistenceController directly instead of reading from environment
     private var viewContext: NSManagedObjectContext {
         PersistenceController.shared.viewContext
     }
+
+    // Gentler Streak theme colors
+    private let gsBackground = Designs.GentlerStreak.background
+    private let gsTextPrimary = Designs.GentlerStreak.textPrimary
+    private let gsTextSecondary = Designs.GentlerStreak.textSecondary
+    private let gsAccentCoral = Designs.GentlerStreak.accentCoral
+    private let gsAccentTeal = Designs.GentlerStreak.accentTeal
+    private let gsCardBackground = Designs.GentlerStreak.cardBackground
 
     @State private var flowState: FlowState = .preparing(countdown: 3)
     @State private var showResults = false
     @State private var processingProgress: String = ""
     @State private var processingStep: Double = 0  // Changed to Double for smooth progress
     @State private var totalProcessingSteps: Double = 6
+
+    // Weighted progress percentages for each step
+    // Steps 1-3 are heavy processing (mesh merge, texture bake, metrics) = 90% of time
+    // Steps 4-6 are fast (emotional, gamification, save) = 10% of time
+    private let stepWeights: [Int: Double] = [
+        1: 0.30,  // Mesh merge: 30%
+        2: 0.55,  // Texture bake: 55% (cumulative)
+        3: 0.85,  // Metrics analysis: 85% (cumulative)
+        4: 0.90,  // Emotional metrics: 90% (cumulative)
+        5: 0.95,  // Gamification: 95% (cumulative)
+        6: 1.00   // Core Data save: 100% (cumulative)
+    ]
     @State private var processingStartTime: Date?
     @StateObject private var timeEstimator = ProcessingTimeEstimator.shared
     @State private var deviceWarningMessage: String?
@@ -75,6 +95,25 @@ public struct EmotionalScan3DFlowView: View {
     }
 
     public init() {}
+
+    // Weighted progress percentage (0.0 - 1.0)
+    // Makes heavy steps (1-3) take more visual progress time
+    // so the progress bar feels smooth instead of jumping from 50% to 100%
+    private var weightedProgressPercentage: Double {
+        let step = Int(processingStep)
+        return stepWeights[step] ?? 0.0
+    }
+
+    // Time-based progress (0.0 - 1.0)
+    // Smooth progress based on actual elapsed time vs estimated total
+    // This provides smooth animation that doesn't stagnate at 85%
+    private var timeBasedProgress: Double {
+        let total = timeEstimator.estimatedTotalSeconds
+        guard total > 0 else { return 0 }
+        let elapsed = timeEstimator.elapsedSeconds
+        // Cap at 0.99 to avoid showing 100% before actually done
+        return min(0.99, Double(elapsed) / Double(total))
+    }
 
     // Computed save status for display
     private var computedSaveStatus: CelebratoryResultsView.SaveStatus? {
@@ -288,31 +327,23 @@ public struct EmotionalScan3DFlowView: View {
         }
     }
 
-    // MARK: - Processing View
+    // MARK: - Processing View (Gentler Streak Theme)
 
     private var processingView: some View {
         ZStack {
-            // Blue gradient background - matching preparing screen
-            LinearGradient(
-                colors: [
-                    Color(red: 95/255, green: 111/255, blue: 230/255),  // #5F6FE6
-                    Color(red: 80/255, green: 200/255, blue: 220/255)   // Cyan
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Gentler Streak warm cream background
+            gsBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
 
                 // Processing circle - contained within bounds
                 ZStack {
-                    // Outer glow ring (subtle pulse, contained)
+                    // Outer coral glow ring (subtle pulse, contained)
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color.white.opacity(Designs.Opacity.veryLight + 0.02), Color.clear],
+                                colors: [gsAccentCoral.opacity(0.12), Color.clear],
                                 center: .center,
                                 startRadius: 70,
                                 endRadius: 100
@@ -325,7 +356,7 @@ public struct EmotionalScan3DFlowView: View {
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color.white.opacity(0.08), Color.clear],
+                                colors: [gsAccentCoral.opacity(0.08), Color.clear],
                                 center: .center,
                                 startRadius: 80,
                                 endRadius: 110
@@ -338,99 +369,86 @@ public struct EmotionalScan3DFlowView: View {
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [Color.white, Color.white.opacity(Designs.Opacity.almostOpaque)],
+                                colors: [Color.white, Color.white.opacity(0.9)],
                                 center: .center,
                                 startRadius: 0,
                                 endRadius: 80
                             )
                         )
                         .frame(width: Designs.Sizes.scoreCircleLarge, height: Designs.Sizes.scoreCircleLarge)
-                        .shadow(color: Color.white.opacity(Designs.Opacity.medium), radius: Designs.Spacing.medium, x: 0, y: 0)
+                        .shadow(color: gsAccentCoral.opacity(0.15), radius: Designs.Spacing.medium, x: 0, y: 4)
 
-                    // Center content - percentage with progress ring overlay
+                    // Center content - seconds remaining with progress ring overlay
                     ZStack {
-                        // Progress ring behind
+                        // Progress ring behind - coral color
+                        // Progress based on elapsed/total time for smooth animation
                         Circle()
-                            .trim(from: 0, to: CGFloat(processingStep) / CGFloat(totalProcessingSteps))
+                            .trim(from: 0, to: CGFloat(timeBasedProgress))
                             .stroke(
-                                Color(red: 95/255, green: 111/255, blue: 230/255),
+                                gsAccentCoral,
                                 style: StrokeStyle(lineWidth: 8, lineCap: .round)
                             )
                             .frame(width: Designs.Sizes.achievementIcon, height: Designs.Sizes.achievementIcon)
                             .rotationEffect(.degrees(-90))
-                            .animation(Designs.Animation.gentle, value: processingStep)
+                            .animation(Designs.Animation.gentle, value: timeEstimator.elapsedSeconds)
 
-                        // Percentage text
+                        // Seconds remaining - coral (more useful than percentage)
                         VStack(spacing: 2) {
-                            Text("\(Int((processingStep / totalProcessingSteps) * 100))%")
+                            Text("\(timeEstimator.remainingSeconds)")
                                 .font(AppFont.displayLarge)
-                                .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255))
+                                .foregroundColor(gsAccentCoral)
+                                .monospacedDigit()
 
-                            // Step indicator
-                            Text("\(Int(processingStep))/\(Int(totalProcessingSteps))")
+                            // Label
+                            Text("sec left")
                                 .font(AppFont.footnote)
-                                .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255).opacity(Designs.Opacity.semiTransparent))
+                                .foregroundColor(gsAccentCoral.opacity(0.6))
                         }
                     }
                 }
                 .padding(.bottom, Designs.Spacing.xxLarge)
 
-                // Processing messages - white text like preparing screen
+                // Processing messages - dark text
                 VStack(spacing: Designs.Spacing.small) {
-                    // Main message (white header) - REDUCED SIZE
+                    // Main message
                     Text(processingProgress)
                         .font(AppFont.headlinePrimary)
-                        .foregroundColor(.white)
+                        .foregroundColor(gsTextPrimary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, Designs.Spacing.xxLarge)
 
-                    // Detailed status (white subtext with slight transparency) - REDUCED SIZE + CYCLING
+                    // Detailed status
                     if let currentPhase = getCurrentProcessingPhase() {
                         Text(currentPhase.getCyclingMessage(index: cyclingMessageIndex))
                             .font(AppFont.caption)
-                            .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
+                            .foregroundColor(gsTextSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Designs.Spacing.xxLarge)
                             .animation(Designs.Animation.standard, value: cyclingMessageIndex)
                             .transition(.opacity)
                     }
 
-                    // Countdown timer - shows estimated time remaining (counts DOWN)
+                    // Step progress indicator
                     HStack(spacing: 6) {
-                        Image(systemName: "clock.fill")
+                        Image(systemName: "list.bullet.circle.fill")
                             .font(AppFont.metricLabel)
-                        if timeEstimator.remainingSeconds > 0 {
-                            Text(formatCountdownTime(timeEstimator.remainingSeconds))
-                                .font(AppFont.subheadingPrimary)
-                                .monospacedDigit()
-                        } else {
-                            Text("Almost done...")
-                                .font(AppFont.caption)
-                        }
+                        Text("Step \(Int(processingStep)) of \(Int(totalProcessingSteps))")
+                            .font(AppFont.subheadingPrimary)
                     }
-                    .foregroundColor(.white.opacity(0.95))
+                    .foregroundColor(gsTextSecondary)
                     .padding(.top, Designs.Spacing.xSmall)
 
-                    // Show learning indicator for first few scans
-                    if !timeEstimator.hasLearnedEstimates() {
-                        Text("Estimate improves with each scan")
-                            .font(AppFont.micro)
-                            .foregroundColor(.white.opacity(Designs.Opacity.semiOpaque + 0.1))
-                            .padding(.top, Designs.Spacing.xxxSmall)
+                    // Checklist items - directly below step indicator
+                    VStack(spacing: Designs.Spacing.xSmall) {
+                        processingChecklistItem(icon: "bolt.fill", text: "Keep your phone on")
+                        processingChecklistItem(icon: "wand.and.stars", text: "Analyzing your skin")
+                        processingChecklistItem(icon: "iphone", text: "Keep the app open")
                     }
+                    .padding(.top, Designs.Spacing.medium)
                 }
                 .padding(.bottom, Designs.Spacing.xLarge)
 
                 Spacer()
-
-                // Bottom checklist - white circles and text like preparing screen
-                VStack(spacing: Designs.Spacing.small) {
-                    prepChecklistItem(icon: "checkmark.circle.fill", text: "Please keep your phone on for the analysis")
-                    prepChecklistItem(icon: "wand.and.stars", text: "Analyzing your skin")
-                    prepChecklistItem(icon: "iphone", text: "Keep the app open")
-                }
-                .padding(.horizontal, Designs.Spacing.xxLarge)
-                .padding(.bottom, Designs.Spacing.xLarge)
             }
         }
         .onAppear {
@@ -446,181 +464,211 @@ public struct EmotionalScan3DFlowView: View {
         }
     }
 
-    // MARK: - Saving View
+    // MARK: - Saving View (Gentler Streak Theme)
 
     private var savingView: some View {
-        VStack(spacing: Designs.Spacing.xxxLarge) {
-            Spacer()
+        ZStack {
+            gsBackground.ignoresSafeArea()
 
-            ProgressView()
-                .scaleEffect(1.5)
-                .tint(.blue)
+            VStack(spacing: Designs.Spacing.xxxLarge) {
+                Spacer()
 
-            VStack(spacing: Designs.Spacing.small) {
-                Text("Saving Results...")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(gsAccentCoral)
 
-                Text("Please wait while we save your scan to history")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Designs.Spacing.xxLarge)
+                VStack(spacing: Designs.Spacing.small) {
+                    Text("Saving Results...")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(gsTextPrimary)
 
-                if saveRetryCount > 0 {
-                    HStack(spacing: Designs.Spacing.xxSmall) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.caption)
-                        Text("Retry attempt \(saveRetryCount)/3")
-                            .font(.caption)
+                    Text("Please wait while we save your scan to history")
+                        .font(.subheadline)
+                        .foregroundColor(gsTextSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Designs.Spacing.xxLarge)
+
+                    if saveRetryCount > 0 {
+                        HStack(spacing: Designs.Spacing.xxSmall) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.caption)
+                            Text("Retry attempt \(saveRetryCount)/3")
+                                .font(.caption)
+                        }
+                        .foregroundColor(gsAccentCoral)
+                        .padding(.top, Designs.Spacing.xSmall)
                     }
-                    .foregroundStyle(.orange)
-                    .padding(.top, Designs.Spacing.xSmall)
                 }
-            }
 
-            Spacer()
+                Spacer()
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(uiColor: .systemBackground))
     }
 
     @State private var rotationAngle: Double = 0
 
-    // MARK: - Preparing View
+    // MARK: - Preparing View (Clean Minimal Design)
+
+    @State private var prepBreathingScale: CGFloat = 1.0
+    @State private var prepGlowOpacity: Double = 0.15
 
     private func preparingView(countdown: Int) -> some View {
         ZStack {
-            // OLD DESIGN - Gradient background (blue to cyan)
-            LinearGradient(
-                colors: [
-                    Color(red: 95/255, green: 111/255, blue: 230/255),  // #5F6FE6
-                    Color(red: 80/255, green: 200/255, blue: 220/255)   // Cyan
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Clean white/cream background
+            gsBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
 
-                // Large breathing circle with countdown (matches HTML preview)
+                // Breathing circle with countdown
                 ZStack {
-                    // Outer glow rings
+                    // Outer breathing ring - continuous loop
                     Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [Color.white.opacity(Designs.Opacity.veryLight + 0.05), Color.clear],
-                                center: .center,
-                                startRadius: 80,
-                                endRadius: 120
-                            )
-                        )
-                        .frame(width: Designs.Sizes.frameXXXLarge, height: Designs.Sizes.frameXXXLarge)
-                        .scaleEffect(countdown == 3 ? 1.0 : 1.2)
-                        .opacity(countdown == 3 ? 1.0 : 0.5)
-                        .animation(Designs.Animation.pulse, value: countdown)
+                        .stroke(gsAccentCoral.opacity(0.15), lineWidth: 3)
+                        .frame(width: 200, height: 200)
+                        .scaleEffect(prepBreathingScale)
 
+                    // Middle glow ring
                     Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [Color.white.opacity(0.08), Color.clear],
-                                center: .center,
-                                startRadius: 120,
-                                endRadius: 160
-                            )
-                        )
-                        .frame(width: Designs.Sizes.displayXXLarge, height: Designs.Sizes.displayXXLarge)
-                        .scaleEffect(countdown == 3 ? 1.0 : 1.15)
-                        .opacity(countdown == 3 ? 1.0 : 0.3)
-                        .animation(Designs.Animation.breathe, value: countdown)
+                        .fill(gsAccentCoral.opacity(prepGlowOpacity))
+                        .frame(width: 160, height: 160)
+                        .scaleEffect(prepBreathingScale * 0.95)
 
-                    // Main white breathing circle
+                    // Inner white circle
                     Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [Color.white, Color.white.opacity(Designs.Opacity.semiTransparent + 0.15)],
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 80
-                            )
-                        )
-                        .frame(width: Designs.Sizes.scoreCircleLarge, height: Designs.Sizes.scoreCircleLarge)
-                        .scaleEffect(countdown == 3 ? 1.0 : 1.15)
-                        .animation(Designs.Animation.slowPulse, value: countdown)
-                        .shadow(color: Color.white.opacity(Designs.Opacity.medium), radius: Designs.Radius.xLarge, x: 0, y: 0)
+                        .fill(Color.white)
+                        .frame(width: 140, height: 140)
+                        .shadow(color: gsAccentCoral.opacity(0.2), radius: 20, x: 0, y: 8)
 
                     // Countdown number
                     Text("\(countdown)")
-                        .font(AppFont.scoreDisplayLarge)
-                        .foregroundColor(Color(red: 95/255, green: 111/255, blue: 230/255))  // #5F6FE6
+                        .font(.system(size: 56, weight: .light, design: .rounded))
+                        .foregroundColor(gsAccentCoral)
                 }
-                .padding(.vertical, Designs.Spacing.large)
 
-                // Title and subtitle
-                VStack(spacing: Designs.Spacing.small) {
-                    Text("Preparing scan")
-                        .font(AppFont.title)
-                        .foregroundColor(.white)
+                Spacer().frame(height: 48)
 
-                    Text("Take a deep breath")
-                        .font(AppFont.headlineSecondary)
-                        .foregroundColor(.white.opacity(Designs.Opacity.almostTransparent))
-                }
-                .padding(.bottom, Designs.Spacing.xLarge)
+                // Title
+                Text("Get Ready")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundColor(gsTextPrimary)
+
+                Spacer().frame(height: 12)
+
+                // Subtitle
+                Text("Hold your phone at eye level\nand look straight ahead")
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(gsTextSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
 
                 Spacer()
 
-                // Checklist
-                VStack(spacing: 14) {
-                    prepChecklistItem(icon: "checkmark", text: "Find bright, natural lighting")
-                    prepChecklistItem(icon: "checkmark", text: "Remove glasses if wearing")
-                    prepChecklistItem(icon: "iphone", text: "Hold device at eye level")
+                // Bottom action area
+                VStack(spacing: 16) {
+                    // Skip button
+                    Button {
+                        flowState = .capturing
+                        viewModel.startGuidance()
+                    } label: {
+                        Text("Skip")
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundColor(gsTextSecondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                    }
                 }
-                .padding(.horizontal, Designs.Spacing.xxLarge)
-                .padding(.bottom, Designs.Spacing.medium)
-
-                // Skip countdown button
-                Button {
-                    flowState = .capturing
-                    viewModel.startGuidance()
-                } label: {
-                    Text("Skip")
-                        .font(AppFont.subheadingPrimary)
-                        .foregroundColor(.white.opacity(Designs.Opacity.semiTransparent))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Designs.Spacing.medium)
-                        .background(Color.white.opacity(Designs.Opacity.veryLight + 0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .padding(.horizontal, Designs.Spacing.xxLarge)
-                .padding(.bottom, Designs.Spacing.xLarge)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 50)
             }
         }
         .onAppear {
             startCountdown()
+            startPrepBreathingAnimation()
+        }
+        .onDisappear {
+            // Animation will stop when view disappears
         }
     }
 
-    // Helper for checklist items with white background circles
+    private func startPrepBreathingAnimation() {
+        // Continuous breathing animation loop
+        withAnimation(
+            .easeInOut(duration: 1.2)
+            .repeatForever(autoreverses: true)
+        ) {
+            prepBreathingScale = 1.15
+            prepGlowOpacity = 0.25
+        }
+    }
+
+    // Checklist row for card-based layout (kept for potential future use)
+    private func gsChecklistRow(icon: String, text: String, isLast: Bool) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 16) {
+                // Coral circle with icon
+                ZStack {
+                    Circle()
+                        .fill(gsAccentCoral.opacity(0.12))
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: icon)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(gsAccentCoral)
+                }
+
+                Text(text)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(gsTextPrimary)
+
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+
+            // Divider (except for last item)
+            if !isLast {
+                Rectangle()
+                    .fill(gsTextSecondary.opacity(0.1))
+                    .frame(height: 1)
+                    .padding(.leading, 80)
+            }
+        }
+    }
+
+    // Helper for checklist items - processing view (uses coral for consistency)
     private func prepChecklistItem(icon: String, text: String) -> some View {
-        HStack(spacing: Designs.Spacing.large) {
+        HStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(Color.white.opacity(Designs.Opacity.light + 0.05))
-                        .frame(width: Designs.Sizes.cardIcon, height: Designs.Sizes.cardIcon)
+                    .fill(gsAccentCoral.opacity(0.12))
+                    .frame(width: 44, height: 44)
 
                 Image(systemName: icon)
-                    .font(AppFont.metricValue)
-                    .foregroundColor(.white)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(gsAccentCoral)
             }
 
             Text(text)
-                .font(AppFont.bodyMedium)
-                .foregroundColor(.white)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(gsTextPrimary)
 
             Spacer()
+        }
+    }
+
+    // Compact checklist item for processing view (inline below step indicator)
+    private func processingChecklistItem(icon: String, text: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(gsAccentCoral.opacity(0.7))
+
+            Text(text)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundColor(gsTextSecondary)
         }
     }
 
@@ -656,99 +704,107 @@ public struct EmotionalScan3DFlowView: View {
         }
     }
 
-    // MARK: - Auto Retry View
+    // MARK: - Auto Retry View (Gentler Streak Theme)
 
     private func autoRetryView(attempt: Int, total: Int, reason: String) -> some View {
-        VStack(spacing: Designs.Spacing.xLarge) {
-            Spacer()
+        ZStack {
+            gsBackground.ignoresSafeArea()
 
-            ProgressView()
-                .scaleEffect(1.5)
-                .tint(.blue)
+            VStack(spacing: Designs.Spacing.xLarge) {
+                Spacer()
 
-            VStack(spacing: Designs.Spacing.small) {
-                Text("Retrying...")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(gsAccentCoral)
 
-                Text("Attempt \(attempt) of \(total)")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
+                VStack(spacing: Designs.Spacing.small) {
+                    Text("Retrying...")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(gsTextPrimary)
 
-                Text(reason)
-                    .font(.subheadline)
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Designs.Spacing.xxLarge)
-            }
+                    Text("Attempt \(attempt) of \(total)")
+                        .font(.headline)
+                        .foregroundColor(gsTextSecondary)
 
-            Button {
-                // Cancel auto-retry and show manual error
-                if let error = lastError {
-                    retryCount = total  // Force max retries to show error
-                    handleScanError(error)
+                    Text(reason)
+                        .font(.subheadline)
+                        .foregroundColor(gsTextSecondary.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Designs.Spacing.xxLarge)
                 }
-            } label: {
-                Text("Cancel Retry")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, Designs.Spacing.xSmall)
-            }
 
-            Spacer()
+                Button {
+                    // Cancel auto-retry and show manual error
+                    if let error = lastError {
+                        retryCount = total  // Force max retries to show error
+                        handleScanError(error)
+                    }
+                } label: {
+                    Text("Cancel Retry")
+                        .font(.headline)
+                        .foregroundColor(gsTextSecondary)
+                        .padding(.vertical, Designs.Spacing.xSmall)
+                }
+
+                Spacer()
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(uiColor: .systemBackground))
     }
 
-    // MARK: - Error View
+    // MARK: - Error View (Gentler Streak Theme)
 
     private func errorView(message: String) -> some View {
-        VStack(spacing: Designs.Spacing.xLarge) {
-            Spacer()
+        ZStack {
+            gsBackground.ignoresSafeArea()
 
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(AppFont.scoreDisplay)
-                .foregroundColor(.orange)
+            VStack(spacing: Designs.Spacing.xLarge) {
+                Spacer()
 
-            VStack(spacing: Designs.Spacing.small) {
-                Text("Oops!")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(AppFont.scoreDisplay)
+                    .foregroundColor(gsAccentCoral)
 
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, Designs.Spacing.xxLarge)
+                VStack(spacing: Designs.Spacing.small) {
+                    Text("Oops!")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(gsTextPrimary)
+
+                    Text(message)
+                        .font(.subheadline)
+                        .foregroundColor(gsTextSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Designs.Spacing.xxLarge)
+                }
+
+                Button {
+                    // Restart capture with grace period
+                    flowState = .preparing(countdown: 3)
+                } label: {
+                    Label("Try Again", systemImage: "arrow.clockwise")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, Designs.Spacing.xxLarge)
+                        .padding(.vertical, Designs.Spacing.small)
+                        .background(gsAccentCoral)
+                        .cornerRadius(Designs.Radius.medium)
+                }
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Cancel")
+                        .font(.headline)
+                        .foregroundColor(gsTextSecondary)
+                        .padding(.vertical, Designs.Spacing.xSmall)
+                }
+
+                Spacer()
             }
-
-            Button {
-                // Restart capture with grace period
-                flowState = .preparing(countdown: 3)
-            } label: {
-                Label("Try Again", systemImage: "arrow.clockwise")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, Designs.Spacing.xxLarge)
-                    .padding(.vertical, Designs.Spacing.small)
-                    .background(Color.blue)
-                    .cornerRadius(Designs.Radius.medium)
-            }
-
-            Button {
-                dismiss()
-            } label: {
-                Text("Cancel")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, Designs.Spacing.xSmall)
-            }
-
-            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(uiColor: .systemBackground))
     }
 
     // MARK: - Processing Pipeline
@@ -900,6 +956,41 @@ public struct EmotionalScan3DFlowView: View {
                 // Try to save with timeout - saveToCoreData() handles its own errors and shows alerts
                 // CRITICAL: Use PersistenceController directly to avoid Environment access warnings
                 let capturedContext = PersistenceController.shared.viewContext
+                // Get face image from bake result
+                let faceImage = bakeResult.albedoTexture
+
+                // Generate beautiful heatmaps using the face texture
+                AppLogger.faceScan.info("📊 Generating beautiful heatmaps from face texture...")
+
+                let heatmapGenerator = HeatmapOverlayGenerator()
+                var heatmapDict: [HeatmapType: Data] = [:]
+
+                // Map BeautifulHeatmapType to HeatmapType and generate each
+                let mappings: [(BeautifulHeatmapType, HeatmapType)] = [
+                    (.overall, .composite),
+                    (.sharpness, .sharpness),
+                    (.texture, .texture),
+                    (.pigmentation, .pigmentation),
+                    (.moisture, .moisture)
+                ]
+
+                for (beautifulType, heatmapType) in mappings {
+                    if let heatmapImage = heatmapGenerator.generateBeautifulHeatmap(
+                        baseTexture: faceImage,
+                        metrics: computedClinicalMetrics,
+                        metricType: beautifulType
+                    ), let imageData = heatmapImage.jpegData(compressionQuality: 0.85) {
+                        heatmapDict[heatmapType] = imageData
+                        AppLogger.faceScan.debug("✅ Generated \(heatmapType.displayName) heatmap")
+                    }
+                }
+
+                // Capture as immutable for async boundary
+                let capturedHeatmapData: [HeatmapType: Data]? = heatmapDict.isEmpty ? nil : heatmapDict
+                if let count = capturedHeatmapData?.count {
+                    AppLogger.faceScan.info("📊 Successfully generated \(count) beautiful heatmaps")
+                }
+
                 do {
                     try await withTimeout(
                         seconds: timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.coreDataSaveTimeout),
@@ -908,6 +999,8 @@ public struct EmotionalScan3DFlowView: View {
                         await saveToCoreData(
                             emotionalMetrics: emotional,
                             clinicalMetrics: computedClinicalMetrics,
+                            faceImage: faceImage,
+                            heatmapData: capturedHeatmapData,
                             context: capturedContext
                         )
                     }
@@ -1124,7 +1217,7 @@ public struct EmotionalScan3DFlowView: View {
         }
     }
 
-    private func saveToCoreData(emotionalMetrics: EmotionalMetrics, clinicalMetrics: Face3DMetrics, context: NSManagedObjectContext) async {
+    private func saveToCoreData(emotionalMetrics: EmotionalMetrics, clinicalMetrics: Face3DMetrics, faceImage: CGImage?, heatmapData: [HeatmapType: Data]?, context: NSManagedObjectContext) async {
         isSaving = true
         saveSuccessful = nil
 
@@ -1163,6 +1256,79 @@ public struct EmotionalScan3DFlowView: View {
             session.blurQuality = Double(emotionalMetrics.youthfulness)
             session.moistureSpecular = Double(emotionalMetrics.radiance)
             session.moistureSmoothness = Double(emotionalMetrics.freshness)
+
+            // Save discoloration
+            session.discolorationIndex = Double(clinicalMetrics.globalDiscolorationScore)
+
+            // Save regional scores from clinical metrics
+            session.leftCheekScore = Self.extractROIScore(for: .leftCheek, from: clinicalMetrics)
+            session.rightCheekScore = Self.extractROIScore(for: .rightCheek, from: clinicalMetrics)
+            session.foreheadScore = Self.extractROIScore(for: .forehead, from: clinicalMetrics)
+            session.chinScore = Self.extractROIScore(for: .chin, from: clinicalMetrics)
+
+            // Save pores and acne scores
+            session.poresScore = Double(clinicalMetrics.poreAnalysis?.visibilityScore ?? 0)
+            session.acneScore = Double(clinicalMetrics.acneAnalysis?.overallScore ?? 0)
+
+            // Save face image and thumbnail
+            if let faceImage = faceImage {
+                let uiFaceImage = UIImage(cgImage: faceImage)
+                session.faceImage = uiFaceImage.jpegData(compressionQuality: 0.9)
+                AppLogger.faceScan.info("💾 Saved face image (\(faceImage.width)x\(faceImage.height))")
+
+                // Generate and save thumbnail (600x600 for sharp display on modern devices)
+                let thumbnailSize = CGSize(width: 600, height: 600)
+                let scale = min(thumbnailSize.width / CGFloat(faceImage.width), thumbnailSize.height / CGFloat(faceImage.height))
+                let newWidth = Int(CGFloat(faceImage.width) * scale)
+                let newHeight = Int(CGFloat(faceImage.height) * scale)
+
+                if let colorSpace = faceImage.colorSpace,
+                   let thumbnailContext = CGContext(
+                       data: nil,
+                       width: newWidth,
+                       height: newHeight,
+                       bitsPerComponent: 8,
+                       bytesPerRow: 0,
+                       space: colorSpace,
+                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                   ) {
+                    thumbnailContext.interpolationQuality = .high
+                    thumbnailContext.draw(faceImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+                    if let thumbnailCGImage = thumbnailContext.makeImage() {
+                        let thumbnailUIImage = UIImage(cgImage: thumbnailCGImage)
+                        session.thumbnail = thumbnailUIImage.jpegData(compressionQuality: 0.9)
+                        AppLogger.faceScan.info("💾 Saved thumbnail (\(newWidth)x\(newHeight))")
+                    }
+                }
+            } else {
+                AppLogger.faceScan.warning("⚠️ No face image available to save")
+            }
+
+            // Save heatmaps (already resized and converted to Data)
+            if let heatmapData = heatmapData {
+                if let composite = heatmapData[.composite] {
+                    session.heatmapComposite = composite
+                    AppLogger.faceScan.info("💾 Saved composite heatmap")
+                }
+                if let sharpness = heatmapData[.sharpness] {
+                    session.heatmapSharpness = sharpness
+                    AppLogger.faceScan.info("💾 Saved sharpness heatmap")
+                }
+                if let texture = heatmapData[.texture] {
+                    session.heatmapTexture = texture
+                    AppLogger.faceScan.info("💾 Saved texture heatmap")
+                }
+                if let pigmentation = heatmapData[.pigmentation] {
+                    session.heatmapPigmentation = pigmentation
+                    AppLogger.faceScan.info("💾 Saved pigmentation heatmap")
+                }
+                if let moisture = heatmapData[.moisture] {
+                    session.heatmapMoisture = moisture
+                    AppLogger.faceScan.info("💾 Saved moisture heatmap")
+                }
+            } else {
+                AppLogger.faceScan.warning("⚠️ No heatmaps available to save")
+            }
 
             // Store full emotional metrics as versioned JSON
             do {
@@ -1255,9 +1421,10 @@ public struct EmotionalScan3DFlowView: View {
         AppLogger.faceScan.info("🔄 Retrying Core Data save (attempt \(saveRetryCount))...")
 
         // Capture context before async
+        // Note: Face image and heatmaps not available during retry - will save without them
         let capturedContext = PersistenceController.shared.viewContext
         Task {
-            await saveToCoreData(emotionalMetrics: data.emotionalMetrics, clinicalMetrics: data.clinicalMetrics, context: capturedContext)
+            await saveToCoreData(emotionalMetrics: data.emotionalMetrics, clinicalMetrics: data.clinicalMetrics, faceImage: nil, heatmapData: nil, context: capturedContext)
         }
     }
 
@@ -1265,6 +1432,43 @@ public struct EmotionalScan3DFlowView: View {
         if let metrics = emotionalMetrics {
             _ = GamificationManager.shared.startNewChallenge(baselineSkinHealthScore: metrics.skinHealthScore)
         }
+    }
+
+    /// Extract regional score from Face3DMetrics (static to use in context.perform closure)
+    private static func extractROIScore(for region: Face3DROI, from metrics: Face3DMetrics) -> Double {
+        // Get ROI metrics for this region
+        guard let roiMetrics = metrics.roiMetrics[region] else {
+            // Fallback to overall score if ROI not found
+            return Double(metrics.overallScore)
+        }
+
+        // Compute composite score from multiple factors
+        // Weight: smoothness 40%, pigmentation 30%, quality 20%, moisture 10%
+        let smoothnessScore = Double(roiMetrics.roughnessScore)  // Higher = smoother
+        let pigmentationScore = Double(roiMetrics.pigmentationScore)  // Higher = more even
+        let qualityScore = Double(roiMetrics.qualityScore * 100)  // Convert 0-1 to 0-100
+        let moistureScore = Double(roiMetrics.moistureProxy.moistureIndex * 100)  // Convert 0-1 to 0-100
+
+        let compositeScore = (smoothnessScore * 0.4) +
+                           (pigmentationScore * 0.3) +
+                           (qualityScore * 0.2) +
+                           (moistureScore * 0.1)
+
+        return min(100, max(0, compositeScore))  // Clamp to 0-100
+    }
+
+    /// Resize UIImage to target size (static for use in context.perform closure)
+    /// Uses scale 0.0 for automatic screen scale to maintain best quality
+    private static func resizeImage(_ image: UIImage, to size: CGSize) -> UIImage? {
+        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+        defer { UIGraphicsEndImageContext() }
+
+        let context = UIGraphicsGetCurrentContext()
+        context?.interpolationQuality = .high
+
+        image.draw(in: CGRect(origin: .zero, size: size))
+
+        return UIGraphicsGetImageFromCurrentImageContext()
     }
 }
 

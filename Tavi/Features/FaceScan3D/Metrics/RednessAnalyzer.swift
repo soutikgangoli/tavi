@@ -8,6 +8,7 @@
 
 import UIKit
 import Accelerate
+import Metal
 
 /// Redness analysis result
 public struct RednessAnalysis: Codable, Sendable {
@@ -50,12 +51,91 @@ public enum RednessLevel: String, Codable, Sendable, CustomStringConvertible {
 /// Redness analyzer using red channel analysis
 public class RednessAnalyzer {
 
+    // MARK: - GPU Acceleration
+
+    /// Metal analyzer for GPU-accelerated analysis (if available)
+    private var metalAnalyzer: MetalAnalyzerBase?
+
+    /// Texture pool for efficient GPU memory management
+    private var texturePool: TexturePool?
+
+    /// Use GPU acceleration if available
+    private let useGPU: Bool
+
+    // MARK: - Initialization
+
+    init() {
+        // Check if GPU acceleration is available
+        self.useGPU = MetalCapabilities.shared.supportsGPUAnalysis
+
+        if useGPU {
+            do {
+                self.metalAnalyzer = try MetalAnalyzerBase()
+                if let device = metalAnalyzer?.device {
+                    self.texturePool = TexturePool(device: device, maxPoolSize: 4)
+                }
+                AppLogger.metrics.info("✅ RednessAnalyzer: GPU acceleration enabled")
+            } catch {
+                AppLogger.metrics.warning("⚠️ RednessAnalyzer: Failed to initialize Metal - falling back to CPU")
+                self.metalAnalyzer = nil
+                self.texturePool = nil
+            }
+        } else {
+            AppLogger.metrics.info("ℹ️ RednessAnalyzer: Using CPU analysis (GPU not supported)")
+        }
+    }
+
+    deinit {
+        // Clean up GPU resources
+        texturePool?.clear()
+    }
+
+    // MARK: - Performance Optimization
+
+    private let maxAnalysisSize: Int = 1024
+
+    private func downsample(_ image: CGImage, maxSize: Int? = nil) -> CGImage? {
+        let targetSize = maxSize ?? maxAnalysisSize
+        let scale = min(1.0, Double(targetSize) / Double(max(image.width, image.height)))
+        if scale >= 1.0 { return image }
+
+        let newWidth = Int(Double(image.width) * scale)
+        let newHeight = Int(Double(image.height) * scale)
+
+        let colorSpace = image.colorSpace ?? CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil, width: newWidth, height: newHeight,
+            bitsPerComponent: 8, bytesPerRow: newWidth * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+        return context.makeImage()
+    }
+
     // MARK: - Configuration
 
     private let adaptiveMultiplier: Float = 1.5    // Multiplier for relative detection (skin-tone adaptive)
-    private let moderateThreshold: Float = 0.20
-    private let severeThreshold: Float = 0.30
     private let skinToneNormalizer = SkinToneNormalizer()
+
+    /// Get adaptive redness thresholds based on skin tone
+    /// FIXED: Indian skin (medium/mediumDark) has natural warmth, needs higher thresholds
+    /// to avoid false positives for inflammation
+    private func getAdaptiveThresholds(skinTone: SkinToneCategory) -> (moderate: Float, severe: Float) {
+        switch skinTone {
+        case .medium, .mediumDark:
+            // Indian skin (Fitzpatrick III-IV) - higher tolerance for natural warmth
+            return (moderate: 0.25, severe: 0.38)
+        case .dark, .veryDark:
+            // Very dark skin - use darkening detection, not redness
+            return (moderate: 0.22, severe: 0.35)
+        case .veryLight, .light:
+            // Light skin - standard thresholds
+            return (moderate: 0.20, severe: 0.30)
+        }
+    }
 
     // MARK: - Public API
 
@@ -76,9 +156,28 @@ public class RednessAnalyzer {
             )
         }
 
+        // GPU PATH: Use full resolution analysis on GPU
+        if useGPU, let metalAnalyzer = metalAnalyzer {
+            AppLogger.metrics.info("   🎨 Using GPU acceleration (full resolution)")
+            return analyzeRednessGPU(texture: texture, cgImage: cgImage, metalAnalyzer: metalAnalyzer)
+        }
+
+        // CPU FALLBACK: Downsample to 1024x1024 max for efficient processing
+        AppLogger.metrics.info("   💻 Using CPU analysis (with downsampling)")
+        let analysisImage: CGImage
+        let analysisTexture: UIImage
+        if let downsampled = downsample(cgImage) {
+            analysisImage = downsampled
+            analysisTexture = UIImage(cgImage: downsampled)
+            AppLogger.metrics.info("   📐 Downsampled \(cgImage.width)x\(cgImage.height) → \(downsampled.width)x\(downsampled.height)")
+        } else {
+            analysisImage = cgImage
+            analysisTexture = texture
+        }
+
         // Convert to RGB data
-        let width = cgImage.width
-        let height = cgImage.height
+        let width = analysisImage.width
+        let height = analysisImage.height
 
         var pixelData = [UInt8](repeating: 0, count: width * height * 4)
 
@@ -93,10 +192,10 @@ public class RednessAnalyzer {
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         )
 
-        context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        context?.draw(analysisImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
         // Detect skin tone for adaptive inflammation detection
-        let skinTone = skinToneNormalizer.detectSkinTone(texture: texture)
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: analysisTexture)
 
         // 1. Calculate global redness (skin-tone aware)
         let globalRedness = calculateGlobalRedness(pixelData: pixelData, width: width, height: height, skinTone: skinTone)
@@ -104,16 +203,20 @@ public class RednessAnalyzer {
         // 2. Calculate regional redness
         let regionalRedness = calculateRegionalRedness(pixelData: pixelData, width: width, height: height)
 
-        // 3. Detect inflamed areas
-        let inflamedAreas = detectInflammedAreas(pixelData: pixelData, width: width, height: height)
+        // Get adaptive thresholds based on skin tone (FIXED for Indian skin)
+        let thresholds = getAdaptiveThresholds(skinTone: skinTone)
 
-        // 4. Classify redness level
-        let rednessLevel = classifyRednessLevel(globalRedness: globalRedness)
+        // 3. Detect inflamed areas (using adaptive thresholds)
+        let inflamedAreas = detectInflammedAreas(pixelData: pixelData, width: width, height: height, moderateThreshold: thresholds.moderate)
 
-        // 5. Calculate overall score
+        // 4. Classify redness level (using adaptive thresholds)
+        let rednessLevel = classifyRednessLevel(globalRedness: globalRedness, thresholds: thresholds)
+
+        // 5. Calculate overall score (using adaptive thresholds)
         let overallScore = calculateOverallScore(
             globalRedness: globalRedness,
-            inflamedAreaCount: inflamedAreas.count
+            inflamedAreaCount: inflamedAreas.count,
+            thresholds: thresholds
         )
 
         // 6. Calculate confidence based on detection method and consistency
@@ -239,7 +342,8 @@ public class RednessAnalyzer {
     }
 
     /// Detect highly inflamed areas
-    private func detectInflammedAreas(pixelData: [UInt8], width: Int, height: Int) -> [InflammedRegion] {
+    /// FIXED: Now accepts skin-tone-adaptive threshold for Indian skin
+    private func detectInflammedAreas(pixelData: [UInt8], width: Int, height: Int, moderateThreshold: Float) -> [InflammedRegion] {
         var inflamedAreas: [InflammedRegion] = []
         var visited = Array(repeating: Array(repeating: false, count: width), count: height)
 
@@ -254,7 +358,7 @@ public class RednessAnalyzer {
 
                 let redness = r - (g + b) / 2.0
 
-                // Only consider significantly red areas
+                // Only consider significantly red areas (using adaptive threshold)
                 if redness > moderateThreshold {
                     // BFS to find connected inflamed region
                     let area = floodFillInflamed(
@@ -345,16 +449,16 @@ public class RednessAnalyzer {
         }
     }
 
-    /// Classify redness level (using relative thresholds)
-    private func classifyRednessLevel(globalRedness: Float) -> RednessLevel {
-        // Adaptive thresholds based on relative redness
+    /// Classify redness level (using skin-tone-adaptive thresholds)
+    /// FIXED: Now uses adaptive thresholds for Indian skin
+    private func classifyRednessLevel(globalRedness: Float, thresholds: (moderate: Float, severe: Float)) -> RednessLevel {
         let minimalThreshold: Float = 0.05
 
         if globalRedness < minimalThreshold {
             return .minimal
-        } else if globalRedness < moderateThreshold {
+        } else if globalRedness < thresholds.moderate {
             return .mild
-        } else if globalRedness < severeThreshold {
+        } else if globalRedness < thresholds.severe {
             return .moderate
         } else {
             return .severe
@@ -362,14 +466,19 @@ public class RednessAnalyzer {
     }
 
     /// Calculate overall redness score
-    private func calculateOverallScore(globalRedness: Float, inflamedAreaCount: Int) -> Float {
-        // Less redness = higher score
-        let rednessScore = max(0, 100 - (globalRedness * 500))
+    /// FIXED: Now uses the calibrated RednessLevel score instead of broken formula
+    /// Previous formula: 100 - (globalRedness * 500) produced 0 scores for mild redness
+    private func calculateOverallScore(globalRedness: Float, inflamedAreaCount: Int, thresholds: (moderate: Float, severe: Float)) -> Float {
+        // Use the classified redness level's calibrated score (with skin-tone-adaptive thresholds)
+        // minimal=95, mild=75, moderate=50, severe=25
+        let rednessLevel = classifyRednessLevel(globalRedness: globalRedness, thresholds: thresholds)
+        let baseScore = rednessLevel.score
 
-        // Fewer inflamed areas = higher score
-        let areaScore = max(0, 100 - Float(inflamedAreaCount) * 10)
+        // Small penalty for inflamed areas (max -15 points, 1.5 points per area)
+        // This prevents over-penalization - even 10 areas only costs 15 points
+        let areaPenalty = min(15.0, Float(inflamedAreaCount) * 1.5)
 
-        return (rednessScore * 0.7 + areaScore * 0.3)
+        return max(0, baseScore - areaPenalty)
     }
 
     /// Calculate baseline skin tone from center region (avoids edges, hair)
@@ -393,5 +502,414 @@ public class RednessAnalyzer {
         }
 
         return count > 0 ? (rSum / Float(count), gSum / Float(count), bSum / Float(count)) : (0.5, 0.5, 0.5)
+    }
+
+    // MARK: - GPU Acceleration Methods
+
+    /// GPU-accelerated redness analysis (full resolution, no downsampling)
+    private func analyzeRednessGPU(
+        texture: UIImage,
+        cgImage: CGImage,
+        metalAnalyzer: MetalAnalyzerBase
+    ) -> RednessAnalysis {
+        let startTime = CFAbsoluteTimeGetCurrent()
+
+        do {
+            // Convert UIImage to Metal texture
+            guard let inputTexture = MetalHelpers.textureFromUIImage(texture, device: metalAnalyzer.device) else {
+                AppLogger.metrics.error("❌ GPU: Failed to convert image to texture - falling back to CPU")
+                return analyzeRednessCPU(texture: texture, cgImage: cgImage)
+            }
+
+            let width = inputTexture.width
+            let height = inputTexture.height
+            AppLogger.metrics.info("   📏 Analyzing full resolution: \(width)x\(height)")
+
+            // STEP 1: Calculate baseline skin tone using GPU
+            let baselineRGB = try calculateBaselineSkinToneGPU(
+                inputTexture: inputTexture,
+                metalAnalyzer: metalAnalyzer
+            )
+            let baselineRedness = baselineRGB.r - (baselineRGB.g + baselineRGB.b) / 2.0
+
+            // STEP 2: Calculate adaptive threshold
+            let adaptiveThreshold = max(0.08, baselineRedness * adaptiveMultiplier)
+            AppLogger.metrics.debug("   🎯 Baseline redness: \(String(format: "%.3f", baselineRedness)), threshold: \(String(format: "%.3f", adaptiveThreshold))")
+
+            // Detect skin tone for adaptive thresholds
+            let analysisTexture = UIImage(cgImage: cgImage)
+            let skinTone = skinToneNormalizer.detectSkinTone(texture: analysisTexture)
+            let thresholds = getAdaptiveThresholds(skinTone: skinTone)
+
+            // STEP 3: Analyze redness using GPU
+            let results = try analyzeRednessGPUKernel(
+                inputTexture: inputTexture,
+                threshold: adaptiveThreshold,
+                metalAnalyzer: metalAnalyzer
+            )
+
+            let globalRedness = results.redness
+            let inflamedPixelCount = results.inflamedPixels
+
+            AppLogger.metrics.info("   Global redness: \(String(format: "%.3f", globalRedness))")
+            AppLogger.metrics.info("   Inflamed pixels: \(Int(inflamedPixelCount))")
+
+            // STEP 4: Calculate regional redness using GPU
+            let regionalRedness = try analyzeRegionalRednessGPU(
+                inputTexture: inputTexture,
+                metalAnalyzer: metalAnalyzer
+            )
+
+            // STEP 5: Detect inflamed areas (use CPU for flood-fill algorithm)
+            // GPU is not efficient for this irregular, graph-traversal algorithm
+            let inflamedAreas = detectInflammedAreasCPU(
+                texture: texture,
+                cgImage: cgImage,
+                moderateThreshold: thresholds.moderate
+            )
+
+            // STEP 6: Classify redness level
+            let rednessLevel = classifyRednessLevel(globalRedness: globalRedness, thresholds: thresholds)
+
+            // STEP 7: Calculate overall score
+            let overallScore = calculateOverallScore(
+                globalRedness: globalRedness,
+                inflamedAreaCount: inflamedAreas.count,
+                thresholds: thresholds
+            )
+
+            // STEP 8: Calculate confidence
+            let useDarkeningDetection = (skinTone == .dark || skinTone == .veryDark || skinTone == .mediumDark)
+            let detectionMethodStr = useDarkeningDetection ? "darkening" : "redness"
+
+            let confidence: Float = {
+                var conf: Float = 65.0
+
+                if useDarkeningDetection {
+                    conf -= 10
+                }
+
+                if !regionalRedness.isEmpty {
+                    let values = Array(regionalRedness.values)
+                    let avg = values.reduce(0, +) / Float(values.count)
+                    let variance = values.map { pow($0 - avg, 2) }.reduce(0, +) / Float(values.count)
+                    if variance < 0.01 { conf += 15 }
+                }
+
+                if inflamedAreas.count > 0 && inflamedAreas.count < 20 {
+                    conf += 10
+                }
+
+                return max(50, min(90, conf))
+            }()
+
+            let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+            AppLogger.metrics.info("✅ Redness analysis complete (GPU)")
+            AppLogger.metrics.info("   GPU time: \(String(format: "%.1f", elapsed))ms")
+            AppLogger.metrics.info("   Level: \(rednessLevel)")
+            AppLogger.metrics.info("   Overall score: \(String(format: "%.1f", overallScore))/100")
+            AppLogger.metrics.info("   Confidence: \(String(format: "%.1f", confidence))% (\(detectionMethodStr) method)")
+
+            return RednessAnalysis(
+                overallScore: overallScore,
+                rednessLevel: rednessLevel,
+                globalRedness: globalRedness,
+                regionalRedness: regionalRedness,
+                inflamedAreas: inflamedAreas,
+                confidence: confidence,
+                detectionMethod: detectionMethodStr
+            )
+
+        } catch {
+            AppLogger.metrics.error("❌ GPU analysis failed: \(error.localizedDescription) - falling back to CPU")
+            return analyzeRednessCPU(texture: texture, cgImage: cgImage)
+        }
+    }
+
+    /// Helper to run CPU analysis (extracted from main method)
+    private func analyzeRednessCPU(texture: UIImage, cgImage: CGImage) -> RednessAnalysis {
+        let analysisImage: CGImage
+        let analysisTexture: UIImage
+        if let downsampled = downsample(cgImage) {
+            analysisImage = downsampled
+            analysisTexture = UIImage(cgImage: downsampled)
+            AppLogger.metrics.info("   📐 CPU: Downsampled \(cgImage.width)x\(cgImage.height) → \(downsampled.width)x\(downsampled.height)")
+        } else {
+            analysisImage = cgImage
+            analysisTexture = texture
+        }
+
+        let width = analysisImage.width
+        let height = analysisImage.height
+
+        var pixelData = [UInt8](repeating: 0, count: width * height * 4)
+
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let context = CGContext(
+            data: &pixelData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+
+        context?.draw(analysisImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: analysisTexture)
+        let globalRedness = calculateGlobalRedness(pixelData: pixelData, width: width, height: height, skinTone: skinTone)
+        let regionalRedness = calculateRegionalRedness(pixelData: pixelData, width: width, height: height)
+        let thresholds = getAdaptiveThresholds(skinTone: skinTone)
+        let inflamedAreas = detectInflammedAreas(pixelData: pixelData, width: width, height: height, moderateThreshold: thresholds.moderate)
+        let rednessLevel = classifyRednessLevel(globalRedness: globalRedness, thresholds: thresholds)
+        let overallScore = calculateOverallScore(globalRedness: globalRedness, inflamedAreaCount: inflamedAreas.count, thresholds: thresholds)
+
+        let useDarkeningDetection = (skinTone == .dark || skinTone == .veryDark || skinTone == .mediumDark)
+        let detectionMethodStr = useDarkeningDetection ? "darkening" : "redness"
+
+        let confidence: Float = {
+            var conf: Float = 65.0
+            if useDarkeningDetection { conf -= 10 }
+            if !regionalRedness.isEmpty {
+                let values = Array(regionalRedness.values)
+                let avg = values.reduce(0, +) / Float(values.count)
+                let variance = values.map { pow($0 - avg, 2) }.reduce(0, +) / Float(values.count)
+                if variance < 0.01 { conf += 15 }
+            }
+            if inflamedAreas.count > 0 && inflamedAreas.count < 20 { conf += 10 }
+            return max(50, min(90, conf))
+        }()
+
+        AppLogger.metrics.info("✅ Redness analysis complete (CPU)")
+        AppLogger.metrics.info("   Global redness: \(String(format: "%.3f", globalRedness))")
+        AppLogger.metrics.info("   Level: \(rednessLevel)")
+        AppLogger.metrics.info("   Overall score: \(String(format: "%.1f", overallScore))/100")
+        AppLogger.metrics.info("   Confidence: \(String(format: "%.1f", confidence))% (\(detectionMethodStr) method)")
+
+        return RednessAnalysis(
+            overallScore: overallScore,
+            rednessLevel: rednessLevel,
+            globalRedness: globalRedness,
+            regionalRedness: regionalRedness,
+            inflamedAreas: inflamedAreas,
+            confidence: confidence,
+            detectionMethod: detectionMethodStr
+        )
+    }
+
+    /// Calculate baseline skin tone using GPU
+    private func calculateBaselineSkinToneGPU(
+        inputTexture: MTLTexture,
+        metalAnalyzer: MetalAnalyzerBase
+    ) throws -> (r: Float, g: Float, b: Float) {
+        // Load pipeline
+        let pipeline = try metalAnalyzer.loadPipeline(named: "calculateBaselineSkinTone")
+
+        // Create output buffer (3 floats: R, G, B)
+        let resultBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.size * 3)
+
+        // Execute
+        try metalAnalyzer.executeSync(operation: "calculateBaselineSkinTone") { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+            }
+
+            encoder.setComputePipelineState(pipeline)
+            encoder.setTexture(inputTexture, index: 0)
+            encoder.setBuffer(resultBuffer, offset: 0, index: 0)
+
+            let (threadgroups, threadsPerGroup) = metalAnalyzer.calculateThreadgroups(
+                pipeline: pipeline,
+                width: inputTexture.width,
+                height: inputTexture.height
+            )
+
+            encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+            encoder.endEncoding()
+        }
+
+        // Read results
+        let resultPtr = resultBuffer.contents().assumingMemoryBound(to: Float.self)
+        return (resultPtr[0], resultPtr[1], resultPtr[2])
+    }
+
+    /// Analyze redness using GPU kernel
+    private func analyzeRednessGPUKernel(
+        inputTexture: MTLTexture,
+        threshold: Float,
+        metalAnalyzer: MetalAnalyzerBase
+    ) throws -> (redness: Float, inflamedPixels: Float) {
+        // Load pipeline
+        let pipeline = try metalAnalyzer.loadPipeline(named: "analyzeRedness")
+
+        // Calculate threadgroup configuration
+        let (threadgroups, threadsPerGroup) = metalAnalyzer.calculateThreadgroups(
+            pipeline: pipeline,
+            width: inputTexture.width,
+            height: inputTexture.height
+        )
+
+        let numThreadgroups = threadgroups.width * threadgroups.height
+
+        // Create buffers for partial results (one per threadgroup)
+        let rednessBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.stride * numThreadgroups)
+        let inflamedBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.stride * numThreadgroups)
+
+        // Create threshold buffer
+        var thresholdValue = threshold
+        let thresholdBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.size)
+        memcpy(thresholdBuffer.contents(), &thresholdValue, MemoryLayout<Float>.size)
+
+        // Create threadgroupsPerRow buffer (required for linear index calculation)
+        var threadgroupsPerRow = UInt32(threadgroups.width)
+        let threadgroupsPerRowBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<UInt32>.size)
+        memcpy(threadgroupsPerRowBuffer.contents(), &threadgroupsPerRow, MemoryLayout<UInt32>.size)
+
+        // Execute kernel
+        try metalAnalyzer.executeSync(operation: "analyzeRedness") { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+            }
+
+            encoder.setComputePipelineState(pipeline)
+            encoder.setTexture(inputTexture, index: 0)
+            encoder.setBuffer(rednessBuffer, offset: 0, index: 0)
+            encoder.setBuffer(inflamedBuffer, offset: 0, index: 1)
+            encoder.setBuffer(thresholdBuffer, offset: 0, index: 2)
+            encoder.setBuffer(threadgroupsPerRowBuffer, offset: 0, index: 3)
+
+            encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+            encoder.endEncoding()
+        }
+
+        // Reduce partial results on CPU (small array)
+        let rednessPtr = rednessBuffer.contents().assumingMemoryBound(to: Float.self)
+        let inflamedPtr = inflamedBuffer.contents().assumingMemoryBound(to: Float.self)
+
+        var totalRedness: Float = 0
+        var totalInflamed: Float = 0
+
+        for i in 0..<numThreadgroups {
+            totalRedness += rednessPtr[i]
+            totalInflamed += inflamedPtr[i]
+        }
+
+        // Calculate average redness (pixels with positive redness)
+        let avgRedness = totalRedness > 0 ? totalRedness / Float(inputTexture.width * inputTexture.height) : 0
+
+        return (avgRedness, totalInflamed)
+    }
+
+    /// Analyze regional redness using GPU
+    private func analyzeRegionalRednessGPU(
+        inputTexture: MTLTexture,
+        metalAnalyzer: MetalAnalyzerBase
+    ) throws -> [String: Float] {
+        let pipeline = try metalAnalyzer.loadPipeline(named: "analyzeRegionalRedness")
+
+        // Define face regions (normalized coordinates)
+        let regions: [String: (minX: Float, maxX: Float, minY: Float, maxY: Float)] = [
+            "forehead": (0.3, 0.7, 0.1, 0.35),
+            "left_cheek": (0.1, 0.35, 0.35, 0.65),
+            "right_cheek": (0.65, 0.9, 0.35, 0.65),
+            "nose": (0.35, 0.65, 0.35, 0.65),
+            "chin": (0.35, 0.65, 0.65, 0.9)
+        ]
+
+        var regionalScores: [String: Float] = [:]
+
+        for (regionName, bounds) in regions {
+            // Calculate threadgroup configuration
+            let (threadgroups, threadsPerGroup) = metalAnalyzer.calculateThreadgroups(
+                pipeline: pipeline,
+                width: inputTexture.width,
+                height: inputTexture.height
+            )
+
+            let numThreadgroups = threadgroups.width * threadgroups.height
+
+            // Create buffers
+            let rednessBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.stride * numThreadgroups)
+            let pixelCountBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.stride * numThreadgroups)
+
+            // Create region bounds buffer (float4)
+            var regionBounds: SIMD4<Float> = SIMD4<Float>(bounds.minX, bounds.maxX, bounds.minY, bounds.maxY)
+            let boundsBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<SIMD4<Float>>.size)
+            memcpy(boundsBuffer.contents(), &regionBounds, MemoryLayout<SIMD4<Float>>.size)
+
+            // Create threadgroupsPerRow buffer
+            var threadgroupsPerRow = UInt32(threadgroups.width)
+            let threadgroupsPerRowBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<UInt32>.size)
+            memcpy(threadgroupsPerRowBuffer.contents(), &threadgroupsPerRow, MemoryLayout<UInt32>.size)
+
+            // Execute kernel
+            try metalAnalyzer.executeSync(operation: "analyzeRegionalRedness") { commandBuffer in
+                guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                    throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+                }
+
+                encoder.setComputePipelineState(pipeline)
+                encoder.setTexture(inputTexture, index: 0)
+                encoder.setBuffer(rednessBuffer, offset: 0, index: 0)
+                encoder.setBuffer(pixelCountBuffer, offset: 0, index: 1)
+                encoder.setBuffer(boundsBuffer, offset: 0, index: 2)
+                encoder.setBuffer(threadgroupsPerRowBuffer, offset: 0, index: 3)
+
+                encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+                encoder.endEncoding()
+            }
+
+            // Reduce results
+            let rednessPtr = rednessBuffer.contents().assumingMemoryBound(to: Float.self)
+            let pixelCountPtr = pixelCountBuffer.contents().assumingMemoryBound(to: Float.self)
+
+            var totalRedness: Float = 0
+            var totalPixels: Float = 0
+
+            for i in 0..<numThreadgroups {
+                totalRedness += rednessPtr[i]
+                totalPixels += pixelCountPtr[i]
+            }
+
+            regionalScores[regionName] = totalPixels > 0 ? totalRedness / totalPixels : 0
+        }
+
+        return regionalScores
+    }
+
+    /// Detect inflamed areas using CPU (flood-fill not efficient on GPU)
+    private func detectInflammedAreasCPU(
+        texture: UIImage,
+        cgImage: CGImage,
+        moderateThreshold: Float
+    ) -> [InflammedRegion] {
+        // Downsample for this operation (it's CPU-intensive)
+        let analysisImage: CGImage
+        if let downsampled = downsample(cgImage, maxSize: 512) {
+            analysisImage = downsampled
+        } else {
+            analysisImage = cgImage
+        }
+
+        let width = analysisImage.width
+        let height = analysisImage.height
+
+        var pixelData = [UInt8](repeating: 0, count: width * height * 4)
+
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let context = CGContext(
+            data: &pixelData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+
+        context?.draw(analysisImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        return detectInflammedAreas(pixelData: pixelData, width: width, height: height, moderateThreshold: moderateThreshold)
     }
 }

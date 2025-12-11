@@ -113,20 +113,26 @@ public enum Face3DROI: String, CaseIterable, Codable, Sendable {
         return rawValue
     }
 
-    /// Canonical UV bounds for this ROI (approximate)
-    /// Based on ARSCNFaceGeometry canonical UV layout
+    /// UV bounds for this ROI in 2D portrait face image
+    /// These are calibrated for a centered face with ~20% padding around it
+    /// V coordinate: 0 = top of image, 1 = bottom (screen coordinates)
     public var uvBounds: UVBounds {
         switch self {
         case .forehead:
-            return UVBounds(minU: 0.3, maxU: 0.7, minV: 0.7, maxV: 0.95)
+            // Top portion of face, centered horizontally
+            return UVBounds(minU: 0.25, maxU: 0.75, minV: 0.08, maxV: 0.28)
         case .leftCheek:
-            return UVBounds(minU: 0.15, maxU: 0.45, minV: 0.35, maxV: 0.65)
+            // Left side of face (viewer's right), middle height
+            return UVBounds(minU: 0.10, maxU: 0.38, minV: 0.35, maxV: 0.58)
         case .rightCheek:
-            return UVBounds(minU: 0.55, maxU: 0.85, minV: 0.35, maxV: 0.65)
+            // Right side of face (viewer's left), middle height
+            return UVBounds(minU: 0.62, maxU: 0.90, minV: 0.35, maxV: 0.58)
         case .noseBridge:
-            return UVBounds(minU: 0.4, maxU: 0.6, minV: 0.45, maxV: 0.7)
+            // Center of face, middle height
+            return UVBounds(minU: 0.38, maxU: 0.62, minV: 0.32, maxV: 0.52)
         case .chin:
-            return UVBounds(minU: 0.35, maxU: 0.65, minV: 0.1, maxV: 0.35)
+            // Bottom center of face
+            return UVBounds(minU: 0.30, maxU: 0.70, minV: 0.60, maxV: 0.80)
         }
     }
 }

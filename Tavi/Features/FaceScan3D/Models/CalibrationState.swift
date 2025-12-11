@@ -47,27 +47,21 @@ public enum LightingCondition: String {
 public enum DistanceCondition: String {
     case tooClose = "tooClose"
     case tooFar = "tooFar"
-    case acceptable = "acceptable"  // Works but not optimal
-    case good = "good"              // Optimal quality range
+    case good = "good"              // Optimal quality range (30-55cm)
 
     var message: String {
         switch self {
         case .tooClose:
-            return "Please move back a bit"
+            return "Move back slightly"
         case .tooFar:
-            return "Too far - move closer for skin detail"
-        case .acceptable:
-            return "Move closer for best skin analysis quality"
+            return "Move a bit closer"
         case .good:
             return "Distance is perfect"
         }
     }
 
     var isValid: Bool {
-        // UX FIX: Accept both "good" (30-50cm) and "acceptable" (25-30cm, 50-60cm)
-        // This gives users more flexibility while still maintaining quality
-        // Only reject "tooClose" (<25cm) and "tooFar" (>60cm)
-        return self == .good || self == .acceptable
+        return self == .good
     }
 
     var isOptimal: Bool {
@@ -432,26 +426,18 @@ public struct CalibrationState {
     /// Update distance from face anchor transform
     public mutating func updateDistance(from transform: simd_float4x4) {
         // Extract Z distance from camera (depth along camera view axis)
-        // ARKit: negative Z = forward (toward camera), positive Z = backward
-        // For face scanning, we care about depth (Z-axis distance), not full 3D distance
         let distance = abs(transform.columns.3.z)
 
-        // Use ScanConfiguration constants for distance validation
-        // FIXED: Check optimal range first to ensure 0.30-0.50m gets .good status
+        // Simplified distance zones - no more confusing "acceptable" range
+        // Good range: 30-55cm (where ARKit tracking is stable and detail is good)
         if distance < ScanConfiguration.minFaceDistance {
-            // Too close - risk of distortion and cutoff (< 0.20m)
+            // Too close (< 30cm) - causes tracking jitter
             self.distance = .tooClose
-        } else if distance >= ScanConfiguration.optimalDistanceMin && distance <= ScanConfiguration.optimalDistanceMax {
-            // OPTIMAL zone - best quality (0.25m - 0.50m)
-            self.distance = .good
-        } else if distance < ScanConfiguration.optimalDistanceMin {
-            // Between min and optimal - acceptable (0.20m - 0.25m)
-            self.distance = .acceptable
         } else if distance <= ScanConfiguration.acceptableFarDistance {
-            // Beyond optimal but still acceptable (0.50m - 0.60m)
-            self.distance = .acceptable
+            // Good zone (30-55cm) - stable tracking + good detail
+            self.distance = .good
         } else {
-            // Too far - insufficient detail (> 0.60m)
+            // Too far (> 55cm) - insufficient skin detail
             self.distance = .tooFar
         }
     }

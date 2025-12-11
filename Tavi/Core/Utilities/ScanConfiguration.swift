@@ -133,28 +133,28 @@ public struct ScanConfiguration {
     // MARK: - Distance Calibration Thresholds
 
     /// Minimum acceptable distance (meters)
-    /// Closer than this causes distortion and face cutoff
-    public static let minFaceDistance: Float = 0.20
+    /// Set to 0.30m to ensure stable ARKit tracking (closer = tracking jitter)
+    public static let minFaceDistance: Float = 0.30
 
     /// Close acceptable range start (meters)
-    /// Acceptable but may have slight distortion
-    public static let acceptableCloseDistance: Float = 0.25
+    /// No longer used - removed "acceptable close" zone that caused stability issues
+    public static let acceptableCloseDistance: Float = 0.30
 
     /// Optimal distance range start (meters)
-    /// Best quality for skin analysis
-    /// Expanded to 0.25m to allow closer distances for better detail (with slight distortion risk)
-    public static let optimalDistanceMin: Float = 0.25
+    /// 0.30m ensures stable tracking while maintaining good skin detail
+    public static let optimalDistanceMin: Float = 0.30
 
     /// Optimal distance range end (meters)
+    /// 0.50m is the sweet spot for TrueDepth sensor accuracy
     public static let optimalDistanceMax: Float = 0.50
 
     /// Far acceptable range end (meters)
-    /// Beyond this, skin detail degrades significantly
-    public static let acceptableFarDistance: Float = 0.60
+    /// Beyond 0.55m, skin detail starts to degrade
+    public static let acceptableFarDistance: Float = 0.55
 
     /// Maximum usable distance (meters)
     /// Beyond this, insufficient detail for quality analysis
-    public static let maxFaceDistance: Float = 0.70
+    public static let maxFaceDistance: Float = 0.60
 
     // MARK: - Pose Validation Thresholds (STRICT for accurate 3D reconstruction)
 

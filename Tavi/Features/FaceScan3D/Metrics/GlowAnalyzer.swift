@@ -11,9 +11,75 @@
 import UIKit
 import Accelerate
 import simd
+import Metal
 
 /// Analyzes skin glow (overall health) and radiance (pure luminosity)
 public class GlowAnalyzer {
+
+    // MARK: - GPU Infrastructure
+
+    /// Metal analyzer for GPU acceleration
+    private let metalAnalyzer: MetalAnalyzerBase?
+
+    /// Whether GPU acceleration is available
+    private var isGPUAvailable: Bool {
+        return metalAnalyzer != nil
+    }
+
+    // MARK: - Performance Optimization
+
+    /// Maximum texture size for analysis (1024x1024 provides good balance of accuracy and performance)
+    private let maxAnalysisSize: Int = 1024
+
+    // MARK: - Initialization
+
+    public init() {
+        // Initialize Metal GPU infrastructure
+        do {
+            self.metalAnalyzer = try MetalAnalyzerBase()
+            AppLogger.metrics.info("✅ GlowAnalyzer: GPU acceleration enabled")
+        } catch {
+            self.metalAnalyzer = nil
+            AppLogger.metrics.warning("⚠️ GlowAnalyzer: GPU unavailable, using CPU fallback - \(error.localizedDescription)")
+        }
+    }
+
+    /// Downsample image to max size for efficient processing
+    private func downsample(_ image: CGImage, maxSize: Int? = nil) -> CGImage? {
+        let targetSize = maxSize ?? maxAnalysisSize
+        let scale = min(1.0, Double(targetSize) / Double(max(image.width, image.height)))
+
+        // No downsampling needed if already small enough
+        if scale >= 1.0 { return image }
+
+        let newWidth = Int(Double(image.width) * scale)
+        let newHeight = Int(Double(image.height) * scale)
+
+        let colorSpace = image.colorSpace ?? CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil,
+            width: newWidth,
+            height: newHeight,
+            bitsPerComponent: 8,
+            bytesPerRow: newWidth * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+        return context.makeImage()
+    }
+
+    // MARK: - GPU Data Structures
+
+    /// Partial results from GPU threadgroup (matches Metal structure)
+    private struct GlowPartialResults {
+        var lightnessSum: Float        // Sum of L* values (0-100 range)
+        var specularPixelCount: Float  // Count of bright specular pixels
+        var uniformitySum: Float       // Sum of local uniformity values
+        var validPixelCount: Float     // Total pixels processed
+    }
 
     // MARK: - Configuration
 
@@ -23,16 +89,19 @@ public class GlowAnalyzer {
         static let smoothnessWeight: Float = 0.25      // Texture smoothness
         static let evennessWeight: Float = 0.20        // Skin tone evenness
         static let radianceWeight: Float = 0.20        // Luminosity/glow
-        static let clarityWeight: Float = 0.15         // Discoloration (inverse - lower is better)
-        static let rednessWeight: Float = 0.10         // Redness control (inverse)
+        static let clarityWeight: Float = 0.15         // Uniformity score (higher = more uniform skin)
+        static let rednessWeight: Float = 0.10         // Redness score (higher = less inflammation)
         static let acneWeight: Float = 0.10            // Acne score
 
         // Radiance formula weights
         static let labLightnessWeight: Float = 0.70
         static let specularHighlightWeight: Float = 0.30
 
-        // Specular detection threshold (0-1, brightness level)
-        static let specularBrightnessThreshold: Float = 0.85
+        // Specular detection - RELATIVE threshold (multiplier over baseline)
+        // Indian skin (Fitzpatrick III-IV) has brightness ~0.45-0.65
+        // Using 1.25x baseline ensures specular detection works for all skin tones
+        static let specularRelativeMultiplier: Float = 1.25
+        static let specularMaxThreshold: Float = 0.95  // Never exceed this
     }
 
     // MARK: - Public API
@@ -47,19 +116,42 @@ public class GlowAnalyzer {
 
         AppLogger.metrics.info("✨ Analyzing skin glow and radiance...")
 
+        // GPU PATH: Use full resolution texture for GPU-accelerated analysis
+        // CPU FALLBACK: Downsampled texture created only when needed
+        let analysisTexture: UIImage
+        if isGPUAvailable {
+            // GPU path: use full resolution for maximum accuracy
+            analysisTexture = texture
+            if let cgImage = texture.cgImage {
+                AppLogger.metrics.info("   🎨 Using GPU acceleration (full resolution: \(cgImage.width)x\(cgImage.height))")
+            }
+        } else {
+            // CPU fallback: downsample for performance
+            if let cgImage = texture.cgImage, let downsampled = downsample(cgImage) {
+                analysisTexture = UIImage(cgImage: downsampled)
+                AppLogger.metrics.info("   💻 Using CPU analysis (downsampled: \(cgImage.width)x\(cgImage.height) → \(downsampled.width)x\(downsampled.height))")
+            } else {
+                analysisTexture = texture
+            }
+        }
+
         // PART 1: SKIN HEALTH SCORE (Overall Health Index)
         // ONLY HIGH-CONFIDENCE METRICS - NO AGE-RELATED FEATURES
 
         let smoothness = existingMetrics.globalRoughnessScore
         let evenness = existingMetrics.globalPigmentationScore
-        let clarity = 100.0 - existingMetrics.globalDiscolorationScore
+        // FIXED: globalDiscolorationScore already returns higher = better (more uniform skin)
+        // No inversion needed - uniform skin (80) should contribute 80, not 20
+        let clarity = existingMetrics.globalDiscolorationScore
 
         // Get additional HIGH-CONFIDENCE metrics
-        let redness = 100.0 - (existingMetrics.rednessAnalysis?.overallScore ?? 50.0)  // Invert: lower redness = better
+        // FIXED: rednessAnalysis.overallScore already returns higher = better (less inflammation)
+        // No inversion needed - healthy skin (95) should contribute 95, not 5
+        let redness = existingMetrics.rednessAnalysis?.overallScore ?? 50.0
         let acne = existingMetrics.acneAnalysis?.overallScore ?? 80.0
 
         // Get radiance from LAB analysis
-        let radiancePreview = analyzeLABLightness(texture: texture) * 100.0
+        let radiancePreview = analyzeLABLightness(texture: analysisTexture) * 100.0
 
         // Compute skin health score with HIGH-CONFIDENCE metrics ONLY
         // EXCLUDED: Firmness/Wrinkles (age-related) and Oil Control (low confidence)
@@ -84,8 +176,8 @@ public class GlowAnalyzer {
         // PART 2: RADIANCE SCORE (Pure Luminosity)
         // Physics-based brightness measurement using LAB color space
 
-        let labLightness = analyzeLABLightness(texture: texture)
-        let specularRatio = analyzeSpecularHighlights(texture: texture)
+        let labLightness = analyzeLABLightness(texture: analysisTexture)
+        let specularRatio = analyzeSpecularHighlights(texture: analysisTexture)
         let luminosityIndex = (labLightness * 100.0)  // Convert L* (0-1) to 0-100 scale
 
         // Compute radiance score (pure brightness)
@@ -105,7 +197,7 @@ public class GlowAnalyzer {
         )
 
         let regionalRadiance = computeRegionalRadiance(
-            texture: texture,
+            texture: analysisTexture,
             geometry: geometry
         )
 
@@ -137,9 +229,147 @@ public class GlowAnalyzer {
 
     // MARK: - LAB Lightness Analysis (Physics-Based)
 
-    /// Analyze LAB color space L* channel (lightness)
+    /// Analyze LAB color space L* channel (lightness) with GPU acceleration
     /// This is a perceptually uniform measure of brightness
     private func analyzeLABLightness(texture: UIImage) -> Float {
+        // Try GPU path first
+        if isGPUAvailable {
+            if let result = try? analyzeLABLightnessGPU(texture: texture) {
+                return result
+            }
+            AppLogger.metrics.warning("⚠️ GPU LAB analysis failed, falling back to CPU")
+        }
+
+        // CPU fallback
+        return analyzeLABLightnessCPU(texture: texture)
+    }
+
+    /// GPU-accelerated LAB lightness analysis
+    private func analyzeLABLightnessGPU(texture: UIImage) throws -> Float {
+        guard let analyzer = metalAnalyzer else {
+            throw GPUAnalysisError.invalidInput("Metal analyzer not available")
+        }
+
+        // Convert to Metal texture
+        guard let metalTexture = MetalHelpers.textureFromUIImage(texture, device: analyzer.device) else {
+            throw GPUAnalysisError.textureCreationFailed("Failed to convert UIImage to Metal texture")
+        }
+
+        let width = metalTexture.width
+        let height = metalTexture.height
+
+        // Load pipeline
+        let baselinePipeline = try analyzer.loadPipeline(named: "calculateBaselineBrightness")
+        let analysisPipeline = try analyzer.loadPipeline(named: "analyzeGlow")
+
+        // Calculate threadgroup configuration
+        let (threadgroups, threadsPerGroup) = analyzer.calculateThreadgroups(
+            pipeline: analysisPipeline,
+            width: width,
+            height: height
+        )
+
+        let threadgroupsPerRow = threadgroups.width
+        let numThreadgroups = threadgroups.width * threadgroups.height
+
+        // STEP 1: Calculate baseline brightness with partial results
+        let partialBrightnessBuffer = try analyzer.createBuffer(length: numThreadgroups * MemoryLayout<Float>.stride)
+        let partialCountsBuffer = try analyzer.createBuffer(length: numThreadgroups * MemoryLayout<Float>.stride)
+
+        // Create buffer for threadgroupsPerRow parameter
+        var threadgroupsPerRowValueBaseline = UInt32(threadgroupsPerRow)
+        let threadgroupsPerRowBufferBaseline = try analyzer.createBuffer(length: MemoryLayout<UInt32>.stride)
+        memcpy(threadgroupsPerRowBufferBaseline.contents(), &threadgroupsPerRowValueBaseline, MemoryLayout<UInt32>.stride)
+
+        try analyzer.executeSync(operation: "calculateBaselineBrightness") { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+            }
+
+            encoder.setComputePipelineState(baselinePipeline)
+            encoder.setTexture(metalTexture, index: 0)
+            encoder.setBuffer(partialBrightnessBuffer, offset: 0, index: 0)
+            encoder.setBuffer(partialCountsBuffer, offset: 0, index: 1)
+            encoder.setBuffer(threadgroupsPerRowBufferBaseline, offset: 0, index: 2)
+
+            encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+            encoder.endEncoding()
+        }
+
+        // Aggregate partial results on CPU
+        let partialBrightnessPtr = partialBrightnessBuffer.contents().assumingMemoryBound(to: Float.self)
+        let partialCountsPtr = partialCountsBuffer.contents().assumingMemoryBound(to: Float.self)
+
+        var totalBrightness: Float = 0
+        var totalCount: Float = 0
+
+        for i in 0..<numThreadgroups {
+            totalBrightness += partialBrightnessPtr[i]
+            totalCount += partialCountsPtr[i]
+        }
+
+        // Calculate average baseline brightness
+        let baselineBrightness = totalCount > 0 ? totalBrightness / totalCount : 0.5
+
+        // STEP 2: Analyze glow metrics
+        let resultsBufferSize = numThreadgroups * MemoryLayout<GlowPartialResults>.stride
+        let resultsBuffer = try analyzer.createBuffer(length: resultsBufferSize)
+
+        // Create buffer for threadgroupsPerRow parameter
+        var threadgroupsPerRowValue = UInt32(threadgroupsPerRow)
+        let threadgroupsPerRowBuffer = try analyzer.createBuffer(length: MemoryLayout<UInt32>.stride)
+        memcpy(threadgroupsPerRowBuffer.contents(), &threadgroupsPerRowValue, MemoryLayout<UInt32>.stride)
+
+        // Create buffer for baseline brightness
+        var baselineValue = baselineBrightness
+        let baselineParamBuffer = try analyzer.createBuffer(length: MemoryLayout<Float>.stride)
+        memcpy(baselineParamBuffer.contents(), &baselineValue, MemoryLayout<Float>.stride)
+
+        try analyzer.executeSync(operation: "analyzeGlow") { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+            }
+
+            encoder.setComputePipelineState(analysisPipeline)
+            encoder.setTexture(metalTexture, index: 0)
+            encoder.setBuffer(resultsBuffer, offset: 0, index: 0)
+            encoder.setBuffer(baselineParamBuffer, offset: 0, index: 1)
+            encoder.setBuffer(threadgroupsPerRowBuffer, offset: 0, index: 2)
+
+            encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+            encoder.endEncoding()
+        }
+
+        // Read and aggregate results
+        let resultsPtr = resultsBuffer.contents().assumingMemoryBound(to: GlowPartialResults.self)
+
+        var totalLightness: Float = 0
+        var totalValidPixels: Float = 0
+
+        for i in 0..<numThreadgroups {
+            let result = resultsPtr[i]
+            totalLightness += result.lightnessSum
+            totalValidPixels += result.validPixelCount
+        }
+
+        // Calculate average L* (range 0-100) and normalize to 0-1
+        let averageLightness = totalValidPixels > 0 ? (totalLightness / totalValidPixels) / 100.0 : 0.5
+
+        return max(0, min(1, averageLightness))
+    }
+
+    /// Convert sRGB value to linear RGB (inverse gamma correction)
+    /// sRGB uses a piecewise gamma curve for perceptual uniformity
+    private func srgbToLinear(_ c: Float) -> Float {
+        if c <= 0.04045 {
+            return c / 12.92
+        } else {
+            return pow((c + 0.055) / 1.055, 2.4)
+        }
+    }
+
+    /// CPU fallback for LAB lightness analysis
+    private func analyzeLABLightnessCPU(texture: UIImage) -> Float {
         guard let cgImage = texture.cgImage else { return 0.5 }
 
         let width = cgImage.width
@@ -164,18 +394,24 @@ public class GlowAnalyzer {
                 let g = Float(ptr[offset + 1]) / 255.0
                 let b = Float(ptr[offset + 2]) / 255.0
 
-                // Convert RGB to LAB L* (simplified approximation)
-                // Full LAB conversion requires XYZ intermediate step
-                // This uses CIE luminance as proxy for L*
-                let luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+                // FIXED: Proper RGB→XYZ→LAB conversion with gamma correction
+                // Step 1: Apply inverse sRGB gamma to get linear RGB
+                let rLinear = srgbToLinear(r)
+                let gLinear = srgbToLinear(g)
+                let bLinear = srgbToLinear(b)
 
-                // Approximate L* from luminance
-                // L* = 116 * f(Y/Yn) - 16, where f(t) = t^(1/3) for t > 0.008856
+                // Step 2: Convert linear RGB to XYZ Y component (luminance)
+                // Using sRGB to XYZ matrix coefficients for Y row
+                let y_xyz = 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear
+
+                // Step 3: Convert Y to L* using CIE standard formula
+                // L* = 116 * f(Y/Yn) - 16, where Yn = 1.0 (D65 white point)
+                // f(t) = t^(1/3) for t > 0.008856, else f(t) = 7.787*t + 16/116
                 let lStar: Float
-                if luminance > 0.008856 {
-                    lStar = 116.0 * pow(luminance, 1.0/3.0) - 16.0
+                if y_xyz > 0.008856 {
+                    lStar = 116.0 * pow(y_xyz, 1.0/3.0) - 16.0
                 } else {
-                    lStar = 903.3 * luminance
+                    lStar = 903.3 * y_xyz  // Equivalent to 116 * (7.787*y + 16/116) - 16
                 }
 
                 // L* is in range 0-100, normalize to 0-1
@@ -192,8 +428,140 @@ public class GlowAnalyzer {
 
     // MARK: - Specular Highlight Analysis
 
-    /// Detect bright specular highlights (shiny spots)
+    /// Detect bright specular highlights (shiny spots) with GPU acceleration
+    /// FIXED: Now uses RELATIVE threshold based on baseline skin brightness
+    /// Works correctly for Indian skin (Fitzpatrick III-IV) with brightness 0.45-0.65
     private func analyzeSpecularHighlights(texture: UIImage) -> Float {
+        // Try GPU path first
+        if isGPUAvailable {
+            if let result = try? analyzeSpecularHighlightsGPU(texture: texture) {
+                return result
+            }
+            AppLogger.metrics.warning("⚠️ GPU specular analysis failed, falling back to CPU")
+        }
+
+        // CPU fallback
+        return analyzeSpecularHighlightsCPU(texture: texture)
+    }
+
+    /// GPU-accelerated specular highlight analysis
+    /// Reuses the glow analysis kernel which computes both LAB lightness and specular count
+    private func analyzeSpecularHighlightsGPU(texture: UIImage) throws -> Float {
+        guard let analyzer = metalAnalyzer else {
+            throw GPUAnalysisError.invalidInput("Metal analyzer not available")
+        }
+
+        // Convert to Metal texture
+        guard let metalTexture = MetalHelpers.textureFromUIImage(texture, device: analyzer.device) else {
+            throw GPUAnalysisError.textureCreationFailed("Failed to convert UIImage to Metal texture")
+        }
+
+        let width = metalTexture.width
+        let height = metalTexture.height
+
+        // Load pipelines
+        let baselinePipeline = try analyzer.loadPipeline(named: "calculateBaselineBrightness")
+        let analysisPipeline = try analyzer.loadPipeline(named: "analyzeGlow")
+
+        // Calculate threadgroup configuration
+        let (threadgroups, threadsPerGroup) = analyzer.calculateThreadgroups(
+            pipeline: analysisPipeline,
+            width: width,
+            height: height
+        )
+
+        let threadgroupsPerRow = threadgroups.width
+        let numThreadgroups = threadgroups.width * threadgroups.height
+
+        // STEP 1: Calculate baseline brightness with partial results
+        let partialBrightnessBuffer = try analyzer.createBuffer(length: numThreadgroups * MemoryLayout<Float>.stride)
+        let partialCountsBuffer = try analyzer.createBuffer(length: numThreadgroups * MemoryLayout<Float>.stride)
+
+        // Create buffer for threadgroupsPerRow parameter
+        var threadgroupsPerRowValueBaseline = UInt32(threadgroupsPerRow)
+        let threadgroupsPerRowBufferBaseline = try analyzer.createBuffer(length: MemoryLayout<UInt32>.stride)
+        memcpy(threadgroupsPerRowBufferBaseline.contents(), &threadgroupsPerRowValueBaseline, MemoryLayout<UInt32>.stride)
+
+        try analyzer.executeSync(operation: "calculateBaselineBrightness") { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+            }
+
+            encoder.setComputePipelineState(baselinePipeline)
+            encoder.setTexture(metalTexture, index: 0)
+            encoder.setBuffer(partialBrightnessBuffer, offset: 0, index: 0)
+            encoder.setBuffer(partialCountsBuffer, offset: 0, index: 1)
+            encoder.setBuffer(threadgroupsPerRowBufferBaseline, offset: 0, index: 2)
+
+            encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+            encoder.endEncoding()
+        }
+
+        // Aggregate partial results on CPU
+        let partialBrightnessPtr = partialBrightnessBuffer.contents().assumingMemoryBound(to: Float.self)
+        let partialCountsPtr = partialCountsBuffer.contents().assumingMemoryBound(to: Float.self)
+
+        var totalBrightness: Float = 0
+        var totalCount: Float = 0
+
+        for i in 0..<numThreadgroups {
+            totalBrightness += partialBrightnessPtr[i]
+            totalCount += partialCountsPtr[i]
+        }
+
+        // Calculate average baseline brightness
+        let baselineBrightness = totalCount > 0 ? totalBrightness / totalCount : 0.5
+
+        // STEP 2: Analyze glow metrics (includes specular count)
+        let resultsBufferSize = numThreadgroups * MemoryLayout<GlowPartialResults>.stride
+        let resultsBuffer = try analyzer.createBuffer(length: resultsBufferSize)
+
+        // Create buffer for threadgroupsPerRow parameter
+        var threadgroupsPerRowValue = UInt32(threadgroupsPerRow)
+        let threadgroupsPerRowBuffer = try analyzer.createBuffer(length: MemoryLayout<UInt32>.stride)
+        memcpy(threadgroupsPerRowBuffer.contents(), &threadgroupsPerRowValue, MemoryLayout<UInt32>.stride)
+
+        // Create buffer for baseline brightness
+        var baselineValue = baselineBrightness
+        let baselineParamBuffer = try analyzer.createBuffer(length: MemoryLayout<Float>.stride)
+        memcpy(baselineParamBuffer.contents(), &baselineValue, MemoryLayout<Float>.stride)
+
+        try analyzer.executeSync(operation: "analyzeGlow") { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
+            }
+
+            encoder.setComputePipelineState(analysisPipeline)
+            encoder.setTexture(metalTexture, index: 0)
+            encoder.setBuffer(resultsBuffer, offset: 0, index: 0)
+            encoder.setBuffer(baselineParamBuffer, offset: 0, index: 1)
+            encoder.setBuffer(threadgroupsPerRowBuffer, offset: 0, index: 2)
+
+            encoder.dispatchThreadgroups(threadgroups, threadsPerThreadgroup: threadsPerGroup)
+            encoder.endEncoding()
+        }
+
+        // Read and aggregate results
+        let resultsPtr = resultsBuffer.contents().assumingMemoryBound(to: GlowPartialResults.self)
+
+        var totalSpecularPixels: Float = 0
+        var totalValidPixels: Float = 0
+
+        for i in 0..<numThreadgroups {
+            let result = resultsPtr[i]
+            totalSpecularPixels += result.specularPixelCount
+            totalValidPixels += result.validPixelCount
+        }
+
+        // Calculate specular ratio and normalize
+        let specularRatio = totalValidPixels > 0 ? totalSpecularPixels / totalValidPixels : 0.0
+
+        // Clamp to reasonable range (0-0.3, most skin has <30% specular)
+        return min(0.3, specularRatio) / 0.3  // Normalize to 0-1
+    }
+
+    /// CPU fallback for specular highlight analysis
+    private func analyzeSpecularHighlightsCPU(texture: UIImage) -> Float {
         guard let cgImage = texture.cgImage else { return 0 }
 
         let width = cgImage.width
@@ -205,10 +573,21 @@ public class GlowAnalyzer {
             return 0
         }
 
-        var brightPixelCount = 0
         let totalPixels = width * height
 
-        // Count very bright pixels (specular highlights)
+        // STEP 1: Calculate baseline skin brightness from center region
+        let baselineBrightness = calculateBaselineBrightness(ptr: ptr, width: width, height: height, dataLength: CFDataGetLength(data))
+
+        // STEP 2: Calculate RELATIVE specular threshold
+        // Specular highlights are 25% brighter than baseline skin
+        let specularThreshold = min(
+            Configuration.specularMaxThreshold,
+            baselineBrightness * Configuration.specularRelativeMultiplier
+        )
+
+        // STEP 3: Count pixels above relative threshold
+        var brightPixelCount = 0
+
         for y in 0..<height {
             for x in 0..<width {
                 let offset = (y * width + x) * 4
@@ -218,10 +597,9 @@ public class GlowAnalyzer {
                 let g = Float(ptr[offset + 1]) / 255.0
                 let b = Float(ptr[offset + 2]) / 255.0
 
-                // Calculate brightness
                 let brightness = (r + g + b) / 3.0
 
-                if brightness > Configuration.specularBrightnessThreshold {
+                if brightness > specularThreshold {
                     brightPixelCount += 1
                 }
             }
@@ -231,6 +609,34 @@ public class GlowAnalyzer {
 
         // Clamp to reasonable range (0-0.3, most skin has <30% specular)
         return min(0.3, specularRatio) / 0.3  // Normalize to 0-1
+    }
+
+    /// Calculate baseline skin brightness from center region
+    /// Used for relative specular threshold calculation
+    private func calculateBaselineBrightness(ptr: UnsafePointer<UInt8>, width: Int, height: Int, dataLength: Int) -> Float {
+        let centerX = width / 2
+        let centerY = height / 2
+        let sampleRadius = min(width, height) / 4
+
+        var totalBrightness: Float = 0
+        var count = 0
+
+        for y in max(0, centerY - sampleRadius)..<min(height, centerY + sampleRadius) {
+            for x in max(0, centerX - sampleRadius)..<min(width, centerX + sampleRadius) {
+                let offset = (y * width + x) * 4
+                guard offset + 2 < dataLength else { continue }
+
+                let r = Float(ptr[offset]) / 255.0
+                let g = Float(ptr[offset + 1]) / 255.0
+                let b = Float(ptr[offset + 2]) / 255.0
+
+                totalBrightness += (r + g + b) / 3.0
+                count += 1
+            }
+        }
+
+        // Default to 0.5 if sampling fails (neutral)
+        return count > 0 ? totalBrightness / Float(count) : 0.5
     }
 
     // MARK: - Regional Analysis
@@ -333,40 +739,42 @@ public class GlowAnalyzer {
     // MARK: - Confidence Calculation
 
     /// Calculate analysis confidence based on data quality
+    /// STANDARDIZED: Uses consistent modifiers across all analyzers
+    /// Base: 75 (direct texture measurement)
+    /// Range: 45-95 (never 100% due to inherent limitations)
     private func computeConfidence(
         textureQuality: String?,
         labLightness: Float,
         specularRatio: Float
     ) -> Float {
-        var confidence: Float = 85.0  // Base confidence for direct measurement
+        var confidence: Float = 75.0  // Base confidence for direct texture measurement
 
-        // Factor 1: Texture quality
+        // Factor 1: Texture quality (standardized modifiers)
         if textureQuality?.contains("warning") == true {
             confidence -= 15
         } else if textureQuality?.contains("Good") == true {
             confidence += 10
         }
 
-        // Factor 2: Lighting conditions (via LAB lightness)
+        // Factor 2: Lighting conditions - STANDARDIZED across all analyzers
+        // Excellent: +10, Good: +5, Suboptimal: -5, Poor: -15
         if labLightness < 0.2 {
-            // Too dark
-            confidence -= 20
+            confidence -= 15  // Too dark
         } else if labLightness > 0.9 {
-            // Too bright/overexposed
-            confidence -= 15
+            confidence -= 15  // Too bright/overexposed
         } else if labLightness >= 0.4 && labLightness <= 0.7 {
-            // Optimal lighting range
-            confidence += 5
+            confidence += 10  // Optimal lighting range
+        } else {
+            confidence += 5   // Good but not optimal
         }
 
         // Factor 3: Specular consistency
         if specularRatio > 0.8 {
-            // Too much specular (very oily or overlit)
-            confidence -= 10
+            confidence -= 10  // Too much specular (very oily or overlit)
         }
 
-        // Clamp to 50-95 range
-        return max(50, min(95, confidence))
+        // Clamp to 45-95 range (standardized for direct texture analysis)
+        return max(45, min(95, confidence))
     }
 
     // MARK: - Fallback Computation

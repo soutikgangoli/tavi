@@ -76,6 +76,31 @@ public struct JawlineAnalysis: Codable, Sendable {
 /// Regional skin analyzers
 public class RegionalAnalyzers {
 
+    // MARK: - Performance Optimization
+
+    private let maxAnalysisSize: Int = 1024
+
+    private func downsample(_ image: CGImage, maxSize: Int? = nil) -> CGImage? {
+        let targetSize = maxSize ?? maxAnalysisSize
+        let scale = min(1.0, Double(targetSize) / Double(max(image.width, image.height)))
+        if scale >= 1.0 { return image }
+
+        let newWidth = Int(Double(image.width) * scale)
+        let newHeight = Int(Double(image.height) * scale)
+
+        let colorSpace = image.colorSpace ?? CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil, width: newWidth, height: newHeight,
+            bitsPerComponent: 8, bytesPerRow: newWidth * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+        return context.makeImage()
+    }
+
     // MARK: - Public API
 
     /// Analyze all regions
@@ -84,9 +109,17 @@ public class RegionalAnalyzers {
         texture: UIImage
     ) -> RegionalAnalysis {
 
-        let underEye = analyzeUnderEyeDarkness(texture: texture)
-        let lips = analyzeLips(geometry: geometry, texture: texture)
-        let nose = analyzeNosePores(texture: texture)
+        // PERFORMANCE: Downsample for efficient analysis
+        let analysisTexture: UIImage
+        if let cgImage = texture.cgImage, let downsampled = downsample(cgImage) {
+            analysisTexture = UIImage(cgImage: downsampled)
+        } else {
+            analysisTexture = texture
+        }
+
+        let underEye = analyzeUnderEyeDarkness(texture: analysisTexture)
+        let lips = analyzeLips(geometry: geometry, texture: analysisTexture)
+        let nose = analyzeNosePores(texture: analysisTexture)
         let jawline = analyzeJawline(geometry: geometry)
 
         return RegionalAnalysis(
@@ -621,14 +654,28 @@ public class RegionalAnalyzers {
 
         // High-frequency analysis to detect pores
         let pixels = extractPixels(from: region)
+        guard !pixels.isEmpty else { return [] }
+
+        // STEP 1: Calculate baseline brightness (average of region)
+        // FIXED: Previously used absolute threshold (100) which failed for Indian skin
+        var totalBrightness: Float = 0
+        for pixel in pixels {
+            totalBrightness += (Float(pixel.0) + Float(pixel.1) + Float(pixel.2)) / 3.0
+        }
+        let baselineBrightness = totalBrightness / Float(pixels.count)
+
+        // STEP 2: Use RELATIVE threshold - pores are 35% darker than baseline
+        // Indian skin baseline ~100-130 → threshold ~65-85
+        // Light skin baseline ~170-200 → threshold ~110-130
+        let poreThreshold = baselineBrightness * 0.65
 
         var pores: [PoreDetection] = []
 
-        // Simplified pore detection (look for small dark spots)
+        // Simplified pore detection (look for small dark spots relative to skin tone)
         for (index, pixel) in pixels.enumerated() {
             let brightness = (Float(pixel.0) + Float(pixel.1) + Float(pixel.2)) / 3.0
 
-            if brightness < 100 {  // Dark spot
+            if brightness < poreThreshold {  // Dark spot relative to baseline
                 let x = index % region.width
                 let y = index / region.width
 

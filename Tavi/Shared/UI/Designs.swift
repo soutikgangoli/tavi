@@ -277,8 +277,9 @@ public enum Designs {
         /// Soft warm gray for secondary text
         public static let textSecondary = Color(red: 120/255, green: 115/255, blue: 110/255)
 
-        /// Coral/orange accent
-        public static let accentCoral = Color(red: 235/255, green: 120/255, blue: 90/255)
+        /// Bright modern green accent (vibrant, eye-catching)
+        /// RGB: 0, 210, 120 - A fresh, energetic green that's modern and inviting
+        public static let accentCoral = Color(red: 0/255, green: 210/255, blue: 120/255)
 
         /// Soft teal accent
         public static let accentTeal = Color(red: 75/255, green: 160/255, blue: 150/255)

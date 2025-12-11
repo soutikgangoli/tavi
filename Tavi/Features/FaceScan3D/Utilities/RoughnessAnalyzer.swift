@@ -73,7 +73,7 @@ public class RoughnessAnalyzer {
 
         // FALLBACK TO CPU (with downsampling for performance)
         AppLogger.mesh.warning("⚠️ Metal unavailable - using CPU fallback with downsampling")
-        let maxDimension = 512
+        let maxDimension = 1024  // FIXED: Was 512, now matches other analyzers for consistent results
         let downsampledSample = downsampleIfNeeded(sample, maxDimension: maxDimension)
 
         // Convert to luminance
@@ -134,8 +134,8 @@ public class RoughnessAnalyzer {
         var luminance = [Float](repeating: 0, count: pixels.count)
 
         for (i, pixel) in pixels.enumerated() {
-            // Standard luminance formula: Y = 0.299R + 0.587G + 0.114B
-            luminance[i] = 0.299 * pixel.x + 0.587 * pixel.y + 0.114 * pixel.z
+            // FIXED: Standardized on BT.709 (sRGB) for consistency across all analyzers
+            luminance[i] = 0.2126 * pixel.x + 0.7152 * pixel.y + 0.0722 * pixel.z
         }
 
         return luminance
@@ -442,7 +442,7 @@ public class RoughnessAnalyzer {
 
     /// CPU fallback (explicit method for clarity)
     private func computeRoughnessProxyCPU(_ sample: ROITextureSample) -> Float {
-        let maxDimension = 512
+        let maxDimension = 1024  // FIXED: Was 512, now matches other analyzers
         let downsampledSample = downsampleIfNeeded(sample, maxDimension: maxDimension)
         let luminance = convertToLuminance(downsampledSample.pixels)
         guard !luminance.isEmpty else { return 0 }

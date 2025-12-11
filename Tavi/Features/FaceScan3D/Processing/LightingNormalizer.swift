@@ -110,7 +110,23 @@ class LightingNormalizer {
         }
 
         // Calculate overall score
-        let brightnessScore = 1.0 - abs(brightness - 0.55) / 0.55  // Optimal at 0.55
+        // SKIN-TONE ADAPTIVE: Optimal brightness varies by skin tone
+        // Light skin: optimal ~0.55-0.65 (brighter is better)
+        // Dark skin: optimal ~0.35-0.45 (naturally lower reflectance)
+        let optimalBrightness: Float
+        let brightnessRange: Float
+        switch skinTone {
+        case .veryLight, .light:
+            optimalBrightness = 0.60
+            brightnessRange = 0.60
+        case .medium, .mediumDark:
+            optimalBrightness = 0.50
+            brightnessRange = 0.50
+        case .dark, .veryDark:
+            optimalBrightness = 0.40
+            brightnessRange = 0.40
+        }
+        let brightnessScore = max(0, 1.0 - abs(brightness - optimalBrightness) / brightnessRange)
         let uniformityScore = uniformity
         let shadowScore = 1.0 - shadowPresence
 
@@ -128,41 +144,21 @@ class LightingNormalizer {
         )
     }
 
-    /// Normalize texture with lighting correction
+    /// Normalize texture - PASSTHROUGH MODE
+    /// NO PROCESSING - return original image as-is
+    /// iPhone/ARKit camera already handles exposure and white balance well
+    /// Processing was destroying skin detail needed for accurate metrics
     func normalize(image: UIImage) -> NormalizedTexture? {
-        guard let ciImage = CIImage(image: image) else { return nil }
-
-        // Assess quality first
+        // Assess quality for logging purposes only
         let quality = assessLightingQuality(image: image)
 
-        // Apply corrections
-        var correctedImage = ciImage
-
-        // 1. White balance correction
-        correctedImage = applyWhiteBalance(correctedImage)
-        let whiteBalanceCorrected = true
-
-        // 2. Exposure normalization
-        correctedImage = normalizeExposure(correctedImage, targetBrightness: 0.55)
-        let exposureAdjusted = true
-
-        // 3. Shadow compensation (if needed)
-        if quality.shadowPresence > maxShadowPresence {
-            correctedImage = compensateShadows(correctedImage)
-        }
-
-        // Convert back to UIImage
-        let context = CIContext()
-        guard let cgImage = context.createCGImage(correctedImage, from: correctedImage.extent) else {
-            return nil
-        }
-        let normalizedUIImage = UIImage(cgImage: cgImage)
-
+        // PASSTHROUGH: Return original image with NO modifications
+        // The camera image is already good enough
         return NormalizedTexture(
-            normalizedImage: normalizedUIImage,
+            normalizedImage: image,  // Original, untouched
             lightingQuality: quality,
-            whiteBalanceCorrected: whiteBalanceCorrected,
-            exposureAdjusted: exposureAdjusted
+            whiteBalanceCorrected: false,
+            exposureAdjusted: false
         )
     }
 
@@ -194,7 +190,8 @@ class LightingNormalizer {
         let g = Float(bitmap[1]) / 255.0
         let b = Float(bitmap[2]) / 255.0
 
-        return 0.299 * r + 0.587 * g + 0.114 * b
+        // FIXED: Standardized on BT.709 (sRGB) for consistency across all analyzers
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
     }
 
     /// Calculate lighting uniformity
@@ -356,12 +353,24 @@ class LightingNormalizer {
         return filter.outputImage ?? image
     }
 
-    /// Compensate for shadows
+    /// Compensate for shadows - GENTLER version
     private func compensateShadows(_ image: CIImage) -> CIImage {
         guard let filter = CIFilter(name: "CIHighlightShadowAdjust") else { return image }
         filter.setValue(image, forKey: kCIInputImageKey)
-        filter.setValue(0.7, forKey: "inputShadowAmount")  // Lift shadows
+        filter.setValue(0.4, forKey: "inputShadowAmount")  // Reduced from 0.7 - gentler lift
         filter.setValue(0.0, forKey: "inputHighlightAmount")
+
+        return filter.outputImage ?? image
+    }
+
+    /// Preserve contrast after exposure adjustments
+    /// Prevents washed-out appearance from brightness changes
+    private func preserveContrast(_ image: CIImage) -> CIImage {
+        guard let filter = CIFilter(name: "CIColorControls") else { return image }
+        filter.setValue(image, forKey: kCIInputImageKey)
+        filter.setValue(1.05, forKey: kCIInputContrastKey)  // Slight contrast boost
+        filter.setValue(1.0, forKey: kCIInputSaturationKey)  // Keep saturation
+        filter.setValue(0.0, forKey: kCIInputBrightnessKey)  // No additional brightness
 
         return filter.outputImage ?? image
     }

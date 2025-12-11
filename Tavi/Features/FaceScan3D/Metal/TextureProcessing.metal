@@ -84,8 +84,8 @@ kernel void rgbaToLuminance(
     // Read RGB pixel
     float4 color = inputTexture.read(gid);
 
-    // Standard luminance conversion: Y = 0.299R + 0.587G + 0.114B
-    float luminance = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+    // FIXED: Standardized on BT.709 (sRGB) for consistency across all analyzers
+    float luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
 
     // Write grayscale (Y, Y, Y, A)
     outputTexture.write(float4(luminance, luminance, luminance, color.a), gid);
@@ -138,8 +138,8 @@ kernel void gaussianBlurAndLuminance(
     // Normalize
     accumulatedColor /= accumulatedWeight;
 
-    // Convert to luminance
-    float luminance = 0.299 * accumulatedColor.r + 0.587 * accumulatedColor.g + 0.114 * accumulatedColor.b;
+    // FIXED: Standardized on BT.709 (sRGB) for consistency
+    float luminance = 0.2126 * accumulatedColor.r + 0.7152 * accumulatedColor.g + 0.0722 * accumulatedColor.b;
 
     // Write luminance output
     outputTexture.write(float4(luminance, luminance, luminance, accumulatedColor.a), gid);

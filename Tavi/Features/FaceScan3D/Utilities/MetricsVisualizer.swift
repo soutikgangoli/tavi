@@ -83,10 +83,11 @@ public class MetricsVisualizer {
             let bounds = roi.uvBounds
 
             // Fill pixels in this ROI
+            // V is now in screen coordinate system (0=top, 1=bottom)
             for y in 0..<height {
                 for x in 0..<width {
                     let u = Float(x) / Float(width)
-                    let v = 1.0 - Float(y) / Float(height)
+                    let v = Float(y) / Float(height)
 
                     if bounds.contains(u: u, v: v) {
                         let idx = (y * width + x) * 4
@@ -138,10 +139,10 @@ public class MetricsVisualizer {
             let path = UIBezierPath()
             let bounds = roi.uvBounds
 
-            // Create rectangle path
+            // Create rectangle path (V is now in screen coordinates: 0=top, 1=bottom)
             let rect = CGRect(
                 x: CGFloat(bounds.minU),
-                y: CGFloat(1.0 - bounds.maxV),  // Flip V
+                y: CGFloat(bounds.minV),
                 width: CGFloat(bounds.maxU - bounds.minU),
                 height: CGFloat(bounds.maxV - bounds.minV)
             )

@@ -116,8 +116,8 @@ public class TextureQualityValidator {
                 let g = Float(pixelData[idx + 1]) / 255.0
                 let b = Float(pixelData[idx + 2]) / 255.0
 
-                // Luminance
-                grayscale[y * width + x] = 0.299 * r + 0.587 * g + 0.114 * b
+                // FIXED: Standardized on BT.709 (sRGB) for consistency
+                grayscale[y * width + x] = 0.2126 * r + 0.7152 * g + 0.0722 * b
             }
         }
 

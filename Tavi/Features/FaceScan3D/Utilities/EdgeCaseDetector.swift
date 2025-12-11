@@ -298,7 +298,8 @@ public class EdgeCaseDetector {
                 let b = Float(ptr[offset + 2])
 
                 // Luminance (perceived brightness)
-                let luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+                // FIXED: Standardized on BT.709 (sRGB) for consistency
+                let luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0
 
                 totalBrightness += luminance
                 brightnessValues.append(luminance)
@@ -634,11 +635,27 @@ public class EdgeCaseDetector {
         // 2. Generally darker than skin
         // 3. High ratio of dark pixels
 
-        let darkForeheadPixels = foreheadPixels.filter { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 < 100 }
+        // FIXED: Skin-tone adaptive thresholds for hair detection
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: texture)
+        let (darkPixelThreshold, darkBrightnessThreshold): (Float, Float)
+        switch skinTone {
+        case .veryLight, .light:
+            darkPixelThreshold = 100
+            darkBrightnessThreshold = 110
+        case .medium, .mediumDark:
+            darkPixelThreshold = 70
+            darkBrightnessThreshold = 80
+        case .dark, .veryDark:
+            // Very dark skin: much lower thresholds
+            darkPixelThreshold = 45
+            darkBrightnessThreshold = 55
+        }
+
+        let darkForeheadPixels = foreheadPixels.filter { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 < darkPixelThreshold }
         let darkPixelRatio = Float(darkForeheadPixels.count) / Float(foreheadPixels.count)
 
         let hasHairTexture = foreheadVariance > 600
-        let isDark = foreheadBrightness < 110
+        let isDark = foreheadBrightness < darkBrightnessThreshold
         let hasSignificantDarkArea = darkPixelRatio > 0.4
 
         // Strategy 2: Check for reduced landmark confidence in forehead region
@@ -811,8 +828,25 @@ public class EdgeCaseDetector {
         let sumCrownBrightness = crownBrightnessValues.reduce(0, +)
         let crownBrightness = sumCrownBrightness / Float(max(crownPixels.count, 1))
 
+        // FIXED: Skin-tone adaptive thresholds for hat detection
+        // Dark skin naturally has lower brightness, so use relative thresholds
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: texture)
+        let (lowBrightnessThreshold, highBrightnessThreshold): (Float, Float)
+        switch skinTone {
+        case .veryLight, .light:
+            lowBrightnessThreshold = 40
+            highBrightnessThreshold = 200
+        case .medium, .mediumDark:
+            lowBrightnessThreshold = 30
+            highBrightnessThreshold = 180
+        case .dark, .veryDark:
+            // Very dark skin: much lower thresholds
+            lowBrightnessThreshold = 20
+            highBrightnessThreshold = 160
+        }
+
         // Check for non-skin-tone colors (hats are usually bright, saturated, or very dark)
-        let hasNonSkinColor = crownSaturation > 0.4 || crownBrightness > 200 || crownBrightness < 40
+        let hasNonSkinColor = crownSaturation > 0.4 || crownBrightness > highBrightnessThreshold || crownBrightness < lowBrightnessThreshold
 
         // Low variance = fabric (smooth texture vs hair)
         let hasFabricTexture = crownVariance < 300
@@ -909,9 +943,26 @@ public class EdgeCaseDetector {
         let sumRightBrightness = rightBrightnessValues.reduce(0, +)
         let rightAvgBrightness = sumRightBrightness / Float(max(rightPixels.count, 1))
 
-        // Very bright or very dark = jewelry
-        let hasNonSkinTone = (leftAvgBrightness > 180 || leftAvgBrightness < 60) &&
-                             (rightAvgBrightness > 180 || rightAvgBrightness < 60)
+        // FIXED: Skin-tone adaptive thresholds for earring detection
+        // Dark skin naturally has lower brightness
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: texture)
+        let (lowEarThreshold, highEarThreshold): (Float, Float)
+        switch skinTone {
+        case .veryLight, .light:
+            lowEarThreshold = 60
+            highEarThreshold = 180
+        case .medium, .mediumDark:
+            lowEarThreshold = 45
+            highEarThreshold = 170
+        case .dark, .veryDark:
+            // Very dark skin: much lower thresholds
+            lowEarThreshold = 30
+            highEarThreshold = 150
+        }
+
+        // Very bright or very dark relative to skin tone = likely jewelry
+        let hasNonSkinTone = (leftAvgBrightness > highEarThreshold || leftAvgBrightness < lowEarThreshold) &&
+                             (rightAvgBrightness > highEarThreshold || rightAvgBrightness < lowEarThreshold)
 
         let earringsDetected = hasBrightSpots || hasHighSaturation || hasNonSkinTone
 

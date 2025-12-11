@@ -60,7 +60,6 @@ public struct MainTabView: View {
                 }
             }
             .ignoresSafeArea(.keyboard) // Prevent tab bar from moving with keyboard
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedTab)
 
             // Custom tab bar overlay (on top)
             CustomTabBar(selectedTab: $selectedTab, showScanFlow: $showScanFlow)
@@ -76,176 +75,356 @@ public struct MainTabView: View {
     }
 }
 
-// MARK: - Custom Tab Bar (Gentler Streak Style)
-// Floating pill-shaped white container with coral floating indicator behind selected tab
+// MARK: - Custom Tab Bar (Apple Liquid Glass Design)
+// Floating glass tab bar with frosted blur effect and smooth animations
 
 struct CustomTabBar: View {
     @Binding var selectedTab: MainTabView.Tab
     @Binding var showScanFlow: Bool
 
-    // Gentler Streak Colors (centralized)
-    private let background = Designs.GentlerStreak.background
-    private let cardBackground = Designs.GentlerStreak.cardBackground
-    private let coral = Designs.GentlerStreak.accentCoral
+    @Namespace private var tabAnimation
+
+    // Bright green accent color
+    private let accentGreen = Designs.GentlerStreak.accentCoral
     private let textPrimary = Designs.GentlerStreak.textPrimary
-    private let textSecondary = Designs.GentlerStreak.textSecondary
+    private let textSecondary = Color(red: 140/255, green: 140/255, blue: 145/255)
 
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
 
-            // Floating pill-shaped tab bar container
+            // Floating liquid glass tab bar
             HStack(spacing: 0) {
-                // Tab 1: Home - heart icon
-                GentlerTabButton(
-                    icon: "heart.fill",
+                // Tab 1: Home
+                LiquidGlassTabButton(
+                    icon: "house.fill",
                     label: "Home",
                     isSelected: selectedTab == .home,
-                    accentColor: coral,
-                    textColor: textPrimary,
+                    namespace: tabAnimation,
+                    accentColor: accentGreen,
                     secondaryColor: textSecondary
                 ) {
                     selectTab(.home)
                 }
-                .background(
-                    Group {
-                        if selectedTab == .home {
-                            floatingPillIndicator
-                        }
-                    }
-                )
 
-                // Tab 2: History - clock icon (shorter label)
-                GentlerTabButton(
+                // Tab 2: History
+                LiquidGlassTabButton(
                     icon: "clock.fill",
                     label: "History",
                     isSelected: selectedTab == .history,
-                    accentColor: coral,
-                    textColor: textPrimary,
+                    namespace: tabAnimation,
+                    accentColor: accentGreen,
                     secondaryColor: textSecondary
                 ) {
                     selectTab(.history)
                 }
-                .background(
-                    Group {
-                        if selectedTab == .history {
-                            floatingPillIndicator
-                        }
-                    }
-                )
 
-                // Tab 3: Scan (Center button with camera icon) - properly centered
-                GentlerCenterButton(accentColor: coral) {
+                // Tab 3: Scan (Center floating button)
+                LiquidGlassCenterButton(accentColor: accentGreen) {
                     let impact = UIImpactFeedbackGenerator(style: .medium)
                     impact.impactOccurred()
                     showScanFlow = true
                 }
-                .frame(width: 72) // Fixed width to ensure proper centering
 
-                // Tab 4: Insights - grid icon
-                GentlerTabButton(
-                    icon: "square.grid.2x2.fill",
+                // Tab 4: Insights
+                LiquidGlassTabButton(
+                    icon: "chart.bar.fill",
                     label: "Insights",
                     isSelected: selectedTab == .insights,
-                    accentColor: coral,
-                    textColor: textPrimary,
+                    namespace: tabAnimation,
+                    accentColor: accentGreen,
                     secondaryColor: textSecondary
                 ) {
                     selectTab(.insights)
                 }
-                .background(
-                    Group {
-                        if selectedTab == .insights {
-                            floatingPillIndicator
-                        }
-                    }
-                )
 
-                // Tab 5: Profile - person icon
-                GentlerTabButton(
+                // Tab 5: Profile
+                LiquidGlassTabButton(
                     icon: "person.fill",
                     label: "Profile",
                     isSelected: selectedTab == .profile,
-                    accentColor: coral,
-                    textColor: textPrimary,
+                    namespace: tabAnimation,
+                    accentColor: accentGreen,
                     secondaryColor: textSecondary
                 ) {
                     selectTab(.profile)
                 }
-                .background(
-                    Group {
-                        if selectedTab == .profile {
-                            floatingPillIndicator
-                        }
-                    }
-                )
             }
-            .frame(height: 64)
+            .frame(height: 70)
             .background(
-                // Apple Liquid Glass - fluid frosted glass with visible border
+                // Apple Liquid Glass Effect
                 ZStack {
-                    // Base: Ultra-transparent blur
+                    // Frosted glass blur background
                     Capsule()
                         .fill(.ultraThinMaterial)
-                        .opacity(0.85)
 
-                    // Subtle inner glow at top edge
+                    // Subtle inner glow/highlight at top
                     Capsule()
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.white.opacity(0.3),
+                                    Color.white.opacity(0.6),
+                                    Color.white.opacity(0.1),
                                     Color.clear
                                 ],
                                 startPoint: .top,
-                                endPoint: .center
+                                endPoint: .bottom
                             )
                         )
-                        .padding(1.5)
+                        .padding(1)
+                        .mask(Capsule())
 
-                    // Apple-style fluid border - visible but elegant
+                    // Subtle border for definition
                     Capsule()
                         .stroke(
                             LinearGradient(
                                 colors: [
-                                    Color.white.opacity(0.7),
-                                    Color.white.opacity(0.3),
-                                    Color.white.opacity(0.4)
+                                    Color.white.opacity(0.5),
+                                    Color.white.opacity(0.2),
+                                    Color.black.opacity(0.05)
                                 ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                                startPoint: .top,
+                                endPoint: .bottom
                             ),
-                            lineWidth: 1.5
+                            lineWidth: 0.5
                         )
                 }
-                .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 8)
+                .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
+                .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
             )
-            .padding(.horizontal, 20)
-            .padding(.bottom, 28)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
         }
-        .background(Color.clear) // Transparent background so page content shows behind
+        .background(Color.clear)
     }
 
-    // MARK: - Floating Pill Indicator (Coral/peach behind selected tab)
-
-    private var floatingPillIndicator: some View {
-        Capsule()
-            .fill(coral.opacity(0.18))
-            .frame(width: 56, height: 48)
-            .animation(.spring(response: 0.35, dampingFraction: 0.55, blendDuration: 0), value: selectedTab)
-    }
-
-    /// Select tab with haptic feedback and bouncy animation
     private func selectTab(_ tab: MainTabView.Tab) {
         guard selectedTab != tab else { return }
-
         let impact = UIImpactFeedbackGenerator(style: .light)
         impact.impactOccurred()
-
-        // Bouncier spring animation
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.55, blendDuration: 0)) {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
             selectedTab = tab
         }
+    }
+}
+
+// MARK: - Liquid Glass Tab Button (Apple Vision Pro Style)
+
+struct LiquidGlassTabButton: View {
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let namespace: Namespace.ID
+    let accentColor: Color
+    let secondaryColor: Color
+    let action: () -> Void
+
+    @State private var isPressed = false
+
+    var body: some View {
+        Button {
+            action()
+        } label: {
+            VStack(spacing: 5) {
+                ZStack {
+                    // Glow effect behind icon when selected
+                    if isSelected {
+                        Circle()
+                            .fill(accentColor.opacity(0.25))
+                            .frame(width: 36, height: 36)
+                            .blur(radius: 8)
+                    }
+
+                    Image(systemName: icon)
+                        .font(.system(size: isSelected ? 22 : 20, weight: .medium))
+                        .foregroundStyle(isSelected ? accentColor : secondaryColor)
+                        .shadow(color: isSelected ? accentColor.opacity(0.5) : .clear, radius: 4, x: 0, y: 0)
+                }
+                .frame(height: 28)
+
+                Text(label)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
+                    .foregroundStyle(isSelected ? accentColor : secondaryColor)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 60)
+            .background(
+                Group {
+                    if isSelected {
+                        // Glass pill indicator with inner glow
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        accentColor.opacity(0.2),
+                                        accentColor.opacity(0.08)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(accentColor.opacity(0.3), lineWidth: 1)
+                            )
+                            .matchedGeometryEffect(id: "selectedTab", in: namespace)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 6)
+                    }
+                }
+            )
+            .scaleEffect(isPressed ? 0.92 : 1.0)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isPressed)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in if !isPressed { isPressed = true } }
+                .onEnded { _ in isPressed = false }
+        )
+    }
+}
+
+// MARK: - Liquid Glass Center Button (Floating Scan Button)
+
+struct LiquidGlassCenterButton: View {
+    let accentColor: Color
+    let action: () -> Void
+    @State private var isPressed = false
+    @State private var glowAnimation = false
+
+    var body: some View {
+        Button {
+            action()
+        } label: {
+            ZStack {
+                // Outer glow ring (animated pulse)
+                Circle()
+                    .fill(accentColor.opacity(0.15))
+                    .frame(width: 62, height: 62)
+                    .scaleEffect(glowAnimation ? 1.15 : 1.0)
+                    .opacity(glowAnimation ? 0.0 : 0.6)
+
+                // Glass outer ring
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 58, height: 58)
+                    .overlay(
+                        Circle()
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.6),
+                                        Color.white.opacity(0.2)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+
+                // Inner green circle with gradient
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                accentColor,
+                                accentColor.opacity(0.85)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 48, height: 48)
+                    .shadow(color: accentColor.opacity(0.5), radius: 12, x: 0, y: 4)
+                    .overlay(
+                        // Inner highlight
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.4),
+                                        Color.clear
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .center
+                                )
+                            )
+                            .frame(width: 46, height: 46)
+                    )
+
+                // Camera icon
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.white)
+                    .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+            }
+            .scaleEffect(isPressed ? 0.88 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.5), value: isPressed)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    if !isPressed {
+                        isPressed = true
+                        let impact = UIImpactFeedbackGenerator(style: .light)
+                        impact.impactOccurred()
+                    }
+                }
+                .onEnded { _ in isPressed = false }
+        )
+        .onAppear {
+            // Subtle continuous glow pulse
+            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                glowAnimation = true
+            }
+        }
+    }
+}
+
+// MARK: - Segmented Tab Button (iOS Segmented Control Style) - Legacy
+
+struct SegmentedTabButton: View {
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let namespace: Namespace.ID
+    let accentColor: Color
+    let secondaryColor: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            action()
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: isSelected ? 20 : 18, weight: isSelected ? .semibold : .regular))
+                    .foregroundColor(isSelected ? accentColor : secondaryColor)
+                    .frame(height: 22)
+
+                Text(label)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
+                    .foregroundColor(isSelected ? accentColor : secondaryColor)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(
+                Group {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(accentColor.opacity(0.15))
+                            .matchedGeometryEffect(id: "selectedTab", in: namespace)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 4)
+                    }
+                }
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
@@ -266,14 +445,15 @@ struct GentlerTabButton: View {
         Button {
             action()
         } label: {
-            VStack(spacing: 3) {
+            VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: isSelected ? 20 : 18, weight: isSelected ? .semibold : .medium))
+                    .font(.system(size: isSelected ? 22 : 20, weight: isSelected ? .semibold : .medium))
                     .foregroundColor(isSelected ? accentColor : secondaryColor)
-                    .scaleEffect(isSelected ? 1.1 : 1.0)
+                    .scaleEffect(isSelected ? 1.05 : 1.0)
+                    .frame(height: 24)
 
                 Text(label)
-                    .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
                     .foregroundColor(isSelected ? accentColor : secondaryColor)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -518,7 +698,7 @@ struct ProfileTabView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 100) // Extra space for tab bar
         }
-        .background(gsBackground.ignoresSafeArea())
+        .background(Color.white.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {

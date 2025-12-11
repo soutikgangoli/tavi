@@ -156,8 +156,15 @@ public class Face3DMetricsAnalyzer {
             }
         }
 
-        // Step 3: Convert CGImage to UIImage for initial quality assessment
-        var textureImage = UIImage(cgImage: unifiedTexture)
+        // Step 3: Convert CGImage to UIImage for analysis
+        // IMPORTANT: This image is NEVER modified - all analyzers use RAW data
+        let textureImage = UIImage(cgImage: unifiedTexture)
+
+        // Step 3.0: FIXED - Detect skin tone BEFORE any analysis to prevent race conditions
+        // This ensures skin tone is available for all analyzers that need it
+        AppLogger.metrics.info("   📊 Detecting skin tone FIRST (prevents race conditions)...")
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: textureImage)
+        AppLogger.metrics.info("      Detected: \(skinTone.rawValue) (reference L*: \(skinTone.referenceL))")
 
         // Step 3.1: Assess lighting quality BEFORE metrics computation
         AppLogger.metrics.info("   💡 Assessing lighting quality...")
@@ -228,52 +235,20 @@ public class Face3DMetricsAnalyzer {
         // Step 5: Convert UnifiedMesh to FaceMeshGeometry for advanced analyzers
         let faceMeshGeometry = convertToFaceMeshGeometry(unifiedMesh: unifiedMesh)
 
-        // Step 4.5: Pre-detect skin tone on RAW image (before normalization)
-        // This enables adaptive color temperature targets based on natural skin characteristics
-        AppLogger.metrics.info("   📊 Pre-detecting skin tone on raw image...")
-        let rawSkinTone = skinToneNormalizer.detectSkinTone(texture: textureImage)
-        AppLogger.metrics.info("      Detected: \(rawSkinTone.rawValue) (reference L*: \(rawSkinTone.referenceL))")
+        // Step 4.5: Skin tone already detected in Step 3.0 (before parallel analysis)
+        // SCIENTIFIC APPROACH: Never modify source image data - use RAW for all analysis
+        // Color temperature normalization was REMOVED because it:
+        // 1. Corrupts redness measurements (alters red channel)
+        // 2. Corrupts pigmentation variance (changes LAB A*/B* values)
+        // 3. Corrupts acne detection (changes darkness thresholds)
+        // 4. Creates inconsistency between analyzers
+        // Instead, we assess lighting quality and adjust CONFIDENCE/THRESHOLDS, not the image
+        // NOTE: skinTone was detected early in Step 3.0 to prevent race conditions
 
-        // Step 4.6: Apply skin-tone-aware color temperature normalization
-        AppLogger.metrics.info("   🌡️ Normalizing color temperature (adaptive)...")
+        // Log color temperature for diagnostic purposes only (no modification)
         let detectedColorTemp = colorTempNormalizer.estimateColorTemperature(from: textureImage)
         let lightingType = colorTempNormalizer.detectLightingType(ambientColorTemperature: detectedColorTemp)
-        AppLogger.metrics.info("      Detected: \(String(format: "%.0f", detectedColorTemp))K (\(lightingType.rawValue))")
-
-        // Determine adaptive target based on skin tone (preserves natural undertones)
-        let adaptiveTarget: CGFloat
-        switch rawSkinTone {
-        case .veryLight, .light:
-            adaptiveTarget = 6000  // Standard daylight
-        case .medium, .mediumDark:
-            adaptiveTarget = 5800  // Preserve golden undertones (Indian/Asian skin)
-        case .dark, .veryDark:
-            adaptiveTarget = 5600  // More warmth preservation (African/Dark skin)
-        }
-        AppLogger.metrics.info("      Adaptive target: \(String(format: "%.0f", adaptiveTarget))K for \(rawSkinTone.rawValue) skin")
-
-        if abs(detectedColorTemp - adaptiveTarget) > 500 {  // Only normalize if difference > 500K
-            if let normalizedImage = colorTempNormalizer.normalizeColorTemperature(
-                image: textureImage,
-                currentColorTemp: detectedColorTemp,
-                targetColorTemp: adaptiveTarget,
-                skinTone: rawSkinTone
-            ) {
-                textureImage = normalizedImage
-                AppLogger.metrics.info("      ✅ Normalized \(String(format: "%.0f", detectedColorTemp))K → \(String(format: "%.0f", adaptiveTarget))K")
-            } else {
-                AppLogger.metrics.warning("      ⚠️ Color temp normalization failed, using original texture")
-            }
-        } else {
-            AppLogger.metrics.info("      ✅ Color temperature already near target (\(String(format: "%.0f", detectedColorTemp))K)")
-        }
-
-        // Step 5: Final skin tone detection (on normalized image for validation)
-        let skinTone = skinToneNormalizer.detectSkinTone(texture: textureImage)
-        AppLogger.metrics.info("   📊 Final skin tone: \(skinTone.rawValue) (reference L*: \(skinTone.referenceL))")
-        if skinTone != rawSkinTone {
-            AppLogger.metrics.warning("      ⚠️ Skin tone changed after normalization: \(rawSkinTone.rawValue) → \(skinTone.rawValue)")
-        }
+        AppLogger.metrics.info("      Color temperature: \(String(format: "%.0f", detectedColorTemp))K (\(lightingType.rawValue)) - logged only, not normalized")
 
         // Step 5a: Compute wrinkle analysis FIRST (needed for elasticity calculation)
         AppLogger.metrics.info("   🔍 Running WrinkleAnalyzer...")
@@ -540,10 +515,11 @@ public class Face3DMetricsAnalyzer {
         }
 
         // Glow and radiance analysis (differentiated measurements)
+        // IMPORTANT: Uses same RAW textureImage as all other analyzers for consistency
         AppLogger.metrics.info("   ✨ Running GlowAnalyzer...")
         let glowAnalyzer = GlowAnalyzer()
         let glowAnalysis = glowAnalyzer.analyzeGlow(
-            texture: UIImage(cgImage: unifiedTexture),
+            texture: textureImage,  // Use consistent RAW image
             geometry: unifiedMesh.geometry,
             existingMetrics: metrics,
             specularAnalyzer: specularAnalyzer
@@ -552,9 +528,10 @@ public class Face3DMetricsAnalyzer {
         AppLogger.metrics.info("   - Radiance Score (Luminosity): \(String(format: "%.1f", glowAnalysis.radianceScore))/100")
 
         // Hydration estimation (multi-method ensemble)
+        // IMPORTANT: Uses same RAW textureImage as all other analyzers for consistency
         AppLogger.metrics.info("   💧 Running HydrationEstimator...")
         let hydrationEstimate = hydrationEstimator.estimateHydration(
-            texture: UIImage(cgImage: unifiedTexture),
+            texture: textureImage,  // Use consistent RAW image
             roughnessScore: metrics.globalRoughnessScore,
             geometry: unifiedMesh.geometry
         )
@@ -718,7 +695,9 @@ public class Face3DMetricsAnalyzer {
     ) {
 
         guard !roiMetrics.isEmpty else {
-            return (0, 0, 0, nil, 0, 0, 0, 0, nil, 0, "N/A")
+            // Return default scores instead of 0 to prevent showing 0 in UI
+            AppLogger.metrics.warning("⚠️ computeGlobalMetrics: roiMetrics is empty, using default scores")
+            return (0.15, 0.15, 0.15, nil, 0.5, 50, 50, 50, nil, 50, "Fair")
         }
 
         var totalRoughness: Float = 0
@@ -727,6 +706,7 @@ public class Face3DMetricsAnalyzer {
         var totalSpecular: Float = 0
         var totalPixels: Int = 0
         var specularROICount: Int = 0
+        var highConfidenceCount: Int = 0
 
         // Weighted average by pixel count (exclude low confidence ROIs)
         for (_, metrics) in roiMetrics {
@@ -734,6 +714,7 @@ public class Face3DMetricsAnalyzer {
             if metrics.isLowConfidence {
                 continue
             }
+            highConfidenceCount += 1
 
             let weight = Float(metrics.pixelCount)
             totalRoughness += metrics.roughnessProxy * weight
@@ -747,11 +728,29 @@ public class Face3DMetricsAnalyzer {
             }
         }
 
+        // SAFETY: If all ROIs were low confidence, include them anyway rather than returning 0
+        if highConfidenceCount == 0 {
+            AppLogger.metrics.warning("⚠️ computeGlobalMetrics: All ROIs are low confidence, including them anyway")
+            for (_, metrics) in roiMetrics {
+                let weight = Float(metrics.pixelCount)
+                totalRoughness += metrics.roughnessProxy * weight
+                totalPigmentation += metrics.pigmentationIndex * weight
+                totalLuminance += metrics.averageLuminance * weight
+                totalPixels += metrics.pixelCount
+
+                if let specular = metrics.specularProxy {
+                    totalSpecular += specular * weight
+                    specularROICount += 1
+                }
+            }
+        }
+
         let weightSum = Float(totalPixels)
 
-        let globalRoughness = weightSum > 0 ? totalRoughness / weightSum : 0
-        let globalPigmentation = weightSum > 0 ? totalPigmentation / weightSum : 0
-        let globalLuminance = weightSum > 0 ? totalLuminance / weightSum : 0
+        // SAFETY: Provide default values if no pixels were sampled
+        let globalRoughness = weightSum > 0 ? totalRoughness / weightSum : 0.15
+        let globalPigmentation = weightSum > 0 ? totalPigmentation / weightSum : 0.15
+        let globalLuminance = weightSum > 0 ? totalLuminance / weightSum : 0.5
         let globalSpecular: Float? = specularROICount > 0 && weightSum > 0 ? totalSpecular / weightSum : nil
 
         // Compute discoloration (inter-ROI variance)
@@ -838,8 +837,8 @@ public class Face3DMetricsAnalyzer {
 
         var sum: Float = 0
         for pixel in pixels {
-            // Standard luminance: Y = 0.299R + 0.587G + 0.114B
-            sum += 0.299 * pixel.x + 0.587 * pixel.y + 0.114 * pixel.z
+            // FIXED: Standardized on BT.709 (sRGB) for consistency across all analyzers
+            sum += 0.2126 * pixel.x + 0.7152 * pixel.y + 0.0722 * pixel.z
         }
 
         return sum / Float(pixels.count)

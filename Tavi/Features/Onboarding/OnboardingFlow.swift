@@ -32,6 +32,7 @@ public struct OnboardingFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var currentPage: Int = 0
     @State private var userName: String = ""
+    @FocusState private var isKeyboardFocused: Bool
 
     private let pages: [OnboardingPage] = [
         OnboardingPage(
@@ -85,12 +86,19 @@ public struct OnboardingFlowView: View {
                     ForEach(0..<pages.count, id: \.self) { index in
                         OnboardingPageView(
                             page: pages[index],
-                            userName: pages[index].requiresInput ? $userName : .constant("")
+                            userName: pages[index].requiresInput ? $userName : .constant(""),
+                            isKeyboardFocused: pages[index].requiresInput ? $isKeyboardFocused : nil
                         )
                         .tag(index)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                .onChange(of: currentPage) { newPage in
+                    // Dismiss keyboard when navigating away from name input page
+                    if newPage > 0 {
+                        isKeyboardFocused = false
+                    }
+                }
 
                 // Bottom action area
                 VStack(spacing: 16) {
@@ -154,7 +162,7 @@ public struct OnboardingFlowView: View {
 struct OnboardingPageView: View {
     let page: OnboardingPage
     @Binding var userName: String
-    @FocusState private var isNameFieldFocused: Bool
+    var isKeyboardFocused: FocusState<Bool>.Binding?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -200,20 +208,36 @@ struct OnboardingPageView: View {
             // Name input field (if required)
             if page.requiresInput {
                 VStack(spacing: 8) {
-                    TextField("Your name", text: $userName)
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(OnboardingColors.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .padding(.vertical, 16)
-                        .padding(.horizontal, 24)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(OnboardingColors.cardBackground)
-                                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
-                        )
-                        .focused($isNameFieldFocused)
-                        .autocapitalization(.words)
-                        .disableAutocorrection(true)
+                    if let focusBinding = isKeyboardFocused {
+                        TextField("Your name", text: $userName)
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(OnboardingColors.textPrimary)
+                            .multilineTextAlignment(.center)
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(OnboardingColors.cardBackground)
+                                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+                            )
+                            .focused(focusBinding)
+                            .autocapitalization(.words)
+                            .disableAutocorrection(true)
+                    } else {
+                        TextField("Your name", text: $userName)
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(OnboardingColors.textPrimary)
+                            .multilineTextAlignment(.center)
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(OnboardingColors.cardBackground)
+                                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+                            )
+                            .autocapitalization(.words)
+                            .disableAutocorrection(true)
+                    }
                 }
                 .padding(.horizontal, 40)
                 .padding(.top, 32)

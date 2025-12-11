@@ -17,13 +17,14 @@ public class HeatmapOverlayGenerator {
     // MARK: - Configuration
 
     public struct Configuration {
-        /// Overlay opacity (0-1)
-        public var overlayAlpha: CGFloat = 0.6
+        /// Overlay opacity (0-1) - slightly reduced for thermal palette visibility
+        public var overlayAlpha: CGFloat = 0.45
 
-        /// Heatmap color scheme
-        public var lowValueColor: UIColor = .green
-        public var midValueColor: UIColor = .yellow
-        public var highValueColor: UIColor = .red
+        /// Thermal medical heatmap color scheme (legacy compatibility)
+        /// Deep Blue (excellent) → Teal (good) → Soft Orange (attention)
+        public var lowValueColor: UIColor = UIColor(red: 0.23, green: 0.51, blue: 0.96, alpha: 1)  // Deep Blue #3B82F6
+        public var midValueColor: UIColor = UIColor(red: 0.08, green: 0.72, blue: 0.65, alpha: 1)  // Teal #14B8A6
+        public var highValueColor: UIColor = UIColor(red: 0.98, green: 0.45, blue: 0.09, alpha: 1) // Soft Orange #F97316
 
         /// ROI outline color
         public var roiOutlineColor: UIColor = .white
@@ -109,10 +110,11 @@ public class HeatmapOverlayGenerator {
             let bounds = roi.uvBounds
 
             // Fill pixels in this ROI
+            // V is now in screen coordinate system (0=top, 1=bottom)
             for y in 0..<height {
                 for x in 0..<width {
                     let u = Float(x) / Float(width)
-                    let v = 1.0 - Float(y) / Float(height)
+                    let v = Float(y) / Float(height)
 
                     if bounds.contains(u: u, v: v) {
                         let idx = (y * width + x) * 4
@@ -159,7 +161,7 @@ public class HeatmapOverlayGenerator {
         let width = resolution.width
         let height = resolution.height
 
-        UIGraphicsBeginImageContextWithOptions(CGSize(width: width, height: height), false, 1.0)
+        UIGraphicsBeginImageContextWithOptions(CGSize(width: width, height: height), false, 0.0)
         guard let context = UIGraphicsGetCurrentContext() else {
             return nil
         }
@@ -193,9 +195,10 @@ public class HeatmapOverlayGenerator {
             let bounds = roi.uvBounds
 
             // Convert UV bounds to screen coordinates
+            // V is already in screen coordinate system (0=top, 1=bottom)
             let rect = CGRect(
                 x: CGFloat(bounds.minU) * width,
-                y: CGFloat(1.0 - bounds.maxV) * height,  // Flip V
+                y: CGFloat(bounds.minV) * height,
                 width: CGFloat(bounds.maxU - bounds.minU) * width,
                 height: CGFloat(bounds.maxV - bounds.minV) * height
             )
@@ -306,9 +309,10 @@ public class HeatmapOverlayGenerator {
     private func drawROIOutline(mask: UIMask, in context: CGContext, width: Int, height: Int) {
         let bounds = mask.bounds
 
+        // V is already in screen coordinate system (0=top, 1=bottom)
         let rect = CGRect(
             x: CGFloat(bounds.minU) * CGFloat(width),
-            y: CGFloat(1.0 - bounds.maxV) * CGFloat(height),
+            y: CGFloat(bounds.minV) * CGFloat(height),
             width: CGFloat(bounds.maxU - bounds.minU) * CGFloat(width),
             height: CGFloat(bounds.maxV - bounds.minV) * CGFloat(height)
         )
@@ -354,6 +358,296 @@ public class HeatmapOverlayGenerator {
             alpha: a1 + (a2 - a1) * t
         )
     }
+
+    // MARK: - Regional Heatmap Generation
+
+    /// Generate a modern, gradient-based heatmap with smooth elliptical zones
+    /// Each region gets a gradient fill that looks like a professional thermal map
+    public func generateBeautifulHeatmap(
+        baseTexture: CGImage,
+        metrics: Face3DMetrics,
+        metricType: BeautifulHeatmapType
+    ) -> UIImage? {
+        let width = baseTexture.width
+        let height = baseTexture.height
+        let size = CGSize(width: width, height: height)
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1.0
+
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        let result = renderer.image { rendererContext in
+            let context = rendererContext.cgContext
+
+            // CRITICAL: Flip the coordinate system for CGImage drawing
+            context.translateBy(x: 0, y: size.height)
+            context.scaleBy(x: 1.0, y: -1.0)
+
+            // Draw the base face texture (right-side up)
+            let rect = CGRect(origin: .zero, size: size)
+            context.draw(baseTexture, in: rect)
+
+            // Reset transform for overlay drawing
+            context.scaleBy(x: 1.0, y: -1.0)
+            context.translateBy(x: 0, y: -size.height)
+
+            // Draw gradient overlays for EACH face region
+            for roi in Face3DROI.allCases {
+                let regionScore = getRegionScore(roi: roi, metrics: metrics, metricType: metricType)
+                let regionColor = colorForScore(regionScore)
+
+                let bounds = roi.uvBounds
+                let regionRect = uvBoundsToRect(bounds, in: size)
+
+                // Create elliptical gradient for organic look
+                drawGradientZone(
+                    in: context,
+                    rect: regionRect,
+                    color: regionColor,
+                    score: regionScore
+                )
+            }
+
+            // Draw score labels on top (second pass for visibility)
+            for roi in Face3DROI.allCases {
+                let regionScore = getRegionScore(roi: roi, metrics: metrics, metricType: metricType)
+                let regionColor = colorForScore(regionScore)
+                let bounds = roi.uvBounds
+                let regionRect = uvBoundsToRect(bounds, in: size)
+
+                drawModernScoreLabel(
+                    score: regionScore,
+                    in: regionRect,
+                    color: regionColor
+                )
+            }
+        }
+
+        return result
+    }
+
+    /// Draw a smooth gradient zone with elliptical shape
+    private func drawGradientZone(in context: CGContext, rect: CGRect, color: UIColor, score: Float) {
+        context.saveGState()
+
+        // Create elliptical path for organic look
+        let ellipseRect = rect.insetBy(dx: rect.width * 0.05, dy: rect.height * 0.05)
+        let ellipsePath = UIBezierPath(ovalIn: ellipseRect)
+
+        // Clip to ellipse
+        context.addPath(ellipsePath.cgPath)
+        context.clip()
+
+        // Draw radial gradient from center (more opaque) to edge (transparent)
+        let centerPoint = CGPoint(x: rect.midX, y: rect.midY)
+        let radius = max(rect.width, rect.height) / 2
+
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        color.getRed(&r, green: &g, blue: &b, alpha: &a)
+
+        let colors = [
+            UIColor(red: r, green: g, blue: b, alpha: 0.5).cgColor,
+            UIColor(red: r, green: g, blue: b, alpha: 0.3).cgColor,
+            UIColor(red: r, green: g, blue: b, alpha: 0.0).cgColor
+        ] as CFArray
+
+        let locations: [CGFloat] = [0.0, 0.6, 1.0]
+
+        if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: locations) {
+            context.drawRadialGradient(
+                gradient,
+                startCenter: centerPoint,
+                startRadius: 0,
+                endCenter: centerPoint,
+                endRadius: radius,
+                options: [.drawsAfterEndLocation]
+            )
+        }
+
+        context.restoreGState()
+    }
+
+    /// Draw modern score label with pill background
+    private func drawModernScoreLabel(score: Float, in rect: CGRect, color: UIColor) {
+        let scoreText = "\(Int(score))"
+
+        // Calculate font size based on region size
+        let baseFontSize = min(rect.width, rect.height) * 0.28
+        let fontSize = max(16, min(baseFontSize, 36))
+
+        // Pill dimensions
+        let pillWidth = fontSize * 2.0
+        let pillHeight = fontSize * 1.4
+        let pillRect = CGRect(
+            x: rect.midX - pillWidth / 2,
+            y: rect.midY - pillHeight / 2,
+            width: pillWidth,
+            height: pillHeight
+        )
+
+        // Draw pill background with shadow
+        let pillPath = UIBezierPath(roundedRect: pillRect, cornerRadius: pillHeight / 2)
+
+        // Shadow
+        UIColor.black.withAlphaComponent(0.3).setFill()
+        let shadowRect = pillRect.offsetBy(dx: 2, dy: 2)
+        UIBezierPath(roundedRect: shadowRect, cornerRadius: pillHeight / 2).fill()
+
+        // White background
+        UIColor.white.setFill()
+        pillPath.fill()
+
+        // Colored border
+        color.setStroke()
+        pillPath.lineWidth = 3.0
+        pillPath.stroke()
+
+        // Draw score text
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: fontSize, weight: .bold),
+            .foregroundColor: color,
+            .paragraphStyle: paragraphStyle
+        ]
+
+        let textSize = scoreText.size(withAttributes: attributes)
+        let textRect = CGRect(
+            x: rect.midX - textSize.width / 2,
+            y: rect.midY - textSize.height / 2,
+            width: textSize.width,
+            height: textSize.height
+        )
+
+        scoreText.draw(in: textRect, withAttributes: attributes)
+    }
+
+    /// Get the score for a specific region based on metric type
+    private func getRegionScore(roi: Face3DROI, metrics: Face3DMetrics, metricType: BeautifulHeatmapType) -> Float {
+        // Try to get region-specific metrics
+        if let roiMetrics = metrics.roiMetrics[roi] {
+            let score: Float
+            switch metricType {
+            case .overall:
+                // Average of roughness and pigmentation scores for overall
+                let roughness = roiMetrics.roughnessScore
+                let pigmentation = roiMetrics.pigmentationScore
+                score = (roughness + pigmentation) / 2.0
+            case .sharpness, .texture:
+                score = roiMetrics.roughnessScore
+            case .pigmentation:
+                score = roiMetrics.pigmentationScore
+            case .moisture:
+                score = roiMetrics.specularScore ?? 50.0
+            }
+            // If score is valid (non-zero), return it
+            if score > 0 {
+                return score
+            }
+            // Otherwise fall through to global fallback
+        }
+
+        // Fallback to global scores if region data not available or had zero values
+        let globalScore: Float
+        switch metricType {
+        case .overall:
+            globalScore = metrics.overallScore
+        case .sharpness, .texture:
+            globalScore = metrics.globalRoughnessScore
+        case .pigmentation:
+            globalScore = metrics.globalPigmentationScore
+        case .moisture:
+            globalScore = metrics.globalSpecularScore ?? 50.0
+        }
+
+        // If global score is also 0, use overallScore as final fallback
+        // This ensures we show SOME meaningful score rather than 0
+        if globalScore > 0 {
+            return globalScore
+        }
+
+        // Ultimate fallback: use the overall score if available
+        return metrics.overallScore > 0 ? metrics.overallScore : 50.0
+    }
+
+    /// Convert UV bounds to pixel rect
+    private func uvBoundsToRect(_ bounds: UVBounds, in size: CGSize) -> CGRect {
+        // UV coordinates now use screen coordinate system:
+        // U is horizontal (0=left, 1=right)
+        // V is vertical (0=top, 1=bottom) - same as screen coordinates
+        let x = CGFloat(bounds.minU) * size.width
+        let y = CGFloat(bounds.minV) * size.height  // No flip needed - V is already in screen coords
+        let width = CGFloat(bounds.maxU - bounds.minU) * size.width
+        let height = CGFloat(bounds.maxV - bounds.minV) * size.height
+
+        return CGRect(x: x, y: y, width: width, height: height)
+    }
+
+    /// Generate color based on score (0-100) using thermal medical palette
+    /// Deep Blue (excellent) → Cyan → Teal → Amber → Soft Orange (needs attention)
+    /// This palette is colorblind-friendly and avoids anxiety-inducing red
+    private func colorForScore(_ score: Float) -> UIColor {
+        let normalizedScore = max(0, min(100, score))
+
+        switch normalizedScore {
+        case 85...100:
+            // Deep Blue #3B82F6 - Excellent health
+            let t = CGFloat((normalizedScore - 85) / 15)
+            return UIColor(
+                red: 0.23 + (0.02 - 0.23) * t,  // 59→6
+                green: 0.51 + (0.71 - 0.51) * t, // 130→182
+                blue: 0.96 + (0.83 - 0.96) * t,  // 246→212
+                alpha: 1.0
+            )
+        case 70..<85:
+            // Cyan #06B6D4 - Good health
+            let t = CGFloat((normalizedScore - 70) / 15)
+            return UIColor(
+                red: 0.02 + (0.08 - 0.02) * t,   // 6→20
+                green: 0.71 + (0.72 - 0.71) * t, // 182→184
+                blue: 0.83 + (0.65 - 0.83) * t,  // 212→166
+                alpha: 1.0
+            )
+        case 50..<70:
+            // Teal #14B8A6 → Amber #F59E0B - Fair, transitioning
+            let t = CGFloat((normalizedScore - 50) / 20)
+            return UIColor(
+                red: 0.96 + (0.08 - 0.96) * t,   // 245→20 (amber to teal)
+                green: 0.62 + (0.72 - 0.62) * t, // 158→184
+                blue: 0.04 + (0.65 - 0.04) * t,  // 11→166
+                alpha: 1.0
+            )
+        case 30..<50:
+            // Amber #F59E0B - Needs attention
+            let t = CGFloat((normalizedScore - 30) / 20)
+            return UIColor(
+                red: 0.98 + (0.96 - 0.98) * t,   // 249→245
+                green: 0.45 + (0.62 - 0.45) * t, // 115→158
+                blue: 0.09 + (0.04 - 0.09) * t,  // 22→11
+                alpha: 1.0
+            )
+        default:
+            // Soft Orange #F97316 - Priority attention (0-30)
+            let t = CGFloat(normalizedScore / 30)
+            return UIColor(
+                red: 0.98,                       // 249 (constant warm)
+                green: 0.45 * t + 0.30 * (1 - t), // 77→115 (darker when lower)
+                blue: 0.09,                      // 22 (constant)
+                alpha: 1.0
+            )
+        }
+    }
+
+}
+
+/// Types for beautiful heatmap generation
+public enum BeautifulHeatmapType {
+    case overall
+    case sharpness
+    case texture
+    case pigmentation
+    case moisture
 }
 
 // MARK: - Overlay Layer

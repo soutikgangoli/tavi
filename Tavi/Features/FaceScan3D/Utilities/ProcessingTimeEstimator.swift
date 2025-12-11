@@ -359,6 +359,8 @@ public class ProcessingTimeEstimator: ObservableObject {
         progressPercent = 0
 
         // Start countdown timer that ticks every second
+        // FIXED: Simple linear countdown - decrements by 1 every second
+        // This ensures the countdown never gets stuck at a number
         countdownTimer?.invalidate()
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
             DispatchQueue.main.async {
@@ -372,8 +374,17 @@ public class ProcessingTimeEstimator: ObservableObject {
                     self.elapsedSeconds = Int(Date().timeIntervalSince(start))
                 }
 
-                // Recalculate remaining based on actual elapsed + estimated remaining phases
-                self.updateRemainingTimeAccurate()
+                // Simple linear countdown: decrement by 1 every second
+                // Never goes below 1 (shows "1" until processing completes)
+                if self.remainingSeconds > 1 {
+                    self.remainingSeconds -= 1
+                }
+                // Note: remainingSeconds is set to 0 only by finishProcessing()
+
+                // Update progress percentage based on elapsed/initial estimate
+                if self.estimatedTotalSeconds > 0 {
+                    self.progressPercent = min(99, (Double(self.elapsedSeconds) / Double(self.estimatedTotalSeconds)) * 100)
+                }
             }
         }
 
@@ -406,8 +417,9 @@ public class ProcessingTimeEstimator: ObservableObject {
         phaseStartTime = Date()
         currentPhase = phase
 
-        // Immediately recalculate with accurate data
-        updateRemainingTimeAccurate()
+        // NOTE: We no longer recalculate remaining time here
+        // The countdown now decrements linearly by 1 every second
+        // This prevents the countdown from getting stuck
 
         AppLogger.faceScan.info("⏱️ Starting phase \(phase.rawValue): \(phase.description)")
     }

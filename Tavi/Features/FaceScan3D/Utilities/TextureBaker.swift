@@ -144,15 +144,22 @@ public class TextureBaker {
                 }
             }
 
-            // Step 2: Apply albedo correction to remove directional lighting
-            let lightDir = sample.lightDirection?.toSIMD() ?? SIMD3<Float>(0, 1, 0.5)
-            let normalizedLightDir = normalize(lightDir)
+            // Step 2: DISABLED - No albedo correction
+            // Albedo correction was destroying natural skin texture and colors
+            // The iPhone camera already handles exposure well
+            // Keeping RAW camera output for accurate metrics
+            //
+            // OLD CODE (kept for reference):
+            // let lightDir = sample.lightDirection?.toSIMD() ?? SIMD3<Float>(0, 1, 0.5)
+            // let normalizedLightDir = normalize(lightDir)
+            // let correctedImage = albedoEstimator.processImage(
+            //     image: normalizedImage,
+            //     lightDirection: normalizedLightDir,
+            //     lightIntensity: Float(sample.ambientIntensity)
+            // ) ?? normalizedImage
 
-            let correctedImage = albedoEstimator.processImage(
-                image: normalizedImage,
-                lightDirection: normalizedLightDir,
-                lightIntensity: Float(sample.ambientIntensity)
-            ) ?? normalizedImage
+            // PASSTHROUGH: Use original image without albedo correction
+            let correctedImage = normalizedImage
 
             correctedSamples.append(CorrectedSample(
                 original: sample,

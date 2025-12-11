@@ -12,9 +12,15 @@
 //  - Dark skin: Inflamed acne appears DARKER BROWN (not red)
 //  - Solution: Don't rely on color - use darkness + physical elevation
 //
+//  GPU/CPU Hybrid Approach:
+//  - GPU: Parallel darkness map generation (embarrassingly parallel)
+//  - CPU: Connected component analysis via flood-fill (graph traversal)
+//  - CPU: Blemish classification and scoring (sequential logic)
+//
 
 import UIKit
 import simd
+import Metal
 
 /// Acne analysis result
 public struct AcneAnalysis: Codable, Sendable {
@@ -64,11 +70,78 @@ public enum AcneSeverity: String, Codable, Sendable {
 /// Unified acne analyzer - skin-tone-fair approach
 public class AcneAnalyzer {
 
+    // MARK: - GPU Configuration
+
+    private let device: MTLDevice?
+    private let commandQueue: MTLCommandQueue?
+    private let darknessDetectionPipeline: MTLComputePipelineState?
+    private let textureCache: CVMetalTextureCache?
+
+    // MARK: - Performance Optimization
+
+    private let maxAnalysisSize: Int = 1024
+    private let useGPU: Bool
+
+    private func downsample(_ image: CGImage, maxSize: Int? = nil) -> CGImage? {
+        let targetSize = maxSize ?? maxAnalysisSize
+        let scale = min(1.0, Double(targetSize) / Double(max(image.width, image.height)))
+        if scale >= 1.0 { return image }
+
+        let newWidth = Int(Double(image.width) * scale)
+        let newHeight = Int(Double(image.height) * scale)
+
+        let colorSpace = image.colorSpace ?? CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil, width: newWidth, height: newHeight,
+            bitsPerComponent: 8, bytesPerRow: newWidth * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+        return context.makeImage()
+    }
+
     // MARK: - Configuration
 
     private let minBlemishSize: Float = 2.0      // pixels
     private let maxBlemishSize: Float = 50.0     // pixels
     private let skinToneNormalizer = SkinToneNormalizer()
+
+    // MARK: - Initialization
+
+    public init() {
+        // Initialize Metal GPU resources
+        if let device = MTLCreateSystemDefaultDevice() {
+            self.device = device
+            self.commandQueue = device.makeCommandQueue()
+
+            // Create texture cache for efficient texture transfer
+            var cache: CVMetalTextureCache?
+            CVMetalTextureCacheCreate(nil, nil, device, nil, &cache)
+            self.textureCache = cache
+
+            // Load Metal library and create compute pipeline
+            if let library = device.makeDefaultLibrary(),
+               let function = library.makeFunction(name: "detectDarknessVariations") {
+                self.darknessDetectionPipeline = try? device.makeComputePipelineState(function: function)
+                self.useGPU = true
+                AppLogger.metrics.info("✅ AcneAnalyzer: GPU acceleration enabled")
+            } else {
+                self.darknessDetectionPipeline = nil
+                self.useGPU = false
+                AppLogger.metrics.warning("⚠️ AcneAnalyzer: GPU pipeline creation failed, using CPU fallback")
+            }
+        } else {
+            self.device = nil
+            self.commandQueue = nil
+            self.textureCache = nil
+            self.darknessDetectionPipeline = nil
+            self.useGPU = false
+            AppLogger.metrics.warning("⚠️ AcneAnalyzer: Metal not available, using CPU fallback")
+        }
+    }
 
     // MARK: - Public API
 
@@ -89,14 +162,46 @@ public class AcneAnalyzer {
             )
         }
 
-        let width = cgImage.width
-        let height = cgImage.height
+        // GPU PATH: Use full resolution for GPU-accelerated analysis
+        // CPU FALLBACK: Downsample for performance
+        let analysisImage: CGImage
+        let analysisTexture: UIImage
+        let width: Int
+        let height: Int
+
+        if useGPU {
+            // GPU path: use full resolution for maximum accuracy
+            analysisImage = cgImage
+            analysisTexture = texture
+            width = cgImage.width
+            height = cgImage.height
+            AppLogger.metrics.info("   🎨 Using GPU acceleration (full resolution: \(width)x\(height))")
+        } else {
+            // CPU fallback: downsample for performance
+            if let downsampled = downsample(cgImage) {
+                analysisImage = downsampled
+                analysisTexture = UIImage(cgImage: downsampled)
+                width = downsampled.width
+                height = downsampled.height
+                AppLogger.metrics.info("   💻 Using CPU analysis (downsampled: \(cgImage.width)x\(cgImage.height) → \(width)x\(height))")
+            } else {
+                analysisImage = cgImage
+                analysisTexture = texture
+                width = cgImage.width
+                height = cgImage.height
+            }
+        }
 
         // Detect skin tone for adaptive thresholds
-        let skinTone = skinToneNormalizer.detectSkinTone(texture: texture)
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: analysisTexture)
 
-        // Step 1: Detect darkness variations (adaptive threshold)
-        let darknessSpots = detectDarknessVariations(image: cgImage, skinTone: skinTone)
+        // Step 1: Detect darkness variations (GPU-accelerated or CPU fallback)
+        let darknessSpots: [(x: Int, y: Int, darkness: Float, size: Float)]
+        if useGPU {
+            darknessSpots = detectDarknessVariationsGPU(image: analysisImage, skinTone: skinTone)
+        } else {
+            darknessSpots = detectDarknessVariationsCPU(image: analysisImage, skinTone: skinTone)
+        }
         AppLogger.metrics.info("   Found \(darknessSpots.count) darkness variations")
 
         // Step 2: Detect 3D elevations (if geometry available)
@@ -146,11 +251,290 @@ public class AcneAnalyzer {
         )
     }
 
-    // MARK: - Step 1: Darkness Detection (Adaptive)
+    // MARK: - Step 1: GPU-Accelerated Darkness Detection
 
-    /// Detect local darkness variations (works for all skin tones)
+    /// GPU-accelerated darkness detection
+    /// Generates full-resolution darkness map, then performs CPU-based connected component analysis
+    private func detectDarknessVariationsGPU(image: CGImage, skinTone: SkinToneCategory) -> [(x: Int, y: Int, darkness: Float, size: Float)] {
+        guard let device = device,
+              let commandQueue = commandQueue,
+              let pipeline = darknessDetectionPipeline else {
+            AppLogger.metrics.warning("⚠️ GPU resources unavailable, falling back to CPU")
+            return detectDarknessVariationsCPU(image: image, skinTone: skinTone)
+        }
+
+        let width = image.width
+        let height = image.height
+
+        // Create Metal textures from CGImage
+        guard let inputTexture = createMetalTexture(from: image, device: device),
+              let darknessTexture = createEmptyTexture(width: width, height: height, device: device) else {
+            AppLogger.metrics.warning("⚠️ Texture creation failed, falling back to CPU")
+            return detectDarknessVariationsCPU(image: image, skinTone: skinTone)
+        }
+
+        // Configure sampling radius based on image size
+        let sampleRadius = Int32(min(5, max(3, width / 256)))
+
+        // Dispatch GPU kernel
+        guard let commandBuffer = commandQueue.makeCommandBuffer(),
+              let encoder = commandBuffer.makeComputeCommandEncoder() else {
+            AppLogger.metrics.warning("⚠️ Command buffer creation failed, falling back to CPU")
+            return detectDarknessVariationsCPU(image: image, skinTone: skinTone)
+        }
+
+        encoder.setComputePipelineState(pipeline)
+        encoder.setTexture(inputTexture, index: 0)
+        encoder.setTexture(darknessTexture, index: 1)
+        encoder.setBytes([sampleRadius], length: MemoryLayout<Int32>.size, index: 0)
+
+        // Calculate threadgroup size and grid size
+        let threadgroupSize = MTLSize(width: 16, height: 16, depth: 1)
+        let gridSize = MTLSize(
+            width: (width + threadgroupSize.width - 1) / threadgroupSize.width * threadgroupSize.width,
+            height: (height + threadgroupSize.height - 1) / threadgroupSize.height * threadgroupSize.height,
+            depth: 1
+        )
+
+        encoder.dispatchThreads(gridSize, threadsPerThreadgroup: threadgroupSize)
+        encoder.endEncoding()
+
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+
+        // Read back darkness map from GPU
+        guard let darknessData = readDarknessMap(from: darknessTexture) else {
+            AppLogger.metrics.warning("⚠️ Darkness map readback failed, falling back to CPU")
+            return detectDarknessVariationsCPU(image: image, skinTone: skinTone)
+        }
+
+        // Perform CPU-based connected component analysis on darkness map
+        let darknessSpots = analyzeConnectedComponents(
+            darknessData: darknessData,
+            width: width,
+            height: height,
+            skinTone: skinTone
+        )
+
+        AppLogger.metrics.debug("   GPU darkness detection: \(darknessSpots.count) spots detected")
+        return darknessSpots
+    }
+
+    /// Create Metal texture from CGImage
+    private func createMetalTexture(from image: CGImage, device: MTLDevice) -> MTLTexture? {
+        let width = image.width
+        let height = image.height
+
+        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .rgba8Unorm,
+            width: width,
+            height: height,
+            mipmapped: false
+        )
+        textureDescriptor.usage = [.shaderRead]
+
+        guard let texture = device.makeTexture(descriptor: textureDescriptor) else {
+            return nil
+        }
+
+        // Extract pixel data from CGImage
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bytesPerPixel = 4
+        let bytesPerRow = bytesPerPixel * width
+        let bitsPerComponent = 8
+
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: bitsPerComponent,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return nil
+        }
+
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        guard let data = context.data else {
+            return nil
+        }
+
+        // Upload to GPU texture
+        let region = MTLRegionMake2D(0, 0, width, height)
+        texture.replace(region: region, mipmapLevel: 0, withBytes: data, bytesPerRow: bytesPerRow)
+
+        return texture
+    }
+
+    /// Create empty Metal texture for output
+    private func createEmptyTexture(width: Int, height: Int, device: MTLDevice) -> MTLTexture? {
+        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .rgba32Float,
+            width: width,
+            height: height,
+            mipmapped: false
+        )
+        textureDescriptor.usage = [.shaderWrite, .shaderRead]
+
+        return device.makeTexture(descriptor: textureDescriptor)
+    }
+
+    /// Read darkness map from GPU texture
+    private func readDarknessMap(from texture: MTLTexture) -> [Float]? {
+        let width = texture.width
+        let height = texture.height
+        let bytesPerRow = width * 4 * MemoryLayout<Float>.size
+
+        var data = [Float](repeating: 0, count: width * height)
+        let region = MTLRegionMake2D(0, 0, width, height)
+
+        texture.getBytes(&data, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
+
+        // Extract R channel (darkness values) from RGBA
+        var darknessMap = [Float](repeating: 0, count: width * height)
+        for i in 0..<(width * height) {
+            darknessMap[i] = data[i * 4]  // R channel
+        }
+
+        return darknessMap
+    }
+
+    /// CPU-based connected component analysis on GPU-generated darkness map
+    private func analyzeConnectedComponents(
+        darknessData: [Float],
+        width: Int,
+        height: Int,
+        skinTone: SkinToneCategory
+    ) -> [(x: Int, y: Int, darkness: Float, size: Float)] {
+        // Calculate adaptive darkness threshold based on skin tone
+        let darknessMultiplier: Float
+        switch skinTone {
+        case .veryLight, .light:
+            darknessMultiplier = 0.70  // 30% darker for light skin
+        case .medium:
+            darknessMultiplier = 0.73  // 27% darker for medium skin
+        case .mediumDark:
+            darknessMultiplier = 0.76  // 24% darker for Indian skin
+        case .dark:
+            darknessMultiplier = 0.80  // 20% darker for dark skin
+        case .veryDark:
+            darknessMultiplier = 0.82  // 18% darker for very dark skin
+        }
+
+        // Calculate average darkness to set threshold
+        let avgDarkness = darknessData.reduce(0, +) / Float(darknessData.count)
+        let darknessThreshold = max(0.02, avgDarkness * darknessMultiplier)
+
+        AppLogger.metrics.debug("   Adaptive darkness threshold: \(darknessThreshold) (avg: \(avgDarkness), tone: \(skinTone))")
+
+        var darkSpots: [(x: Int, y: Int, darkness: Float, size: Float)] = []
+        var visited = Set<Int>()
+
+        // Scan for local maxima in darkness map
+        for y in stride(from: 10, to: height - 10, by: 3) {
+            for x in stride(from: 10, to: width - 10, by: 3) {
+                let idx = y * width + x
+                guard !visited.contains(idx) else { continue }
+
+                let darkness = darknessData[idx]
+
+                // Check if this pixel exceeds threshold
+                if darkness > darknessThreshold && isLocalDarknessMaximum(data: darknessData, x: x, y: y, width: width, height: height) {
+                    // Flood-fill to measure connected dark region
+                    let floodThreshold = darkness * 0.85  // 15% tolerance
+                    let (size, avgDarkness) = measureDarkRegion(
+                        data: darknessData,
+                        startX: x,
+                        startY: y,
+                        width: width,
+                        height: height,
+                        threshold: floodThreshold,
+                        visited: &visited
+                    )
+
+                    if size >= minBlemishSize && size <= maxBlemishSize {
+                        darkSpots.append((x, y, avgDarkness, size))
+                    }
+                }
+            }
+        }
+
+        return darkSpots
+    }
+
+    /// Check if pixel is a local maximum in darkness
+    private func isLocalDarknessMaximum(data: [Float], x: Int, y: Int, width: Int, height: Int) -> Bool {
+        let centerValue = data[y * width + x]
+        let radius = 2
+
+        for dy in -radius...radius {
+            for dx in -radius...radius {
+                if dx == 0 && dy == 0 { continue }
+
+                let nx = x + dx
+                let ny = y + dy
+
+                if nx >= 0 && nx < width && ny >= 0 && ny < height {
+                    if data[ny * width + nx] >= centerValue {
+                        return false
+                    }
+                }
+            }
+        }
+
+        return true
+    }
+
+    /// Flood-fill to measure connected dark region
+    private func measureDarkRegion(
+        data: [Float],
+        startX: Int,
+        startY: Int,
+        width: Int,
+        height: Int,
+        threshold: Float,
+        visited: inout Set<Int>
+    ) -> (size: Float, avgDarkness: Float) {
+        var queue = [(startX, startY)]
+        var size: Float = 0
+        var totalDarkness: Float = 0
+        let startIdx = startY * width + startX
+
+        visited.insert(startIdx)
+
+        while !queue.isEmpty && size < maxBlemishSize {
+            let (x, y) = queue.removeFirst()
+            let darkness = data[y * width + x]
+
+            size += 1
+            totalDarkness += darkness
+
+            // 4-connected neighbors
+            for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                let nx = x + dx
+                let ny = y + dy
+
+                if nx >= 0 && nx < width && ny >= 0 && ny < height {
+                    let idx = ny * width + nx
+                    if !visited.contains(idx) && data[idx] >= threshold {
+                        visited.insert(idx)
+                        queue.append((nx, ny))
+                    }
+                }
+            }
+        }
+
+        let avgDarkness = size > 0 ? totalDarkness / size : 0
+        return (size, avgDarkness)
+    }
+
+    // MARK: - Step 1: CPU Fallback Darkness Detection
+
+    /// CPU-based darkness detection (fallback when GPU unavailable)
     /// IMPROVED: Skin-tone-specific darkness thresholds
-    private func detectDarknessVariations(image: CGImage, skinTone: SkinToneCategory) -> [(x: Int, y: Int, darkness: Float, size: Float)] {
+    private func detectDarknessVariationsCPU(image: CGImage, skinTone: SkinToneCategory) -> [(x: Int, y: Int, darkness: Float, size: Float)] {
         let width = image.width
         let height = image.height
 
@@ -193,7 +577,8 @@ public class AcneAnalyzer {
         }
 
         // Dark spots are darker than surrounding skin
-        let darknessThreshold = UInt8(max(30, Int(avgBrightness * darknessMultiplier)))
+        // FIXED: Lowered min from 30 to 15 to support very dark skin (Fitzpatrick V-VI)
+        let darknessThreshold = UInt8(max(15, Int(avgBrightness * darknessMultiplier)))
 
         AppLogger.metrics.debug("   Adaptive darkness threshold: \(darknessThreshold) (avg: \(avgBrightness), tone: \(skinTone), multiplier: \(darknessMultiplier))")
 
@@ -211,13 +596,16 @@ public class AcneAnalyzer {
                 // Check if this is a local minimum (darker than neighbors)
                 if centerValue < darknessThreshold && isLocalDarkSpot(data: grayData, x: x, y: y, width: width, height: height) {
                     // Measure dark spot size via flood-fill
+                    // FIXED: Use percentage (15% brighter) instead of fixed +30 offset
+                    // Ensures consistent blemish boundary detection for Indian skin
+                    let spotThreshold = UInt8(min(255, Int(Float(centerValue) * 1.15)))
                     let (size, darkness) = measureDarkSpot(
                         data: grayData,
                         startX: x,
                         startY: y,
                         width: width,
                         height: height,
-                        threshold: centerValue + 30,
+                        threshold: spotThreshold,
                         visited: &visited
                     )
 

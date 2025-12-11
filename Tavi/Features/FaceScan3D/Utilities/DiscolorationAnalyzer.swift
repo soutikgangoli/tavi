@@ -22,7 +22,9 @@ public class DiscolorationAnalyzer {
         public var aChannelWeight: Float = 0.4
 
         /// Normalization factor to scale variance to 0-1 range
-        public var varianceNormalization: Float = 50.0
+        /// FIXED: Aligned with PigmentationAnalyzer (was 50.0, now 100.0)
+        /// This ensures consistent scoring between discoloration and pigmentation metrics
+        public var varianceNormalization: Float = 100.0
 
         public init() {}
     }

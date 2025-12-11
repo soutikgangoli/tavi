@@ -158,6 +158,7 @@ public class TextureCapture {
     }
 
     /// Scale image to target resolution while maintaining aspect ratio
+    /// Uses scale 0.0 for automatic screen scale to maintain best quality
     private func scaleImage(_ image: UIImage, targetWidth: Int, targetHeight: Int) -> UIImage? {
         let size = image.size
 
@@ -170,8 +171,8 @@ public class TextureCapture {
         let newHeight = size.height * scale
         let newSize = CGSize(width: newWidth, height: newHeight)
 
-        // Render scaled image
-        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        // Render scaled image with automatic screen scale (0.0) for best quality
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 0.0)
         image.draw(in: CGRect(origin: .zero, size: newSize))
         let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()

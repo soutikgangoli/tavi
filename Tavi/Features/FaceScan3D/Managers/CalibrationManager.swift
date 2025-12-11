@@ -383,16 +383,11 @@ public class CalibrationManager: ObservableObject {
             return false
         }
 
-        // 4. Check for occlusions
-        if calibrationState.faceDetected && !calibrationState.isCalibrated {
-            AppLogger.faceScan.warning("❌ QUALITY CHECK FAILED: Possible occlusion (face detected but not calibrated)")
-            qualityWarning = "Face partially covered - please remove hands/hair from face"
-            lastQualityCheckResult = false
-            return false
-        }
+        // Occlusion check removed - too many false positives
+        // ARKit face tracking already handles partial occlusions well
 
         // All quality checks passed
-        AppLogger.faceScan.debug("✅ QUALITY CHECK PASSED: Lighting=\(lightingOK), Expression=\(expressionOK), Exposure=\(exposureOK), Sharpness=\(sharpnessOK), Occlusion=clear")
+        AppLogger.faceScan.debug("✅ QUALITY CHECK PASSED: Lighting=\(lightingOK), Expression=\(expressionOK), Exposure=\(exposureOK), Sharpness=\(sharpnessOK)")
         qualityWarning = nil
         lastQualityCheckResult = true
         return true
@@ -423,185 +418,94 @@ public class CalibrationManager: ObservableObject {
             return true
         }
 
+        // SIMPLIFIED: Only warn for MAJOR lighting changes (50%+)
+        // Small variations are normal and don't significantly affect quality
         let lightingChange = abs(current - baseline) / baseline
-        if !ScanConfiguration.isLightingChangeAcceptable(lightingChange) {
-            AppLogger.faceScan.warning("❌ Quality check failed: Lighting consistency (\(Int(lightingChange * 100))% change)")
-            qualityWarning = "Lighting changed - please maintain consistent lighting"
+        if lightingChange > 0.50 {  // Only catch major changes
+            AppLogger.faceScan.warning("❌ Major lighting change detected (\(Int(lightingChange * 100))%)")
+            qualityWarning = "Lighting changed significantly"
             return false
         }
 
-        // Check color temperature consistency
-        if let baselineTemp = baselineColorTemperature,
-           let currentTemp = lightEstimation?.ambientColorTemperature {
-            let tempChange = abs(currentTemp - baselineTemp) / baselineTemp
-            if !ScanConfiguration.isColorTempChangeAcceptable(tempChange) {
-                AppLogger.faceScan.warning("❌ Quality check failed: Color temperature consistency")
-                qualityWarning = "Light color changed - please stay in same lighting"
-                return false
-            }
-        }
-
+        // Color temperature check removed - too sensitive and rarely affects scan quality
         return true
     }
 
     private func checkNeutralExpression(blendShapes: FaceBlendShapes, currentStep: GuidanceStep) -> Bool {
-        // Detect smiling - SKIP for lookDown
-        if currentStep != .lookDown {
-            let smileAmount = (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2.0
-            if Double(smileAmount) > ScanConfiguration.maxSmileThreshold {
-                setQualityWarning("Please keep a neutral expression (no smiling)")
-                return false
-            }
-        }
+        // SIMPLIFIED EXPRESSION CHECKS - Only check for major issues that affect scan quality
+        // Removed overly strict checks that create frustrating UX
 
-        // Detect frowning
-        let frownAmount = (blendShapes.mouthFrownLeft + blendShapes.mouthFrownRight) / 2.0
-        if Double(frownAmount) > ScanConfiguration.maxSmileThreshold {
-            setQualityWarning("Please relax your expression (no frowning)")
-            return false
-        }
-
-        // Detect jaw movement
-        if Double(blendShapes.jawOpen) > ScanConfiguration.maxJawOpenThreshold {
-            setQualityWarning("Please keep your mouth closed")
-            return false
-        }
-
-        // Detect lip puckering
-        if Double(blendShapes.mouthPucker) > ScanConfiguration.maxMouthPuckerThreshold {
-            setQualityWarning("Please relax your lips")
-            return false
-        }
-
-        // Detect cheek puffing
-        if Double(blendShapes.cheekPuff) > ScanConfiguration.maxCheekPuffThreshold {
-            setQualityWarning("Please relax your cheeks")
-            return false
-        }
-
-        // Detect eye blinking
+        // 1. Eye blink detection - CRITICAL (can't scan closed eyes)
         let blinkAmount = max(blendShapes.eyeBlinkLeft, blendShapes.eyeBlinkRight)
         if Double(blinkAmount) > ScanConfiguration.blinkDetectionThreshold {
-            setQualityWarning("Please keep your eyes open")
+            setQualityWarning("Keep your eyes open")
             return false
         }
 
-        // Detect eyes wide open
-        let eyeWideAmount = max(blendShapes.eyeWideLeft, blendShapes.eyeWideRight)
-        if Double(eyeWideAmount) > ScanConfiguration.maxEyeWideThreshold {
-            setQualityWarning("Please relax your eyes")
+        // 2. Jaw significantly open - affects face shape
+        if Double(blendShapes.jawOpen) > 0.3 {  // More lenient threshold
+            setQualityWarning("Close your mouth slightly")
             return false
         }
 
-        // Detect eye squinting - SKIP for lookDown
-        if currentStep != .lookDown {
-            let squintAmount = max(blendShapes.eyeSquintLeft, blendShapes.eyeSquintRight)
-            if Double(squintAmount) > ScanConfiguration.maxSquintThreshold {
-                setQualityWarning("Please don't squint")
-                return false
-            }
-        }
-
-        // Detect raised eyebrows
-        if Double(blendShapes.browInnerUp) > ScanConfiguration.maxBrowMovementThreshold {
-            setQualityWarning("Please relax your eyebrows")
+        // 3. Extreme smile only - very obvious smiling affects face shape
+        let smileAmount = (blendShapes.mouthSmileLeft + blendShapes.mouthSmileRight) / 2.0
+        if Double(smileAmount) > 0.4 {  // Only catch big smiles, not neutral face variations
+            setQualityWarning("Relax into a neutral expression")
             return false
         }
 
-        // Detect furrowed brows
-        let browDownAmount = max(blendShapes.browDownLeft, blendShapes.browDownRight)
-        if Double(browDownAmount) > ScanConfiguration.maxBrowMovementThreshold {
-            setQualityWarning("Please relax your forehead")
-            return false
-        }
+        // All other expression checks removed - they were too strict and created
+        // frustrating UX without significantly improving scan quality
 
         return true
     }
 
-    /// Check exposure - analyzes multiple regions and uses BEST result
-    /// This ensures we catch the best exposed parts of the face
+    /// Check exposure - SIMPLIFIED to only catch extreme issues
+    /// The camera auto-adjusts exposure well, so we only warn for major problems
     private func checkExposure(image: UIImage) -> Bool {
-        // Analyze multiple regions to find the BEST exposure (closest to ideal)
         let bestExposure = analyzeBestExposure(image: image)
 
-        if bestExposure < ScanConfiguration.underexposureThreshold {
-            AppLogger.faceScan.warning("❌ Quality check failed: Underexposed (best exposure: \(String(format: "%.3f", bestExposure)))")
-            qualityWarning = "Too dark - move to better lighting"
+        // Only warn for EXTREME underexposure (very dark)
+        if bestExposure < 0.15 {
+            AppLogger.faceScan.warning("❌ Very dark image (exposure: \(String(format: "%.3f", bestExposure)))")
+            qualityWarning = "Too dark - find better lighting"
             return false
         }
 
-        if bestExposure > ScanConfiguration.overexposureThreshold {
-            AppLogger.faceScan.warning("❌ Quality check failed: Overexposed (best exposure: \(String(format: "%.3f", bestExposure)))")
-            qualityWarning = "Too bright - reduce lighting or move away from bright light"
+        // Only warn for EXTREME overexposure (very bright/washed out)
+        if bestExposure > 0.85 {
+            AppLogger.faceScan.warning("❌ Overexposed image (exposure: \(String(format: "%.3f", bestExposure)))")
+            qualityWarning = "Too bright - avoid direct light"
             return false
         }
 
-        let exposureDeviation = abs(bestExposure - ScanConfiguration.idealExposure)
-        if exposureDeviation > ScanConfiguration.maxExposureDeviation {
-            AppLogger.faceScan.warning("❌ Quality check failed: Poor exposure (best exposure: \(String(format: "%.3f", bestExposure)), deviation: \(String(format: "%.3f", exposureDeviation)))")
-            qualityWarning = "Adjust lighting for better exposure"
-            return false
-        }
-
+        // Removed the "deviation from ideal" check - too strict for real-world conditions
         return true
     }
     
     /// Check image sharpness (blur detection) - analyzes multiple regions and uses BEST result
-    /// This ensures we catch the sharpest parts of the face, not just average quality
+    /// SIMPLIFIED: Only warn for VERY blurry images that would significantly affect scan quality
     private func checkSharpness(image: UIImage, lightEstimation: LightEstimation?) -> Bool {
-        // Analyze multiple regions of the image to find the BEST sharpness
+        // Analyze center region for sharpness
         let bestSharpness = analyzeBestSharpness(image: image)
-        
-        // ADAPTIVE SHARPNESS THRESHOLD: Adjust based on lighting conditions
-        // VERY LENIENT: Significantly lowered thresholds to ensure captures work reliably
-        // Real-world testing shows TrueDepth camera can achieve good results with lower thresholds
-        var adaptiveSharpnessThreshold: Float = 40.0  // Base minimum (significantly lowered from 80)
-        let minSharpnessOptimal: Float = 60.0  // Target for optimal lighting (lowered from 120)
-        let minSharpnessPoorLight: Float = 30.0   // Minimum for poor lighting (lowered from 60)
-        
-        if let lighting = lightEstimation {
-            let intensity = Float(lighting.ambientIntensity)
-            // Scale threshold based on lighting: 1000+ lux = optimal, <500 lux = poor
-            if intensity < 500 {
-                adaptiveSharpnessThreshold = minSharpnessPoorLight
-            } else if intensity > 1000 {
-                adaptiveSharpnessThreshold = minSharpnessOptimal
-            } else {
-                // Linear interpolation between poor and optimal
-                let ratio = (intensity - 500) / 500
-                adaptiveSharpnessThreshold = minSharpnessPoorLight +
-                    (minSharpnessOptimal - minSharpnessPoorLight) * ratio
-            }
-        }
-        
-        // Calculate how close we are to threshold for helpful feedback
-        let sharpnessRatio = bestSharpness / adaptiveSharpnessThreshold
-        let percentOfThreshold = Int(sharpnessRatio * 100)
-        
-        if bestSharpness < adaptiveSharpnessThreshold {
-            // Provide specific, helpful guidance based on how close we are
-            var guidanceMessage = "Hold phone steady"
-            
-            if percentOfThreshold < 50 {
-                guidanceMessage = "Phone too blurry - hold very still, wait for focus"
-            } else if percentOfThreshold < 75 {
-                guidanceMessage = "Almost there - hold phone steady, wait 1-2 seconds"
-            } else if percentOfThreshold < 90 {
-                guidanceMessage = "Almost sharp - hold still for 1 more second"
-            } else {
-                guidanceMessage = "Hold steady - focus is almost ready"
-            }
-            
-            AppLogger.faceScan.warning("❌ Quality check failed: Image too blurry (best sharpness: \(String(format: "%.1f", bestSharpness)), threshold: \(String(format: "%.1f", adaptiveSharpnessThreshold)), \(percentOfThreshold)% of threshold)")
-            qualityWarning = guidanceMessage
+
+        // VERY LENIENT THRESHOLD - only catch obviously blurry images
+        // Modern TrueDepth cameras auto-focus well, so we rarely need to warn
+        let sharpnessThreshold: Float = 25.0  // Very low - only catch major blur
+
+        if bestSharpness < sharpnessThreshold {
+            // Only show warning for significantly blurry images
+            AppLogger.faceScan.warning("❌ Image blur detected (sharpness: \(String(format: "%.1f", bestSharpness)))")
+            qualityWarning = "Hold phone steady"
             return false
         }
-        
-        // Success - clear any previous warnings
-        if qualityWarning?.contains("blur") == true || qualityWarning?.contains("steady") == true {
+
+        // Clear blur-related warnings on success
+        if qualityWarning?.contains("steady") == true || qualityWarning?.contains("blur") == true {
             qualityWarning = nil
         }
-        
+
         return true
     }
     
