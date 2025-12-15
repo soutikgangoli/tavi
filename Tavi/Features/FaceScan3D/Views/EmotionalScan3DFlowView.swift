@@ -81,6 +81,15 @@ public struct EmotionalScan3DFlowView: View {
     // Data loss confirmation
     @State private var showContinueWithoutSavingConfirmation = false
 
+    // Countdown task reference for proper cancellation
+    @State private var countdownTask: Task<Void, Never>?
+
+    // Processing task reference for proper cancellation
+    @State private var processingTask: Task<Void, Never>?
+
+    // Flag to prevent double cleanup
+    @State private var hasCleanedUp: Bool = false
+
     // Analytics timing
     @State private var scanStartTime: Date?
 
@@ -195,13 +204,17 @@ public struct EmotionalScan3DFlowView: View {
                 if case .preparing = flowState {
                     Button("Cancel") {
                         // Preparing phase - safe to cancel without confirmation
-                        dismiss()
+                        cleanupAndDismiss()
                     }
                 } else if case .capturing = flowState {
                     Button("Cancel") {
                         // Capturing phase - cancel directly without confirmation
-                        viewModel.resetCalibration()
-                        dismiss()
+                        cleanupAndDismiss()
+                    }
+                } else if case .processing = flowState {
+                    Button("Cancel") {
+                        // Processing phase - show confirmation since work is in progress
+                        showCancelConfirmation = true
                     }
                 }
             }
@@ -244,20 +257,23 @@ public struct EmotionalScan3DFlowView: View {
             Text("Are you absolutely sure you want to discard your scan results?\n\nThis action CANNOT be undone. Your scan data will be permanently lost and will NOT appear in your history.\n\nConsider exporting a backup instead to keep your data safe.")
         }
         .alert("Cancel Scan?", isPresented: $showCancelConfirmation) {
-            Button("Keep Scanning", role: .cancel) {
-                // Do nothing - continue scanning
+            Button("Keep Going", role: .cancel) {
+                // Do nothing - continue
             }
             Button("Cancel Scan", role: .destructive) {
-                // User confirmed cancellation
-                viewModel.resetCalibration()
-                dismiss()
+                // User confirmed cancellation - full cleanup
+                cleanupAndDismiss()
             }
         } message: {
-            let capturedCount = viewModel.capturedPoses.count
-            if capturedCount > 0 {
-                Text("You've captured \(capturedCount) pose\(capturedCount == 1 ? "" : "s"). If you cancel now, your progress will be lost and you'll need to start over.\n\nAre you sure you want to cancel?")
+            if case .processing = flowState {
+                Text("Processing is in progress. If you cancel now, all scan data will be lost and you'll need to start over.\n\nAre you sure you want to cancel?")
             } else {
-                Text("If you cancel now, you'll need to start the scan over.\n\nAre you sure you want to cancel?")
+                let capturedCount = viewModel.capturedPoses.count
+                if capturedCount > 0 {
+                    Text("You've captured \(capturedCount) pose\(capturedCount == 1 ? "" : "s"). If you cancel now, your progress will be lost and you'll need to start over.\n\nAre you sure you want to cancel?")
+                } else {
+                    Text("If you cancel now, you'll need to start the scan over.\n\nAre you sure you want to cancel?")
+                }
             }
         }
         .onChange(of: scenePhase) { newPhase in
@@ -273,6 +289,10 @@ public struct EmotionalScan3DFlowView: View {
             }
         }
         .onDisappear {
+            // CRITICAL: Full cleanup on view disappear to prevent background tasks
+            // Use sync version since onDisappear is synchronous
+            performFullCleanupSync()
+
             if pendingSaveData != nil {
                 AppLogger.faceScan.warning("⚠️ View dismissed with unsaved data - but data is safely queued for retry")
             }
@@ -687,14 +707,21 @@ public struct EmotionalScan3DFlowView: View {
             return
         }
 
-        // Continue countdown
-        Task {
+        // Cancel any existing countdown task to prevent stacking
+        countdownTask?.cancel()
+
+        // Continue countdown with proper task reference storage
+        countdownTask = Task {
             try? await Task.sleep(nanoseconds: 1_000_000_000)  // 1 second
+
+            // Check if task was cancelled during sleep
+            guard !Task.isCancelled else { return }
+
             if case .preparing = flowState {  // Only continue if still preparing
                 let nextCount = currentCount - 1
                 if nextCount > 0 {
                     flowState = .preparing(countdown: nextCount)
-                    // CRITICAL: Recursively call startCountdown to continue the countdown
+                    // Continue countdown (recursive call, but previous task is cancelled first)
                     startCountdown()
                 } else {
                     flowState = .capturing
@@ -702,6 +729,125 @@ public struct EmotionalScan3DFlowView: View {
                 }
             }
         }
+    }
+
+    /// Cancel any active countdown task
+    private func cancelCountdown() {
+        countdownTask?.cancel()
+        countdownTask = nil
+    }
+
+    /// Perform full cleanup of all resources and tasks (async version)
+    private func performFullCleanup() async {
+        // CRITICAL: Prevent double cleanup which causes FigXPCUtilities errors
+        guard !hasCleanedUp else {
+            AppLogger.faceScan.info("⏭️ Cleanup already performed, skipping async cleanup")
+            return
+        }
+        hasCleanedUp = true
+
+        AppLogger.faceScan.info("🧹 Performing async cleanup...")
+
+        // STEP 1: Signal cleanup is starting IMMEDIATELY
+        // This is checked by AR delegate and ViewModel to prevent any new updates
+        // AND triggers SwiftUI to call updateUIViewController which stops AR session
+        viewModel.isCleaningUp = true
+        viewModel.shouldStopSession = true
+
+        // STEP 2: Cancel processing task
+        processingTask?.cancel()
+        processingTask = nil
+
+        // STEP 3: Cancel countdown task
+        cancelCountdown()
+
+        // STEP 4: Stop all timers
+        stopBreathingAnimation()
+        stopCyclingMessages()
+
+        // STEP 5: Cancel the time estimator
+        timeEstimator.cancelProcessing()
+
+        // STEP 6: Reset ViewModel state SYNCHRONOUSLY
+        // This ensures all managers clean up their resources immediately
+        viewModel.resetCalibration()
+
+        AppLogger.faceScan.info("✅ Cleanup complete")
+    }
+
+    /// Non-async version for synchronous contexts (called from onDisappear)
+    /// CRITICAL: Does NOT use semaphores to avoid main thread deadlock
+    private func performFullCleanupSync() {
+        // CRITICAL: Prevent double cleanup which causes FigXPCUtilities errors
+        guard !hasCleanedUp else {
+            AppLogger.faceScan.info("⏭️ Cleanup already performed, skipping")
+            return
+        }
+        hasCleanedUp = true
+
+        AppLogger.faceScan.info("🧹 Performing cleanup (onDisappear)...")
+
+        // STEP 1: Signal cleanup is starting IMMEDIATELY
+        // This is checked by AR delegate and ViewModel to prevent any new updates
+        // AND triggers SwiftUI to call updateUIViewController which stops AR session
+        viewModel.isCleaningUp = true
+        viewModel.shouldStopSession = true
+
+        // STEP 2: Cancel processing task IMMEDIATELY (will exit at next cancellation check point)
+        if let task = processingTask {
+            task.cancel()
+            processingTask = nil
+            AppLogger.faceScan.info("🛑 Processing task cancelled")
+        }
+
+        // STEP 3: Cancel countdown task
+        cancelCountdown()
+
+        // STEP 4: Stop all timers (immediate, no async)
+        stopBreathingAnimation()
+        stopCyclingMessages()
+
+        // STEP 5: Cancel the time estimator
+        timeEstimator.cancelProcessing()
+
+        // STEP 6: Reset ViewModel state SYNCHRONOUSLY
+        // We're already in onDisappear, so the view is going away
+        // Reset ensures all managers clean up their resources
+        viewModel.resetCalibration()
+
+        AppLogger.faceScan.info("✅ Cleanup complete")
+    }
+
+    /// Cleanup and dismiss the view
+    private func cleanupAndDismiss() {
+        // CRITICAL FIX: Set cleanup flags FIRST before anything else
+        // This ensures all async Tasks see these flags immediately
+        // AND triggers SwiftUI to call updateUIViewController on ARFaceTrackingViewRepresentable
+        // which will stop the AR session IMMEDIATELY (key fix for hang on cancel)
+        viewModel.isCleaningUp = true
+        viewModel.shouldStopSession = true
+
+        // Cancel processing task - DON'T WAIT for it to complete
+        processingTask?.cancel()
+        processingTask = nil
+
+        // Cancel other tasks immediately (synchronous, non-blocking)
+        cancelCountdown()
+        stopBreathingAnimation()
+        stopCyclingMessages()
+        timeEstimator.cancelProcessing()
+
+        // Mark as cleaned up to prevent double cleanup
+        hasCleanedUp = true
+
+        // CRITICAL FIX: Reset ViewModel SYNCHRONOUSLY before dismiss
+        // This ensures all managers are cleaned up and no async tasks are spawned
+        // The AR session is already stopped via shouldStopSession flag
+        viewModel.resetCalibration()
+
+        // Dismiss after cleanup is complete
+        AppLogger.faceScan.info("🚪 Dismissing after cleanup")
+        dismiss()
     }
 
     // MARK: - Auto Retry View (Gentler Streak Theme)
@@ -820,8 +966,15 @@ public struct EmotionalScan3DFlowView: View {
         CrashReporter.shared.setCustomKey("capture_count", value: viewModel.capturedPoses.count)
         CrashReporter.shared.setCustomKey("device_performance_tier", value: "\(timeEstimator.getPerformanceTier())")
 
-        Task {
+        // Store task reference for cancellation support
+        processingTask = Task {
             do {
+                // Check for cancellation at start
+                guard !Task.isCancelled else {
+                    AppLogger.faceScan.info("🛑 Processing cancelled before start")
+                    return
+                }
+
                 // Step 1: Merge meshes (with timeout protection)
                 smoothlyUpdateProgress(to: 1)
                 processingProgress = ProcessingPhase.meshMerge.description
@@ -848,6 +1001,12 @@ public struct EmotionalScan3DFlowView: View {
                 let faceCount = merged.triangleIndices.count / 3
                 AppLogger.faceScan.info("Mesh merge completed: \(vertexCount) vertices, \(faceCount) faces")
 
+                // Check for cancellation between steps
+                guard !Task.isCancelled else {
+                    AppLogger.faceScan.info("🛑 Processing cancelled after mesh merge")
+                    return
+                }
+
                 try await Task.sleep(nanoseconds: 500_000_000)
 
                 // Step 2: Bake texture (with timeout protection)
@@ -856,8 +1015,11 @@ public struct EmotionalScan3DFlowView: View {
                 timeEstimator.startPhase(.textureBake)
                 CrashReporter.shared.setCustomKey("processing_step", value: "texture_bake")
 
-                let adjustedBakeTimeout = timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.textureBakeTimeout)
-                AppLogger.faceScan.debug("📊 Texture bake timeout: \(Int(adjustedBakeTimeout))s (base: \(Int(ScanConfiguration.textureBakeTimeout))s)")
+                // Use resolution-aware base timeout (60s for 2K, 180s for 4K)
+                let baseTextureBakeTimeout = ScanConfiguration.getTextureBakeTimeout()
+                // Apply device tier scaling with conservative safety margin
+                let adjustedBakeTimeout = timeEstimator.getTextureBakeTimeout(baseTextureBakeTimeout)
+                AppLogger.faceScan.debug("📊 Texture bake timeout: \(Int(adjustedBakeTimeout))s (base: \(Int(baseTextureBakeTimeout))s, resolution-aware)")
 
                 let bakeResult = try await withTimeout(
                     seconds: adjustedBakeTimeout,
@@ -871,6 +1033,12 @@ public struct EmotionalScan3DFlowView: View {
 
                 // Log bake success for debugging
                 AppLogger.faceScan.info("Texture bake completed: \(bakeResult.textureWidth)x\(bakeResult.textureHeight)")
+
+                // Check for cancellation between steps
+                guard !Task.isCancelled else {
+                    AppLogger.faceScan.info("🛑 Processing cancelled after texture bake")
+                    return
+                }
 
                 try await Task.sleep(nanoseconds: 500_000_000)
 
@@ -896,6 +1064,12 @@ public struct EmotionalScan3DFlowView: View {
                     return result
                 }
 
+                // Check for cancellation between steps
+                guard !Task.isCancelled else {
+                    AppLogger.faceScan.info("🛑 Processing cancelled after metrics computation")
+                    return
+                }
+
                 try await Task.sleep(nanoseconds: 500_000_000)
 
                 // Step 4: Convert to emotional metrics
@@ -919,6 +1093,12 @@ public struct EmotionalScan3DFlowView: View {
                 // Store both metrics for results view
                 self.clinicalMetrics = computedClinicalMetrics
                 self.previousMetrics = loadedPreviousMetrics
+
+                // Check for cancellation between steps
+                guard !Task.isCancelled else {
+                    AppLogger.faceScan.info("🛑 Processing cancelled after emotional metrics")
+                    return
+                }
 
                 // Step 5: Update gamification
                 smoothlyUpdateProgress(to: 5)
@@ -947,6 +1127,12 @@ public struct EmotionalScan3DFlowView: View {
                     challengeComplete: challenge?.isCompleted ?? false
                 )
 
+                // Check for cancellation between steps
+                guard !Task.isCancelled else {
+                    AppLogger.faceScan.info("🛑 Processing cancelled after gamification")
+                    return
+                }
+
                 // Step 6: Save to Core Data (with timeout protection)
                 smoothlyUpdateProgress(to: 6)
                 processingProgress = ProcessingPhase.coreDataSave.description
@@ -958,6 +1144,12 @@ public struct EmotionalScan3DFlowView: View {
                 let capturedContext = PersistenceController.shared.viewContext
                 // Get face image from bake result
                 let faceImage = bakeResult.albedoTexture
+
+                // Check for cancellation before heavy heatmap generation
+                guard !Task.isCancelled else {
+                    AppLogger.faceScan.info("🛑 Processing cancelled before heatmap generation")
+                    return
+                }
 
                 // Generate beautiful heatmaps using the face texture
                 AppLogger.faceScan.info("📊 Generating beautiful heatmaps from face texture...")
@@ -975,13 +1167,20 @@ public struct EmotionalScan3DFlowView: View {
                 ]
 
                 for (beautifulType, heatmapType) in mappings {
-                    if let heatmapImage = heatmapGenerator.generateBeautifulHeatmap(
+                    // CRITICAL: Check cancellation in loop to prevent watchdog timeout
+                    guard !Task.isCancelled else {
+                        AppLogger.faceScan.info("🛑 Processing cancelled during heatmap generation")
+                        return
+                    }
+
+                    if let heatmapImage = heatmapGenerator.generateMeshBasedHeatmap(
+                        mesh: bakeResult.unifiedMesh,
                         baseTexture: faceImage,
                         metrics: computedClinicalMetrics,
                         metricType: beautifulType
                     ), let imageData = heatmapImage.jpegData(compressionQuality: 0.85) {
                         heatmapDict[heatmapType] = imageData
-                        AppLogger.faceScan.debug("✅ Generated \(heatmapType.displayName) heatmap")
+                        AppLogger.faceScan.debug("✅ Generated \(heatmapType.displayName) mesh-based heatmap")
                     }
                 }
 
@@ -1016,7 +1215,19 @@ public struct EmotionalScan3DFlowView: View {
                     }
                 }
 
+                // Check for cancellation before final completion
+                guard !Task.isCancelled else {
+                    AppLogger.faceScan.info("🛑 Processing cancelled after Core Data save")
+                    return
+                }
+
                 try await Task.sleep(nanoseconds: 300_000_000)
+
+                // Final cancellation check before completing
+                guard !Task.isCancelled else {
+                    AppLogger.faceScan.info("🛑 Processing cancelled before completion")
+                    return
+                }
 
                 // Complete!
                 self.emotionalMetrics = emotional
@@ -1272,33 +1483,26 @@ public struct EmotionalScan3DFlowView: View {
 
             // Save face image and thumbnail
             if let faceImage = faceImage {
-                let uiFaceImage = UIImage(cgImage: faceImage)
-                session.faceImage = uiFaceImage.jpegData(compressionQuality: 0.9)
+                // Metal textures have origin at bottom-left, UIImage expects top-left
+                // Fix orientation by rotating 180 degrees before saving
+                let uiFaceImage = UIImage(cgImage: faceImage, scale: 1.0, orientation: .down)
+                // Render with correct orientation baked in (JPEG doesn't preserve orientation metadata)
+                UIGraphicsBeginImageContextWithOptions(uiFaceImage.size, false, 1.0)
+                uiFaceImage.draw(in: CGRect(origin: .zero, size: uiFaceImage.size))
+                let correctedImage = UIGraphicsGetImageFromCurrentImageContext()
+                UIGraphicsEndImageContext()
+                session.faceImage = correctedImage?.jpegData(compressionQuality: 0.9)
                 AppLogger.faceScan.info("💾 Saved face image (\(faceImage.width)x\(faceImage.height))")
 
                 // Generate and save thumbnail (600x600 for sharp display on modern devices)
-                let thumbnailSize = CGSize(width: 600, height: 600)
-                let scale = min(thumbnailSize.width / CGFloat(faceImage.width), thumbnailSize.height / CGFloat(faceImage.height))
-                let newWidth = Int(CGFloat(faceImage.width) * scale)
-                let newHeight = Int(CGFloat(faceImage.height) * scale)
-
-                if let colorSpace = faceImage.colorSpace,
-                   let thumbnailContext = CGContext(
-                       data: nil,
-                       width: newWidth,
-                       height: newHeight,
-                       bitsPerComponent: 8,
-                       bytesPerRow: 0,
-                       space: colorSpace,
-                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-                   ) {
-                    thumbnailContext.interpolationQuality = .high
-                    thumbnailContext.draw(faceImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
-                    if let thumbnailCGImage = thumbnailContext.makeImage() {
-                        let thumbnailUIImage = UIImage(cgImage: thumbnailCGImage)
-                        session.thumbnail = thumbnailUIImage.jpegData(compressionQuality: 0.9)
-                        AppLogger.faceScan.info("💾 Saved thumbnail (\(newWidth)x\(newHeight))")
-                    }
+                if let correctedImage = correctedImage {
+                    let thumbnailSize = CGSize(width: 600, height: 600)
+                    UIGraphicsBeginImageContextWithOptions(thumbnailSize, false, 1.0)
+                    correctedImage.draw(in: CGRect(origin: .zero, size: thumbnailSize))
+                    let thumbnail = UIGraphicsGetImageFromCurrentImageContext()
+                    UIGraphicsEndImageContext()
+                    session.thumbnail = thumbnail?.jpegData(compressionQuality: 0.9)
+                    AppLogger.faceScan.info("💾 Saved thumbnail (600x600)")
                 }
             } else {
                 AppLogger.faceScan.warning("⚠️ No face image available to save")
@@ -1681,15 +1885,18 @@ extension EmotionalScan3DFlowView {
     /// Start the breathing animation for the processing circle
     private func startBreathingAnimation() {
         breathingTimer?.invalidate()
-        breathingTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
-            DispatchQueue.main.async {
-                // Smooth sine wave animation (completes full cycle every ~3 seconds)
-                breathingPhase += 0.1
-                if breathingPhase > .pi * 2 {
-                    breathingPhase = 0
-                }
+
+        // FIXED: Use RunLoop.main with .common mode to ensure timer fires
+        // even during other animations or UI operations
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [self] _ in
+            // Smooth sine wave animation (completes full cycle every ~3 seconds)
+            breathingPhase += 0.1
+            if breathingPhase > .pi * 2 {
+                breathingPhase = 0
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        breathingTimer = timer
     }
 
     /// Stop the breathing animation
@@ -1777,12 +1984,15 @@ extension EmotionalScan3DFlowView {
         cyclingMessageIndex = 0
         cyclingTimer?.invalidate()
 
+        // FIXED: Use RunLoop.main with .common mode for consistency
         // Note: No need for [weak self] in SwiftUI Views (structs don't have retain cycles)
-        cyclingTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+        let timer = Timer(timeInterval: 3.0, repeats: true) { [self] _ in
             withAnimation(Designs.Animation.standard) {
                 cyclingMessageIndex += 1
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        cyclingTimer = timer
     }
 
     /// Stop cycling message timer

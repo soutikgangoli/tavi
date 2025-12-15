@@ -133,16 +133,16 @@ public struct ScanConfiguration {
     // MARK: - Distance Calibration Thresholds
 
     /// Minimum acceptable distance (meters)
-    /// Set to 0.30m to ensure stable ARKit tracking (closer = tracking jitter)
-    public static let minFaceDistance: Float = 0.30
+    /// Set to 0.35m to ensure stable ARKit tracking and good skin detail
+    public static let minFaceDistance: Float = 0.35
 
     /// Close acceptable range start (meters)
     /// No longer used - removed "acceptable close" zone that caused stability issues
-    public static let acceptableCloseDistance: Float = 0.30
+    public static let acceptableCloseDistance: Float = 0.35
 
     /// Optimal distance range start (meters)
-    /// 0.30m ensures stable tracking while maintaining good skin detail
-    public static let optimalDistanceMin: Float = 0.30
+    /// 0.35m ensures stable tracking while maintaining good skin detail
+    public static let optimalDistanceMin: Float = 0.35
 
     /// Optimal distance range end (meters)
     /// 0.50m is the sweet spot for TrueDepth sensor accuracy
@@ -227,7 +227,7 @@ public struct ScanConfiguration {
     /// - Overall skin quality scores
     /// - Clinical metric accuracy
     /// - Longitudinal tracking precision
-    public static let wrinkleDepthScalingFactor: Double = 0.00002  // 20 micrometers (UNVALIDATED)
+    public static let wrinkleDepthScalingFactor: Double = 0.000007  // 7 micrometers (adjusted: was 20µm producing 2.75mm depths, should be <1.0mm)
 
     /// Smoothing iterations for mesh processing
     public static let meshSmoothingIterations: Int = 3
@@ -254,7 +254,35 @@ public struct ScanConfiguration {
 
     /// Timeout for texture baking operation (seconds)
     /// Increased to 60s for iPhone 15 Pro to handle high-res textures
+    /// Note: Use getTextureBakeTimeout() for resolution-aware timeout
     public static let textureBakeTimeout: TimeInterval = 60.0
+
+    /// Base timeout for 2K texture baking (seconds)
+    /// Baseline: iPhone 15 Pro with 2K textures completes in ~30s
+    public static let textureBakeTimeout2K: TimeInterval = 60.0
+
+    /// Scaling factor for 4K textures (4x pixel count = ~3x processing time)
+    /// 4K = 16M pixels, 2K = 4M pixels
+    public static let textureBake4KScaleFactor: Double = 3.0
+
+    /// Get resolution-appropriate texture bake timeout
+    /// - Returns: Timeout in seconds adjusted for current texture resolution
+    /// Result: 60s for 2K, 180s for 4K
+    public static func getTextureBakeTimeout() -> TimeInterval {
+        // Check if user has explicitly set high-res preference
+        let use4K: Bool
+        if UserDefaults.standard.object(forKey: AppDefaultsKey.enableHighResCapture) != nil {
+            use4K = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
+        } else {
+            // Fall back to device default
+            use4K = DeviceCapabilities.current.supports4KTextureDefault
+        }
+
+        let baseTimeout = textureBakeTimeout2K
+        let scaleFactor = use4K ? textureBake4KScaleFactor : 1.0
+
+        return baseTimeout * scaleFactor
+    }
 
     /// Timeout for metrics computation (seconds)
     /// Increased to 240s (4 minutes) to accommodate full analysis pipeline on iPhone 15 Pro
@@ -328,6 +356,33 @@ public struct ScanConfiguration {
     /// Use for: Pore analysis (4K critical), clinical-grade accuracy
     public static let highResTextureWidth: Int = 4096
     public static let highResTextureHeight: Int = 4096
+}
+
+// MARK: - Texture Resolution
+
+/// Texture resolution modes for device-based configuration
+public enum TextureResolution {
+    case standard2K  // 2048×2048
+    case highRes4K   // 4096×4096
+
+    public var width: Int {
+        switch self {
+        case .standard2K: return ScanConfiguration.standardTextureWidth
+        case .highRes4K: return ScanConfiguration.highResTextureWidth
+        }
+    }
+
+    public var height: Int {
+        switch self {
+        case .standard2K: return ScanConfiguration.standardTextureHeight
+        case .highRes4K: return ScanConfiguration.highResTextureHeight
+        }
+    }
+}
+
+// MARK: - ScanConfiguration Multi-Frame Capture
+
+extension ScanConfiguration {
 
     // MARK: - Multi-Frame Capture
 

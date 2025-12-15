@@ -100,9 +100,12 @@ public final class MetalTextureProcessor {
         blur.encode(commandBuffer: commandBuffer, sourceTexture: inputTexture, destinationTexture: outputTexture)
         logger.debug("✅ Metal Blur: Blur kernel encoded")
 
-        // Execute GPU work
+        // Execute GPU work with cancellation support
         commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
+        guard waitForCommandBufferCompletionCancellable(commandBuffer) else {
+            logger.error("❌ Metal Blur: Command buffer timed out or was cancelled")
+            return nil
+        }
 
         // DIAGNOSTIC: Check for errors
         if let error = commandBuffer.error {
@@ -208,16 +211,9 @@ public final class MetalTextureProcessor {
             return nil
         }
 
-        // Copy input textures into array
-        guard let commandBuffer = commandQueue.makeCommandBuffer(),
-              let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
-            logger.error("Failed to create command buffer for texture copy")
-            return nil
-        }
-
-        for (index, texture) in inputTextures.enumerated() {
-            // Resize texture to output size if needed
-            let resizedTexture: MTLTexture
+        // PHASE 1: Resize textures that need resizing (MPS needs its own encoder)
+        var resizedTextures: [MTLTexture] = []
+        for texture in inputTextures {
             if texture.width != Int(outputSize.width) || texture.height != Int(outputSize.height) {
                 // Create temporary resized texture
                 let tempDescriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -228,19 +224,31 @@ public final class MetalTextureProcessor {
                 )
                 tempDescriptor.usage = [.shaderRead, .shaderWrite]
 
-                guard let tempTexture = device.makeTexture(descriptor: tempDescriptor) else {
+                guard let tempTexture = device.makeTexture(descriptor: tempDescriptor),
+                      let scaleBuffer = commandQueue.makeCommandBuffer() else {
+                    resizedTextures.append(texture)
                     continue
                 }
 
-                // Use MPS to scale
+                // MPS creates its own encoder, so use a separate command buffer
                 let scaler = MPSImageBilinearScale(device: device)
-                scaler.encode(commandBuffer: commandBuffer, sourceTexture: texture, destinationTexture: tempTexture)
-                resizedTexture = tempTexture
+                scaler.encode(commandBuffer: scaleBuffer, sourceTexture: texture, destinationTexture: tempTexture)
+                scaleBuffer.commit()
+                scaleBuffer.waitUntilCompleted()
+                resizedTextures.append(tempTexture)
             } else {
-                resizedTexture = texture
+                resizedTextures.append(texture)
             }
+        }
 
-            // Copy to array slice
+        // PHASE 2: Copy all resized textures into array using blit encoder
+        guard let commandBuffer = commandQueue.makeCommandBuffer(),
+              let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
+            logger.error("Failed to create command buffer for texture copy")
+            return nil
+        }
+
+        for (index, resizedTexture) in resizedTextures.enumerated() {
             let origin = MTLOrigin(x: 0, y: 0, z: 0)
             let size = MTLSize(width: Int(outputSize.width), height: Int(outputSize.height), depth: 1)
 
@@ -259,7 +267,10 @@ public final class MetalTextureProcessor {
 
         blitEncoder.endEncoding()
         commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
+        guard waitForCommandBufferCompletionCancellable(commandBuffer) else {
+            logger.error("❌ Failed to complete texture copy - timed out or cancelled")
+            return nil
+        }
 
         // Now run compute shader
         guard let computeBuffer = commandQueue.makeCommandBuffer(),
@@ -293,7 +304,10 @@ public final class MetalTextureProcessor {
         computeEncoder.endEncoding()
 
         computeBuffer.commit()
-        computeBuffer.waitUntilCompleted()
+        guard waitForCommandBufferCompletionCancellable(computeBuffer) else {
+            logger.error("❌ Failed to complete texture blending - timed out or cancelled")
+            return nil
+        }
 
         // Convert result to UIImage
         guard let result = MetalHelpers.uiImageFromTexture(outputTexture) else {
@@ -362,7 +376,10 @@ public final class MetalTextureProcessor {
         computeEncoder.endEncoding()
 
         commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
+        guard waitForCommandBufferCompletionCancellable(commandBuffer) else {
+            logger.error("❌ Failed to complete luminance conversion - timed out or cancelled")
+            return nil
+        }
 
         return MetalHelpers.uiImageFromTexture(outputTexture)
     }
@@ -374,6 +391,64 @@ public final class MetalTextureProcessor {
         // MPS kernels and textures are automatically managed
         // This method is for future expansion if we add custom resources
         logger.info("🧹 Metal GPU resources cleaned up")
+    }
+    
+    // MARK: - Cancellable GPU Execution Helper
+
+    /// Wait for command buffer completion with protected GPU execution
+    ///
+    /// CRITICAL FIX: Only checks cancellation BEFORE the GPU operation starts, not during.
+    /// Once GPU work begins, it runs to completion to avoid wasted work and undefined state
+    /// from partial GPU execution. The outer timeout (withTimeout) handles overall timeout.
+    ///
+    /// - Parameters:
+    ///   - commandBuffer: The Metal command buffer to wait for
+    ///   - timeout: Maximum wait time in seconds (default: 120.0 for 4K textures)
+    ///   - checkCancellationBeforeWait: Whether to check Task.isCancelled before starting (default: true)
+    /// - Returns: true if completed successfully, false if timed out or pre-cancelled
+    private func waitForCommandBufferCompletionCancellable(
+        _ commandBuffer: MTLCommandBuffer,
+        timeout: TimeInterval = 120.0,  // Increased from 5.0 for 4K texture processing
+        checkCancellationBeforeWait: Bool = true
+    ) -> Bool {
+        // STEP 1: Check cancellation BEFORE starting wait (not during)
+        // This allows early exit if already cancelled before GPU work began
+        if checkCancellationBeforeWait && Task.isCancelled {
+            logger.info("🛑 GPU operation pre-cancelled (before GPU work started)")
+            return false
+        }
+
+        let startTime = Date()
+        let pollInterval: TimeInterval = 0.01  // 10ms polling interval (was 2ms)
+
+        // STEP 2: Wait for completion WITHOUT checking Task.isCancelled
+        // GPU operations must complete once started - partial results are useless
+        // and cancelling mid-operation wastes all work done so far
+        while commandBuffer.status != .completed && commandBuffer.status != .error {
+            // Only check timeout, NOT cancellation during GPU work
+            if Date().timeIntervalSince(startTime) > timeout {
+                logger.warning("⚠️ GPU command buffer timeout after \(timeout)s")
+                return false
+            }
+
+            // Small sleep to avoid busy-waiting
+            Thread.sleep(forTimeInterval: pollInterval)
+        }
+
+        // Check for GPU errors
+        if let error = commandBuffer.error {
+            logger.error("❌ GPU command buffer error: \(error.localizedDescription)")
+            return false
+        }
+
+        if commandBuffer.status == .error {
+            logger.error("❌ GPU command buffer status is error")
+            return false
+        }
+
+        let elapsed = Date().timeIntervalSince(startTime)
+        logger.debug("✅ GPU command completed in \(String(format: "%.2f", elapsed))s")
+        return true
     }
 }
 

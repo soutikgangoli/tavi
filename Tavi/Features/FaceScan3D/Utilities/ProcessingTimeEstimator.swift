@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import Metal
 
 /// Processing step in the scan pipeline
 public enum ProcessingPhase: Int, CaseIterable {
@@ -157,12 +158,25 @@ public enum DevicePerformanceTier: CustomStringConvertible {
     }
 
     /// Performance multiplier relative to baseline (iPhone 15 Pro = 1.0)
+    /// Used for time ESTIMATES (optimistic)
     var performanceMultiplier: Double {
         switch self {
         case .flagship: return 1.0
         case .high: return 1.15
         case .standard: return 1.35
         case .legacy: return 1.65
+        }
+    }
+
+    /// Timeout multiplier for SAFETY margins (more conservative than estimates)
+    /// Used for timeout values to prevent premature cancellation
+    /// These are larger than performanceMultiplier to provide adequate buffer
+    var timeoutMultiplier: Double {
+        switch self {
+        case .flagship: return 1.2    // 20% buffer for newest devices
+        case .high: return 1.4        // 40% buffer for recent devices
+        case .standard: return 1.7    // 70% buffer for older Pro models
+        case .legacy: return 2.2      // 120% buffer for legacy devices
         }
     }
 
@@ -191,6 +205,7 @@ public enum DevicePerformanceTier: CustomStringConvertible {
 
 /// Accurate time estimation for processing steps based on device capabilities
 /// Learns from actual processing times to improve future estimates
+@MainActor
 public class ProcessingTimeEstimator: ObservableObject {
 
     // MARK: - Singleton for Tracking
@@ -219,6 +234,9 @@ public class ProcessingTimeEstimator: ObservableObject {
 
     /// Key for storing scan count
     private let scanCountKey = AppDefaultsKey.processingTimeScanCount
+
+    /// Key for storing last known device tier (to detect changes)
+    private let deviceTierKey = "tavi.processingTime.deviceTier"
 
     private let deviceCalibrator = DeviceCalibrator()
     private var currentDevice: DeviceInfo?
@@ -249,6 +267,17 @@ public class ProcessingTimeEstimator: ObservableObject {
     public init() {
         self.currentDevice = deviceCalibrator.getCurrentDevice()
         self.performanceTier = Self.determinePerformanceTier(device: currentDevice)
+
+        // Check if device tier changed since last run - reset learned times if so
+        let lastTier = UserDefaults.standard.string(forKey: deviceTierKey)
+        let currentTierName = performanceTier.deviceDescription
+        if lastTier != currentTierName {
+            if lastTier != nil {
+                AppLogger.faceScan.info("📱 Device tier changed from '\(lastTier!)' to '\(currentTierName)' - resetting learned times")
+                resetLearnedTimes()
+            }
+            UserDefaults.standard.set(currentTierName, forKey: deviceTierKey)
+        }
     }
 
     /// Create a non-shared instance (for backward compatibility)
@@ -312,6 +341,14 @@ public class ProcessingTimeEstimator: ObservableObject {
         return baseTimeout * performanceTier.performanceMultiplier
     }
 
+    /// Get device-adjusted timeout specifically for texture baking
+    /// Uses more conservative timeoutMultiplier to prevent premature cancellation
+    /// - Parameter baseTimeout: Base timeout value (should be from ScanConfiguration.getTextureBakeTimeout())
+    /// - Returns: Adjusted timeout with safety buffer for device tier
+    public func getTextureBakeTimeout(_ baseTimeout: TimeInterval) -> TimeInterval {
+        return baseTimeout * performanceTier.timeoutMultiplier
+    }
+
     /// Get user-friendly time range description
     /// - Returns: Human-readable time estimate (e.g., "2-3 minutes")
     public func getTimeRangeDescription() -> String {
@@ -359,36 +396,90 @@ public class ProcessingTimeEstimator: ObservableObject {
         progressPercent = 0
 
         // Start countdown timer that ticks every second
-        // FIXED: Simple linear countdown - decrements by 1 every second
-        // This ensures the countdown never gets stuck at a number
+        // FIXED: Use RunLoop.main with .common mode to ensure timer fires
+        // even during animations or gesture tracking
         countdownTimer?.invalidate()
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-            DispatchQueue.main.async {
-                guard let self = self else {
-                    timer.invalidate()
-                    return
-                }
 
+        // Create timer on main thread and add to common modes
+        // This prevents the timer from getting stuck during UI operations
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+
+            // Use Task to properly access MainActor-isolated properties
+            // The timer fires on main thread but Swift needs explicit MainActor context
+            Task { @MainActor in
                 // Update elapsed time
                 if let start = self.processingStartTime {
                     self.elapsedSeconds = Int(Date().timeIntervalSince(start))
                 }
 
-                // Simple linear countdown: decrement by 1 every second
-                // Never goes below 1 (shows "1" until processing completes)
-                if self.remainingSeconds > 1 {
-                    self.remainingSeconds -= 1
-                }
-                // Note: remainingSeconds is set to 0 only by finishProcessing()
-
-                // Update progress percentage based on elapsed/initial estimate
-                if self.estimatedTotalSeconds > 0 {
-                    self.progressPercent = min(99, (Double(self.elapsedSeconds) / Double(self.estimatedTotalSeconds)) * 100)
-                }
+                // SMART COUNTDOWN: Use phase-based progress instead of pure time-based
+                // This prevents the timer from getting "stuck" when processing takes longer
+                self.updateSmartCountdown()
             }
         }
 
+        // CRITICAL: Add timer to RunLoop.main with .common mode
+        // .common includes both .default and .tracking modes, ensuring
+        // the timer fires even during scrolling, animations, or other UI activity
+        RunLoop.main.add(timer, forMode: .common)
+        countdownTimer = timer
+
         AppLogger.faceScan.info("⏱️ Processing started. Initial estimate: \(self.estimatedTotalSeconds)s")
+    }
+
+    /// Smart countdown that uses phase-based progress
+    /// Prevents getting stuck by dynamically adjusting estimates
+    private func updateSmartCountdown() {
+        guard let currentPhase = activePhase else {
+            // No active phase yet - just decrement normally
+            if remainingSeconds > 1 {
+                remainingSeconds -= 1
+            }
+            return
+        }
+
+        // Calculate phase-based progress (each phase is worth ~16.67% for 6 phases)
+        let totalPhases = Double(ProcessingPhase.allCases.count)
+        let completedPhases = Double(currentPhase.rawValue - 1)
+
+        // Calculate progress within current phase based on elapsed time
+        var phaseProgress: Double = 0
+        if let startTime = phaseStartTime {
+            let phaseElapsed = Date().timeIntervalSince(startTime)
+            let phaseEstimate = getLearnedOrBaselineTime(for: currentPhase)
+            // Cap phase progress at 95% to leave room for completion
+            phaseProgress = min(0.95, phaseElapsed / max(phaseEstimate, 1))
+        }
+
+        // Total progress = completed phases + current phase progress
+        let totalProgress = (completedPhases + phaseProgress) / totalPhases
+
+        // Update progress percent (cap at 95% to leave room for final steps)
+        progressPercent = min(95, totalProgress * 100)
+
+        // Calculate remaining seconds based on progress
+        // If we're at 50% progress, remaining should be ~50% of total estimate
+        let progressFraction = totalProgress
+        let estimatedRemaining = Double(estimatedTotalSeconds) * (1.0 - progressFraction)
+
+        // Smooth transition - don't let remaining jump around too much
+        let targetRemaining = max(5, Int(estimatedRemaining))
+
+        // FIXED: Prevent oscillation by using a dead zone and always decrementing
+        // The countdown should always go down (or stay same), never up
+        // This prevents the 54->51->54 oscillation issue
+        let difference = remainingSeconds - targetRemaining
+
+        if difference > 5 {
+            // We're way behind estimate - catch up faster (decrement by 2)
+            remainingSeconds -= 2
+        } else if remainingSeconds > 5 {
+            // Normal countdown - always decrement by 1
+            // Never increase the countdown even if estimate changed
+            remainingSeconds -= 1
+        }
+        // Keep at 5 minimum until finishProcessing() is called
     }
 
     /// Stop the countdown timer
@@ -480,9 +571,18 @@ public class ProcessingTimeEstimator: ObservableObject {
         // Stop countdown
         stopCountdown()
 
-        // Set to complete
-        remainingSeconds = 0
-        progressPercent = 100
+        // Smoothly animate to completion (96 -> 97 -> 98 -> 99 -> 100)
+        // This prevents a jarring jump from wherever we were to 100%
+        Task { @MainActor in
+            // Quick countdown from current remaining to 0
+            for remaining in stride(from: min(self.remainingSeconds, 4), through: 0, by: -1) {
+                self.remainingSeconds = remaining
+                self.progressPercent = 96 + Double(4 - remaining)
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second per tick
+            }
+            self.remainingSeconds = 0
+            self.progressPercent = 100
+        }
 
         // Log accuracy report
         let initialEstimate = estimateTotalTime()
@@ -590,6 +690,14 @@ public class ProcessingTimeEstimator: ObservableObject {
     // MARK: - Device Performance Detection
 
     private static func determinePerformanceTier(device: DeviceInfo?) -> DevicePerformanceTier {
+        // First check GPU name for newest devices (A19, A18 chips)
+        // This handles cases where TrueDepth version detection is outdated
+        if let gpuName = MTLCreateSystemDefaultDevice()?.name {
+            if gpuName.contains("A19") || gpuName.contains("A18") || gpuName.contains("A17") {
+                return .flagship
+            }
+        }
+
         guard let device = device else {
             return .standard // Default to standard if unknown
         }
