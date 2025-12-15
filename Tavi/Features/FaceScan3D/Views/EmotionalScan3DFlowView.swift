@@ -977,7 +977,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 // Step 1: Merge meshes (with timeout protection)
                 smoothlyUpdateProgress(to: 1)
-                processingProgress = ProcessingPhase.meshMerge.description
+                updateProcessingProgress(ProcessingPhase.meshMerge.description)
                 timeEstimator.startPhase(.meshMerge)
                 CrashReporter.shared.setCustomKey("processing_step", value: "mesh_merge")
 
@@ -1011,7 +1011,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 // Step 2: Bake texture (with timeout protection)
                 smoothlyUpdateProgress(to: 2)
-                processingProgress = ProcessingPhase.textureBake.description
+                updateProcessingProgress(ProcessingPhase.textureBake.description)
                 timeEstimator.startPhase(.textureBake)
                 CrashReporter.shared.setCustomKey("processing_step", value: "texture_bake")
 
@@ -1044,7 +1044,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 // Step 3: Compute clinical metrics (with timeout protection)
                 smoothlyUpdateProgress(to: 3)
-                processingProgress = ProcessingPhase.metricsAnalysis.description
+                updateProcessingProgress(ProcessingPhase.metricsAnalysis.description)
                 timeEstimator.startPhase(.metricsAnalysis)
                 CrashReporter.shared.setCustomKey("processing_step", value: "metrics_analysis")
 
@@ -1074,7 +1074,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 // Step 4: Convert to emotional metrics
                 smoothlyUpdateProgress(to: 4)
-                processingProgress = ProcessingPhase.emotionalMetrics.description
+                updateProcessingProgress(ProcessingPhase.emotionalMetrics.description)
                 timeEstimator.startPhase(.emotionalMetrics)
                 CrashReporter.shared.setCustomKey("processing_step", value: "emotional_metrics")
 
@@ -1102,7 +1102,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 // Step 5: Update gamification
                 smoothlyUpdateProgress(to: 5)
-                processingProgress = ProcessingPhase.gamification.description
+                updateProcessingProgress(ProcessingPhase.gamification.description)
                 timeEstimator.startPhase(.gamification)
                 CrashReporter.shared.setCustomKey("processing_step", value: "gamification")
 
@@ -1135,7 +1135,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 // Step 6: Save to Core Data (with timeout protection)
                 smoothlyUpdateProgress(to: 6)
-                processingProgress = ProcessingPhase.coreDataSave.description
+                updateProcessingProgress(ProcessingPhase.coreDataSave.description)
                 timeEstimator.startPhase(.coreDataSave)
                 CrashReporter.shared.setCustomKey("processing_step", value: "core_data_save")
 
@@ -2002,9 +2002,20 @@ extension EmotionalScan3DFlowView {
     }
 
     /// Smoothly animate progress to target step with intermediate values
+    /// Uses DispatchQueue.main.async to avoid "Publishing changes from within view updates" warning
     private func smoothlyUpdateProgress(to targetStep: Int) {
-        withAnimation(Designs.Animation.linear) {
-            processingStep = Double(targetStep)
+        DispatchQueue.main.async {
+            withAnimation(Designs.Animation.linear) {
+                self.processingStep = Double(targetStep)
+            }
+        }
+    }
+
+    /// Update processing progress description safely
+    /// Uses DispatchQueue.main.async to avoid "Publishing changes from within view updates" warning
+    private func updateProcessingProgress(_ description: String) {
+        DispatchQueue.main.async {
+            self.processingProgress = description
         }
     }
 }

@@ -383,31 +383,36 @@ public class ProcessingTimeEstimator: ObservableObject {
     /// Start the processing countdown timer
     /// Call this when processing begins
     public func startCountdown() {
-        // Reset state
+        // Reset non-published state immediately
         currentScanActualTimes = [:]
         activePhase = nil
         phaseStartTime = nil
         processingStartTime = Date()
-        elapsedSeconds = 0
 
-        // Calculate initial total estimated time
-        estimatedTotalSeconds = estimateTotalTime()
-        remainingSeconds = estimatedTotalSeconds
-        progressPercent = 0
-
-        // Start countdown timer that ticks every second
-        // FIXED: Use RunLoop.main with .common mode to ensure timer fires
-        // even during animations or gesture tracking
+        // Invalidate any existing timer
         countdownTimer?.invalidate()
+
+        // Calculate initial estimate
+        let initialEstimate = estimateTotalTime()
+
+        // CRITICAL FIX: Defer @Published property updates to avoid
+        // "Publishing changes from within view updates" warning
+        // This ensures updates happen on next run loop iteration
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.elapsedSeconds = 0
+            self.estimatedTotalSeconds = initialEstimate
+            self.remainingSeconds = initialEstimate
+            self.progressPercent = 0
+        }
 
         // Create timer on main thread and add to common modes
         // This prevents the timer from getting stuck during UI operations
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
 
-            // Use Task to properly access MainActor-isolated properties
-            // The timer fires on main thread but Swift needs explicit MainActor context
-            Task { @MainActor in
+            // Use DispatchQueue.main.async to avoid view update conflicts
+            DispatchQueue.main.async {
                 // Update elapsed time
                 if let start = self.processingStartTime {
                     self.elapsedSeconds = Int(Date().timeIntervalSince(start))
@@ -425,7 +430,7 @@ public class ProcessingTimeEstimator: ObservableObject {
         RunLoop.main.add(timer, forMode: .common)
         countdownTimer = timer
 
-        AppLogger.faceScan.info("⏱️ Processing started. Initial estimate: \(self.estimatedTotalSeconds)s")
+        AppLogger.faceScan.info("⏱️ Processing started. Initial estimate: \(initialEstimate)s")
     }
 
     /// Smart countdown that uses phase-based progress
@@ -503,10 +508,14 @@ public class ProcessingTimeEstimator: ObservableObject {
             AppLogger.faceScan.debug("⏱️ Phase \(previousPhase.rawValue) done: \(String(format: "%.1f", actualDuration))s (est: \(String(format: "%.1f", estimated))s, \(diffSign)\(String(format: "%.1f", diff))s)")
         }
 
-        // Start tracking new phase
+        // Start tracking new phase (non-published)
         activePhase = phase
         phaseStartTime = Date()
-        currentPhase = phase
+
+        // CRITICAL FIX: Defer @Published property update to avoid view update conflicts
+        DispatchQueue.main.async { [weak self] in
+            self?.currentPhase = phase
+        }
 
         // NOTE: We no longer recalculate remaining time here
         // The countdown now decrements linearly by 1 every second
@@ -589,11 +598,15 @@ public class ProcessingTimeEstimator: ObservableObject {
         let accuracy = totalActual > 0 ? (1.0 - abs(Double(initialEstimate) - totalActual) / totalActual) * 100 : 0
         AppLogger.faceScan.info("⏱️ Processing complete! Actual: \(String(format: "%.1f", totalActual))s, Initial estimate: \(initialEstimate)s, Accuracy: \(String(format: "%.0f", accuracy))%")
 
-        // Reset state
+        // Reset non-published state immediately
         activePhase = nil
         phaseStartTime = nil
-        currentPhase = nil
         processingStartTime = nil
+
+        // CRITICAL FIX: Defer @Published property update to avoid view update conflicts
+        DispatchQueue.main.async { [weak self] in
+            self?.currentPhase = nil
+        }
 
         // Increment scan count
         let scanCount = UserDefaults.standard.integer(forKey: scanCountKey)
@@ -605,14 +618,21 @@ public class ProcessingTimeEstimator: ObservableObject {
     /// Cancel processing (don't save learned times)
     public func cancelProcessing() {
         stopCountdown()
+
+        // Reset non-published state immediately
         activePhase = nil
         phaseStartTime = nil
-        currentPhase = nil
         processingStartTime = nil
-        remainingSeconds = 0
-        elapsedSeconds = 0
-        progressPercent = 0
         currentScanActualTimes = [:]
+
+        // CRITICAL FIX: Defer @Published property updates to avoid view update conflicts
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.currentPhase = nil
+            self.remainingSeconds = 0
+            self.elapsedSeconds = 0
+            self.progressPercent = 0
+        }
     }
 
     // MARK: - Learning System
