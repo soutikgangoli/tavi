@@ -493,8 +493,14 @@ class HydrationEstimator {
         let specularityScore = specularityScoreRaw.isNaN || specularityScoreRaw.isInfinite ? 50.0 : specularityScoreRaw
 
         let avgTextureEnergy = totalPixels > 0 ? totalTexture / totalPixels : 0
-        let textureScoreRaw = max(0, min(100, 100 - (avgTextureEnergy * 500)))
+        // FIX: Use logarithmic scaling to handle wide range of texture energy values
+        // Linear scaling (200) fails when avgEnergy >= 0.5 (score becomes 0)
+        // Logarithmic scaling: log2(1 + x*10) compresses high values
+        // avgEnergy 0.0 → score 100, 0.1 → 85, 0.3 → 60, 0.5 → 45, 1.0 → 30
+        let logEnergy = log2(1 + avgTextureEnergy * 10)  // Range: 0 to ~3.5 for typical values
+        let textureScoreRaw = max(0, min(100, 100 - (logEnergy * 28)))  // 28 = 100/3.5 approx
         let textureScore = textureScoreRaw.isNaN || textureScoreRaw.isInfinite ? 50.0 : textureScoreRaw
+        AppLogger.metrics.debug("💧 Hydration GPU Debug: avgTextureEnergy=\(avgTextureEnergy), logEnergy=\(logEnergy), textureScore=\(textureScore)")
 
         let meanLuminance = totalPixels > 0 ? totalLuminance / totalPixels : 0
         let variance = totalPixels > 0 ? (totalLuminanceSq / totalPixels) - (meanLuminance * meanLuminance) : 0
@@ -731,8 +737,13 @@ class HydrationEstimator {
         let avgEnergy = highFreqEnergy / Float((width - 2) * (height - 2))
 
         // Convert to hydration score (low energy = smooth = hydrated)
-        let textureScore = max(0, 100 - (avgEnergy * 500))  // Scale to 0-100
-        return min(100, textureScore)
+        // FIX: Use logarithmic scaling to handle wide range of texture energy values
+        // Linear scaling fails when avgEnergy >= 0.5 (score becomes 0)
+        // Logarithmic scaling: log2(1 + x*10) compresses high values
+        let logEnergy = log2(1 + avgEnergy * 10)
+        let textureScore = max(0, min(100, 100 - (logEnergy * 28)))
+        AppLogger.metrics.debug("💧 Hydration CPU Debug: avgEnergy=\(avgEnergy), logEnergy=\(logEnergy), textureScore=\(textureScore)")
+        return textureScore
     }
 
     /// Method 3: Analyze color variance (high variance = uneven = dehydrated)

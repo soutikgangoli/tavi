@@ -235,15 +235,17 @@ public struct ScoreSummaryView: View {
     }
 
     private func scoreColor(_ score: Double) -> Color {
+        // - Below 30: Red (poor)
+        // - 30-70: Yellow (fair)
+        // - 70-89: Green (good)
+        // - 90-100: Bright green (excellent)
         switch score {
         case 90...100:
-            return .green
+            return Color(red: 0.18, green: 0.82, blue: 0.35)  // Bright green
         case 70..<90:
-            return Color(red: 0.5, green: 0.8, blue: 0.3)
-        case 50..<70:
-            return .orange
-        case 30..<50:
-            return Color(red: 1.0, green: 0.5, blue: 0.0)
+            return .green
+        case 30..<70:
+            return .yellow
         default:
             return .red
         }
@@ -314,15 +316,17 @@ struct ROIScoreCard: View {
     }
 
     private func scoreColor(_ score: Double) -> Color {
+        // - Below 30: Red (poor)
+        // - 30-70: Yellow (fair)
+        // - 70-89: Green (good)
+        // - 90-100: Bright green (excellent)
         switch score {
         case 90...100:
-            return .green
+            return Color(red: 0.18, green: 0.82, blue: 0.35)  // Bright green
         case 70..<90:
-            return Color(red: 0.5, green: 0.8, blue: 0.3)
-        case 50..<70:
-            return .orange
-        case 30..<50:
-            return Color(red: 1.0, green: 0.5, blue: 0.0)
+            return .green
+        case 30..<70:
+            return .yellow
         default:
             return .red
         }

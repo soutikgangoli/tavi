@@ -890,11 +890,15 @@ public struct MetricDetailView: View {
     }
 
     private func scoreColor(_ score: Double) -> Color {
+        // - Below 30: Red (poor)
+        // - 30-70: Yellow (fair)
+        // - 70-89: Green (good)
+        // - 90-100: Bright green (excellent)
         switch score {
-        case 85...100: return Designs.ScoreColors.excellent
-        case 70..<85: return Designs.ScoreColors.good
-        case 50..<70: return Designs.ScoreColors.fair
-        default: return Designs.ScoreColors.warning
+        case 90...100: return Designs.ScoreColors.excellent  // Bright green
+        case 70..<90: return Designs.ScoreColors.good        // Green
+        case 30..<70: return Designs.ScoreColors.warning     // Yellow
+        default: return Designs.ScoreColors.poor             // Red
         }
     }
 

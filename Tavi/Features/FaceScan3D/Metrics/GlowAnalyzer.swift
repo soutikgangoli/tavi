@@ -181,10 +181,13 @@ public class GlowAnalyzer {
         let luminosityIndex = (labLightness * 100.0)  // Convert L* (0-1) to 0-100 scale
 
         // Compute radiance score (pure brightness)
+        // FIX: Scale labLightness and specularRatio to 0-100 BEFORE applying weights
+        // Old formula: (0.5 * 0.70 + 0.3 * 0.30) * 100 = 44 max (capped!)
+        // New formula: (50 * 0.70 + 30 * 0.30) = 44 (correct weighted average)
         let radianceScore = (
-            labLightness * Configuration.labLightnessWeight +
-            specularRatio * Configuration.specularHighlightWeight
-        ) * 100.0  // Scale to 0-100
+            (labLightness * 100.0) * Configuration.labLightnessWeight +
+            (specularRatio * 100.0) * Configuration.specularHighlightWeight
+        )  // Already 0-100 scale after weighted sum
 
         AppLogger.metrics.info("   Radiance Score (Luminosity): \(String(format: "%.1f", radianceScore))/100")
         AppLogger.metrics.info("     - LAB L* lightness: \(String(format: "%.1f", labLightness * 100))%")
@@ -262,19 +265,30 @@ public class GlowAnalyzer {
         let baselinePipeline = try analyzer.loadPipeline(named: "calculateBaselineBrightness")
         let analysisPipeline = try analyzer.loadPipeline(named: "analyzeGlow")
 
-        // Calculate threadgroup configuration
-        let (threadgroups, threadsPerGroup) = analyzer.calculateThreadgroups(
-            pipeline: analysisPipeline,
-            width: width,
-            height: height
+        // CRITICAL FIX: Use exactly 16x16 = 256 threads per threadgroup
+        // The Metal shader's threadgroup shared memory arrays are sized for 256 threads
+        // Using different sizes causes out-of-bounds access and zero results
+        let threadsPerGroup = MTLSize(width: 16, height: 16, depth: 1)
+        let threadgroups = MTLSize(
+            width: (width + 15) / 16,
+            height: (height + 15) / 16,
+            depth: 1
         )
 
         let threadgroupsPerRow = threadgroups.width
         let numThreadgroups = threadgroups.width * threadgroups.height
 
+        // Log threadgroup configuration for debugging
+        AppLogger.metrics.debug("🔧 GPU Threadgroups: \(threadgroups.width)x\(threadgroups.height) = \(numThreadgroups), threads/group: 16x16=256")
+
         // STEP 1: Calculate baseline brightness with partial results
         let partialBrightnessBuffer = try analyzer.createBuffer(length: numThreadgroups * MemoryLayout<Float>.stride)
         let partialCountsBuffer = try analyzer.createBuffer(length: numThreadgroups * MemoryLayout<Float>.stride)
+
+        // CRITICAL FIX: Zero-initialize buffers to prevent garbage data
+        // Metal buffers may contain garbage values which corrupt results
+        memset(partialBrightnessBuffer.contents(), 0, numThreadgroups * MemoryLayout<Float>.stride)
+        memset(partialCountsBuffer.contents(), 0, numThreadgroups * MemoryLayout<Float>.stride)
 
         // Create buffer for threadgroupsPerRow parameter
         var threadgroupsPerRowValueBaseline = UInt32(threadgroupsPerRow)
@@ -315,6 +329,9 @@ public class GlowAnalyzer {
         let resultsBufferSize = numThreadgroups * MemoryLayout<GlowPartialResults>.stride
         let resultsBuffer = try analyzer.createBuffer(length: resultsBufferSize)
 
+        // CRITICAL FIX: Zero-initialize results buffer
+        memset(resultsBuffer.contents(), 0, resultsBufferSize)
+
         // Create buffer for threadgroupsPerRow parameter
         var threadgroupsPerRowValue = UInt32(threadgroupsPerRow)
         let threadgroupsPerRowBuffer = try analyzer.createBuffer(length: MemoryLayout<UInt32>.stride)
@@ -352,8 +369,29 @@ public class GlowAnalyzer {
             totalValidPixels += result.validPixelCount
         }
 
-        // Calculate average L* (range 0-100) and normalize to 0-1
-        let averageLightness = totalValidPixels > 0 ? (totalLightness / totalValidPixels) / 100.0 : 0.5
+        // Calculate raw average L* (should be 0-100 range)
+        let rawAverageLStar = totalValidPixels > 0 ? totalLightness / totalValidPixels : 0
+
+        // DIAGNOSTIC: Log GPU results for debugging LAB L* issue
+        let expectedMinPixels = Float(width * height) * 0.01  // At least 1% of pixels should be valid
+        AppLogger.metrics.debug("🔍 LAB GPU Debug: totalLightness=\(String(format: "%.2f", totalLightness)), pixels=\(String(format: "%.0f", totalValidPixels)) (min expected: \(String(format: "%.0f", expectedMinPixels))), rawL*=\(String(format: "%.2f", rawAverageLStar))")
+
+        // VALIDATION: Check that we processed a reasonable number of pixels
+        // A 2048x2048 texture should have ~4M pixels; even with black background, expect at least 1%
+        if totalValidPixels < expectedMinPixels {
+            AppLogger.metrics.warning("⚠️ GPU LAB analysis only processed \(Int(totalValidPixels)) pixels (expected at least \(Int(expectedMinPixels))), falling back to CPU")
+            throw GPUAnalysisError.invalidInput("GPU processed too few pixels (\(Int(totalValidPixels))), likely texture issue")
+        }
+
+        // VALIDATION: L* should be 0-100, skin is typically 45-75
+        // If we get suspiciously low values, the GPU texture may be corrupted
+        if rawAverageLStar < 10 {
+            AppLogger.metrics.warning("⚠️ LAB L* suspiciously low (\(String(format: "%.2f", rawAverageLStar))), falling back to CPU")
+            throw GPUAnalysisError.invalidInput("GPU LAB L* too low (\(rawAverageLStar)), likely texture issue")
+        }
+
+        // Normalize L* from 0-100 to 0-1 range
+        let averageLightness = rawAverageLStar / 100.0
 
         return max(0, min(1, averageLightness))
     }
@@ -422,6 +460,9 @@ public class GlowAnalyzer {
 
         let averageLightness = pixelCount > 0 ? totalLightness / Float(pixelCount) : 0.5
 
+        // DIAGNOSTIC: Log CPU results for comparison with GPU
+        AppLogger.metrics.debug("🔍 LAB CPU Debug: totalL*=\(totalLightness * 100), pixels=\(pixelCount), avgL*=\(averageLightness * 100)%")
+
         // Clamp to 0-1 range
         return max(0, min(1, averageLightness))
     }
@@ -463,11 +504,13 @@ public class GlowAnalyzer {
         let baselinePipeline = try analyzer.loadPipeline(named: "calculateBaselineBrightness")
         let analysisPipeline = try analyzer.loadPipeline(named: "analyzeGlow")
 
-        // Calculate threadgroup configuration
-        let (threadgroups, threadsPerGroup) = analyzer.calculateThreadgroups(
-            pipeline: analysisPipeline,
-            width: width,
-            height: height
+        // CRITICAL FIX: Use exactly 16x16 = 256 threads per threadgroup
+        // The Metal shader's threadgroup shared memory arrays are sized for 256 threads
+        let threadsPerGroup = MTLSize(width: 16, height: 16, depth: 1)
+        let threadgroups = MTLSize(
+            width: (width + 15) / 16,
+            height: (height + 15) / 16,
+            depth: 1
         )
 
         let threadgroupsPerRow = threadgroups.width
@@ -476,6 +519,10 @@ public class GlowAnalyzer {
         // STEP 1: Calculate baseline brightness with partial results
         let partialBrightnessBuffer = try analyzer.createBuffer(length: numThreadgroups * MemoryLayout<Float>.stride)
         let partialCountsBuffer = try analyzer.createBuffer(length: numThreadgroups * MemoryLayout<Float>.stride)
+
+        // CRITICAL FIX: Zero-initialize buffers
+        memset(partialBrightnessBuffer.contents(), 0, numThreadgroups * MemoryLayout<Float>.stride)
+        memset(partialCountsBuffer.contents(), 0, numThreadgroups * MemoryLayout<Float>.stride)
 
         // Create buffer for threadgroupsPerRow parameter
         var threadgroupsPerRowValueBaseline = UInt32(threadgroupsPerRow)
@@ -516,6 +563,9 @@ public class GlowAnalyzer {
         let resultsBufferSize = numThreadgroups * MemoryLayout<GlowPartialResults>.stride
         let resultsBuffer = try analyzer.createBuffer(length: resultsBufferSize)
 
+        // CRITICAL FIX: Zero-initialize results buffer
+        memset(resultsBuffer.contents(), 0, resultsBufferSize)
+
         // Create buffer for threadgroupsPerRow parameter
         var threadgroupsPerRowValue = UInt32(threadgroupsPerRow)
         let threadgroupsPerRowBuffer = try analyzer.createBuffer(length: MemoryLayout<UInt32>.stride)
@@ -551,6 +601,13 @@ public class GlowAnalyzer {
             let result = resultsPtr[i]
             totalSpecularPixels += result.specularPixelCount
             totalValidPixels += result.validPixelCount
+        }
+
+        // VALIDATION: Check we processed enough pixels
+        let expectedMinPixels = Float(width * height) * 0.01
+        if totalValidPixels < expectedMinPixels {
+            AppLogger.metrics.debug("🔍 Specular GPU: only \(Int(totalValidPixels)) pixels, expected \(Int(expectedMinPixels))")
+            throw GPUAnalysisError.invalidInput("GPU specular processed too few pixels")
         }
 
         // Calculate specular ratio and normalize

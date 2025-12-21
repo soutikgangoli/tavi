@@ -153,15 +153,15 @@ public class ScanStateManager: ObservableObject {
         }
     }
 
-    /// Checks if all poses have been captured
+    /// Checks if all active poses have been captured
     public func isSequenceComplete() -> Bool {
-        return capturedPoses.count == GuidanceStep.allCases.count
+        return capturedPoses.count == GuidanceStep.activePoses.count
     }
 
     /// Gets completion percentage
     public func completionPercentage() -> Double {
         let captured = Double(capturedPoses.count)
-        let total = Double(GuidanceStep.allCases.count)
+        let total = Double(GuidanceStep.activePoses.count)
         return (captured / total) * 100
     }
 

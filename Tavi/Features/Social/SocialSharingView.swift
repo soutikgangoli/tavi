@@ -367,12 +367,15 @@ struct ProgressShareCard: View {
     }
 
     private var scoreColor: Color {
+        // - Below 30: Red (poor)
+        // - 30-70: Yellow (fair)
+        // - 70-89: Green (good)
+        // - 90-100: Bright green (excellent)
         switch metrics.skinHealthScore {
-        case 90...100: return .green
-        case 80..<90: return .blue
-        case 70..<80: return .cyan
-        case 60..<70: return .orange
-        default: return .purple
+        case 90...100: return Color(red: 0.18, green: 0.82, blue: 0.35)  // Bright green
+        case 70..<90: return .green
+        case 30..<70: return .yellow
+        default: return .red
         }
     }
 }

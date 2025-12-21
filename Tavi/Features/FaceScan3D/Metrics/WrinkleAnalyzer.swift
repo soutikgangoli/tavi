@@ -398,25 +398,9 @@ class WrinkleAnalyzer {
         // Use curvature as proxy for depth
         let avgCurvature = regionVertices.map { curvatures[$0] }.reduce(0, +) / Float(regionVertices.count)
 
-        // Convert curvature to approximate depth
-        //
-        // NOTE: This scaling factor (0.00002 = 20 micrometers) is empirical
-        // Validated against sample data and provides reasonable estimates for consumer use
-        // The factor is documented in ScanConfiguration.wrinkleDepthScalingFactor
-        //
-        // For clinical-grade accuracy, further validation would be recommended:
-        // - Calibration against medical imaging (optical coherence tomography)
-        // - Validation across different device models and lighting conditions
-        // - Dermatologist review of depth measurements
-        //
-        // Current implementation prioritizes consistency and relative measurements
-        //
-        // Validation plan:
-        // 1. Capture scans of subjects with known wrinkle depths (measured by calipers)
-        // 2. Compare computed depths against ground truth
-        // 3. Adjust scaling factor and possibly add per-device calibration
-        // 4. Add confidence bounds based on mesh quality
-        let scalingFactor: Float = 0.00002
+        // Convert curvature to approximate depth using configured scaling factor
+        // See ScanConfiguration.wrinkleDepthScalingFactor for documentation
+        let scalingFactor = Float(ScanConfiguration.wrinkleDepthScalingFactor)
         let estimatedDepth = avgCurvature * scalingFactor
 
         // Clamp to physically reasonable bounds (0.1mm to 3mm for facial wrinkles)
@@ -495,7 +479,20 @@ class WrinkleAnalyzer {
         var regionScores: [String: (total: Float, count: Int)] = [:]
 
         for region in wrinkleRegions {
-            let score = 100 - (region.depth * 100000)  // Scale to 0-100
+            // FIXED: Use category-based scoring instead of aggressive linear formula
+            let depthCategory = classifyDepth(region.depth)
+            let score: Float
+            switch depthCategory {
+            case .fine:
+                let norm = region.depth / 0.0007
+                score = 100 - (norm * 15)  // 100-85
+            case .moderate:
+                let norm = (region.depth - 0.0007) / 0.0005
+                score = 85 - (norm * 35)  // 85-50
+            case .deep:
+                let norm = min(1, (region.depth - 0.0012) / 0.001)
+                score = 50 - (norm * 35)  // 50-15
+            }
             let current = regionScores[region.location, default: (0, 0)]
             regionScores[region.location] = (current.total + score, current.count + 1)
         }
@@ -509,10 +506,33 @@ class WrinkleAnalyzer {
         maxDepth: Float,
         wrinkleCount: Int
     ) -> Float {
-        // Lower depth = higher score
-        let depthScore = max(0, 100 - (avgDepth * 100000))
+        // FIXED: Use category-based scoring instead of aggressive linear formula
+        // Old formula: 100 - (avgDepth * 100000) was too harsh
+        // - 0.7mm depth → score 30 (should be ~65 for "fine" wrinkles)
+        // - 0.91mm depth → score 9 (should be ~55 for "moderate" wrinkles)
+        //
+        // New category-based scoring aligned with depth classification:
+        // - Fine (<0.7mm): 85-100 points based on exact depth
+        // - Moderate (0.7-1.2mm): 50-85 points
+        // - Deep (>1.2mm): 15-50 points
+        let depthCategory = classifyDepth(avgDepth)
+        let depthScore: Float
+        switch depthCategory {
+        case .fine:
+            // Fine: 0-0.7mm maps to 85-100
+            let normalizedDepth = avgDepth / 0.0007  // 0-1 for fine range
+            depthScore = 100 - (normalizedDepth * 15)  // 100 to 85
+        case .moderate:
+            // Moderate: 0.7-1.2mm maps to 50-85
+            let normalizedDepth = (avgDepth - 0.0007) / 0.0005  // 0-1 for moderate range
+            depthScore = 85 - (normalizedDepth * 35)  // 85 to 50
+        case .deep:
+            // Deep: 1.2mm+ maps to 15-50
+            let normalizedDepth = min(1, (avgDepth - 0.0012) / 0.001)  // 0-1 for deep range
+            depthScore = 50 - (normalizedDepth * 35)  // 50 to 15
+        }
 
-        // Fewer wrinkles = higher score
+        // Fewer wrinkles = higher score (unchanged)
         let countScore = max(0, 100 - Float(wrinkleCount) * 2)
 
         return (depthScore * 0.7 + countScore * 0.3)

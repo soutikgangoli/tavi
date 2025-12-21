@@ -52,6 +52,9 @@ public class CalibrationManager: ObservableObject {
     private nonisolated let edgeCaseDetector = EdgeCaseDetector()
     private let imageQualityAnalyzer = ImageQualityAnalyzer()
 
+    // Flag to signal cancellation to async Tasks
+    private var isCancelled: Bool = false
+
     // MARK: - Public Methods
 
     /// Lightweight calibration update (no ARFrame retention, uses basic lighting estimation)
@@ -73,7 +76,12 @@ public class CalibrationManager: ObservableObject {
             state.lighting = .tooDark
             state.distance = .tooFar
             state.stability = .moving
-            calibrationState = state  // Trigger @Published
+            // CRITICAL FIX: Defer @Published update to next run loop iteration
+            // Using DispatchQueue.main.async to truly defer (Task @MainActor may execute immediately)
+            let invalidState = state
+            DispatchQueue.main.async { [weak self] in
+                self?.calibrationState = invalidState
+            }
             return
         }
 
@@ -121,20 +129,10 @@ public class CalibrationManager: ObservableObject {
 
         state.updateCenterPosition(yaw: yawDegrees)
 
-        // CRITICAL: Store angles for debug display
+        // CRITICAL: Store angles for debug display (non-published struct property)
         state.currentYaw = yawDegrees
         state.currentPitch = pitchDegrees
         state.currentRoll = rollDegrees
-
-        // CRITICAL: Also update @Published properties for SwiftUI reactivity
-        self.currentYaw = yawDegrees
-        self.currentPitch = pitchDegrees
-        self.currentRoll = rollDegrees
-
-        // DEBUG: Log @Published property updates (throttled with calibration logs)
-        if debugLogFrameCounter == 0 {
-            AppLogger.faceScan.debug("📐 @Published angles: Yaw=\(String(format: "%.1f", self.currentYaw))° Pitch=\(String(format: "%.1f", self.currentPitch))° Roll=\(String(format: "%.1f", self.currentRoll))°")
-        }
 
         // CRITICAL: Update isPoseCorrect for Direction badge
         // During calibration, check if user is looking straight ahead (centered pose)
@@ -142,16 +140,38 @@ public class CalibrationManager: ObservableObject {
                             abs(pitchDegrees) <= ScanConfiguration.maxCenterPitchDegrees &&
                             abs(rollDegrees) <= ScanConfiguration.maxCenterRollDegrees
 
-        if self.isPoseCorrect != poseIsCorrect {
-            AppLogger.faceScan.debug("🎯 CalibrationManager: isPoseCorrect changed: \(self.isPoseCorrect) → \(poseIsCorrect) (yaw: \(String(format: "%.1f", yawDegrees))°, pitch: \(String(format: "%.1f", pitchDegrees))°, roll: \(String(format: "%.1f", rollDegrees))°)")
-        }
-
-        self.isPoseCorrect = poseIsCorrect
-
-        // CRITICAL: Reassign to trigger @Published objectWillChange
-        calibrationState = state
-
+        // Store transform before deferring
         lastTransform = faceAnchor.transform
+
+        // CRITICAL FIX: Defer @Published property updates to next run loop iteration
+        // This prevents "Publishing changes from within view updates" warnings
+        // Using DispatchQueue.main.async to truly defer (Task @MainActor may execute immediately)
+        let finalState = state
+        let poseChanged = self.isPoseCorrect != poseIsCorrect
+        let shouldLogAngles = debugLogFrameCounter == 0
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+
+            // Update @Published angle properties for SwiftUI reactivity
+            self.currentYaw = yawDegrees
+            self.currentPitch = pitchDegrees
+            self.currentRoll = rollDegrees
+
+            // DEBUG: Log @Published property updates (throttled with calibration logs)
+            if shouldLogAngles {
+                AppLogger.faceScan.debug("📐 @Published angles: Yaw=\(String(format: "%.1f", self.currentYaw))° Pitch=\(String(format: "%.1f", self.currentPitch))° Roll=\(String(format: "%.1f", self.currentRoll))°")
+            }
+
+            if poseChanged {
+                AppLogger.faceScan.debug("🎯 CalibrationManager: isPoseCorrect changed: \(self.isPoseCorrect) → \(poseIsCorrect) (yaw: \(String(format: "%.1f", yawDegrees))°, pitch: \(String(format: "%.1f", pitchDegrees))°, roll: \(String(format: "%.1f", rollDegrees))°)")
+            }
+
+            self.isPoseCorrect = poseIsCorrect
+
+            // CRITICAL: Reassign to trigger @Published objectWillChange
+            self.calibrationState = finalState
+        }
     }
 
     /// Full calibration update with ARFrame (only use when actually capturing, not for real-time tracking)
@@ -197,20 +217,29 @@ public class CalibrationManager: ObservableObject {
     private func updateRealLightingQuality(frame: ARFrame, faceAnchor: ARFaceAnchor, lightEstimation: LightEstimation?) {
         let pixelBuffer = frame.capturedImage
 
+        // Capture cancellation flag before entering async context
+        let wasCancelledAtStart = self.isCancelled
+
         // OPTIMIZATION: Move expensive image processing off main thread
-        Task.detached(priority: .userInitiated) { [weak self, pixelBuffer, faceAnchor] in
+        Task.detached(priority: .userInitiated) { [weak self, pixelBuffer, faceAnchor, wasCancelledAtStart] in
+            // Early exit if already cancelled at Task creation time
+            guard !wasCancelledAtStart else { return }
             guard let self = self else { return }
 
             // Convert to UIImage for analysis (off main thread)
             let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
             guard let cgImage = self.ciContext.createCGImage(ciImage, from: ciImage.extent) else {
                 // Fallback to basic check if conversion fails
-                await MainActor.run {
+                await MainActor.run { [weak self] in
+                    guard let self = self, !self.isCancelled else { return }
                     self.calibrationState.updateLighting(from: lightEstimation)
                 }
                 return
             }
             let texture = UIImage(cgImage: cgImage)
+
+            // Check cancellation before expensive edge case detection
+            guard await !MainActor.run(body: { self.isCancelled }) else { return }
 
             // Run EdgeCaseDetector analysis with "Strict" mode (expensive - off main thread)
             let edgeCases = self.edgeCaseDetector.detectEdgeCases(
@@ -220,10 +249,10 @@ public class CalibrationManager: ObservableObject {
             )
 
             // Update calibration state on main thread
-            await MainActor.run {
-                // Only update if this is from a newer frame (prevent race condition)
-                // Frames are sequential, so newer frames have higher timestamps
-                // Skip update if we've already processed a newer frame
+            await MainActor.run { [weak self] in
+                guard let self = self else { return }
+                // Skip update if cancelled (session is stopping)
+                guard !self.isCancelled else { return }
 
                 // Update calibration state based on actual quality metrics
                 if !edgeCases.shouldProceed {
@@ -257,6 +286,9 @@ public class CalibrationManager: ObservableObject {
 
     /// Reset calibration state
     public func reset() {
+        // CRITICAL: Set cancellation flag FIRST to stop any in-flight async Tasks
+        isCancelled = true
+
         calibrationState = CalibrationState()
         continueAnywayOverride = false
         qualityWarning = nil
@@ -265,6 +297,12 @@ public class CalibrationManager: ObservableObject {
         baselineColorTemperature = nil
         isPoseCorrect = false
         lastTransform = nil
+        qualityCheckFrameCounter = 0
+        debugLogFrameCounter = 0
+
+        // Reset cancellation flag for next session
+        // (done last so async Tasks have time to see the cancelled state)
+        isCancelled = false
     }
 
     /// Clear quality warning

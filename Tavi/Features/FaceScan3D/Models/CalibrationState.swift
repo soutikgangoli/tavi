@@ -10,7 +10,7 @@ import Foundation
 import ARKit
 
 /// Lighting condition states
-public enum LightingCondition: String {
+public enum LightingCondition: String, Sendable {
     case tooDark = "tooDark"
     case tooBright = "tooBright"
     case poor = "poor"          // Quality issues (shadows, color cast, etc.)
@@ -44,7 +44,7 @@ public enum LightingCondition: String {
 }
 
 /// Distance condition states
-public enum DistanceCondition: String {
+public enum DistanceCondition: String, Sendable {
     case tooClose = "tooClose"
     case tooFar = "tooFar"
     case good = "good"              // Optimal quality range (30-55cm)
@@ -70,7 +70,7 @@ public enum DistanceCondition: String {
 }
 
 /// Face stability state
-public enum StabilityCondition {
+public enum StabilityCondition: Sendable {
     case moving
     case stable
 
@@ -89,7 +89,7 @@ public enum StabilityCondition {
 }
 
 /// Center position indicator (for UI display)
-public enum CenterPosition: String {
+public enum CenterPosition: String, Sendable {
     case center = "center"
     case slightlyLeft = "slightlyLeft"
     case slightlyRight = "slightlyRight"
@@ -127,13 +127,19 @@ public enum CenterPosition: String {
     }
 }
 
-/// Guidance steps for capture (5 poses)
-public enum GuidanceStep: Int, CaseIterable {
+/// Guidance steps for capture (5 poses - currently only lookStraight enabled)
+public enum GuidanceStep: Int, CaseIterable, Sendable {
     case lookStraight = 0
     case turnLeft
     case turnRight
     case lookUp
     case lookDown
+    
+    /// Active poses for capture (currently only lookStraight)
+    public static var activePoses: [GuidanceStep] {
+        return [.lookStraight]
+        // TODO: Re-enable other poses: [.lookStraight, .turnLeft, .turnRight, .lookUp, .lookDown]
+    }
 
     var instruction: String {
         switch self {
@@ -331,7 +337,7 @@ public enum GuidanceStep: Int, CaseIterable {
 }
 
 /// Overall calibration state
-public struct CalibrationState {
+public struct CalibrationState: Sendable {
     public var lighting: LightingCondition = .tooDark
     public var distance: DistanceCondition = .tooFar
     public var stability: StabilityCondition = .moving
@@ -466,7 +472,7 @@ public struct CalibrationState {
 }
 
 /// Captured pose data for a guidance step
-public struct CapturedPoseData {
+public struct CapturedPoseData: Sendable {
     public let step: GuidanceStep
     public let geometry: FaceMeshGeometry
     public let timestamp: TimeInterval

@@ -16,10 +16,6 @@ using namespace metal;
 
 // MARK: - Constants
 
-/// Neighborhood sampling radius for darkness comparison
-/// Larger radius = more stable but less sensitive to small blemishes
-constant int DEFAULT_SAMPLE_RADIUS = 4;
-
 /// Minimum darkness difference to consider as potential blemish
 /// Adaptive per-pixel based on neighborhood statistics
 constant float MIN_DARKNESS_THRESHOLD = 0.02;  // 2% darker than surroundings
@@ -115,6 +111,7 @@ kernel void detectDarknessVariations(
 /// Uses threadgroup reduction for efficient parallel computation
 ///
 /// This kernel helps determine adaptive thresholds for blemish classification
+/// NOTE: This kernel REQUIRES exactly 256 threads per threadgroup (16x16)
 kernel void analyzeDarknessStats(
     texture2d<float, access::read> darknessMap [[texture(0)]],
     device float* partialSums [[buffer(0)]],
@@ -129,9 +126,14 @@ kernel void analyzeDarknessStats(
     // CRITICAL: Must use uint2 threadgroupPos (not uint threadgroupIndex)
     uint threadgroupIndex = threadgroupPos.y * threadgroupsPerRow + threadgroupPos.x;
 
-    // Threadgroup shared memory (256 threads max)
+    // CRITICAL: Threadgroup shared memory sized for exactly 256 threads (16x16)
     threadgroup float localDarknessSum[256];
     threadgroup float localPixelCount[256];
+
+    // Safety check: bail out if thread index exceeds array bounds
+    if (threadIndexInGroup >= 256) {
+        return;
+    }
 
     // Initialize local values
     float darknessSum = 0.0;
@@ -186,6 +188,7 @@ kernel void analyzeDarknessStats(
 /// 2. Compute average darkness in this region
 /// 3. Calculate adaptive threshold = mean + k*stddev
 /// 4. This adapts to different skin tones automatically
+/// NOTE: This kernel REQUIRES exactly 256 threads per threadgroup (16x16)
 kernel void calculateAdaptiveDarknessThreshold(
     texture2d<float, access::read> darknessMap [[texture(0)]],
     device float* threshold [[buffer(0)]],
@@ -193,10 +196,15 @@ kernel void calculateAdaptiveDarknessThreshold(
     uint2 gid [[thread_position_in_grid]],
     uint threadIndexInGroup [[thread_index_in_threadgroup]]
 ) {
-    // Threadgroup shared memory
+    // CRITICAL: Threadgroup shared memory sized for exactly 256 threads
     threadgroup float localDarknessSum[256];
     threadgroup float localDarknessSqSum[256];
     threadgroup float localPixelCount[256];
+
+    // Safety check: bail out if thread index exceeds array bounds
+    if (threadIndexInGroup >= 256) {
+        return;
+    }
 
     float darknessSum = 0.0;
     float darknessSqSum = 0.0;

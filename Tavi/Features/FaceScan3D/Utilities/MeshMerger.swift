@@ -76,13 +76,46 @@ public class MeshMerger {
             vertexMapping: mergedVertices.mapping
         )
 
-        return MergedFaceMesh(
+        let mesh = MergedFaceMesh(
             vertices: mergedVertices.vertices,
             triangleIndices: triangles,
             normals: normals,
             textureCoordinates: texCoords,
             sourceCount: sourceCount
         )
+
+        // DIAGNOSTIC: Log mesh topology stats
+        let vertexCount = mesh.vertices.count
+        let triangleCount = triangles.count / 3
+        let edgeCount = countUniqueEdges(triangles: triangles)
+        let eulerCharacteristic = vertexCount - edgeCount + triangleCount
+
+        AppLogger.mesh.info("📐 Merged mesh topology:")
+        AppLogger.mesh.info("   Vertices: \(vertexCount)")
+        AppLogger.mesh.info("   Triangles: \(triangleCount)")
+        AppLogger.mesh.info("   Edges: \(edgeCount)")
+        AppLogger.mesh.info("   Euler characteristic: \(eulerCharacteristic) (expected ~2 for closed surface)")
+
+        if eulerCharacteristic != 2 {
+            AppLogger.mesh.warning("⚠️ Euler characteristic ≠ 2 indicates mesh is not a closed surface")
+            AppLogger.mesh.warning("   This is normal for face meshes which have boundary edges")
+        }
+
+        return mesh
+    }
+
+    /// Count unique edges in triangle mesh
+    private func countUniqueEdges(triangles: [Int32]) -> Int {
+        var edges: Set<UInt64> = []
+        for i in stride(from: 0, to: triangles.count, by: 3) {
+            let v0 = triangles[i]
+            let v1 = triangles[i + 1]
+            let v2 = triangles[i + 2]
+            edges.insert(edgeKey(v0, v1))
+            edges.insert(edgeKey(v1, v2))
+            edges.insert(edgeKey(v2, v0))
+        }
+        return edges.count
     }
 
     // MARK: - Private Methods
@@ -216,12 +249,24 @@ public class MeshMerger {
         return MergedVertices(vertices: mergedVertices, mapping: mapping)
     }
 
+    /// Create a canonical edge key from two vertex indices (order-independent)
+    private func edgeKey(_ v1: Int32, _ v2: Int32) -> UInt64 {
+        let minV = min(v1, v2)
+        let maxV = max(v1, v2)
+        return UInt64(minV) << 32 | UInt64(maxV)
+    }
+
     private func collectTriangles<T: CaptureData>(
         from captures: [T],
         vertexMapping: [Int: Int]
     ) -> [Int32] {
         var triangles: [Int32] = []
         var triangleSet: Set<Triangle> = []
+
+        // FIXED: Track edge usage to prevent non-manifold edges
+        // Non-manifold edges are shared by more than 2 triangles, causing mesh issues
+        var edgeUsage: [UInt64: Int] = [:]
+        var skippedNonManifold = 0
 
         var vertexOffset = 0
 
@@ -248,6 +293,21 @@ public class MeshMerger {
                     v2: Int32(mergedI2)
                 )
 
+                // Check for non-manifold edges before adding triangle
+                // An edge shared by more than 2 triangles creates non-manifold geometry
+                let edge1 = edgeKey(triangle.v0, triangle.v1)
+                let edge2 = edgeKey(triangle.v1, triangle.v2)
+                let edge3 = edgeKey(triangle.v2, triangle.v0)
+
+                let wouldCreateNonManifold = (edgeUsage[edge1, default: 0] >= 2) ||
+                                             (edgeUsage[edge2, default: 0] >= 2) ||
+                                             (edgeUsage[edge3, default: 0] >= 2)
+
+                if wouldCreateNonManifold {
+                    skippedNonManifold += 1
+                    continue  // Skip this triangle to maintain manifold property
+                }
+
                 // Remove duplicates if configured
                 if configuration.removeDuplicateTriangles {
                     if !triangleSet.contains(triangle) {
@@ -255,15 +315,29 @@ public class MeshMerger {
                         triangles.append(triangle.v1)
                         triangles.append(triangle.v2)
                         triangleSet.insert(triangle)
+
+                        // Update edge usage counts
+                        edgeUsage[edge1, default: 0] += 1
+                        edgeUsage[edge2, default: 0] += 1
+                        edgeUsage[edge3, default: 0] += 1
                     }
                 } else {
                     triangles.append(triangle.v0)
                     triangles.append(triangle.v1)
                     triangles.append(triangle.v2)
+
+                    // Update edge usage counts
+                    edgeUsage[edge1, default: 0] += 1
+                    edgeUsage[edge2, default: 0] += 1
+                    edgeUsage[edge3, default: 0] += 1
                 }
             }
 
             vertexOffset += capture.vertices.count
+        }
+
+        if skippedNonManifold > 0 {
+            AppLogger.mesh.info("   ⚠️ Skipped \(skippedNonManifold) triangles to prevent non-manifold edges")
         }
 
         return triangles

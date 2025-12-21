@@ -347,9 +347,15 @@ struct ROIMetricsCard: View {
     }
 
     private func scoreColor(_ score: Double) -> Color {
+        // Score is 0-1 scale, apply same thresholds as 0-100:
+        // - Below 0.3 (30%): Red
+        // - 0.3-0.7 (30-70%): Yellow
+        // - 0.7-0.9 (70-89%): Green
+        // - 0.9-1.0 (90-100%): Bright green
         switch score {
-        case 0.7...1.0: return .green
-        case 0.4..<0.7: return .orange
+        case 0.9...1.0: return Color(red: 0.18, green: 0.82, blue: 0.35)  // Bright green
+        case 0.7..<0.9: return .green
+        case 0.3..<0.7: return .yellow
         default: return .red
         }
     }

@@ -193,9 +193,16 @@ public final class MetalTextureProcessor {
         // Convert input images to Metal textures
         let inputTextures = samples.compactMap { MetalHelpers.textureFromUIImage($0, device: device) }
         guard inputTextures.count == samples.count else {
-            logger.error("Failed to convert all input images to textures")
+            logger.error("Failed to convert all input images to textures (\(inputTextures.count)/\(samples.count))")
             return nil
         }
+
+        // DIAGNOSTIC: Log input texture info
+        for (idx, tex) in inputTextures.enumerated() {
+            logger.debug("   📸 Input texture[\(idx)]: \(tex.width)×\(tex.height), format: \(tex.pixelFormat.rawValue)")
+        }
+        logger.debug("   🎯 Output size: \(Int(outputSize.width))×\(Int(outputSize.height))")
+        logger.debug("   ⚖️ Weights: \(weights.map { String(format: "%.3f", $0) }.joined(separator: ", "))")
 
         // Create texture array descriptor
         let arrayDescriptor = MTLTextureDescriptor()
@@ -286,6 +293,14 @@ public final class MetalTextureProcessor {
 
         var sampleCount = UInt32(samples.count)
         computeEncoder.setBytes(&sampleCount, length: MemoryLayout<UInt32>.size, index: 0)
+
+        // FIX: Pass sample weights to shader (was missing before - shader used alpha instead)
+        // Pad to 8 elements since shader expects fixed-size array
+        var paddedWeights = weights
+        while paddedWeights.count < 8 {
+            paddedWeights.append(0.0)
+        }
+        computeEncoder.setBytes(&paddedWeights, length: MemoryLayout<Float>.size * 8, index: 1)
 
         // Configure thread execution
         let threadgroupSize = MTLSize(

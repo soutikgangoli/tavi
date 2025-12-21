@@ -80,6 +80,10 @@ public class AcneAnalyzer {
     // MARK: - Performance Optimization
 
     private let maxAnalysisSize: Int = 1024
+    /// Maximum GPU texture size - prevents memory exhaustion on older devices
+    /// 6144x6144 rgba32Float = 576MB which hangs older iPhones
+    /// 2048x2048 r32Float = 16MB which is safe for all devices
+    private let maxGPUTextureSize: Int = 2048
     private let useGPU: Bool
 
     private func downsample(_ image: CGImage, maxSize: Int? = nil) -> CGImage? {
@@ -105,7 +109,9 @@ public class AcneAnalyzer {
 
     // MARK: - Configuration
 
-    private let minBlemishSize: Float = 2.0      // pixels
+    // ADJUSTED: Increased minBlemishSize from 2.0 to 4.0 to reduce false positives
+    // At 2048px downsampled resolution, 2px catches texture noise/pores
+    private let minBlemishSize: Float = 4.0      // pixels (was 2.0)
     private let maxBlemishSize: Float = 50.0     // pixels
     private let skinToneNormalizer = SkinToneNormalizer()
 
@@ -162,20 +168,29 @@ public class AcneAnalyzer {
             )
         }
 
-        // GPU PATH: Use full resolution for GPU-accelerated analysis
-        // CPU FALLBACK: Downsample for performance
+        // GPU PATH: Downsample to maxGPUTextureSize to prevent memory exhaustion
+        // CPU FALLBACK: Downsample to maxAnalysisSize for performance
         let analysisImage: CGImage
         let analysisTexture: UIImage
         let width: Int
         let height: Int
 
         if useGPU {
-            // GPU path: use full resolution for maximum accuracy
-            analysisImage = cgImage
-            analysisTexture = texture
-            width = cgImage.width
-            height = cgImage.height
-            AppLogger.metrics.info("   🎨 Using GPU acceleration (full resolution: \(width)x\(height))")
+            // GPU path: downsample to safe GPU size to prevent memory exhaustion
+            // 6144x6144 rgba32Float = 576MB which hangs older iPhones
+            if let downsampled = downsample(cgImage, maxSize: maxGPUTextureSize) {
+                analysisImage = downsampled
+                analysisTexture = UIImage(cgImage: downsampled)
+                width = downsampled.width
+                height = downsampled.height
+                AppLogger.metrics.info("   🎨 Using GPU acceleration (downsampled: \(cgImage.width)x\(cgImage.height) → \(width)x\(height))")
+            } else {
+                analysisImage = cgImage
+                analysisTexture = texture
+                width = cgImage.width
+                height = cgImage.height
+                AppLogger.metrics.info("   🎨 Using GPU acceleration (full resolution: \(width)x\(height))")
+            }
         } else {
             // CPU fallback: downsample for performance
             if let downsampled = downsample(cgImage) {
@@ -265,18 +280,28 @@ public class AcneAnalyzer {
 
         let width = image.width
         let height = image.height
+        AppLogger.metrics.debug("   🔧 GPU darkness detection: \(width)x\(height)")
 
         // Create Metal textures from CGImage
-        guard let inputTexture = createMetalTexture(from: image, device: device),
-              let darknessTexture = createEmptyTexture(width: width, height: height, device: device) else {
-            AppLogger.metrics.warning("⚠️ Texture creation failed, falling back to CPU")
+        AppLogger.metrics.debug("   📤 Creating input texture...")
+        guard let inputTexture = createMetalTexture(from: image, device: device) else {
+            AppLogger.metrics.warning("⚠️ Input texture creation failed, falling back to CPU")
             return detectDarknessVariationsCPU(image: image, skinTone: skinTone)
         }
+        AppLogger.metrics.debug("   ✅ Input texture created")
+
+        AppLogger.metrics.debug("   📦 Creating output texture...")
+        guard let darknessTexture = createEmptyTexture(width: width, height: height, device: device) else {
+            AppLogger.metrics.warning("⚠️ Output texture creation failed, falling back to CPU")
+            return detectDarknessVariationsCPU(image: image, skinTone: skinTone)
+        }
+        AppLogger.metrics.debug("   ✅ Output texture created")
 
         // Configure sampling radius based on image size
         let sampleRadius = Int32(min(5, max(3, width / 256)))
 
         // Dispatch GPU kernel
+        AppLogger.metrics.debug("   🚀 Creating command buffer...")
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let encoder = commandBuffer.makeComputeCommandEncoder() else {
             AppLogger.metrics.warning("⚠️ Command buffer creation failed, falling back to CPU")
@@ -299,24 +324,38 @@ public class AcneAnalyzer {
         encoder.dispatchThreads(gridSize, threadsPerThreadgroup: threadgroupSize)
         encoder.endEncoding()
 
+        AppLogger.metrics.debug("   ⏳ Committing GPU work (sampleRadius=\(sampleRadius))...")
+        let gpuStartTime = Date()
         commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
+
+        // Use cancellable polling instead of blocking waitUntilCompleted()
+        // This allows cancellation to work properly during analysis
+        if !waitForCommandBufferCompletionCancellable(commandBuffer, timeout: 5.0) {
+            AppLogger.metrics.warning("⚠️ GPU command buffer timed out or was cancelled, falling back to CPU")
+            return detectDarknessVariationsCPU(image: image, skinTone: skinTone)
+        }
+        let gpuTime = Date().timeIntervalSince(gpuStartTime)
+        AppLogger.metrics.debug("   ✅ GPU kernel complete in \(String(format: "%.1f", gpuTime * 1000))ms")
 
         // Read back darkness map from GPU
+        AppLogger.metrics.debug("   📥 Reading back darkness map...")
         guard let darknessData = readDarknessMap(from: darknessTexture) else {
             AppLogger.metrics.warning("⚠️ Darkness map readback failed, falling back to CPU")
             return detectDarknessVariationsCPU(image: image, skinTone: skinTone)
         }
 
         // Perform CPU-based connected component analysis on darkness map
+        AppLogger.metrics.debug("   🔍 Running connected component analysis...")
+        let analysisStartTime = Date()
         let darknessSpots = analyzeConnectedComponents(
             darknessData: darknessData,
             width: width,
             height: height,
             skinTone: skinTone
         )
+        let analysisTime = Date().timeIntervalSince(analysisStartTime)
 
-        AppLogger.metrics.debug("   GPU darkness detection: \(darknessSpots.count) spots detected")
+        AppLogger.metrics.debug("   ✅ GPU darkness detection complete: \(darknessSpots.count) spots in \(String(format: "%.1f", analysisTime * 1000))ms")
         return darknessSpots
     }
 
@@ -369,35 +408,40 @@ public class AcneAnalyzer {
     }
 
     /// Create empty Metal texture for output
+    /// Uses r32Float instead of rgba32Float to reduce memory by 4x
+    /// (only R channel is used for darkness values)
     private func createEmptyTexture(width: Int, height: Int, device: MTLDevice) -> MTLTexture? {
         let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: .rgba32Float,
+            pixelFormat: .r32Float,  // Only need R channel, saves 75% memory
             width: width,
             height: height,
             mipmapped: false
         )
         textureDescriptor.usage = [.shaderWrite, .shaderRead]
 
+        let memoryMB = Double(width * height * 4) / 1_000_000.0
+        AppLogger.metrics.debug("   📦 GPU output texture: \(width)x\(height) r32Float (\(String(format: "%.1f", memoryMB))MB)")
+
         return device.makeTexture(descriptor: textureDescriptor)
     }
 
-    /// Read darkness map from GPU texture
+    /// Read darkness map from GPU texture (r32Float format - single channel)
     private func readDarknessMap(from texture: MTLTexture) -> [Float]? {
         let width = texture.width
         let height = texture.height
-        let bytesPerRow = width * 4 * MemoryLayout<Float>.size
 
-        var data = [Float](repeating: 0, count: width * height)
+        // r32Float = 1 float per pixel (4 bytes)
+        let bytesPerRow = width * MemoryLayout<Float>.size
+
+        var darknessMap = [Float](repeating: 0, count: width * height)
         let region = MTLRegionMake2D(0, 0, width, height)
 
-        texture.getBytes(&data, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
-
-        // Extract R channel (darkness values) from RGBA
-        var darknessMap = [Float](repeating: 0, count: width * height)
-        for i in 0..<(width * height) {
-            darknessMap[i] = data[i * 4]  // R channel
+        // Direct read into darkness map (no RGBA extraction needed with r32Float)
+        darknessMap.withUnsafeMutableBytes { ptr in
+            texture.getBytes(ptr.baseAddress!, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
         }
 
+        AppLogger.metrics.debug("   📖 GPU readback complete: \(width)x\(height) (\(darknessMap.count) pixels)")
         return darknessMap
     }
 
@@ -408,6 +452,12 @@ public class AcneAnalyzer {
         height: Int,
         skinTone: SkinToneCategory
     ) -> [(x: Int, y: Int, darkness: Float, size: Float)] {
+        // Guard against empty darkness data (defensive programming)
+        guard !darknessData.isEmpty else {
+            AppLogger.metrics.warning("⚠️ Empty darkness data array - returning empty results")
+            return []
+        }
+        
         // Calculate adaptive darkness threshold based on skin tone
         let darknessMultiplier: Float
         switch skinTone {
@@ -425,7 +475,25 @@ public class AcneAnalyzer {
 
         // Calculate average darkness to set threshold
         let avgDarkness = darknessData.reduce(0, +) / Float(darknessData.count)
-        let darknessThreshold = max(0.02, avgDarkness * darknessMultiplier)
+
+        // FIXED: Skin-tone-adaptive minimum threshold to prevent over-detection
+        // Light skin shows blemishes more clearly → lower minimum threshold
+        // Dark skin has natural variations → higher minimum to avoid false positives
+        // Previous fixed threshold of 0.10 caused 126 false positives for mediumDark skin
+        let baseMinimum: Float
+        switch skinTone {
+        case .veryLight, .light:
+            baseMinimum = 0.08   // Light skin shows blemishes clearly
+        case .medium:
+            baseMinimum = 0.10   // Medium skin - standard threshold
+        case .mediumDark:
+            baseMinimum = 0.12   // Indian/Mediterranean skin - more natural variation
+        case .dark:
+            baseMinimum = 0.14   // Dark skin - higher threshold for natural texture
+        case .veryDark:
+            baseMinimum = 0.16   // Very dark skin - highest threshold
+        }
+        let darknessThreshold = max(baseMinimum, avgDarkness * darknessMultiplier)
 
         AppLogger.metrics.debug("   Adaptive darkness threshold: \(darknessThreshold) (avg: \(avgDarkness), tone: \(skinTone))")
 
@@ -443,7 +511,10 @@ public class AcneAnalyzer {
                 // Check if this pixel exceeds threshold
                 if darkness > darknessThreshold && isLocalDarknessMaximum(data: darknessData, x: x, y: y, width: width, height: height) {
                     // Flood-fill to measure connected dark region
-                    let floodThreshold = darkness * 0.85  // 15% tolerance
+                    // TIGHTENED: Reduced from 0.85 to 0.70 to prevent over-connecting adjacent spots
+                    // 0.85 (15% tolerance) was too permissive, combining texture noise into large regions
+                    // 0.70 (30% tolerance) requires pixels to be more similar to join the same blemish
+                    let floodThreshold = darkness * 0.70
                     let (size, avgDarkness) = measureDarkRegion(
                         data: darknessData,
                         startX: x,
@@ -904,7 +975,12 @@ public class AcneAnalyzer {
         var regionalScores: [String: Float] = [:]
 
         for (region, count) in regionalCounts {
-            let avgSeverity = regionalSeverities[region]! / Float(count)
+            // Safe unwrap instead of force unwrap (defensive programming)
+            guard let severity = regionalSeverities[region] else {
+                AppLogger.metrics.warning("⚠️ Missing severity for region '\(region)' - skipping")
+                continue
+            }
+            let avgSeverity = severity / Float(count)
             // Score: 100 = perfect, 0 = very bad
             let score = max(0, 100 - Float(count) * 5 - avgSeverity * 50)
             regionalScores[region] = score
@@ -950,5 +1026,48 @@ public class AcneAnalyzer {
         }
 
         return max(30, min(90, confidence))
+    }
+    
+    // MARK: - Cancellable GPU Execution Helper
+    
+    /// Wait for command buffer completion with cancellation support
+    /// Uses polling instead of blocking waitUntilCompleted() to allow cancellation
+    /// - Parameters:
+    ///   - commandBuffer: The Metal command buffer to wait for
+    ///   - timeout: Maximum wait time in seconds (default: 5.0)
+    /// - Returns: true if completed successfully, false if timed out or cancelled
+    private func waitForCommandBufferCompletionCancellable(_ commandBuffer: MTLCommandBuffer, timeout: TimeInterval = 5.0) -> Bool {
+        let startTime = Date()
+        let pollInterval: UInt64 = 2_000_000 // 2ms polling interval
+        
+        while commandBuffer.status != .completed && commandBuffer.status != .error {
+            // Check for task cancellation (if running in async context)
+            if Task.isCancelled {
+                AppLogger.metrics.info("🛑 GPU operation cancelled")
+                return false
+            }
+            
+            // Check timeout
+            if Date().timeIntervalSince(startTime) > timeout {
+                AppLogger.metrics.warning("⚠️ GPU command buffer timeout after \(timeout)s")
+                return false
+            }
+            
+            // Small sleep to avoid busy-waiting (non-blocking)
+            Thread.sleep(forTimeInterval: Double(pollInterval) / 1_000_000_000.0)
+        }
+        
+        // Check for GPU errors
+        if let error = commandBuffer.error {
+            AppLogger.metrics.error("❌ GPU command buffer error: \(error.localizedDescription)")
+            return false
+        }
+        
+        if commandBuffer.status == .error {
+            AppLogger.metrics.error("❌ GPU command buffer status is error")
+            return false
+        }
+        
+        return true
     }
 }

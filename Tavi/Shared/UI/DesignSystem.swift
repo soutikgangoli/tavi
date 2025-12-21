@@ -49,23 +49,23 @@ enum DesignSystem {
 
         /// Score-based colors (adaptive and professional)
         /// These automatically adjust for dark mode via UIColor
+        /// - Below 30: Red (poor)
+        /// - 30-70: Yellow (fair)
+        /// - 70-89: Green (good)
+        /// - 90-100: Bright green (excellent)
         static func scoreColor(for score: Int) -> Color {
             switch score {
-            case 80...100: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
-                ? UIColor(red: 0.2, green: 0.8, blue: 0.4, alpha: 1.0)  // Brighter green for dark
-                : UIColor(red: 0.0, green: 0.65, blue: 0.3, alpha: 1.0) // Darker green for light
+            case 90...100: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+                ? UIColor(red: 0.18, green: 0.82, blue: 0.35, alpha: 1.0)  // Bright green for dark
+                : UIColor(red: 0.0, green: 0.75, blue: 0.3, alpha: 1.0)   // Bright green for light
             })
-            case 60..<80: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
-                ? UIColor(red: 0.5, green: 0.85, blue: 0.4, alpha: 1.0)  // Brighter lime for dark
-                : UIColor(red: 0.45, green: 0.75, blue: 0.2, alpha: 1.0) // Darker lime for light
+            case 70..<90: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+                ? UIColor(red: 0.2, green: 0.8, blue: 0.4, alpha: 1.0)  // Green for dark
+                : UIColor(red: 0.0, green: 0.65, blue: 0.3, alpha: 1.0) // Green for light
             })
-            case 40..<60: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+            case 30..<70: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
                 ? UIColor(red: 1.0, green: 0.85, blue: 0.3, alpha: 1.0)  // Brighter yellow for dark
                 : UIColor(red: 0.85, green: 0.65, blue: 0.0, alpha: 1.0) // Darker yellow for light
-            })
-            case 20..<40: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
-                ? UIColor(red: 1.0, green: 0.7, blue: 0.3, alpha: 1.0)   // Brighter orange for dark
-                : UIColor(red: 0.9, green: 0.5, blue: 0.0, alpha: 1.0)   // Darker orange for light
             })
             default: return Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
                 ? UIColor(red: 1.0, green: 0.5, blue: 0.5, alpha: 1.0)   // Brighter red for dark
@@ -164,13 +164,16 @@ enum DesignSystem {
         static let poor = Color(red: 255/255, green: 59/255, blue: 48/255)
 
         /// Returns the appropriate color for a given score
+        /// - Below 30: Red (poor)
+        /// - 30-70: Yellow (fair/warning)
+        /// - 70-89: Green (good)
+        /// - 90-100: Bright green (excellent)
         static func color(for score: Int) -> Color {
             switch score {
-            case 90...100: return excellent
-            case 80..<90: return good
-            case 50..<80: return fair
-            case 30..<50: return warning
-            default: return poor
+            case 90...100: return excellent  // Bright green
+            case 70..<90: return good        // Green
+            case 30..<70: return warning     // Yellow
+            default: return poor             // Red (below 30)
             }
         }
 

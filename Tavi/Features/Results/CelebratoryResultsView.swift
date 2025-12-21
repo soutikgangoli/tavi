@@ -879,18 +879,19 @@ public struct CelebratoryResultsView: View {
     }
 
     /// Get quality level label and color for score
+    /// - Below 30: Red (Needs Improvement)
+    /// - 30-70: Yellow (Fair)
+    /// - 70-100: Green (Good/Excellent)
     private func qualityLevel(for score: Int) -> (String, Color) {
         switch score {
-        case 90...100:
-            return ("Excellent", Designs.Colors.success)
-        case 75..<90:
-            return ("Good", Designs.Colors.success)
-        case 60..<75:
-            return ("Fair", Designs.Colors.secondary)
-        case 40..<60:
-            return ("Needs Attention", Designs.Colors.accent)
+        case 85...100:
+            return ("Excellent", .green)
+        case 70..<85:
+            return ("Good", .green)
+        case 30..<70:
+            return ("Fair", .yellow)
         default:
-            return ("Needs Improvement", Designs.Colors.primary)
+            return ("Needs Improvement", .red)
         }
     }
 

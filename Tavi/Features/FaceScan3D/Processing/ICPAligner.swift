@@ -495,7 +495,11 @@ private class KDTree {
         guard let node = node else { return }
 
         let dist = distance(node.point, query)
-        if best == nil || dist < best!.distance {
+        if let currentBest = best {
+            if dist < currentBest.distance {
+                best = (node.point, dist)
+            }
+        } else {
             best = (node.point, dist)
         }
 
@@ -511,7 +515,13 @@ private class KDTree {
         searchNearest(node: nearNode, query: query, best: &best)
 
         // Check if we need to search far side
-        if best == nil || abs(diff) < best!.distance {
+        let shouldSearchFar: Bool
+        if let currentBest = best {
+            shouldSearchFar = abs(diff) < currentBest.distance
+        } else {
+            shouldSearchFar = true
+        }
+        if shouldSearchFar {
             searchNearest(node: farNode, query: query, best: &best)
         }
     }

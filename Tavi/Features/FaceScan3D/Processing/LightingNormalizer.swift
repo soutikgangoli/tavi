@@ -60,8 +60,10 @@ class LightingNormalizer {
 
     /// Assess lighting quality
     /// IMPROVED: Skin-tone-aware dynamic range thresholds
+    /// ENHANCED: Added diagnostic logging to identify 0.00 score issues
     func assessLightingQuality(image: UIImage) -> ProcessingLightingQuality {
         guard let ciImage = CIImage(image: image) else {
+            AppLogger.metrics.error("❌ LightingNormalizer: Failed to create CIImage")
             return ProcessingLightingQuality(
                 overallScore: 0,
                 brightness: 0,
@@ -76,6 +78,7 @@ class LightingNormalizer {
 
         // Detect skin tone for adaptive thresholds
         let skinTone = skinToneNormalizer.detectSkinTone(texture: image)
+        AppLogger.metrics.debug("📊 Detected skin tone: \(skinTone)")
 
         // Calculate brightness
         let brightness = calculateAverageBrightness(ciImage: ciImage)
@@ -134,6 +137,17 @@ class LightingNormalizer {
         let overallScore = (brightnessScore * 0.5 + uniformityScore * 0.3 + shadowScore * 0.2)
         let isAcceptable = overallScore >= minAcceptableScore
 
+        // DIAGNOSTIC: Log all score components to identify 0.00 score issues
+        AppLogger.metrics.debug("📊 Lighting quality breakdown:")
+        AppLogger.metrics.debug("   Brightness: \(String(format: "%.2f", brightness)) (optimal: \(String(format: "%.2f", optimalBrightness)), score: \(String(format: "%.2f", brightnessScore)))")
+        AppLogger.metrics.debug("   Uniformity: \(String(format: "%.2f", uniformity)) (score: \(String(format: "%.2f", uniformityScore)))")
+        AppLogger.metrics.debug("   Shadow: \(String(format: "%.2f", shadowPresence)) (score: \(String(format: "%.2f", shadowScore)))")
+        AppLogger.metrics.debug("   Overall: \(String(format: "%.2f", overallScore)) (acceptable: \(isAcceptable))")
+
+        if overallScore < 0.1 {
+            AppLogger.metrics.warning("⚠️ Lighting quality very low! Check component scores above")
+        }
+
         return ProcessingLightingQuality(
             overallScore: overallScore,
             brightness: brightness,
@@ -183,7 +197,7 @@ class LightingNormalizer {
                       rowBytes: 4,
                       bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
                       format: .RGBA8,
-                      colorSpace: nil)
+                      colorSpace: CGColorSpaceCreateDeviceRGB())
 
         // Calculate perceived brightness (luminance)
         let r = Float(bitmap[0]) / 255.0
@@ -265,20 +279,24 @@ class LightingNormalizer {
         guard let grayImage = grayFilter.outputImage else { return 0 }
 
         // Sample pixels to find min/max
+        // FIX: Use RGBA8 format with deviceRGB colorspace instead of R8/gray
+        // R8 with DeviceGray causes "unsupported colorspace" error on some devices
         let context = CIContext()
         let width = Int(extent.width)
         let height = Int(extent.height)
-        var pixelData = [UInt8](repeating: 0, count: width * height)
+        var pixelData = [UInt8](repeating: 0, count: width * height * 4)
 
         context.render(grayImage,
                       toBitmap: &pixelData,
-                      rowBytes: width,
+                      rowBytes: width * 4,
                       bounds: CGRect(x: 0, y: 0, width: width, height: height),
-                      format: .R8,
-                      colorSpace: CGColorSpaceCreateDeviceGray())
+                      format: .RGBA8,
+                      colorSpace: CGColorSpaceCreateDeviceRGB())
 
-        let minVal = pixelData.min() ?? 0
-        let maxVal = pixelData.max() ?? 255
+        // Extract grayscale values from R channel (since input was desaturated)
+        let grayValues = stride(from: 0, to: pixelData.count, by: 4).map { pixelData[$0] }
+        let minVal = grayValues.min() ?? 0
+        let maxVal = grayValues.max() ?? 255
 
         // Return dynamic range as 0-1 score
         return Float(maxVal - minVal) / 255.0
@@ -303,7 +321,7 @@ class LightingNormalizer {
                       rowBytes: 4,
                       bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
                       format: .RGBA8,
-                      colorSpace: nil)
+                      colorSpace: CGColorSpaceCreateDeviceRGB())
 
         let avgR = Float(bitmap[0]) / 255.0
         let avgG = Float(bitmap[1]) / 255.0

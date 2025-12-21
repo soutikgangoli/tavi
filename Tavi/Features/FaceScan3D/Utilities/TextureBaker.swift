@@ -468,13 +468,18 @@ public class TextureBaker {
     }
 
     /// Calculate coverage percentage (non-black pixels)
+    /// ENHANCED: Added diagnostic logging to identify why coverage might be zero
     private func calculateCoverage(image: UIImage) -> Float {
-        guard let cgImage = image.cgImage else { return 0 }
+        guard let cgImage = image.cgImage else {
+            AppLogger.metrics.error("❌ calculateCoverage: Failed to get CGImage from UIImage")
+            return 0
+        }
 
         let width = cgImage.width
         let height = cgImage.height
+        let totalPixels = width * height
 
-        var pixelData = [UInt8](repeating: 0, count: width * height)
+        var pixelData = [UInt8](repeating: 0, count: totalPixels)
         let colorSpace = CGColorSpaceCreateDeviceGray()
 
         guard let context = CGContext(
@@ -486,19 +491,45 @@ public class TextureBaker {
             space: colorSpace,
             bitmapInfo: CGImageAlphaInfo.none.rawValue
         ) else {
+            AppLogger.metrics.error("❌ calculateCoverage: Failed to create CGContext for \(width)x\(height) image")
             return 0
         }
 
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
+        // DIAGNOSTIC: Compute histogram for debugging
         var filledPixels = 0
+        var minValue: UInt8 = 255
+        var maxValue: UInt8 = 0
+        var totalBrightness: Int = 0
+
         for pixel in pixelData {
-            if pixel > 10 {  // Not black
+            if pixel > 10 {  // Not black (threshold for noise)
                 filledPixels += 1
+            }
+            minValue = min(minValue, pixel)
+            maxValue = max(maxValue, pixel)
+            totalBrightness += Int(pixel)
+        }
+
+        let coverage = Float(filledPixels) / Float(totalPixels)
+        let avgBrightness = Float(totalBrightness) / Float(totalPixels)
+
+        // Log diagnostics if coverage is suspiciously low
+        if coverage < 0.1 {
+            AppLogger.metrics.warning("⚠️ TextureBaker: Low coverage detected!")
+            AppLogger.metrics.warning("   Texture size: \(width)x\(height) = \(totalPixels) pixels")
+            AppLogger.metrics.warning("   Filled pixels (>10 brightness): \(filledPixels) (\(String(format: "%.2f", coverage * 100))%)")
+            AppLogger.metrics.warning("   Brightness range: \(minValue) - \(maxValue)")
+            AppLogger.metrics.warning("   Average brightness: \(String(format: "%.1f", avgBrightness))")
+            if maxValue < 20 {
+                AppLogger.metrics.error("   ❌ Texture appears to be all black - UV projection may have failed")
+            } else if filledPixels < 100 {
+                AppLogger.metrics.error("   ❌ Very few non-black pixels - mesh may not have valid UV coordinates")
             }
         }
 
-        return Float(filledPixels) / Float(width * height)
+        return coverage
     }
 }
 

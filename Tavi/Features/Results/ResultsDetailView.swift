@@ -29,6 +29,12 @@ struct ResultsDetailView: View {
 
     init(session: SessionResult) {
         self.session = session
+        // Guard against deleted/faulted sessions to prevent crash
+        guard !session.isDeleted && !session.isFault else {
+            _clinicalMetrics = State(initialValue: nil)
+            return
+        }
+
         // Decode clinical metrics for confidence scores with versioned loader
         // Use a safe approach that won't crash if data is corrupted
         if let data = session.clinicalMetricsData, !data.isEmpty {
@@ -47,9 +53,17 @@ struct ResultsDetailView: View {
         }
     }
 
+    /// Check if session is still valid (not deleted/faulted)
+    private var isSessionValid: Bool {
+        !session.isDeleted && !session.isFault
+    }
+
     var body: some View {
         Group {
-            if let error = errorState {
+            if !isSessionValid {
+                // Session was deleted - show message and dismiss
+                sessionDeletedView
+            } else if let error = errorState {
                 errorView(error)
             } else {
                 contentView
@@ -84,8 +98,9 @@ struct ResultsDetailView: View {
             Text("Are you sure you want to delete this analysis session?")
         }
         .sheet(isPresented: $showSocialSharing) {
-            // Decode emotional metrics from session data
-            if let emotionalData = session.emotionalMetricsData,
+            // Guard against deleted session before accessing properties
+            if isSessionValid,
+               let emotionalData = session.emotionalMetricsData,
                let decoded = try? JSONDecoder().decode(EmotionalMetrics.self, from: emotionalData) {
                 SocialSharingView(
                     emotionalMetrics: decoded,
@@ -94,7 +109,7 @@ struct ResultsDetailView: View {
                     recentAchievement: nil
                 )
             } else {
-                // Fallback if no emotional metrics available
+                // Fallback if session deleted or no emotional metrics available
                 Text("Unable to load sharing options")
                     .foregroundColor(.secondary)
                     .padding()
@@ -146,6 +161,40 @@ struct ResultsDetailView: View {
             .padding(.top, Designs.Spacing.lg)
         }
         .background(Designs.Colors.background)
+    }
+
+    // MARK: - Session Deleted View
+
+    private var sessionDeletedView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "trash.circle")
+                .font(.system(size: 60))
+                .foregroundColor(.secondary)
+
+            Text("Session Deleted")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Text("This analysis session has been deleted or is no longer available.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            Button {
+                dismiss()
+            } label: {
+                Text("Go Back")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: 200)
+                    .padding(.vertical, 16)
+                    .background(Designs.Colors.info)
+                    .cornerRadius(Designs.Radius.medium)
+            }
+            .padding(.top)
+        }
+        .padding()
     }
 
     // MARK: - Error View
@@ -1691,6 +1740,12 @@ struct ResultsDetailView: View {
     }
 
     func deleteSession() {
+        // Guard against already deleted/faulted sessions
+        guard !session.isDeleted && !session.isFault else {
+            dismiss()
+            return
+        }
+
         viewContext.delete(session)
         do {
             try viewContext.save()
@@ -1717,9 +1772,10 @@ struct ResultsDetailView: View {
 
     func scoreColor(for score: Double) -> Color {
         switch score {
-        case 80...100: return .green
-        case 60..<80: return .orange
-        default: return .red
+        case 90...100: return Color(red: 0.18, green: 0.82, blue: 0.35)  // Bright green (90-100)
+        case 70..<90: return .green    // Green (70-89)
+        case 30..<70: return .yellow   // Yellow (30-70)
+        default: return .red           // Red (below 30)
         }
     }
 
@@ -2058,3 +2114,5 @@ extension HeatmapType {
         }
     }
 }
+
+

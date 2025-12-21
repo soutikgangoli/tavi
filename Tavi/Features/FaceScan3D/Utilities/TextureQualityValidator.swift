@@ -21,9 +21,11 @@ public class TextureQualityValidator {
         public var minimumROIPixelCount: Int = 100
 
         /// Minimum Laplacian variance for texture sharpness
-        /// STRICT: Increased to 150 to ensure accurate skin analysis
-        /// Below this threshold, texture is considered too blurry for reliable metrics
-        public var minimumLaplacianVariance: Float = 150.0
+        /// RELAXED: Lowered from 150 to 80 to reduce false "too blurry" rejections
+        /// The previous threshold was too strict for typical phone camera captures
+        /// Skin texture typically has lower sharpness than test patterns
+        /// Typical values: 50-100 = slightly soft, 100-200 = good, 200+ = very sharp
+        public var minimumLaplacianVariance: Float = 80.0
 
         /// Maximum percentage of low-confidence ROIs allowed
         public var maximumLowConfidenceRatio: Float = 0.4
@@ -44,6 +46,25 @@ public class TextureQualityValidator {
         // Check blur using Laplacian variance
         let laplacianVariance = computeLaplacianVariance(texture)
         let isBlurry = laplacianVariance < configuration.minimumLaplacianVariance
+
+        // DIAGNOSTIC: Log variance to help tune threshold
+        let qualityLevel: String
+        if laplacianVariance < 50 {
+            qualityLevel = "very blurry"
+        } else if laplacianVariance < 80 {
+            qualityLevel = "slightly blurry"
+        } else if laplacianVariance < 150 {
+            qualityLevel = "acceptable"
+        } else if laplacianVariance < 250 {
+            qualityLevel = "good"
+        } else {
+            qualityLevel = "excellent"
+        }
+
+        AppLogger.metrics.debug("📊 Texture sharpness: variance=\(String(format: "%.1f", laplacianVariance)) (\(qualityLevel)), threshold=\(self.configuration.minimumLaplacianVariance)")
+        if isBlurry {
+            AppLogger.metrics.warning("⚠️ Texture marked as blurry (variance \(String(format: "%.1f", laplacianVariance)) < threshold \(self.configuration.minimumLaplacianVariance))")
+        }
 
         return TextureQualityResult(
             isValid: !isBlurry,

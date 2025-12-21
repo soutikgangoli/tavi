@@ -178,7 +178,7 @@ open class MetalAnalyzerBase {
 
         // Wait for completion with timeout
         let startTime = Date()
-        while !commandBuffer.isCompleted {
+        while commandBuffer.status != .completed && commandBuffer.status != .error {
             // Check timeout
             if Date().timeIntervalSince(startTime) > timeout {
                 throw GPUAnalysisError.timeout(operation)
@@ -198,12 +198,13 @@ open class MetalAnalyzerBase {
         }
     }
 
-    /// Synchronous execute (blocks until completion or timeout)
+    /// Synchronous execute with polling (prevents 5-minute hang on GPU issues)
+    /// Uses polling instead of blocking waitUntilCompleted() which can freeze app for ~5 min
     /// - Parameters:
     ///   - timeout: Maximum execution time in seconds
     ///   - operation: Name of operation for error messages
     ///   - work: Closure that encodes GPU commands
-    /// - Throws: GPUAnalysisError if execution fails
+    /// - Throws: GPUAnalysisError if execution fails or times out
     public func executeSync(
         timeout: TimeInterval = MetalAnalyzerBase.defaultTimeout,
         operation: String,
@@ -219,11 +220,165 @@ open class MetalAnalyzerBase {
         // Encode work
         try work(commandBuffer)
 
-        // Submit and wait
+        // Submit to GPU
         commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
+
+        // Poll for completion with timeout (prevents 5-minute hang)
+        // DO NOT use waitUntilCompleted() - it blocks for GPU timeout (~5 min) if GPU hangs
+        let startTime = Date()
+        let pollInterval: TimeInterval = 0.002 // 2ms polling
+
+        while commandBuffer.status != .completed && commandBuffer.status != .error {
+            // Check timeout
+            let elapsed = Date().timeIntervalSince(startTime)
+            if elapsed > timeout {
+                logger.error("❌ GPU timeout after \(String(format: "%.1f", elapsed))s: \(operation)")
+                throw GPUAnalysisError.timeout(operation)
+            }
+
+            // Check for task cancellation (if in async context)
+            if Task.isCancelled {
+                logger.info("🛑 GPU operation cancelled: \(operation)")
+                throw GPUAnalysisError.timeout("\(operation) (cancelled)")
+            }
+
+            // Small sleep to avoid busy-waiting
+            Thread.sleep(forTimeInterval: pollInterval)
+        }
 
         // Check for errors
+        if let error = commandBuffer.error {
+            throw GPUAnalysisError.commandBufferFailed("\(operation): \(error.localizedDescription)")
+        }
+
+        if commandBuffer.status == .error {
+            throw GPUAnalysisError.commandBufferFailed("\(operation): command buffer status is error")
+        }
+    }
+
+    /// Execute GPU work with cancellation support (non-blocking polling)
+    /// This version uses polling instead of waitUntilCompleted() to allow
+    /// checking for Task cancellation, preventing thread pool exhaustion
+    /// - Parameters:
+    ///   - timeout: Maximum execution time in seconds (default: 5s)
+    ///   - operation: Name of operation for error messages
+    ///   - work: Closure that encodes GPU commands into command buffer
+    /// - Throws: GPUAnalysisError if execution fails or times out, CancellationError if cancelled
+    public func executeCancellable(
+        timeout: TimeInterval = MetalAnalyzerBase.defaultTimeout,
+        operation: String,
+        work: (MTLCommandBuffer) throws -> Void
+    ) async throws {
+        // Check cancellation before starting
+        try Task.checkCancellation()
+
+        // Create command buffer
+        guard let commandBuffer = commandQueue.makeCommandBuffer() else {
+            throw GPUAnalysisError.commandBufferFailed("\(operation): failed to create command buffer")
+        }
+
+        commandBuffer.label = operation
+
+        // Encode work
+        try work(commandBuffer)
+
+        // Submit to GPU
+        commandBuffer.commit()
+
+        // Poll for completion with cancellation checks
+        let startTime = Date()
+        let pollInterval: UInt64 = 2_000_000 // 2ms polling interval
+
+        while commandBuffer.status != .completed && commandBuffer.status != .error {
+            // Check for task cancellation
+            try Task.checkCancellation()
+
+            // Check timeout
+            if Date().timeIntervalSince(startTime) > timeout {
+                throw GPUAnalysisError.timeout(operation)
+            }
+
+            // Yield to allow other tasks to run
+            try await Task.sleep(nanoseconds: pollInterval)
+        }
+
+        // Check for GPU errors
+        if let error = commandBuffer.error {
+            throw GPUAnalysisError.commandBufferFailed("\(operation): \(error.localizedDescription)")
+        }
+
+        if commandBuffer.status == .error {
+            throw GPUAnalysisError.commandBufferFailed("\(operation): command buffer status is error")
+        }
+    }
+
+    /// Synchronous version with cancellation support using polling (NO SEMAPHORES)
+    ///
+    /// CRITICAL FIX: This method previously used a semaphore pattern that caused deadlocks:
+    /// - Old code: Task {} + semaphore.wait() on cooperative pool → DEADLOCK
+    /// - New code: Polling with Thread.sleep() + Task.isCancelled checks → SAFE
+    ///
+    /// The deadlock happened because:
+    /// 1. This method was called from Task.detached (cooperative pool thread)
+    /// 2. semaphore.wait() blocked that cooperative pool thread
+    /// 3. The inner Task {} needed a cooperative pool thread to run
+    /// 4. All cooperative pool threads were blocked → DEADLOCK
+    ///
+    /// - Parameters:
+    ///   - timeout: Maximum execution time in seconds (default: 5s)
+    ///   - operation: Name of operation for error messages
+    ///   - work: Closure that encodes GPU commands into command buffer
+    /// - Throws: GPUAnalysisError if execution fails, times out, or is cancelled
+    public func executeCancellableSync(
+        timeout: TimeInterval = MetalAnalyzerBase.defaultTimeout,
+        operation: String,
+        work: @escaping (MTLCommandBuffer) throws -> Void
+    ) throws {
+        // Check cancellation IMMEDIATELY before starting any work
+        if Task.isCancelled {
+            logger.info("🛑 GPU operation cancelled before start: \(operation)")
+            throw GPUAnalysisError.timeout("\(operation) (cancelled)")
+        }
+
+        // Create command buffer
+        guard let commandBuffer = commandQueue.makeCommandBuffer() else {
+            throw GPUAnalysisError.commandBufferFailed("\(operation): failed to create command buffer")
+        }
+
+        commandBuffer.label = operation
+
+        // Encode work
+        try work(commandBuffer)
+
+        // Submit to GPU
+        commandBuffer.commit()
+
+        // Poll for completion with timeout AND cancellation checks
+        // CRITICAL: NO SEMAPHORE - use Thread.sleep which doesn't block cooperative pool
+        let startTime = Date()
+        let pollInterval: TimeInterval = 0.002 // 2ms polling
+
+        while commandBuffer.status != .completed && commandBuffer.status != .error {
+            // Check timeout
+            let elapsed = Date().timeIntervalSince(startTime)
+            if elapsed > timeout {
+                logger.error("❌ GPU timeout after \(String(format: "%.1f", elapsed))s: \(operation)")
+                throw GPUAnalysisError.timeout(operation)
+            }
+
+            // Check for task cancellation (CRITICAL for responsive cancel)
+            if Task.isCancelled {
+                logger.info("🛑 GPU operation cancelled during execution: \(operation)")
+                throw GPUAnalysisError.timeout("\(operation) (cancelled)")
+            }
+
+            // Small sleep to avoid busy-waiting
+            // Thread.sleep is safe here - it doesn't block the cooperative thread pool
+            // because this code runs on a detached thread from Task.detached
+            Thread.sleep(forTimeInterval: pollInterval)
+        }
+
+        // Check for GPU errors
         if let error = commandBuffer.error {
             throw GPUAnalysisError.commandBufferFailed("\(operation): \(error.localizedDescription)")
         }

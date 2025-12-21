@@ -116,9 +116,12 @@ public class Face3DMetricsAnalyzer {
         let textureQualityResult = qualityValidator.validateTexture(unifiedTexture)
         AppLogger.metrics.info("   Texture quality: \(textureQualityResult.qualityDescription)")
 
+        // Log warning if texture is blurry (isHighQuality flag is already set from textureQualityResult.isValid)
         if !textureQualityResult.isValid {
             AppLogger.metrics.warning("⚠️ \(textureQualityResult.reason ?? "Poor texture quality")")
-            // Note: Still proceed but mark as low quality
+            // Blurry textures reduce the reliability of texture-based metrics
+            // isHighQuality will be set to false at line 527 based on textureQualityResult.isValid
+            AppLogger.metrics.warning("   → Confidence reduced by 30% due to texture quality")
         }
 
         // Step 1: Generate ROI masks
@@ -196,6 +199,12 @@ public class Face3DMetricsAnalyzer {
 
             // Process ROIs with concurrency limit
             while !pendingROIs.isEmpty || activeCount > 0 {
+                // Check cancellation periodically (non-throwing check)
+                guard !Task.isCancelled else {
+                    AppLogger.metrics.info("🛑 ROI processing cancelled")
+                    break
+                }
+                
                 // Start new tasks up to concurrency limit
                 while activeCount < maxConcurrentOperations && !pendingROIs.isEmpty {
                     let (roi, sample) = pendingROIs.removeFirst()
@@ -203,6 +212,32 @@ public class Face3DMetricsAnalyzer {
                     let lightingScore = lightingQualityScore  // Capture for async context
 
                     group.addTask {
+                        // Check cancellation in task
+                        guard !Task.isCancelled else {
+                            AppLogger.metrics.debug("   🛑 Cancelled processing \(roi.displayName)")
+                            // Return minimal ROI3DMetrics with default values for cancellation case
+                            return (roi, ROI3DMetrics(
+                                roi: roi,
+                                roughnessProxy: 0,
+                                pigmentationIndex: 0,
+                                specularProxy: nil,
+                                blurScore: 0.5,
+                                textureEnergy: 0.5,
+                                labVariance: 0.5,
+                                qualityScore: 0.5,
+                                moistureProxy: MoistureProxy(moistureIndex: 0.5, specularRatio: 0.5, smoothnessLowFreq: 0.5),
+                                pixelCount: 0,
+                                averageLuminance: 0,
+                                averageLightness: 0,
+                                averageAChannel: 0,
+                                averageBChannel: 0,
+                                roughnessScore: 0,
+                                pigmentationScore: 0,
+                                specularScore: nil,
+                                isLowConfidence: true,
+                                confidenceLevel: "Cancelled"
+                            ))
+                        }
                         AppLogger.metrics.debug("   - Processing \(roi.displayName)...")
                         // Pass lighting quality to metrics computation
                         let metrics = await self.computeROI3DMetrics(sample, rawSample: nil, confidence: confidence, lightingQuality: lightingScore)
@@ -298,21 +333,23 @@ public class Face3DMetricsAnalyzer {
             }
         }
 
-        // Step 5c: Compute remaining advanced metrics IN PARALLEL using TaskGroup
-        AppLogger.metrics.info("   🔍 Running advanced analyzers in parallel...")
+        // Step 5c: Compute remaining advanced metrics
+        // IMPORTANT: GPU-heavy texture analyzers (pore, acne, redness) run SEQUENTIALLY
+        // to prevent GPU command queue contention and memory pressure.
+        // All GPU operations now use polling with 5s timeout instead of blocking waitUntilCompleted().
+        // Geometry-based analyzers (volume, regional, topology) run in parallel as they're CPU-bound.
+        AppLogger.metrics.info("   🔍 Running advanced analyzers...")
 
         let parallelStartTime = Date().timeIntervalSince1970
 
         // Capture values outside TaskGroup to avoid Sendable issues
         let baselineMesh = configuration.baselineMesh
 
-        // Run all independent analyzers concurrently
-        // Note: Using nonisolated(unsafe) to suppress Sendable warnings
-        // The analyzers don't mutate state and are safe for concurrent access
-        AppLogger.metrics.debug("   🚀 Starting parallel analysis tasks...")
-        let (volumeAnalysis, regionalAnalysis, poreAnalysis, acneAnalysis, rednessAnalysis, topologyAnalysis) = await withTaskGroup(
+        // STEP 1: Run geometry-based analyzers in parallel (CPU-bound, no blocking GPU calls)
+        AppLogger.metrics.debug("   🚀 Starting geometry-based parallel analysis tasks...")
+        let (volumeAnalysis, regionalAnalysis, topologyAnalysis) = await withTaskGroup(
             of: AnalysisResult.self,
-            returning: (VolumeAnalysis?, RegionalAnalysis?, PoreAnalysis?, AcneAnalysis?, RednessAnalysis?, TopologyAnalysis?).self
+            returning: (VolumeAnalysis?, RegionalAnalysis?, TopologyAnalysis?).self
         ) { group in
             // Task 1: Volume metrics (geometry-based)
             group.addTask { [volumeMetricsAnalyzer] in
@@ -332,42 +369,24 @@ public class Face3DMetricsAnalyzer {
                 return .regional(result)
             }
 
-            // REMOVED: Task 3 - Skin type classification (was never displayed to users)
-
-            // Task 4: Pore analysis (texture-based)
-            group.addTask { [poreAnalyzer] in
-                let result = poreAnalyzer.analyzePores(texture: textureImage)
-                return .pore(result)
-            }
-
-            // Task 5: Acne analysis (texture-based)
-            group.addTask { [acneAnalyzer] in
-                let result = acneAnalyzer.analyzeAcne(texture: textureImage)
-                return .acne(result)
-            }
-
-            // Task 6: Redness analysis (texture-based)
-            group.addTask { [rednessAnalyzer] in
-                let result = rednessAnalyzer.analyzeRedness(texture: textureImage)
-                return .redness(result)
-            }
-
-            // Task 7: Topology analysis (geometry-based)
+            // Task 3: Topology analysis (geometry-based)
             group.addTask { [topologyAnalyzer] in
                 let result = topologyAnalyzer.analyzeTopology(geometry: faceMeshGeometry)
                 return .topology(result)
             }
 
-            // Collect all results
+            // Collect geometry-based results
             var volume: VolumeAnalysis?
             var regional: RegionalAnalysis?
-            // REMOVED: skinType variable
-            var pore: PoreAnalysis?
-            var acne: AcneAnalysis?
-            var redness: RednessAnalysis?
             var topology: TopologyAnalysis?
 
             for await result in group {
+                // Check cancellation while collecting results (non-throwing check)
+                guard !Task.isCancelled else {
+                    AppLogger.metrics.info("🛑 Geometry analysis cancelled")
+                    break
+                }
+                
                 switch result {
                 case .volume(let analysis):
                     AppLogger.metrics.debug("      ✓ Volume analysis complete")
@@ -375,29 +394,53 @@ public class Face3DMetricsAnalyzer {
                 case .regional(let analysis):
                     AppLogger.metrics.debug("      ✓ Regional analysis complete")
                     regional = analysis
-                case .skinType:
-                    // REMOVED: Skin type analysis (was never displayed)
-                    break
-                case .pore(let analysis):
-                    AppLogger.metrics.debug("      ✓ Pore analysis complete")
-                    pore = analysis
-                case .acne(let analysis):
-                    AppLogger.metrics.debug("      ✓ Acne analysis complete")
-                    acne = analysis
-                case .redness(let analysis):
-                    AppLogger.metrics.debug("      ✓ Redness analysis complete")
-                    redness = analysis
                 case .topology(let analysis):
                     AppLogger.metrics.debug("      ✓ Topology analysis complete")
                     topology = analysis
+                default:
+                    break
                 }
             }
 
-            return (volume, regional, pore, acne, redness, topology)
+            return (volume, regional, topology)
         }
 
+        // STEP 2: Run GPU-heavy texture analyzers SEQUENTIALLY to avoid thread pool exhaustion
+        // These now use cancellable polling instead of blocking waitUntilCompleted()
+        AppLogger.metrics.debug("   🎨 Running texture-based analyzers sequentially (GPU)...")
+
+        // Check cancellation before starting GPU analyzers (non-throwing check)
+        guard !Task.isCancelled else {
+            AppLogger.metrics.info("🛑 GPU analyzers cancelled before start")
+            return nil
+        }
+
+        // Pore analysis (GPU-accelerated)
+        let poreAnalysis: PoreAnalysis? = poreAnalyzer.analyzePores(texture: textureImage)
+        AppLogger.metrics.debug("      ✓ Pore analysis complete")
+        
+        // Check cancellation between analyzer steps
+        guard !Task.isCancelled else {
+            AppLogger.metrics.info("🛑 GPU analyzers cancelled after pore analysis")
+            return nil
+        }
+
+        // Acne analysis (GPU-accelerated)
+        let acneAnalysis: AcneAnalysis? = acneAnalyzer.analyzeAcne(texture: textureImage)
+        AppLogger.metrics.debug("      ✓ Acne analysis complete")
+        
+        // Check cancellation between analyzer steps
+        guard !Task.isCancelled else {
+            AppLogger.metrics.info("🛑 GPU analyzers cancelled after acne analysis")
+            return nil
+        }
+
+        // Redness analysis (GPU-accelerated)
+        let rednessAnalysis: RednessAnalysis? = rednessAnalyzer.analyzeRedness(texture: textureImage)
+        AppLogger.metrics.debug("      ✓ Redness analysis complete")
+
         let parallelTime = Date().timeIntervalSince1970 - parallelStartTime
-        AppLogger.metrics.info("   ⚡️ Parallel analysis completed in \(String(format: "%.3f", parallelTime))s")
+        AppLogger.metrics.info("   ⚡️ Advanced analysis completed in \(String(format: "%.3f", parallelTime))s")
 
         AppLogger.metrics.info("   Advanced metrics computed:")
         if let elasticity = elasticityAnalysis {

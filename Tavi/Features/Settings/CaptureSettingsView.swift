@@ -76,6 +76,33 @@ struct CaptureSettingsView: View {
 
     private let capabilities = DeviceCapabilities.current
 
+    // MARK: - Device-Based High-Res Resolution
+
+    /// Whether user has explicitly set high-res preference
+    private var hasUserSetHighResPreference: Bool {
+        UserDefaults.standard.object(forKey: AppDefaultsKey.enableHighResCapture) != nil
+    }
+
+    /// Actual effective high-res state (considering device default)
+    /// - If user never touched toggle: use device default (4K for 6GB+ devices)
+    /// - If user explicitly set: use their preference
+    private var isHighQualityEffective: Bool {
+        if hasUserSetHighResPreference {
+            return UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
+        }
+        return capabilities.supports4KTextureDefault
+    }
+
+    /// Custom binding that reflects actual state and writes explicit preference
+    private var highQualityBinding: Binding<Bool> {
+        Binding(
+            get: { isHighQualityEffective },
+            set: { newValue in
+                UserDefaults.standard.set(newValue, forKey: AppDefaultsKey.enableHighResCapture)
+            }
+        )
+    }
+
     var body: some View {
         List {
             // High-Res Capture (4K devices only)
@@ -119,31 +146,40 @@ struct CaptureSettingsView: View {
 
     private var highResCaptureSection: some View {
         Section {
-            Toggle(isOn: $enableHighResCapture) {
+            Toggle(isOn: highQualityBinding) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("High Quality Mode")
                             .font(Designs.Typography.body)
 
                         Badge(text: "4K + 5 Frames", color: Designs.Colors.accent)
+
+                        // Show "Auto" badge when using device default
+                        if !hasUserSetHighResPreference && capabilities.supports4KTextureDefault {
+                            Badge(text: "Auto", color: Designs.Colors.success)
+                        }
                     }
 
-                    Text("4K texture + 5 frames per pose for clinical-grade accuracy (90-92% confidence)")
+                    Text(capabilities.supports4KTextureDefault
+                        ? "4K texture + 5 frames per pose. Your device supports 4K by default."
+                        : "4K texture + 5 frames per pose for clinical-grade accuracy (90-92% confidence)")
                         .font(Designs.Typography.caption)
                         .foregroundColor(Designs.Colors.textSecondary)
                 }
             }
             .accessibilityLabel("High quality mode")
             .accessibilityHint("Captures at 4K texture with 5 frames per pose for maximum accuracy. Uses more battery and storage.")
-            .accessibilityValue(enableHighResCapture ? "On" : "Off")
+            .accessibilityValue(isHighQualityEffective ? "On" : "Off")
             .tint(Designs.Colors.accent)
-            .onChange(of: enableHighResCapture) { newValue in
+            .onChange(of: isHighQualityEffective) { newValue in
                 if newValue {
                     HapticManager.shared.light()
                 }
             }
         } footer: {
-            Text("Note: Higher resolution uses more battery and storage. Recommended for detailed analysis.")
+            Text(capabilities.supports4KTextureDefault
+                ? "Your device uses 4K by default (6GB+ RAM). Toggle off to use 2K and save battery."
+                : "Note: Higher resolution uses more battery and storage. Recommended for detailed analysis.")
                 .font(Designs.Typography.caption)
         }
     }
@@ -397,7 +433,7 @@ struct CaptureSettingsView: View {
                 )
             }
 
-            if enableHighResCapture && !capabilities.isHighEndDevice {
+            if isHighQualityEffective && !capabilities.isHighEndDevice {
                 TipCard(
                     icon: "battery.25",
                     title: "Battery impact",

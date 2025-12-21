@@ -24,7 +24,37 @@ public struct Comparison3DView: View {
         self.afterSession = afterSession
     }
 
+    /// Check if both sessions are still valid (not deleted/faulted)
+    private var areSessionsValid: Bool {
+        !beforeSession.isDeleted && !beforeSession.isFault &&
+        !afterSession.isDeleted && !afterSession.isFault
+    }
+
     public var body: some View {
+        // Guard against deleted sessions
+        if !areSessionsValid {
+            VStack(spacing: 20) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 44))
+                    .foregroundColor(.orange)
+
+                Text("Session Unavailable")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("One or more sessions are no longer available for comparison.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            .padding()
+        } else {
+            comparisonContent
+        }
+    }
+
+    private var comparisonContent: some View {
         VStack(spacing: 0) {
             // Header
             ComparisonHeaderView(

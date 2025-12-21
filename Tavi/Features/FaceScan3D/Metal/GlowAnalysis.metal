@@ -17,9 +17,6 @@ constant float SPECULAR_RELATIVE_MULTIPLIER = 1.25;
 /// Maximum absolute specular threshold (never exceed even if multiplier would)
 constant float SPECULAR_MAX_THRESHOLD = 0.95;
 
-/// Window size for uniformity analysis (3x3 neighborhood)
-constant int UNIFORMITY_WINDOW = 3;
-
 // MARK: - Structures
 
 /// Partial results from each threadgroup
@@ -54,6 +51,17 @@ inline float3 linearRGBToXYZ(float3 linear) {
     return xyz;
 }
 
+/// LAB transformation function - converts normalized XYZ component to LAB space
+inline float glowLabTransformFunction(float t) {
+    const float delta = 6.0 / 29.0;
+    const float delta3 = delta * delta * delta;  // 0.008856
+    if (t > delta3) {
+        return pow(t, 1.0/3.0);
+    } else {
+        return (t / (3.0 * delta * delta)) + (4.0 / 29.0);
+    }
+}
+
 /// Convert XYZ to LAB color space
 inline float3 xyzToLAB(float3 xyz) {
     // D65 reference white point
@@ -63,18 +71,9 @@ inline float3 xyzToLAB(float3 xyz) {
     float3 normalized = xyz / refWhite;
 
     // Apply LAB transformation function
-    auto f = [](float t) -> float {
-        const float delta = 6.0 / 29.0;
-        if (t > delta * delta * delta) {
-            return pow(t, 1.0/3.0);
-        } else {
-            return (t / (3.0 * delta * delta)) + (4.0 / 29.0);
-        }
-    };
-
-    float fx = f(normalized.x);
-    float fy = f(normalized.y);
-    float fz = f(normalized.z);
+    float fx = glowLabTransformFunction(normalized.x);
+    float fy = glowLabTransformFunction(normalized.y);
+    float fz = glowLabTransformFunction(normalized.z);
 
     // Calculate L*a*b* values
     float L = 116.0 * fy - 16.0;  // L* (lightness): 0-100
@@ -140,6 +139,7 @@ inline float calculateUniformity(
 /// Calculate baseline skin brightness from center region
 /// Used for relative specular threshold
 /// FIXED: Now uses partial results per threadgroup to avoid race conditions
+/// NOTE: This kernel REQUIRES exactly 256 threads per threadgroup (16x16)
 kernel void calculateBaselineBrightness(
     texture2d<float, access::read> inputTexture [[texture(0)]],
     device float* partialBrightness [[buffer(0)]],    // One per threadgroup
@@ -152,9 +152,14 @@ kernel void calculateBaselineBrightness(
     // Calculate linear threadgroup index from 2D position
     uint threadgroupIndex = threadgroupPos.y * threadgroupsPerRow + threadgroupPos.x;
 
-    // Threadgroup shared memory
+    // CRITICAL: Threadgroup shared memory sized for exactly 256 threads (16x16)
     threadgroup float localBrightnessSum[256];
     threadgroup float localPixelCount[256];
+
+    // Safety check: bail out if thread index exceeds array bounds
+    if (threadIndexInGroup >= 256) {
+        return;
+    }
 
     float brightnessSum = 0.0;
     float pixelCount = 0.0;
@@ -207,6 +212,8 @@ kernel void calculateBaselineBrightness(
 
 /// Comprehensive glow analysis with threadgroup reduction
 /// Computes LAB L* lightness, specular highlights, and skin uniformity
+/// NOTE: This kernel REQUIRES exactly 256 threads per threadgroup (16x16)
+/// The Swift code MUST dispatch with threadsPerThreadgroup = MTLSize(16, 16, 1)
 kernel void analyzeGlow(
     texture2d<float, access::read> inputTexture [[texture(0)]],
     device GlowPartialResults* partialResults [[buffer(0)]],
@@ -219,11 +226,19 @@ kernel void analyzeGlow(
     // Calculate linear threadgroup index from 2D position
     uint threadgroupIndex = threadgroupPos.y * threadgroupsPerRow + threadgroupPos.x;
 
-    // Threadgroup shared memory (256 threads per group)
+    // CRITICAL: Threadgroup shared memory sized for exactly 256 threads (16x16)
+    // Swift code MUST dispatch with exactly 256 threads per threadgroup
+    // Using smaller arrays causes out-of-bounds; larger wastes shared memory
     threadgroup float localLightness[256];
     threadgroup float localSpecular[256];
     threadgroup float localUniformity[256];
     threadgroup float localValidPixels[256];
+
+    // Safety check: bail out if thread index exceeds array bounds
+    // This prevents crashes if dispatch configuration is wrong
+    if (threadIndexInGroup >= 256) {
+        return;
+    }
 
     // Initialize local values
     float lightnessValue = 0.0;
@@ -239,28 +254,36 @@ kernel void analyzeGlow(
         // Read pixel color
         float4 color = inputTexture.read(gid);
 
-        validPixels = 1.0;
-
-        // METRIC 1: LAB Lightness (L*)
-        // Perceptually uniform measure of brightness (0-100)
-        lightnessValue = computeLStar(color.rgb);
-
-        // METRIC 2: Specular Highlight Detection
-        // Detect bright highlights using relative threshold
-        // Threshold = baseline * multiplier, capped at maximum
-        float specularThreshold = min(
-            SPECULAR_MAX_THRESHOLD,
-            baselineBrightness * SPECULAR_RELATIVE_MULTIPLIER
-        );
-
+        // FIX: Skip black/near-black pixels which are likely texture background
+        // Skin texture maps often have black borders/padding that would drag down averages
+        // Threshold: brightness < 0.05 (RGB average < 13/255)
         float brightness = (color.r + color.g + color.b) / 3.0;
-        if (brightness > specularThreshold) {
-            specularCount = 1.0;
-        }
+        if (brightness < 0.05) {
+            // Don't count this pixel - it's background
+            validPixels = 0.0;
+        } else {
+            validPixels = 1.0;
 
-        // METRIC 3: Skin Uniformity
-        // Measure how consistent the skin tone is across local neighborhood
-        uniformityValue = calculateUniformity(inputTexture, gid);
+            // METRIC 1: LAB Lightness (L*)
+            // Perceptually uniform measure of brightness (0-100)
+            lightnessValue = computeLStar(color.rgb);
+
+            // METRIC 2: Specular Highlight Detection
+            // Detect bright highlights using relative threshold
+            // Threshold = baseline * multiplier, capped at maximum
+            float specularThreshold = min(
+                SPECULAR_MAX_THRESHOLD,
+                baselineBrightness * SPECULAR_RELATIVE_MULTIPLIER
+            );
+
+            if (brightness > specularThreshold) {
+                specularCount = 1.0;
+            }
+
+            // METRIC 3: Skin Uniformity
+            // Measure how consistent the skin tone is across local neighborhood
+            uniformityValue = calculateUniformity(inputTexture, gid);
+        }
     }
 
     // Store in threadgroup memory
@@ -296,6 +319,7 @@ kernel void analyzeGlow(
 // MARK: - Regional Glow Analysis
 
 /// Analyze glow metrics for specific face region
+/// NOTE: This kernel REQUIRES exactly 256 threads per threadgroup (16x16)
 kernel void analyzeRegionalGlow(
     texture2d<float, access::read> inputTexture [[texture(0)]],
     device GlowPartialResults* partialResults [[buffer(0)]],
@@ -309,11 +333,16 @@ kernel void analyzeRegionalGlow(
     // Calculate linear threadgroup index
     uint threadgroupIndex = threadgroupPos.y * threadgroupsPerRow + threadgroupPos.x;
 
-    // Threadgroup shared memory
+    // CRITICAL: Threadgroup shared memory sized for exactly 256 threads (16x16)
     threadgroup float localLightness[256];
     threadgroup float localSpecular[256];
     threadgroup float localUniformity[256];
     threadgroup float localValidPixels[256];
+
+    // Safety check: bail out if thread index exceeds array bounds
+    if (threadIndexInGroup >= 256) {
+        return;
+    }
 
     float lightnessValue = 0.0;
     float specularCount = 0.0;

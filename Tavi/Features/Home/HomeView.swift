@@ -2118,13 +2118,16 @@ public struct HomeView: View {
     }
 
     /// Gentler Streak style score color - softer, warmer colors
+    /// - Below 30: Red (poor)
+    /// - 30-70: Yellow (fair)
+    /// - 70-89: Green (good)
+    /// - 90-100: Bright green (excellent)
     private func gentlerScoreColor(_ score: Double) -> Color {
         switch score {
-        case 85...100: return HomeColors.softGreen
-        case 70..<85: return HomeColors.accentTeal
-        case 50..<70: return HomeColors.softYellow
-        case 30..<50: return HomeColors.accentCoral
-        default: return HomeColors.softRed
+        case 90...100: return Color(red: 0.18, green: 0.82, blue: 0.35)  // Bright green (90-100)
+        case 70..<90: return HomeColors.softGreen    // Green (70-89)
+        case 30..<70: return HomeColors.softYellow   // Yellow (30-70)
+        default: return HomeColors.softRed           // Red (below 30)
         }
     }
 

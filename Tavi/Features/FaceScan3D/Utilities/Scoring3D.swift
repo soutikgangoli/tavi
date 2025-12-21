@@ -73,8 +73,11 @@ public class Scoring3D {
         //
         // Note: Lower thresholds than pigmentation because cross-region variance
         // should naturally be lower than within-region variance
-        public var discolorationLowThreshold: Float = 0.01 // Excellent: uniform tone across face
-        public var discolorationHighThreshold: Float = 0.12 // Poor: visible regional differences
+        // ADJUSTED: Widened range to prevent harsh boundary scoring
+        // - Old range 0.01-0.12 was too strict (index=0.12 = score 0)
+        // - New range 0.02-0.25 allows more graceful degradation
+        public var discolorationLowThreshold: Float = 0.02 // Excellent: uniform tone across face
+        public var discolorationHighThreshold: Float = 0.25 // Poor: visible regional differences
 
         // =================================================================================
         // SPECULAR/OILINESS THRESHOLDS

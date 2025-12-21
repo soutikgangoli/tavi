@@ -11,7 +11,7 @@ import ARKit
 import simd
 
 /// Complete face mesh geometry data extracted from ARFaceAnchor
-public struct FaceMeshGeometry: Equatable {
+public struct FaceMeshGeometry: Equatable, Sendable {
     /// 3D vertex positions in world space
     public let vertices: [SIMD3<Float>]
 
@@ -60,13 +60,18 @@ public struct FaceMeshGeometry: Equatable {
         let rawVertices = Array(geometry.vertices)
         let arkitVertexCount = rawVertices.count
 
-        // CRITICAL FIX: Apply mesh scaling correction
-        // ARKit face meshes are consistently ~1.6x too wide (228mm vs 140mm expected)
-        // This causes wrinkle depths to be measured incorrectly (3mm vs <1mm expected)
-        // Applying empirically-determined scaling factor based on diagnostic measurements
-        let meshScalingFactor: Float = 0.63  // Corrects 228mm → 144mm (within 130-160mm range)
+        // CRITICAL FIX: Apply PER-AXIS mesh scaling correction
+        // ARKit face meshes are too wide (X axis ~228mm vs 140mm expected)
+        // But height (Y) and depth (Z) are correct and should NOT be scaled
+        //
+        // PREVIOUS BUG: Uniform 0.63x scaling was applied to ALL axes, causing:
+        //   - Height: 226mm → 143mm (too short! Expected 180-220mm)
+        //   - Wrinkle depths: 3mm instead of <1mm (curvature calculation errors)
+        //
+        // FIX: Only scale X axis (width), leave Y (height) and Z (depth) unchanged
+        let xScaleFactor: Float = 0.63  // Corrects width from ~228mm → ~144mm
         let arkitVertices = rawVertices.map { vertex in
-            vertex * meshScalingFactor
+            SIMD3<Float>(vertex.x * xScaleFactor, vertex.y, vertex.z)
         }
 
         // Extract triangle indices and convert from Int16 to Int32
@@ -155,7 +160,7 @@ public struct FaceMeshGeometry: Equatable {
 }
 
 /// Light estimation data from ARFrame
-public struct LightEstimation {
+public struct LightEstimation: Sendable {
     /// Ambient light intensity
     public let ambientIntensity: CGFloat
 
@@ -189,7 +194,8 @@ public struct LightEstimation {
 }
 
 /// Blend shape coefficients from face tracking
-public struct FaceBlendShapes {
+/// Note: @unchecked Sendable because NSNumber is immutable and thread-safe
+public struct FaceBlendShapes: @unchecked Sendable {
     /// Raw blend shape coefficients dictionary
     public let coefficients: [ARFaceAnchor.BlendShapeLocation: NSNumber]
 

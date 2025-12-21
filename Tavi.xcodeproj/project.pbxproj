@@ -103,6 +103,7 @@
 		SFSYMBOLS00000000000001 /* SFSymbols.swift in Sources */ = {isa = PBXBuildFile; fileRef = SFSYMBOLSREF000000001 /* SFSymbols.swift */; };
 		E9573210E80E41F28D66126F /* AppStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B487B6E8A3D4EE9BE7E2267 /* AppStrings.swift */; };
 		A7B1FF885E4B85CE1B3CBE9C /* FancyLoadingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D02CD1F895E305C70B9EB943 /* FancyLoadingScreen.swift */; };
+		0EEC3DE9167147819933313D /* MinimizableSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBC0211EEFF3438BBFE8C005 /* MinimizableSheet.swift */; };
 		A7DE163D7E8001747B4E1A49 /* ARKitErrorRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD4B868FD501E75A8E9BB82 /* ARKitErrorRecoveryView.swift */; };
 		A98A28857E395A82F35ECCD7 /* DataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1551229E2CDA456D6F037D2E /* DataModels.swift */; };
 		ACB0D7B89495BEC09517B3F9 /* SimdExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F84777921DF0F4FCEF7C6FE4 /* SimdExtensions.swift */; };
@@ -139,6 +140,7 @@
 		DF5EAB7606C6673E27B58D32 /* HistogramView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D18EF36E74E3DA3C369530 /* HistogramView.swift */; };
 		E085DD9DDE26F344F10D5437 /* CaptureProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41ACBF8F0D22AE8491CD86B1 /* CaptureProgressView.swift */; };
 		E2EACC48B68F7FB563E125AE /* HeatmapOverlayGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96164BAB8E255D0A3B59983E /* HeatmapOverlayGenerator.swift */; };
+		63140076A7AF4F6B9D208A8E /* MeshHeatmapRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A43BC8F83C364418A6F77F85 /* MeshHeatmapRenderer.swift */; };
 		E8698A1E30266EAAD58FD9D1 /* SunDamageAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D592CCA57900933846ADBA0C /* SunDamageAnalyzer.swift */; };
 		EAF188C49DD72EF8D60AB41E /* SkinTypeClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47C210707F9500DD3822B85F /* SkinTypeClassifier.swift */; };
 		EB8008B42C4D050E94453DA0 /* FaceLandmarksOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376B8489BCC59A99FCCE4EE2 /* FaceLandmarksOverlay.swift */; };
@@ -274,6 +276,7 @@
 		8F6708C1F9166922CDCAB4DC /* TextureProcessing.metal */ = {isa = PBXFileReference; includeInIndex = 1; path = TextureProcessing.metal; sourceTree = "<group>"; };
 		92EB6F79C8265098BBE6835D /* CrashReporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		96164BAB8E255D0A3B59983E /* HeatmapOverlayGenerator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeatmapOverlayGenerator.swift; path = HeatmapOverlayGenerator.swift; sourceTree = "<group>"; };
+		A43BC8F83C364418A6F77F85 /* MeshHeatmapRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MeshHeatmapRenderer.swift; path = MeshHeatmapRenderer.swift; sourceTree = "<group>"; };
 		98CFAE6E1ACD147FCD17FF69 /* ColorTemperatureNormalizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ColorTemperatureNormalizer.swift; path = ColorTemperatureNormalizer.swift; sourceTree = "<group>"; };
 		98E189666A01A67AF35F23D9 /* AnalyticsManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AnalyticsManager.swift; path = Tavi/Core/Analytics/AnalyticsManager.swift; sourceTree = "<group>"; };
 		9961FDFCCC78E696A1B9D803 /* SpecularAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SpecularAnalyzer.swift; path = SpecularAnalyzer.swift; sourceTree = "<group>"; };
@@ -615,6 +618,7 @@
 				21F0926E5FA9E3F0D22DE78F /* ExportManager.swift */,
 				3C0158E26324A3B9235271F6 /* Face3DMetricsAnalyzer.swift */,
 				96164BAB8E255D0A3B59983E /* HeatmapOverlayGenerator.swift */,
+				A43BC8F83C364418A6F77F85 /* MeshHeatmapRenderer.swift */,
 				BD69287B6E469916F702CE25 /* ImageQualityAnalyzer.swift */,
 				4F5A7134C20E9FCBC7DF834A /* MeshExporter.swift */,
 				A8E9DFA914896C448DF486B8 /* MeshMerger.swift */,
@@ -1032,6 +1036,7 @@
 				827B507500099FFD24363332 /* ExportManager.swift in Sources */,
 				CDFE2B93AF08350BD6387FAC /* Face3DMetricsAnalyzer.swift in Sources */,
 				E2EACC48B68F7FB563E125AE /* HeatmapOverlayGenerator.swift in Sources */,
+				63140076A7AF4F6B9D208A8E /* MeshHeatmapRenderer.swift in Sources */,
 				C7E920FD7CB84FDF07E00D08 /* ImageQualityAnalyzer.swift in Sources */,
 				8BFA2996B175AA1CD8FF4C03 /* MeshExporter.swift in Sources */,
 				1AA45A1DB6C3D936A57049E1 /* MeshMerger.swift in Sources */,

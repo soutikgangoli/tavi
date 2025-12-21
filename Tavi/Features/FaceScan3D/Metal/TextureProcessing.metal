@@ -13,6 +13,10 @@ using namespace metal;
 
 /// Blend multiple texture samples with weighted accumulation
 /// This kernel processes texture atlas creation in parallel on GPU
+///
+/// FIX: Changed from using alpha as weight to using explicit per-sample weights
+/// passed via buffer. This ensures camera images (which have alpha=1.0) are
+/// properly weighted based on quality metrics.
 kernel void blendTextureSamples(
     // Output texture (accumulator)
     texture2d<float, access::write> outputTexture [[texture(0)]],
@@ -23,7 +27,9 @@ kernel void blendTextureSamples(
     // Thread position
     uint2 gid [[thread_position_in_grid]],
     // Sample count
-    constant uint& sampleCount [[buffer(0)]]
+    constant uint& sampleCount [[buffer(0)]],
+    // Per-sample weights array (max 8 samples supported)
+    constant float* sampleWeights [[buffer(1)]]
 ) {
     // Check bounds
     if (gid.x >= outputTexture.get_width() || gid.y >= outputTexture.get_height()) {
@@ -45,26 +51,35 @@ kernel void blendTextureSamples(
     float2 uv = float2(gid) / float2(outputTexture.get_width(), outputTexture.get_height());
 
     // Sample all input textures
-    for (uint i = 0; i < sampleCount; i++) {
+    for (uint i = 0; i < sampleCount && i < 8; i++) {
         // Sample texture from array
         float4 color = inputTextures.sample(textureSampler, uv, i);
 
-        // Check if this pixel has valid data (alpha > 0)
-        float weight = color.a;
+        // Get the quality-based weight for this sample
+        float sampleWeight = sampleWeights[i];
 
-        if (weight > 0.0) {
-            accumulatedColor += color * weight;
+        // Calculate pixel validity based on brightness, not alpha
+        // Camera images have alpha=1.0, so we check if the pixel has actual content
+        float brightness = (color.r + color.g + color.b) / 3.0;
+
+        // Only include non-black pixels (brightness > 0.02 threshold for noise)
+        if (brightness > 0.02) {
+            // Combine sample quality weight with pixel validity
+            float weight = sampleWeight;
+
+            accumulatedColor += float4(color.rgb * weight, weight);
             accumulatedWeight += weight;
         }
     }
 
     // Normalize by total weight
+    float4 outputColor = float4(0.0, 0.0, 0.0, 0.0);
     if (accumulatedWeight > 0.0) {
-        accumulatedColor /= accumulatedWeight;
+        outputColor = float4(accumulatedColor.rgb / accumulatedWeight, 1.0);
     }
 
     // Write output
-    outputTexture.write(accumulatedColor, gid);
+    outputTexture.write(outputColor, gid);
     weightTexture.write(float4(accumulatedWeight, 0, 0, 1), gid);
 }
 

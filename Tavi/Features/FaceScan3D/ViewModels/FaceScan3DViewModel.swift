@@ -54,6 +54,9 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Whether a face is currently detected
     @Published public var faceDetected: Bool = false
 
+    /// Signal to stop AR session immediately (observed by AR view controller)
+    @Published public var shouldStopSession: Bool = false
+
     /// Error message if tracking fails (legacy)
     @Published public var errorMessage: String?
 
@@ -238,6 +241,12 @@ public class FaceScan3DViewModel: ObservableObject {
     private var memoryWarningObserver: NSObjectProtocol?
     private var cancellables = Set<AnyCancellable>()
 
+    /// Flag to prevent multiple reset calls
+    private var isResetting: Bool = false
+
+    /// Flag to prevent any updates during cleanup (prevents hangs)
+    @Published public var isCleaningUp: Bool = false
+
     // MARK: - Initialization
 
     public init() {
@@ -247,6 +256,16 @@ public class FaceScan3DViewModel: ObservableObject {
 
     deinit {
         AppLogger.faceScan.info("🧹 FaceScan3DViewModel deallocating")
+
+        // NOTE: metricsOrchestrator.cancelComputation() will be called by MetricsOrchestrator's own deinit
+        // We can't call @MainActor methods from deinit which is not actor-isolated
+
+        // Cancel any pending recovery task to prevent callbacks after deallocation
+        recoveryTask?.cancel()
+        recoveryTask = nil
+
+        // Cancel all Combine subscriptions
+        cancellables.removeAll()
 
         if let observer = memoryWarningObserver {
             NotificationCenter.default.removeObserver(observer)
@@ -261,52 +280,92 @@ public class FaceScan3DViewModel: ObservableObject {
     ///   - lightEstimation: Extracted light data (prevents frame retention)
     ///   - captureFrame: Optional ARFrame, ONLY provided during active capture (to minimize retention)
     public func updateGeometry(faceAnchor: ARFaceAnchor, lightEstimation: LightEstimation?, captureFrame: ARFrame? = nil) {
-        // CRITICAL: Only store frame reference during active capture operations
-        // Most of the time (real-time tracking), this will be nil to prevent memory leak
-        // ARFrames are heavy objects - retaining 11-13 of them causes memory warnings
-        self.currentFrame = captureFrame
-        self.currentFaceAnchor = faceAnchor
+        // CRITICAL: Bail out immediately if cleanup is in progress
+        // This prevents Tasks created before cleanup from updating state during/after cleanup
+        guard !isCleaningUp && !shouldStopSession else {
+            return
+        }
 
-        // Update geometry
-        self.currentGeometry = FaceMeshGeometry(faceAnchor: faceAnchor)
-        self.blendShapes = FaceBlendShapes(faceAnchor: faceAnchor)
-        self.lightEstimation = lightEstimation
+        // CRITICAL FIX: Pre-compute values outside of the deferred block to avoid
+        // capturing faceAnchor which could extend its lifetime
+        let newGeometry = FaceMeshGeometry(faceAnchor: faceAnchor)
+        let newBlendShapes = FaceBlendShapes(faceAnchor: faceAnchor)
 
-        // Update tracking state
-        self.faceDetected = true
-        self.isTracking = true
+        // CRITICAL FIX: Defer ALL property updates to next run loop iteration
+        // This prevents "Publishing changes from within view updates" warnings
+        // by ensuring SwiftUI is not in the middle of a render cycle
+        // Using DispatchQueue.main.async to truly defer (Task @MainActor may execute immediately)
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
 
-        // Update calibration through manager (uses extracted light data, no frame needed)
-        self.calibrationManager.updateCalibrationLightweight(
-            faceAnchor: faceAnchor,
-            lightEstimation: lightEstimation
-        )
+            // ARFrames are heavy objects - retaining 11-13 of them causes memory warnings
+            self.currentFrame = captureFrame
+            self.currentFaceAnchor = faceAnchor
 
-        // Calculate FPS
+            // Update geometry
+            self.currentGeometry = newGeometry
+            self.blendShapes = newBlendShapes
+            self.lightEstimation = lightEstimation
+
+            // Update tracking state
+            self.faceDetected = true
+            self.isTracking = true
+        }
+
+        // Defer calibration update to next run loop iteration to avoid synchronous publishing
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
+            self.calibrationManager.updateCalibrationLightweight(
+                faceAnchor: faceAnchor,
+                lightEstimation: lightEstimation
+            )
+        }
+
+        // Calculate FPS (local property; safe)
         self.updateFPS()
 
         // Check if we should auto-capture during guidance
         if self.captureManager.isGuidanceActive && !self.captureManager.isCaptureInProgress {
-            self.checkGuidancePoseAndCapture(faceAnchor: faceAnchor)
+            // Defer pose check as it can publish via CaptureSequenceManager
+            DispatchQueue.main.async { [weak self] in
+                guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
+                self.checkGuidancePoseAndCapture(faceAnchor: faceAnchor)
+            }
         }
     }
 
     /// Called when face tracking is lost
     public func faceTrackingLost() {
-        self.faceDetected = false
-        self.currentGeometry = nil
-        self.blendShapes = nil
+        // Skip if cleanup is in progress
+        guard !isCleaningUp && !shouldStopSession else { return }
+
+        // CRITICAL FIX: Defer @Published property updates to next run loop iteration
+        // Using DispatchQueue.main.async to truly defer (Task @MainActor may execute immediately)
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
+            self.faceDetected = false
+            self.currentGeometry = nil
+            self.blendShapes = nil
+        }
     }
 
     /// Called when session starts
     public func sessionStarted() {
-        self.isTracking = true
-        self.errorMessage = nil
+        // Skip if cleanup is in progress
+        guard !isCleaningUp && !shouldStopSession else { return }
+
+        // Defer @Published property updates to avoid "Publishing changes from within view updates"
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
+            self.isTracking = true
+            self.errorMessage = nil
+        }
     }
 
     /// Called when session fails
     public func sessionFailed(error: Error) {
-        self.isTracking = false
+        // CRITICAL: Skip if cleanup is in progress - prevents scheduling auto-recovery
+        guard !isCleaningUp && !shouldStopSession else { return }
 
         // Analyze error and provide recovery guidance
         let hadPartialCaptures = !self.captureManager.capturedPoses.isEmpty
@@ -315,11 +374,16 @@ public class FaceScan3DViewModel: ObservableObject {
             hadPartialCaptures: hadPartialCaptures
         )
 
-        self.errorInfo = errorInfo
-        self.errorMessage = errorInfo.message  // Legacy compatibility
-
         // Log error with details
         AppLogger.faceScan.error("🚨 ARKit session failed: \(errorInfo.type) - \(errorInfo.message)")
+
+        // Defer @Published property updates to avoid "Publishing changes from within view updates"
+        DispatchQueue.main.async { [weak self, errorInfo] in
+            guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
+            self.isTracking = false
+            self.errorInfo = errorInfo
+            self.errorMessage = errorInfo.message  // Legacy compatibility
+        }
 
         // If recoverable and auto-recovery enabled, schedule retry
         if errorInfo.type.isRecoverable, let delay = errorInfo.type.autoRecoveryDelay {
@@ -329,22 +393,35 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Called when session is interrupted
     public func sessionInterrupted() {
-        self.isTracking = false
+        // Skip if cleanup is in progress
+        guard !isCleaningUp && !shouldStopSession else { return }
 
         let errorInfo = ARKitErrorAnalyzer.analyzeInterruption()
-        self.errorInfo = errorInfo
-        self.errorMessage = errorInfo.message
-
         AppLogger.faceScan.warning("⚠️ ARKit session interrupted")
+
+        // Defer @Published property updates to avoid "Publishing changes from within view updates"
+        DispatchQueue.main.async { [weak self, errorInfo] in
+            guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
+            self.isTracking = false
+            self.errorInfo = errorInfo
+            self.errorMessage = errorInfo.message
+        }
     }
 
     /// Called when session interruption ends
     public func sessionInterruptionEnded() {
-        self.isTracking = true
-        self.errorMessage = nil
-        self.errorInfo = nil
+        // Skip if cleanup is in progress
+        guard !isCleaningUp && !shouldStopSession else { return }
 
         AppLogger.faceScan.info("✅ ARKit session interruption ended")
+
+        // Defer @Published property updates to avoid "Publishing changes from within view updates"
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
+            self.isTracking = true
+            self.errorMessage = nil
+            self.errorInfo = nil
+        }
     }
 
     // MARK: - Auto Recovery
@@ -363,9 +440,13 @@ public class FaceScan3DViewModel: ObservableObject {
 
             // Clear error and let tracking resume
             AppLogger.faceScan.info("🔄 Auto-recovering from error...")
-            self.errorInfo = nil
-            self.errorMessage = nil
-            self.isTracking = true
+            // Defer @Published property updates to avoid "Publishing changes from within view updates"
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.errorInfo = nil
+                self.errorMessage = nil
+                self.isTracking = true
+            }
         }
     }
 
@@ -389,18 +470,26 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Clear partial captures (user wants to start fresh)
     public func clearPartialCaptures() {
-        self.captureManager.capturedPoses = [:]
+        // Defer @Published property update to avoid "Publishing changes from within view updates"
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.captureManager.capturedPoses = [:]
+        }
         AppLogger.faceScan.info("🗑️ Cleared partial captures")
     }
 
     /// Resume scan with partial captures intact
     public func resumeWithPartialCaptures() {
-        // Clear error but keep captured poses
-        self.errorInfo = nil
-        self.errorMessage = nil
-        self.isTracking = true
-
         AppLogger.faceScan.info("▶️ Resuming scan with \(self.capturedPoseCount) poses preserved")
+
+        // Defer @Published property updates to avoid "Publishing changes from within view updates"
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            // Clear error but keep captured poses
+            self.errorInfo = nil
+            self.errorMessage = nil
+            self.isTracking = true
+        }
     }
 
     // MARK: - Public API (Scan Lifecycle)
@@ -409,8 +498,10 @@ public class FaceScan3DViewModel: ObservableObject {
     public func startCaptureSequence() {
         AppLogger.faceScan.info("📋 Starting new capture sequence")
 
-        // Clear errors
-        self.errorMessage = nil
+        // Defer @Published property updates to avoid "Publishing changes from within view updates"
+        DispatchQueue.main.async { [weak self] in
+            self?.errorMessage = nil
+        }
 
         // Delegate to capture manager
         self.captureManager.startCaptureSequence()
@@ -436,18 +527,57 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Reset calibration and scan data
     public func resetCalibration() {
+        // Prevent multiple reset calls
+        guard !isResetting else {
+            AppLogger.faceScan.warning("⚠️ Reset already in progress, skipping duplicate call")
+            return
+        }
+        isResetting = true
+        defer { isResetting = false }  // Always reset the flag when done
+
+        // CRITICAL: Set cleanup flag FIRST to prevent any new updates from AR delegate
+        // This prevents Tasks from calling updateGeometry() during cleanup
+        self.isCleaningUp = true
+
+        // Cancel any pending recovery task
+        cancelAutoRecovery()
+
+        // Signal AR session to stop IMMEDIATELY
+        // This is observed by ARFaceTrackingViewController
+        self.shouldStopSession = true
+
         self.calibrationManager.reset()
         self.captureManager.resetSequence()
         self.processingPipeline.reset()
         self.metricsOrchestrator.reset()
-        self.errorMessage = nil
+
+        // Defer @Published property updates to avoid "Publishing changes from within view updates"
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.errorMessage = nil
+            self.errorInfo = nil
+            self.isTracking = false
+        }
         AppLogger.faceScan.info("✅ Full reset complete")
+    }
+
+    /// Wait for any pending async capture to complete
+    /// Call this before processing to ensure all texture data is available
+    public func waitForCaptureCompletion() async {
+        await self.captureManager.waitForCaptureCompletion()
     }
 
     /// Finalize capture and merge meshes
     public func finalizeCapture() async -> MergedFaceMesh? {
+        // CRITICAL: Wait for async capture to complete before processing
+        // This ensures texture samples are available for baking
+        await waitForCaptureCompletion()
+
         guard let sequence = self.captureManager.currentSequence else {
-            self.errorMessage = "No capture sequence found"
+            // Defer @Published property update to avoid "Publishing changes from within view updates"
+            DispatchQueue.main.async { [weak self] in
+                self?.errorMessage = "No capture sequence found"
+            }
             return nil
         }
 
@@ -457,7 +587,10 @@ public class FaceScan3DViewModel: ObservableObject {
             // Complete the sequence
             self.captureManager.completeSequence()
         } else {
-            self.errorMessage = "Merge failed - try scanning again"
+            // Defer @Published property update to avoid "Publishing changes from within view updates"
+            DispatchQueue.main.async { [weak self] in
+                self?.errorMessage = "Merge failed - try scanning again"
+            }
         }
 
         return merged
@@ -466,18 +599,27 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Bake unified texture from captured samples
     public func bakeTextureFromSequence() async -> TextureBakeResult? {
         guard let merged = self.processingPipeline.mergedMesh else {
-            self.errorMessage = "No merged mesh available"
+            // Defer @Published property update to avoid "Publishing changes from within view updates"
+            DispatchQueue.main.async { [weak self] in
+                self?.errorMessage = "No merged mesh available"
+            }
             return nil
         }
 
         guard let sequence = self.captureManager.currentSequence else {
-            self.errorMessage = "No capture sequence available"
+            // Defer @Published property update to avoid "Publishing changes from within view updates"
+            DispatchQueue.main.async { [weak self] in
+                self?.errorMessage = "No capture sequence available"
+            }
             return nil
         }
 
         if sequence.textureSamples.isEmpty {
             AppLogger.faceScan.error("❌ bakeTextureFromSequence: No texture samples captured! Total captures: \(sequence.captures.count), but 0 texture samples.")
-            self.errorMessage = "No texture samples captured"
+            // Defer @Published property update to avoid "Publishing changes from within view updates"
+            DispatchQueue.main.async { [weak self] in
+                self?.errorMessage = "No texture samples captured"
+            }
             return nil
         }
 
@@ -492,7 +634,10 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Compute 3D metrics from baked result
     public func compute3DMetrics() async -> Face3DMetrics? {
         guard let result = self.processingPipeline.bakeResult else {
-            self.errorMessage = "No baked result available - bake texture first"
+            // Defer @Published property update to avoid "Publishing changes from within view updates"
+            DispatchQueue.main.async { [weak self] in
+                self?.errorMessage = "No baked result available - bake texture first"
+            }
             return nil
         }
 
@@ -535,24 +680,36 @@ public class FaceScan3DViewModel: ObservableObject {
 
     /// Multi-frame capture started callback
     public func onMultiFrameCaptureStarted() {
+        // Skip if cleanup is in progress
+        guard !isCleaningUp && !shouldStopSession else { return }
+
         AppLogger.faceScan.info("📸 Multi-frame capture started")
         self.captureManager.onMultiFrameCaptureStarted()
     }
 
     /// Frame captured callback with progress
     public func onFrameCaptured(frameCount: Int, targetCount: Int, confidence: Float) {
+        // Skip if cleanup is in progress
+        guard !isCleaningUp && !shouldStopSession else { return }
+
         AppLogger.faceScan.info("📸 Frame \(frameCount)/\(targetCount) captured (confidence: \(confidence))")
         self.captureManager.onFrameCaptured(frameCount: frameCount, targetCount: targetCount, confidence: confidence)
     }
 
     /// Multi-frame capture reached target callback
     public func onMultiFrameCaptureReachedTarget() {
+        // Skip if cleanup is in progress
+        guard !isCleaningUp && !shouldStopSession else { return }
+
         AppLogger.faceScan.info("✅ Multi-frame capture reached target")
         self.captureManager.onMultiFrameCaptureReachedTarget()
     }
 
     /// Multi-frame capture completed callback
     public func onMultiFrameCaptureCompleted(frameCount: Int) {
+        // Skip if cleanup is in progress
+        guard !isCleaningUp && !shouldStopSession else { return }
+
         AppLogger.faceScan.info("✅ Multi-frame capture completed with \(frameCount) frames")
         self.captureManager.onMultiFrameCaptureCompleted(frameCount: frameCount)
     }
@@ -718,6 +875,17 @@ public class FaceScan3DViewModel: ObservableObject {
     }
 
     private func checkGuidancePoseAndCapture(faceAnchor: ARFaceAnchor) {
+        // CRITICAL: Skip if all poses are already captured to prevent double capture
+        let activePosesCount = GuidanceStep.activePoses.count
+        if self.captureManager.capturedPoses.count >= activePosesCount {
+            return
+        }
+
+        // Skip if capture is fully complete (waiting for view transition)
+        if self.captureManager.isCaptureFullyComplete {
+            return
+        }
+
         guard let frame = self.currentFrame,
               let geometry = self.currentGeometry,
               let lightEstimation = self.lightEstimation else {
@@ -805,7 +973,10 @@ public class FaceScan3DViewModel: ObservableObject {
         )
 
         if !success && !calibrationManager.continueAnywayOverride {
-            errorMessage = "Pre-flight checks failed - please check conditions"
+            // Defer @Published property update to avoid "Publishing changes from within view updates"
+            DispatchQueue.main.async { [weak self] in
+                self?.errorMessage = "Pre-flight checks failed - please check conditions"
+            }
         }
     }
 
@@ -849,71 +1020,104 @@ public class FaceScan3DViewModel: ObservableObject {
         // 1. ANGLE PROPERTY CACHING - Source switching based on mode
         //    During calibration: Use CalibrationManager angles
         //    During guidance: Use CaptureManager angles
+        //    CRITICAL: Use DispatchQueue.main (NOT RunLoop.main) to defer updates
+        //    RunLoop.main executes synchronously if already on main thread during view update
+        //    DispatchQueue.main always queues to next event loop drain
 
         calibrationManager.$currentYaw
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] yaw in
                 guard let self = self, !self.isGuidanceActive else { return }
-                self.cachedYaw = yaw
+                // Defer @Published property update to avoid "Publishing changes from within view updates"
+                DispatchQueue.main.async {
+                    self.cachedYaw = yaw
+                }
             }
             .store(in: &cancellables)
 
         calibrationManager.$currentPitch
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] pitch in
                 guard let self = self, !self.isGuidanceActive else { return }
-                self.cachedPitch = pitch
+                // Defer @Published property update to avoid "Publishing changes from within view updates"
+                DispatchQueue.main.async {
+                    self.cachedPitch = pitch
+                }
             }
             .store(in: &cancellables)
 
         calibrationManager.$currentRoll
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] roll in
                 guard let self = self, !self.isGuidanceActive else { return }
-                self.cachedRoll = roll
+                // Defer @Published property update to avoid "Publishing changes from within view updates"
+                DispatchQueue.main.async {
+                    self.cachedRoll = roll
+                }
             }
             .store(in: &cancellables)
 
         captureManager.$currentYaw
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] yaw in
                 guard let self = self, self.isGuidanceActive else { return }
-                self.cachedYaw = yaw
+                // Defer @Published property update to avoid "Publishing changes from within view updates"
+                DispatchQueue.main.async {
+                    self.cachedYaw = yaw
+                }
             }
             .store(in: &cancellables)
 
         captureManager.$currentPitch
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] pitch in
                 guard let self = self, self.isGuidanceActive else { return }
-                self.cachedPitch = pitch
+                // Defer @Published property update to avoid "Publishing changes from within view updates"
+                DispatchQueue.main.async {
+                    self.cachedPitch = pitch
+                }
             }
             .store(in: &cancellables)
 
         captureManager.$currentRoll
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] roll in
                 guard let self = self, self.isGuidanceActive else { return }
-                self.cachedRoll = roll
+                // Defer @Published property update to avoid "Publishing changes from within view updates"
+                DispatchQueue.main.async {
+                    self.cachedRoll = roll
+                }
             }
             .store(in: &cancellables)
 
         // 2. OBJECT CHANGE FORWARDING - Propagate child changes to parent
         //    Ensures SwiftUI views observing this ViewModel update when any manager changes
+        //    CRITICAL: Use DispatchQueue.main to defer updates to next run loop iteration
+        //    This prevents "Publishing changes from within view updates" warnings
 
         calibrationManager.objectWillChange
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
 
         captureManager.objectWillChange
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
 
         processingPipeline.objectWillChange
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
 
         metricsOrchestrator.objectWillChange
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
             }
@@ -953,3 +1157,4 @@ public class FaceScan3DViewModel: ObservableObject {
         AppLogger.faceScan.info("Memory cleared successfully")
     }
 }
+

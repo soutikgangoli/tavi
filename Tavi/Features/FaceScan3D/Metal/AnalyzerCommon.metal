@@ -52,6 +52,18 @@ inline float3 linearRGBToXYZ(float3 linear) {
 }
 
 /// Convert XYZ to LAB color space
+/// LAB transformation function - converts normalized XYZ component to LAB space
+/// Uses the standard CIE formula with delta = 6/29
+inline float labTransformFunction(float t) {
+    const float delta = 6.0 / 29.0;
+    const float delta3 = delta * delta * delta;  // 0.008856
+    if (t > delta3) {
+        return pow(t, 1.0/3.0);
+    } else {
+        return (t / (3.0 * delta * delta)) + (4.0 / 29.0);
+    }
+}
+
 /// LAB is perceptually uniform - equal distances in LAB space represent equal perceived color differences
 inline float3 xyzToLAB(float3 xyz) {
     // D65 reference white point
@@ -61,18 +73,9 @@ inline float3 xyzToLAB(float3 xyz) {
     float3 normalized = xyz / refWhite;
 
     // Apply LAB transformation function
-    auto f = [](float t) -> float {
-        const float delta = 6.0 / 29.0;
-        if (t > delta * delta * delta) {
-            return pow(t, 1.0/3.0);
-        } else {
-            return (t / (3.0 * delta * delta)) + (4.0 / 29.0);
-        }
-    };
-
-    float fx = f(normalized.x);
-    float fy = f(normalized.y);
-    float fz = f(normalized.z);
+    float fx = labTransformFunction(normalized.x);
+    float fy = labTransformFunction(normalized.y);
+    float fz = labTransformFunction(normalized.z);
 
     // Calculate L*a*b* values
     float L = 116.0 * fy - 16.0;  // L* (lightness): 0-100

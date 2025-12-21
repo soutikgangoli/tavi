@@ -105,6 +105,7 @@ public struct ProgressGraphView: View {
             // Chart
             if hasData {
                 chartView
+                    .id(selectedPeriod) // Force re-render when period changes
                     .frame(height: Designs.Sizes.graphHeight)
                     .padding(.horizontal, Designs.Spacing.lg)
                     .padding(.vertical, Designs.Spacing.xl)
@@ -187,10 +188,11 @@ public struct ProgressGraphView: View {
     private var chartView: some View {
         if #available(iOS 16.0, *) {
             Chart {
-                ForEach(sortedSessions, id: \.id) { session in
-                    // Line mark: X=Date/Time, Y=Score
+                // Use enumerated to get index for equidistant X-axis spacing
+                ForEach(Array(sortedSessions.enumerated()), id: \.element.id) { index, session in
+                    // Line mark: X=Scan Index (equidistant), Y=Score
                     LineMark(
-                        x: .value("Date", session.date),
+                        x: .value("Scan", index),
                         y: .value("Score", session.overallScore)
                     )
                     .foregroundStyle(
@@ -205,9 +207,9 @@ public struct ProgressGraphView: View {
                     )
                     .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
 
-                    // Area under line: X=Date/Time, Y=Score
+                    // Area under line: X=Scan Index (equidistant), Y=Score
                     AreaMark(
-                        x: .value("Date", session.date),
+                        x: .value("Scan", index),
                         y: .value("Score", session.overallScore)
                     )
                     .foregroundStyle(
@@ -221,9 +223,9 @@ public struct ProgressGraphView: View {
                         )
                     )
 
-                    // Data points: X=Date/Time, Y=Score
+                    // Data points: X=Scan Index (equidistant), Y=Score
                     PointMark(
-                        x: .value("Date", session.date),
+                        x: .value("Scan", index),
                         y: .value("Score", session.overallScore)
                     )
                     .foregroundStyle(Color.white)
@@ -251,19 +253,26 @@ public struct ProgressGraphView: View {
                 }
             }
             .chartYScale(domain: 0...100)  // Y-axis is Score (0-100)
+            .chartXScale(domain: 0...(max(1, sortedSessions.count - 1)))  // X-axis is scan index
             .chartXAxis {
-                // X-axis shows time + date in format: "5:22 PM (13 May)"
-                AxisMarks(values: .automatic(desiredCount: 5)) { value in
-                    AxisGridLine()
-                    AxisTick()
-                    if let date = value.as(Date.self) {
+                // X-axis shows scan number with date label - equidistant spacing
+                let totalScans = sortedSessions.count
+                let desiredMarks = min(totalScans, 5)  // Show up to 5 labels
+                AxisMarks(values: .automatic(desiredCount: desiredMarks)) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                        .foregroundStyle(Color.white.opacity(0.3))
+                    AxisTick(stroke: StrokeStyle(lineWidth: 1))
+                        .foregroundStyle(Color.white.opacity(0.5))
+                    if let index = value.as(Int.self), index >= 0 && index < sortedSessions.count {
+                        let session = sortedSessions[index]
                         AxisValueLabel {
                             VStack(spacing: Designs.Spacing.xxxSmall) {
-                                Text(formatTime(date))
+                                Text(formatTime(session.date))
                                     .font(AppFont.captionSmall)
-                                Text(formatDateShort(date))
+                                    .foregroundColor(.white)
+                                Text(formatDateShort(session.date))
                                     .font(AppFont.micro)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.white.opacity(0.7))
                             }
                         }
                     }
@@ -271,9 +280,13 @@ public struct ProgressGraphView: View {
             }
             .chartYAxis {
                 // Y-axis shows score values (0, 25, 50, 75, 100)
-                AxisMarks(position: .leading) { value in
-                    AxisGridLine()
+                AxisMarks(position: .leading) { _ in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                        .foregroundStyle(Color.white.opacity(0.3))
+                    AxisTick(stroke: StrokeStyle(lineWidth: 1))
+                        .foregroundStyle(Color.white.opacity(0.5))
                     AxisValueLabel()
+                        .foregroundStyle(Color.white)
                 }
             }
             .chartOverlay { proxy in
@@ -285,13 +298,12 @@ public struct ProgressGraphView: View {
                             DragGesture(minimumDistance: 0)
                                 .onChanged { value in
                                     let location = value.location
-                                    // X-axis has dates
-                                    if let date: Date = proxy.value(atX: location.x) {
-                                        // Find closest session
-                                        if let closestSession = sortedSessions.min(by: {
-                                            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
-                                        }) {
-                                            selectedSession = closestSession
+                                    // X-axis now has scan indices
+                                    if let scanIndex: Int = proxy.value(atX: location.x) {
+                                        // Find session at this index (clamped to valid range)
+                                        let clampedIndex = max(0, min(scanIndex, sortedSessions.count - 1))
+                                        if clampedIndex < sortedSessions.count {
+                                            selectedSession = sortedSessions[clampedIndex]
                                         }
                                     }
                                 }

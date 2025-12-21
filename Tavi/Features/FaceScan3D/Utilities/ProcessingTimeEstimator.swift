@@ -439,7 +439,11 @@ public class ProcessingTimeEstimator: ObservableObject {
         guard let currentPhase = activePhase else {
             // No active phase yet - just decrement normally
             if remainingSeconds > 1 {
-                remainingSeconds -= 1
+                // Defer @Published property update to avoid "Publishing changes from within view updates"
+                let newValue = remainingSeconds - 1
+                DispatchQueue.main.async { [weak self] in
+                    self?.remainingSeconds = newValue
+                }
             }
             return
         }
@@ -460,9 +464,6 @@ public class ProcessingTimeEstimator: ObservableObject {
         // Total progress = completed phases + current phase progress
         let totalProgress = (completedPhases + phaseProgress) / totalPhases
 
-        // Update progress percent (cap at 95% to leave room for final steps)
-        progressPercent = min(95, totalProgress * 100)
-
         // Calculate remaining seconds based on progress
         // If we're at 50% progress, remaining should be ~50% of total estimate
         let progressFraction = totalProgress
@@ -475,14 +476,27 @@ public class ProcessingTimeEstimator: ObservableObject {
         // The countdown should always go down (or stay same), never up
         // This prevents the 54->51->54 oscillation issue
         let difference = remainingSeconds - targetRemaining
-
+        
+        // Calculate new values before async block
+        let newProgressPercent = min(95, totalProgress * 100)
+        let newRemainingSeconds: Int
         if difference > 5 {
             // We're way behind estimate - catch up faster (decrement by 2)
-            remainingSeconds -= 2
+            newRemainingSeconds = remainingSeconds - 2
         } else if remainingSeconds > 5 {
             // Normal countdown - always decrement by 1
             // Never increase the countdown even if estimate changed
-            remainingSeconds -= 1
+            newRemainingSeconds = remainingSeconds - 1
+        } else {
+            // Keep at current value if at minimum
+            newRemainingSeconds = remainingSeconds
+        }
+
+        // Defer @Published property updates to avoid "Publishing changes from within view updates"
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.progressPercent = newProgressPercent
+            self.remainingSeconds = newRemainingSeconds
         }
         // Keep at 5 minimum until finishProcessing() is called
     }

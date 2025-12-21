@@ -37,20 +37,32 @@ public enum TimeoutError: LocalizedError {
 ///   - operation: The async operation name (for error messages)
 ///   - work: The async work to perform
 /// - Returns: The result of the async work
-/// - Throws: TimeoutError if the operation exceeds the timeout, or any error thrown by the work
+/// - Throws: CancellationError if cancelled, TimeoutError if the operation exceeds the timeout, or any error thrown by the work
 public func withTimeout<T>(
     seconds: TimeInterval,
     operation: String = "operation",
     _ work: @escaping @Sendable () async throws -> T
 ) async throws -> T {
+    // CRITICAL FIX: Check cancellation IMMEDIATELY before creating any tasks
+    // This allows the caller to cancel and have withTimeout exit right away
+    // without waiting for the TaskGroup to be set up or any work to start
+    try Task.checkCancellation()
+    
     let startTime = Date()
     AppLogger.app.debug("⏱️ withTimeout: Starting '\(operation)' with \(seconds)s timeout")
 
     let result: T = try await withThrowingTaskGroup(of: T.self) { group in
         // Add the actual work task
         group.addTask {
+            // Check cancellation at start of work task
+            try Task.checkCancellation()
+            
             AppLogger.app.debug("⏱️ withTimeout: Work task started for '\(operation)'")
             let workResult = try await work()
+            
+            // Check cancellation after work completes
+            try Task.checkCancellation()
+            
             let elapsed = Date().timeIntervalSince(startTime)
             AppLogger.app.debug("⏱️ withTimeout: Work task completed for '\(operation)' in \(elapsed)s")
             return workResult
@@ -58,8 +70,15 @@ public func withTimeout<T>(
 
         // Add the timeout task
         group.addTask {
+            // Check cancellation before starting timeout
+            try Task.checkCancellation()
+            
             AppLogger.app.debug("⏱️ withTimeout: Timeout task started for '\(operation)'")
             try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            
+            // Check cancellation after sleep (sleep throws CancellationError if cancelled)
+            try Task.checkCancellation()
+            
             let elapsed = Date().timeIntervalSince(startTime)
             AppLogger.app.debug("⏱️ withTimeout: Timeout task firing for '\(operation)' at \(elapsed)s")
             throw TimeoutError.timedOut(operation: operation, duration: seconds)
@@ -67,21 +86,32 @@ public func withTimeout<T>(
 
         // Wait for the first task to complete
         AppLogger.app.debug("⏱️ withTimeout: Waiting for first task to complete for '\(operation)'")
-        guard let result = try await group.next() else {
+        
+        do {
+            guard let result = try await group.next() else {
+                let elapsed = Date().timeIntervalSince(startTime)
+                AppLogger.app.debug("⏱️ withTimeout: No result from group.next() for '\(operation)' at \(elapsed)s")
+                throw TimeoutError.timedOut(operation: operation, duration: seconds)
+            }
+
             let elapsed = Date().timeIntervalSince(startTime)
-            AppLogger.app.debug("⏱️ withTimeout: No result from group.next() for '\(operation)' at \(elapsed)s")
-            throw TimeoutError.timedOut(operation: operation, duration: seconds)
+            AppLogger.app.debug("⏱️ withTimeout: Got result from first task for '\(operation)' at \(elapsed)s")
+
+            // Cancel remaining tasks
+            group.cancelAll()
+            AppLogger.app.debug("⏱️ withTimeout: Cancelled remaining tasks for '\(operation)'")
+
+            return result
+        } catch is CancellationError {
+            // CRITICAL: Propagate cancellation immediately without waiting
+            AppLogger.app.info("⏱️ withTimeout: '\(operation)' cancelled - exiting immediately")
+            group.cancelAll()
+            throw CancellationError()
         }
-
-        let elapsed = Date().timeIntervalSince(startTime)
-        AppLogger.app.debug("⏱️ withTimeout: Got result from first task for '\(operation)' at \(elapsed)s")
-
-        // Cancel remaining tasks
-        group.cancelAll()
-        AppLogger.app.debug("⏱️ withTimeout: Cancelled remaining tasks for '\(operation)'")
-
-        return result
     }
+
+    // Final cancellation check before returning
+    try Task.checkCancellation()
 
     let totalElapsed = Date().timeIntervalSince(startTime)
     AppLogger.app.debug("⏱️ withTimeout: Returning result for '\(operation)' after \(totalElapsed)s")

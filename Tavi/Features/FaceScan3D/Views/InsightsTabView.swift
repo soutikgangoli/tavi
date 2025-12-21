@@ -32,7 +32,7 @@ public struct InsightsTabView: View {
     )
     private var sessions: FetchedResults<SessionResult>
 
-    @State private var selectedTimeRange: TimeRange = .oneMonth
+    @State private var selectedTimeRange: ProgressTimePeriod = .month
 
     public init() {}
 
@@ -461,22 +461,25 @@ public struct InsightsTabView: View {
         }
     }
 
+    @ViewBuilder
     private func areaToWatchCard(declines: [(String, Double)]) -> some View {
-        let areaInfo = generateAreaToWatchText(decline: declines[0])
+        if let firstDecline = declines.first {
+            let areaInfo = generateAreaToWatchText(decline: firstDecline)
 
-        return InsightCardGentler(
-            icon: "exclamationmark.triangle",
-            iconColor: gsSoftYellow,
-            title: "Area to Watch",
-            content: areaInfo.message,
-            tips: areaInfo.tips,
-            actionText: "View Tips",
-            accentColor: gsAccentCoral,
-            cardBackground: gsCardBackground,
-            textPrimary: gsTextPrimary,
-            textSecondary: gsTextSecondary
-        ) {
-            AppLogger.ui.info("View Tips tapped")
+            InsightCardGentler(
+                icon: "exclamationmark.triangle",
+                iconColor: gsSoftYellow,
+                title: "Area to Watch",
+                content: areaInfo.message,
+                tips: areaInfo.tips,
+                actionText: "View Tips",
+                accentColor: gsAccentCoral,
+                cardBackground: gsCardBackground,
+                textPrimary: gsTextPrimary,
+                textSecondary: gsTextSecondary
+            ) {
+                AppLogger.ui.info("View Tips tapped")
+            }
         }
     }
 
@@ -494,6 +497,9 @@ public struct InsightsTabView: View {
         ) {}
     }
 
+    // MARK: - Selected Session for Interactive Chart
+    @State private var selectedChartSession: SessionResult?
+
     private var progressTrendsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Progress Trends")
@@ -503,62 +509,29 @@ public struct InsightsTabView: View {
             if filteredSessions.count >= 2 {
                 progressChart
             } else {
-                Text("Not enough data in selected time range")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(gsTextSecondary)
-                    .padding(20)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(gsCardBackground)
-                    )
+                emptyChartState
             }
         }
     }
 
-    private var progressChart: some View {
+    private var emptyChartState: some View {
         VStack(spacing: 16) {
-            timeRangeFilters
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: 40, weight: .light))
+                .foregroundColor(gsTextSecondary.opacity(0.5))
 
-            Chart {
-                ForEach(sortedFilteredSessions) { session in
-                    LineMark(
-                        x: .value("Date", session.date),
-                        y: .value("Score", session.overallScore)
-                    )
-                    .foregroundStyle(gsSoftGreen)
-                    .lineStyle(StrokeStyle(lineWidth: 2.5))
-                    .interpolationMethod(.catmullRom)
+            Text("Not enough data yet")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .foregroundColor(gsTextPrimary)
 
-                    if let clinicalData = session.clinicalMetricsData {
-                        let result = VersionedMetricsLoader.loadFace3DMetrics(from: clinicalData)
-                        if let metrics = result.metrics, let glowAnalysis = metrics.glowAnalysis {
-                            LineMark(
-                                x: .value("Date", session.date),
-                                y: .value("Score", Double(glowAnalysis.skinHealthScore))
-                            )
-                            .foregroundStyle(gsAccentCoral)
-                            .lineStyle(StrokeStyle(lineWidth: 2.5))
-                            .interpolationMethod(.catmullRom)
-                        }
-                    }
-                }
-            }
-            .chartYScale(domain: 0...100)
-            .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 5)) { _ in
-                    AxisGridLine()
-                    AxisValueLabel(format: .dateTime.month().day())
-                }
-            }
-            .frame(height: 200)
-
-            HStack(spacing: 16) {
-                legendItem(color: gsSoftGreen, label: "Overall")
-                legendItem(color: gsAccentCoral, label: "Glow")
-            }
+            Text("Complete at least 2 scans in this time range to see your progress")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(gsTextSecondary)
+                .multilineTextAlignment(.center)
         }
-        .padding(20)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+        .padding(.horizontal, 20)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(gsCardBackground)
@@ -566,19 +539,290 @@ public struct InsightsTabView: View {
         )
     }
 
+    private var progressChart: some View {
+        VStack(spacing: 0) {
+            // Header with filters and stats
+            VStack(spacing: 16) {
+                HStack {
+                    Text("Your Journey")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(gsTextPrimary)
+
+                    Spacer()
+
+                    timeRangeFilters
+                }
+
+                // Stats row - same functionality as Home
+                statsRow
+            }
+            .padding(20)
+            .background(gsCardBackground)
+
+            // Chart area with coral gradient background
+            ZStack {
+                // Gradient background for chart
+                LinearGradient(
+                    colors: [gsAccentCoral.opacity(0.15), gsAccentCoral.opacity(0.05)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
+                Chart {
+                    ForEach(Array(sortedFilteredSessions.enumerated()), id: \.element.id) { index, session in
+                        // Area fill under line
+                        AreaMark(
+                            x: .value("Scan", index),
+                            y: .value("Score", session.overallScore)
+                        )
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [gsAccentCoral.opacity(0.4), gsAccentCoral.opacity(0.05)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+
+                        // Main line
+                        LineMark(
+                            x: .value("Scan", index),
+                            y: .value("Score", session.overallScore)
+                        )
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [gsAccentCoral, gsAccentCoral.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                        .interpolationMethod(.catmullRom)
+
+                        // Data points
+                        PointMark(
+                            x: .value("Scan", index),
+                            y: .value("Score", session.overallScore)
+                        )
+                        .foregroundStyle(.white)
+                        .symbolSize(selectedChartSession?.id == session.id ? 150 : 60)
+
+                        // Tooltip on selection
+                        if selectedChartSession?.id == session.id {
+                            PointMark(
+                                x: .value("Scan", index),
+                                y: .value("Score", session.overallScore)
+                            )
+                            .foregroundStyle(gsAccentCoral)
+                            .symbolSize(200)
+                            .annotation(position: .top, spacing: 8) {
+                                VStack(spacing: 4) {
+                                    Text("\(Int(session.overallScore))")
+                                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                                        .foregroundColor(.white)
+
+                                    Text(formatDateForChart(session.date))
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.9))
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(gsAccentCoral)
+                                        .shadow(color: gsAccentCoral.opacity(0.4), radius: 8, y: 4)
+                                )
+                            }
+                        }
+                    }
+                }
+                .chartYScale(domain: 0...100)
+                .chartXScale(domain: 0...(max(1, sortedFilteredSessions.count - 1)))
+                .chartXAxis {
+                    let totalScans = sortedFilteredSessions.count
+                    let desiredMarks = min(totalScans, 5)
+                    AxisMarks(values: .automatic(desiredCount: desiredMarks)) { value in
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                            .foregroundStyle(gsTextSecondary.opacity(0.2))
+                        if let index = value.as(Int.self), index >= 0 && index < sortedFilteredSessions.count {
+                            let session = sortedFilteredSessions[index]
+                            AxisValueLabel {
+                                VStack(spacing: 2) {
+                                    Text(formatTimeForChart(session.date))
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(gsTextSecondary)
+                                    Text(formatDateForChart(session.date))
+                                        .font(.system(size: 9, weight: .regular))
+                                        .foregroundColor(gsTextSecondary.opacity(0.7))
+                                }
+                            }
+                        }
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading, values: [0, 25, 50, 75, 100]) { _ in
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                            .foregroundStyle(gsTextSecondary.opacity(0.2))
+                        AxisValueLabel()
+                            .foregroundStyle(gsTextSecondary)
+                    }
+                }
+                .chartOverlay { proxy in
+                    GeometryReader { geometry in
+                        Rectangle()
+                            .fill(.clear)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        let location = value.location
+                                        if let scanIndex: Int = proxy.value(atX: location.x) {
+                                            let clampedIndex = max(0, min(scanIndex, sortedFilteredSessions.count - 1))
+                                            if clampedIndex < sortedFilteredSessions.count {
+                                                selectedChartSession = sortedFilteredSessions[clampedIndex]
+                                            }
+                                        }
+                                    }
+                                    .onEnded { _ in
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                            withAnimation(.easeOut(duration: 0.3)) {
+                                                selectedChartSession = nil
+                                            }
+                                        }
+                                    }
+                            )
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 20)
+            }
+            .frame(height: 220)
+
+            // Legend
+            HStack(spacing: 20) {
+                legendItem(color: gsAccentCoral, label: "Overall Score")
+            }
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(gsCardBackground)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 4)
+    }
+
+    private var statsRow: some View {
+        HStack(spacing: 0) {
+            // Trend
+            VStack(alignment: .center, spacing: 4) {
+                Text("Trend")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(gsTextSecondary)
+
+                if let trend = calculateChartTrend() {
+                    HStack(spacing: 4) {
+                        Image(systemName: trend > 0 ? "arrow.up.right" : (trend < 0 ? "arrow.down.right" : "arrow.right"))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(trend > 0 ? gsSoftGreen : (trend < 0 ? gsSoftRed : gsTextSecondary))
+
+                        Text("\(trend > 0 ? "+" : "")\(String(format: "%.1f", trend))%")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundColor(trend > 0 ? gsSoftGreen : (trend < 0 ? gsSoftRed : gsTextSecondary))
+                    }
+                } else {
+                    Text("--")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(gsTextSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+
+            Divider()
+                .frame(height: 30)
+
+            // Average
+            VStack(alignment: .center, spacing: 4) {
+                Text("Average")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(gsTextSecondary)
+
+                Text("\(Int(chartAverageScore))")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(gsTextPrimary)
+            }
+            .frame(maxWidth: .infinity)
+
+            Divider()
+                .frame(height: 30)
+
+            // Best
+            VStack(alignment: .center, spacing: 4) {
+                Text("Best")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(gsTextSecondary)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(gsSoftYellow)
+
+                    Text("\(Int(chartBestScore))")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(gsTextPrimary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(gsProgressTrack.opacity(0.5))
+        )
+    }
+
+    private func calculateChartTrend() -> Double? {
+        guard sortedFilteredSessions.count >= 2,
+              let first = sortedFilteredSessions.first,
+              let last = sortedFilteredSessions.last,
+              first.overallScore > 0 else {
+            return nil
+        }
+        return ((last.overallScore - first.overallScore) / first.overallScore) * 100
+    }
+
+    private var chartAverageScore: Double {
+        guard !sortedFilteredSessions.isEmpty else { return 0 }
+        return sortedFilteredSessions.map(\.overallScore).reduce(0, +) / Double(sortedFilteredSessions.count)
+    }
+
+    private var chartBestScore: Double {
+        sortedFilteredSessions.map(\.overallScore).max() ?? 0
+    }
+
+    private func formatDateForChart(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+
+    private func formatTimeForChart(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter.string(from: date)
+    }
+
     private var timeRangeFilters: some View {
-        HStack(spacing: 8) {
-            ForEach(TimeRange.allCases, id: \.self) { range in
+        HStack(spacing: 4) {
+            ForEach(ProgressTimePeriod.allCases, id: \.self) { range in
                 Button {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         selectedTimeRange = range
+                        selectedChartSession = nil
                     }
                 } label: {
                     Text(range.rawValue)
-                        .font(.system(size: 13, weight: selectedTimeRange == range ? .semibold : .medium, design: .rounded))
+                        .font(.system(size: 12, weight: selectedTimeRange == range ? .semibold : .medium, design: .rounded))
                         .foregroundColor(selectedTimeRange == range ? .white : gsTextSecondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
                         .background(
                             Capsule()
                                 .fill(selectedTimeRange == range ? gsAccentCoral : gsProgressTrack)
@@ -590,19 +834,23 @@ public struct InsightsTabView: View {
 
     private func legendItem(color: Color, label: String) -> some View {
         HStack(spacing: 6) {
-            RoundedRectangle(cornerRadius: 2)
+            Circle()
                 .fill(color)
-                .frame(width: 16, height: 4)
+                .frame(width: 8, height: 8)
 
             Text(label)
-                .font(.system(size: 12, weight: .regular))
+                .font(.system(size: 12, weight: .medium))
                 .foregroundColor(gsTextSecondary)
         }
     }
 
     private var filteredSessions: [SessionResult] {
+        guard let days = selectedTimeRange.days else {
+            // "All" time - return all sessions
+            return Array(sessions)
+        }
         let calendar = Calendar.current
-        let cutoffDate = calendar.date(byAdding: .day, value: -selectedTimeRange.days, to: Date()) ?? Date()
+        let cutoffDate = calendar.date(byAdding: .day, value: -days, to: Date()) ?? Date()
         return sessions.filter { $0.date >= cutoffDate }
     }
 
@@ -713,9 +961,10 @@ public struct InsightsTabView: View {
     }
 
     private func calculateImprovements() -> [(String, Double)] {
-        guard sessions.count >= 2 else { return [] }
+        guard sessions.count >= 2,
+              let latest = sessions.first,
+              sessions.indices.contains(1) else { return [] }
 
-        let latest = sessions[0]
         let previous = sessions[1]
         var improvements: [(String, Double)] = []
 
@@ -745,9 +994,10 @@ public struct InsightsTabView: View {
     }
 
     private func calculateDeclines() -> [(String, Double)] {
-        guard sessions.count >= 2 else { return [] }
+        guard sessions.count >= 2,
+              let latest = sessions.first,
+              sessions.indices.contains(1) else { return [] }
 
-        let latest = sessions[0]
         let previous = sessions[1]
         var declines: [(String, Double)] = []
 
@@ -818,10 +1068,14 @@ public struct InsightsTabView: View {
     private func generateImprovementText(_ improvements: [(String, Double)]) -> String {
         let metricTexts = improvements.map { "\($0.0.lowercased()) (+\(Int($0.1))%)" }
 
-        if improvements.count == 1 {
-            return "Your skin shows improvement in \(metricTexts[0])!"
-        } else if improvements.count == 2 {
-            return "Your skin shows improvement in \(metricTexts[0]) and \(metricTexts[1])!"
+        guard !metricTexts.isEmpty else {
+            return "Your skin shows improvement!"
+        }
+
+        if metricTexts.count == 1, let first = metricTexts.first {
+            return "Your skin shows improvement in \(first)!"
+        } else if metricTexts.count == 2, let first = metricTexts.first, metricTexts.indices.contains(1) {
+            return "Your skin shows improvement in \(first) and \(metricTexts[1])!"
         } else if let last = metricTexts.last {
             let first = metricTexts.dropLast().joined(separator: ", ")
             return "Your skin shows improvement in \(first), and \(last)!"
@@ -1010,7 +1264,7 @@ public struct InsightsTabView: View {
     // MARK: - Recommendation Generation
 
     private func getStoredRecommendations() -> [String] {
-        guard sessions.count >= 2 else {
+        guard sessions.count >= 2, sessions.indices.contains(1) else {
             return generateActionableRecommendations()
         }
 
@@ -1101,7 +1355,7 @@ public struct InsightsTabView: View {
     }
 
     private func getStoredProductRecommendations() -> [(name: String, category: String)] {
-        guard sessions.count >= 2 else {
+        guard sessions.count >= 2, sessions.indices.contains(1) else {
             return generateProductRecommendations()
         }
 

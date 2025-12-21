@@ -361,6 +361,37 @@ public class HeatmapOverlayGenerator {
 
     // MARK: - Regional Heatmap Generation
 
+    /// Generate mesh-based heatmap that follows actual face mesh triangles
+    /// Falls back to ellipse-based method if mesh is not available
+    /// - Parameters:
+    ///   - mesh: Optional unified face mesh from ARKit
+    ///   - baseTexture: Base face texture to overlay on
+    ///   - metrics: Face3DMetrics containing scores per ROI
+    ///   - metricType: Type of heatmap to generate
+    /// - Returns: UIImage with heatmap overlay
+    public func generateMeshBasedHeatmap(
+        mesh: UnifiedMesh?,
+        baseTexture: CGImage,
+        metrics: Face3DMetrics,
+        metricType: BeautifulHeatmapType
+    ) -> UIImage? {
+        // DISABLED: Mesh-based rendering produces jagged triangle artifacts
+        // The ARKit mesh has sparse coverage and sharp edges that don't look good
+        // Always use the smooth ellipse-based gradient method instead
+        //
+        // TODO: If mesh-based rendering is needed in the future, apply:
+        // 1. Gaussian blur to smooth edges
+        // 2. Filter out triangles outside face bounds
+        // 3. Edge feathering for smooth transitions
+
+        // Use smooth ellipse-based gradient method (looks professional)
+        return generateBeautifulHeatmap(
+            baseTexture: baseTexture,
+            metrics: metrics,
+            metricType: metricType
+        )
+    }
+
     /// Generate a modern, gradient-based heatmap with smooth elliptical zones
     /// Each region gets a gradient fill that looks like a professional thermal map
     public func generateBeautifulHeatmap(

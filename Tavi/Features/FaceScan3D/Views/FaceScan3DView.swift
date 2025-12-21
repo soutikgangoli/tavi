@@ -185,9 +185,10 @@ public struct FaceScan3DView: View {
     }
 
     private func handleCaptureProgress(_ newCount: Int) {
-        // TESTING MODE: Complete after just 1 pose for rapid testing
-        if newCount >= 1 {
-            AppLogger.faceScan.info("✅ TESTING MODE: \(newCount) pose(s) captured - completing early for testing")
+        // Complete when all active poses are captured
+        let totalPosesRequired = GuidanceStep.activePoses.count
+        if newCount >= totalPosesRequired {
+            AppLogger.faceScan.info("✅ All active poses captured (\(newCount)/\(totalPosesRequired)) - starting processing")
             onCaptureComplete?(viewModel.capturedPoses)
         }
     }
@@ -212,7 +213,7 @@ public struct FaceScan3DView: View {
 // MARK: - ARKit View Representable
 
 struct ARFaceTrackingViewRepresentable: UIViewControllerRepresentable {
-    let viewModel: FaceScan3DViewModel
+    @ObservedObject var viewModel: FaceScan3DViewModel
     let showMesh: Bool
     let meshColor: UIColor
     let wireframeMode: Bool
@@ -227,6 +228,15 @@ struct ARFaceTrackingViewRepresentable: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: ARFaceTrackingViewController, context: Context) {
+        // CRITICAL FIX: Stop session IMMEDIATELY when cleanup flag is set
+        // This is called by SwiftUI whenever @ObservedObject viewModel changes
+        // By checking shouldStopSession here, we stop the AR session the instant
+        // the cancel button sets the flag, not waiting for viewWillDisappear
+        if viewModel.shouldStopSession || viewModel.isCleaningUp {
+            uiViewController.stopSessionImmediately()
+            return
+        }
+
         uiViewController.showDebugMesh = showMesh
         uiViewController.setMeshColor(meshColor)
         uiViewController.setWireframeMode(wireframeMode)

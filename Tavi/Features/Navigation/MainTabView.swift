@@ -11,8 +11,8 @@ import CoreData
 
 public struct MainTabView: View {
     @State private var selectedTab: Tab = .home
-    @State private var showScanFlow = false
-    
+    @State private var showScanFlow: Bool = false
+
     // Use PersistenceController directly instead of reading from environment
     private var viewContext: NSManagedObjectContext {
         PersistenceController.shared.viewContext
@@ -28,50 +28,68 @@ public struct MainTabView: View {
 
     public var body: some View {
         ZStack(alignment: .bottom) {
-            // Tab content - use custom view switcher instead of TabView
-            Group {
-                switch selectedTab {
-                case .home:
-                    NavigationStack {
-                        HomeView(selectedTab: $selectedTab, showScanFlow: $showScanFlow)
-                    }
-                    .environment(\.managedObjectContext, viewContext)
-                    
-                case .history:
-                    NavigationStack {
-                        ResultsHistoryView()
-                    }
-                    .environment(\.managedObjectContext, viewContext)
-                    
-                case .scan:
-                    Color.clear
-                    
-                case .insights:
-                    NavigationStack {
-                        InsightsTabView()
-                    }
-                    .environment(\.managedObjectContext, viewContext)
-                    
-                case .profile:
-                    NavigationStack {
-                        ProfileTabView()
-                    }
-                    .environment(\.managedObjectContext, viewContext)
+            // Tab content - keep all views instantiated for instant switching
+            // Using ZStack with opacity instead of switch to prevent view recreation
+            ZStack {
+                // Home tab
+                NavigationStack {
+                    HomeView(selectedTab: $selectedTab, showScanFlow: $showScanFlow)
                 }
+                .environment(\.managedObjectContext, viewContext)
+                .opacity(selectedTab == .home ? 1 : 0)
+                .zIndex(selectedTab == .home ? 1 : 0)
+                .allowsHitTesting(selectedTab == .home)
+
+                // History tab
+                NavigationStack {
+                    ResultsHistoryView()
+                }
+                .environment(\.managedObjectContext, viewContext)
+                .opacity(selectedTab == .history ? 1 : 0)
+                .zIndex(selectedTab == .history ? 1 : 0)
+                .allowsHitTesting(selectedTab == .history)
+
+                // Scan tab placeholder
+                Color.clear
+                    .opacity(selectedTab == .scan ? 1 : 0)
+                    .zIndex(selectedTab == .scan ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .scan)
+
+                // Insights tab
+                NavigationStack {
+                    InsightsTabView()
+                }
+                .environment(\.managedObjectContext, viewContext)
+                .opacity(selectedTab == .insights ? 1 : 0)
+                .zIndex(selectedTab == .insights ? 1 : 0)
+                .allowsHitTesting(selectedTab == .insights)
+
+                // Profile tab
+                NavigationStack {
+                    ProfileTabView()
+                }
+                .environment(\.managedObjectContext, viewContext)
+                .opacity(selectedTab == .profile ? 1 : 0)
+                .zIndex(selectedTab == .profile ? 1 : 0)
+                .allowsHitTesting(selectedTab == .profile)
             }
             .ignoresSafeArea(.keyboard) // Prevent tab bar from moving with keyboard
 
-            // Custom tab bar overlay (on top)
-            CustomTabBar(selectedTab: $selectedTab, showScanFlow: $showScanFlow)
-                .ignoresSafeArea(.keyboard)
-                .allowsHitTesting(true)
+            // Custom tab bar overlay (on top) - hide when scan is shown
+            if !showScanFlow {
+                CustomTabBar(selectedTab: $selectedTab, showScanFlow: $showScanFlow)
+                    .ignoresSafeArea(.keyboard)
+                    .allowsHitTesting(true)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
-        .sheet(isPresented: $showScanFlow) {
+        .fullScreenCover(isPresented: $showScanFlow) {
             NavigationStack {
                 EmotionalScan3DFlowView()
                     .environment(\.managedObjectContext, viewContext)
             }
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showScanFlow)
     }
 }
 

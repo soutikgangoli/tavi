@@ -66,7 +66,7 @@ public struct CalibrationOverlay: View {
                     if !lightingIsGood {
                         Text(viewModel.calibrationManager.calibrationState.lightingIssueMessage)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(Color(red: 1.0, green: 0.8, blue: 0.2))
+                            .foregroundColor(.white)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                             .padding(.vertical, 12)
@@ -83,7 +83,7 @@ public struct CalibrationOverlay: View {
 
             // Completion message
             // Show completion message when all required poses have been captured
-            if !viewModel.isGuidanceActive && viewModel.capturedPoses.count == GuidanceStep.allCases.count {
+            if !viewModel.isGuidanceActive && viewModel.capturedPoses.count == GuidanceStep.activePoses.count {
                 VStack {
                     Spacer()
 
@@ -204,7 +204,12 @@ struct CalibrationStatusView: View {
                     icon: "hand.raised.fill",
                     status: {
                         let isStable = calibrationState.stability.isValid
-                        let isSharp = calibrationManager.qualityWarning == nil || (!calibrationManager.qualityWarning!.contains("blur") && !calibrationManager.qualityWarning!.contains("steady") && !calibrationManager.qualityWarning!.contains("focus"))
+                        let isSharp: Bool
+                        if let warning = calibrationManager.qualityWarning {
+                            isSharp = !warning.contains("blur") && !warning.contains("steady") && !warning.contains("focus")
+                        } else {
+                            isSharp = true
+                        }
 
                         if isStable && isSharp {
                             return .good
@@ -228,12 +233,12 @@ struct CalibrationStatusView: View {
                     Text(calibrationState.centerPosition.displayText)
                         .font(.system(size: 14, weight: .medium))
                 }
-                .foregroundStyle(centerStatusColor(calibrationState.centerPosition))
+                .foregroundStyle(.white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(
                     Capsule()
-                        .fill(centerStatusColor(calibrationState.centerPosition).opacity(0.2))
+                        .fill(.white.opacity(0.2))
                 )
                 .padding(.top, 12)
             }
@@ -251,8 +256,8 @@ struct CalibrationStatusView: View {
 
                 // Show helpful hint based on current state
                 Text(getHelpfulHint())
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 24)
@@ -335,7 +340,12 @@ struct GuidanceView: View {
                     icon: "hand.raised.fill",
                     status: {
                         let isStable = calibrationState.stability.isValid
-                        let isSharp = qualityWarning == nil || (!qualityWarning!.contains("blur") && !qualityWarning!.contains("steady") && !qualityWarning!.contains("focus"))
+                        let isSharp: Bool
+                        if let warning = qualityWarning {
+                            isSharp = !warning.contains("blur") && !warning.contains("steady") && !warning.contains("focus")
+                        } else {
+                            isSharp = true
+                        }
 
                         if isStable && isSharp {
                             return .good
@@ -353,7 +363,7 @@ struct GuidanceView: View {
 
             // Modern step progress indicator
             HStack(spacing: 10) {
-                ForEach(GuidanceStep.allCases, id: \.rawValue) { step in
+                ForEach(GuidanceStep.activePoses, id: \.rawValue) { step in
                     StepIndicator(
                         step: step,
                         isCurrent: step == currentStep,
@@ -451,14 +461,11 @@ struct GuidanceView: View {
     }
 
     private func getFeedbackColor() -> Color {
-        if !calibrationState.isCalibrated {
-            return warningColor
-        } else if qualityWarning != nil {
-            return warningColor
-        } else if isPoseCorrect && countdownTimer == 0 {
+        // Always use white for better visibility on camera background
+        if isPoseCorrect && countdownTimer == 0 {
             return successColor
         }
-        return hintColor
+        return .white
     }
 }
 
@@ -524,8 +531,8 @@ struct StatusBadge: View {
             }
 
             Text(label)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.9))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.white)
         }
     }
 }
@@ -572,8 +579,8 @@ struct StepIndicator: View {
             }
 
             Text(step.shortName)
-                .font(.system(size: 10, weight: isCurrent ? .semibold : .regular))
-                .foregroundStyle(isCurrent || isCaptured ? .white : .white.opacity(0.5))
+                .font(.system(size: 10, weight: isCurrent ? .semibold : .medium))
+                .foregroundStyle(isCurrent || isCaptured ? .white : .white.opacity(0.7))
         }
     }
 }

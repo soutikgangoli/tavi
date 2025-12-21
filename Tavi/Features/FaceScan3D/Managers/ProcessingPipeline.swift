@@ -32,22 +32,34 @@ public class ProcessingPipeline: ObservableObject {
     private let meshMerger = MeshMerger()
     private let streamingMerger = StreamingMeshMerger()
     private var textureBaker: TextureBaker {
-        let enableHighRes = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
+        let resolution = resolveTextureResolution()
         var config = TextureBaker.Configuration()
-        if enableHighRes {
-            config.textureWidth = ScanConfiguration.highResTextureWidth
-            config.textureHeight = ScanConfiguration.highResTextureHeight
-        } else {
-            config.textureWidth = ScanConfiguration.standardTextureWidth
-            config.textureHeight = ScanConfiguration.standardTextureHeight
-        }
+        config.textureWidth = resolution.width
+        config.textureHeight = resolution.height
         return TextureBaker(configuration: config)
+    }
+
+    /// Resolve texture resolution based on device capability or user override
+    private func resolveTextureResolution() -> TextureResolution {
+        // Check for explicit user override first
+        if UserDefaults.standard.object(forKey: AppDefaultsKey.enableHighResCapture) != nil {
+            let use4K = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
+            return use4K ? .highRes4K : .standard2K
+        }
+        // Use device-based default (4K for 6GB+ devices)
+        return DeviceCapabilities.current.recommendedTextureResolution
     }
 
     // MARK: - Public Methods
 
     /// Finalize capture and merge all partial meshes
     public func finalizeCapture(sequence: CaptureSequence) async -> MergedFaceMesh? {
+        // CRITICAL: Check cancellation at the very start
+        guard !Task.isCancelled else {
+            AppLogger.mesh.info("🛑 Mesh merge cancelled at start")
+            return nil
+        }
+        
         // MEMORY MANAGEMENT: Check available memory before starting
         if let stats = AdvancedMemoryMonitor.shared.getMemoryStats() {
             AppLogger.mesh.info("📊 Pre-merge memory: \(stats.formattedUsed) / \(stats.formattedTotal)")
@@ -58,7 +70,11 @@ public class ProcessingPipeline: ObservableObject {
                 AppLogger.mesh.warning("⚠️ Memory pressure detected - performing cleanup")
                 AdvancedMemoryMonitor.shared.forceCleanup(atPressure: stats.pressure)
 
-                // Wait a moment for cleanup to take effect
+                // Wait a moment for cleanup to take effect (but check cancellation first)
+                guard !Task.isCancelled else {
+                    AppLogger.mesh.info("🛑 Mesh merge cancelled during memory cleanup")
+                    return nil
+                }
                 try? await Task.sleep(nanoseconds: 500_000_000)  // 0.5s
             }
         }
@@ -92,6 +108,12 @@ public class ProcessingPipeline: ObservableObject {
             return nil
         }
 
+        // CRITICAL: Check cancellation before starting heavy work
+        guard !Task.isCancelled else {
+            AppLogger.mesh.info("🛑 Mesh merge cancelled before merge operation")
+            return nil
+        }
+
         isMerging = true
 
         // Calculate total vertices to decide on merger strategy
@@ -111,10 +133,21 @@ public class ProcessingPipeline: ObservableObject {
         if useStreaming {
             // Use streaming merger for large meshes
             do {
+                // Check cancellation before streaming merge
+                guard !Task.isCancelled else {
+                    AppLogger.mesh.info("🛑 Streaming merge cancelled before start")
+                    self.isMerging = false
+                    return nil
+                }
+                
                 merged = try await streamingMerger.merge(captures: captures) { progress, message in
                     // Log progress - callback is already on main actor
                     AppLogger.mesh.debug("Streaming merge progress: \(Int(progress * 100))%")
                 }
+            } catch is CancellationError {
+                AppLogger.mesh.info("🛑 Streaming merge cancelled")
+                self.isMerging = false
+                return nil
             } catch {
                 AppLogger.mesh.error("❌ Streaming merge failed: \(error.localizedDescription)")
                 CrashReporter.shared.logError(
@@ -130,11 +163,24 @@ public class ProcessingPipeline: ObservableObject {
             }
         } else {
             // Use standard merger for smaller meshes
-            // Capture merger reference before detaching from main actor
+            // Capture merger reference and cancellation state before detaching
             let merger = self.meshMerger
+            let isCancelled = Task.isCancelled
             merged = await Task.detached(priority: .userInitiated) { () -> MergedFaceMesh? in
+                // Check cancellation before starting
+                if isCancelled || Task.isCancelled {
+                    AppLogger.mesh.info("🛑 Mesh merge cancelled before start")
+                    return nil
+                }
+                
                 AppLogger.mesh.info("🔧 Calling standard merger.merge()")
                 let merged = merger.merge(captures: captures)
+                
+                // Check cancellation after merge completes
+                if Task.isCancelled {
+                    AppLogger.mesh.info("🛑 Mesh merge cancelled after completion")
+                    return nil
+                }
 
                 guard let finalMesh = merged else {
                     AppLogger.mesh.error("❌ Standard merger returned nil!")
@@ -144,6 +190,13 @@ public class ProcessingPipeline: ObservableObject {
                 AppLogger.mesh.info("✅ Merged mesh: \(finalMesh.vertices.count) vertices")
                 return finalMesh
             }.value
+        }
+
+        // CRITICAL: Check cancellation after merge completes
+        guard !Task.isCancelled else {
+            AppLogger.mesh.info("🛑 Mesh merge cancelled after merge completed")
+            self.isMerging = false
+            return nil
         }
 
         guard let merged = merged else {
@@ -164,6 +217,12 @@ public class ProcessingPipeline: ObservableObject {
         from unifiedMesh: MergedFaceMesh,
         samples: [PoseSample]
     ) async -> TextureBakeResult? {
+        // CRITICAL: Check cancellation at the very start
+        guard !Task.isCancelled else {
+            AppLogger.faceScan.info("🛑 Texture bake cancelled at start")
+            return nil
+        }
+        
         guard !samples.isEmpty else {
             AppLogger.faceScan.error("❌ No texture samples available")
             return nil
@@ -171,10 +230,24 @@ public class ProcessingPipeline: ObservableObject {
 
         isBaking = true
 
+        // Check cancellation before starting heavy bake operation
+        guard !Task.isCancelled else {
+            AppLogger.faceScan.info("🛑 Texture bake cancelled before bake operation")
+            isBaking = false
+            return nil
+        }
+
         let result = await textureBaker.bakeUnifiedTexture(
             from: unifiedMesh,
             samples: samples
         )
+
+        // CRITICAL: Check cancellation after bake completes
+        guard !Task.isCancelled else {
+            AppLogger.faceScan.info("🛑 Texture bake cancelled after completion")
+            isBaking = false
+            return nil
+        }
 
         bakeResult = result
         isBaking = false

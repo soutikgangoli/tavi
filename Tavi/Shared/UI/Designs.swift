@@ -254,13 +254,16 @@ public enum Designs {
         // MARK: Score Colors
 
         /// Returns color for score (0-100)
+        /// - Below 30: Red (poor)
+        /// - 30-70: Yellow (fair)
+        /// - 70-89: Green (good)
+        /// - 90-100: Bright green (excellent)
         public static func scoreColor(for score: Int) -> Color {
             switch score {
-            case 90...100: return ScoreColors.excellent
-            case 80..<90: return ScoreColors.good
-            case 50..<80: return ScoreColors.fair
-            case 30..<50: return ScoreColors.warning
-            default: return ScoreColors.poor
+            case 90...100: return ScoreColors.excellent  // Bright green
+            case 70..<90: return ScoreColors.good        // Green
+            case 30..<70: return ScoreColors.fair        // Yellow
+            default: return ScoreColors.poor             // Red (below 30)
             }
         }
     }
@@ -334,13 +337,16 @@ public enum Designs {
         public static let pinkAccent = Color(red: 255/255, green: 55/255, blue: 95/255)
 
         /// Returns the appropriate color for a given score
+        /// - Below 30: Red (poor)
+        /// - 30-70: Yellow (fair)
+        /// - 70-89: Green (good)
+        /// - 90-100: Bright green (excellent)
         public static func color(for score: Int) -> Color {
             switch score {
-            case 90...100: return excellent
-            case 80..<90: return good
-            case 50..<80: return fair
-            case 30..<50: return warning
-            default: return poor
+            case 90...100: return excellent  // Bright green
+            case 70..<90: return good        // Green
+            case 30..<70: return fair        // Yellow
+            default: return poor             // Red (below 30)
             }
         }
     }

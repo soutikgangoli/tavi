@@ -21,7 +21,12 @@ public class RoughnessAnalyzer {
         public var filterRadius: Int = 3
 
         /// Normalization factor for energy
-        public var normalizationFactor: Float = 10.0
+        /// ADJUSTED: Reduced from 2.0 to 0.5 to produce realistic proxy values
+        /// Analysis showed normalizedEnergy ~0.19-0.62 (high-pass/luminance ratio)
+        /// With 2.0: produced 0.38-1.0 proxy (too high, causing 0 smoothness scores)
+        /// With 0.5: produces 0.10-0.31 proxy (within expected range)
+        /// Expected proxy ranges: <0.08 excellent, 0.08-0.25 good, 0.25-0.50 moderate, >0.50 rough
+        public var normalizationFactor: Float = 0.5
 
         /// Enable regional consistency validation for higher confidence
         public var enableRegionalValidation: Bool = true
@@ -625,30 +630,58 @@ public class RoughnessAnalyzer {
     }
 
     /// Convert UIImage back to ROITextureSample
+    /// Uses controlled rendering context for safe pixel access
     private func uiImageToSample(_ image: UIImage, roi: Face3DROI) -> ROITextureSample? {
         guard let cgImage = image.cgImage else { return nil }
 
         let width = cgImage.width
         let height = cgImage.height
 
-        // Extract pixel data
-        var pixels: [SIMD3<Float>] = []
-        pixels.reserveCapacity(width * height)
+        // SAFE APPROACH: Render into a controlled RGBA context
+        // This avoids issues with varying image formats, bytesPerRow padding, etc.
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        let totalBytes = height * bytesPerRow
 
-        guard let dataProvider = cgImage.dataProvider,
-              let data = dataProvider.data,
-              let bytes = CFDataGetBytePtr(data) else {
+        // Allocate pixel buffer
+        var pixelData = [UInt8](repeating: 0, count: totalBytes)
+
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else {
+            AppLogger.faceScan.warning("⚠️ RoughnessAnalyzer: Failed to create color space")
             return nil
         }
 
-        let bytesPerPixel = cgImage.bitsPerPixel / 8
+        // Create context with RGBA byte order (noneSkipLast = RGBX, no premultiplication issues)
+        // Using noneSkipLast avoids alpha premultiplication artifacts
+        // NOT using byteOrder32Big as that means ARGB on iOS
+        guard let context = CGContext(
+            data: &pixelData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        ) else {
+            AppLogger.faceScan.warning("⚠️ RoughnessAnalyzer: Failed to create CGContext")
+            return nil
+        }
+
+        // Draw the image into our controlled context
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        // Extract pixel data from our controlled buffer (RGBX format)
+        var pixels: [SIMD3<Float>] = []
+        pixels.reserveCapacity(width * height)
 
         for y in 0..<height {
             for x in 0..<width {
-                let offset = (y * cgImage.bytesPerRow) + (x * bytesPerPixel)
-                let r = Float(bytes[offset]) / 255.0
-                let g = Float(bytes[offset + 1]) / 255.0
-                let b = Float(bytes[offset + 2]) / 255.0
+                let offset = (y * bytesPerRow) + (x * bytesPerPixel)
+
+                // Buffer is RGBX format: R at offset, G at offset+1, B at offset+2, X at offset+3
+                let r = Float(pixelData[offset]) / 255.0
+                let g = Float(pixelData[offset + 1]) / 255.0
+                let b = Float(pixelData[offset + 2]) / 255.0
                 pixels.append(SIMD3<Float>(r, g, b))
             }
         }

@@ -262,12 +262,23 @@ public class VolumeMetricsAnalyzer {
         let leftProtrusion = calculateProtrusion(geometry: geometry, indices: leftEyeIndices)
         let rightProtrusion = calculateProtrusion(geometry: geometry, indices: rightEyeIndices)
 
-        let avgProtrusion = (leftProtrusion + rightProtrusion) / 2.0
+        var avgProtrusion = (leftProtrusion + rightProtrusion) / 2.0
+
+        // DIAGNOSTIC: Log raw protrusion values for debugging
+        AppLogger.metrics.debug("      👁️ Under-eye protrusion: left=\(String(format: "%.2f", leftProtrusion * 1000))mm, right=\(String(format: "%.2f", rightProtrusion * 1000))mm, avg=\(String(format: "%.2f", avgProtrusion * 1000))mm")
 
         // Validate we have meaningful protrusion data (0 = missing data, not "perfect skin")
         guard avgProtrusion > 0 else {
             AppLogger.metrics.warning("      ❌ avgProtrusion = 0, no valid data available")
             return nil
+        }
+
+        // SANITY CHECK: Clamp unrealistic protrusion values
+        // Human under-eye bags rarely exceed 8mm even in severe cases
+        // Values > 10mm likely indicate mesh artifacts or measurement errors
+        if avgProtrusion > 0.010 {
+            AppLogger.metrics.warning("      ⚠️ Protrusion \(String(format: "%.1f", avgProtrusion * 1000))mm seems unrealistic, clamping to 8mm")
+            avgProtrusion = 0.008  // Clamp to 8mm max (still severe)
         }
 
         // Score (less protrusion = better)
@@ -289,7 +300,7 @@ public class VolumeMetricsAnalyzer {
         let leftVolume = calculateRegionVolume(geometry: geometry, indices: leftEyeIndices) ?? 0
         let rightVolume = calculateRegionVolume(geometry: geometry, indices: rightEyeIndices) ?? 0
 
-        AppLogger.metrics.info("      ✅ Under-eye bags: score=\(String(format: "%.1f", score)), severity=\(severity.rawValue)")
+        AppLogger.metrics.info("      ✅ Under-eye bags: score=\(String(format: "%.1f", score)), severity=\(severity.rawValue), protrusion=\(String(format: "%.1f", avgProtrusion * 1000))mm")
 
         return UnderEyeBagAnalysis(
             score: score,
@@ -331,7 +342,9 @@ public class VolumeMetricsAnalyzer {
             // Find nearest vertex to mirrored point
             if let nearestIndex = findNearestVertex(to: mirroredPoint, in: vertices) {
                 let nearest = vertices[nearestIndex]
-                let deviation = distance(vertex, nearest)
+                // FIX: Compare mirrored point (expected position) to nearest vertex (actual position)
+                // Previously compared vertex to nearest, which measured distance across face (always large!)
+                let deviation = distance(mirroredPoint, nearest)
                 leftRightDeviations.append(deviation)
 
                 // If deviation > 2mm, mark region as asymmetric
@@ -846,19 +859,98 @@ public class VolumeMetricsAnalyzer {
     }
 
     private func calculateProtrusion(geometry: FaceMeshGeometry, indices: [Int]) -> Float {
-        // Measure how much region protrudes from surrounding surface
+        // Measure how much the under-eye region protrudes relative to surrounding face surface
+        // NOT absolute Z distance from origin (which would give ~40mm for face at 40mm from camera)
         let vertices = geometry.vertices
 
-        var regionDepths: [Float] = []
+        guard !indices.isEmpty else { return 0 }
+
+        // STEP 1: Calculate the reference plane from surrounding cheek vertices
+        // The reference plane represents the "flat" face surface around the under-eye area
+        let centerX = calculateFaceCenterX(vertices: vertices)
+
+        // Find neighboring cheek vertices (same Y range but outside under-eye X range)
+        var referenceZValues: [Float] = []
+        let underEyeMinX = indices.compactMap { $0 < vertices.count ? vertices[$0].x : nil }.min() ?? centerX
+        let underEyeMaxX = indices.compactMap { $0 < vertices.count ? vertices[$0].x : nil }.max() ?? centerX
+        let underEyeMinY = indices.compactMap { $0 < vertices.count ? vertices[$0].y : nil }.min() ?? 0
+        let underEyeMaxY = indices.compactMap { $0 < vertices.count ? vertices[$0].y : nil }.max() ?? 0
+
+        for (idx, vertex) in vertices.enumerated() {
+            guard idx < geometry.originalVertexCount else { break }
+
+            // Same Y range as under-eye
+            guard vertex.y >= underEyeMinY - 0.01 && vertex.y <= underEyeMaxY + 0.01 else { continue }
+
+            // Outside under-eye X range (cheek area)
+            let isLeftCheek = vertex.x < underEyeMinX - 0.005
+            let isRightCheek = vertex.x > underEyeMaxX + 0.005
+
+            if isLeftCheek || isRightCheek {
+                referenceZValues.append(vertex.z)
+            }
+        }
+
+        // If no reference points found, use the face plane Z at similar Y position
+        if referenceZValues.isEmpty {
+            // Fallback: use vertices at similar Y position but further from center
+            let avgY = indices.compactMap { $0 < vertices.count ? vertices[$0].y : nil }.reduce(0, +) / Float(indices.count)
+            for (idx, vertex) in vertices.enumerated() {
+                guard idx < geometry.originalVertexCount else { break }
+                if abs(vertex.y - avgY) < 0.015 && abs(vertex.x - centerX) > 0.04 {
+                    referenceZValues.append(vertex.z)
+                }
+            }
+
+            // Still no reference? Return 0 (can't measure protrusion)
+            guard !referenceZValues.isEmpty else { return 0 }
+        }
+
+        // STEP 2: Calculate reference Z (median Z of surrounding face to avoid outliers)
+        // Using median instead of average to be robust against mesh artifacts
+        let sortedReferenceZ = referenceZValues.sorted()
+        let referenceZ: Float
+        if sortedReferenceZ.count >= 3 {
+            // Use median for robustness
+            let midIndex = sortedReferenceZ.count / 2
+            referenceZ = sortedReferenceZ[midIndex]
+        } else {
+            // Fall back to average for small sample
+            referenceZ = referenceZValues.reduce(0, +) / Float(referenceZValues.count)
+        }
+
+        // VALIDATION: Check reference Z values are reasonable (not outliers)
+        let zRange = (sortedReferenceZ.last ?? 0) - (sortedReferenceZ.first ?? 0)
+        if zRange > 0.015 {  // >15mm range suggests mesh issues
+            AppLogger.metrics.debug("      ⚠️ Large reference Z range (\(String(format: "%.1f", zRange * 1000))mm) - mesh may have artifacts")
+        }
+
+        // STEP 3: Calculate under-eye Z values and measure protrusion relative to reference
+        var protrusionValues: [Float] = []
 
         for index in indices where index < vertices.count {
             let vertex = vertices[index]
-            // Z-depth from face plane
-            regionDepths.append(abs(vertex.z))
+            // Protrusion = how much further the under-eye vertex sticks out vs reference plane
+            // Positive = protrudes outward (toward camera), which is what bags do
+            // In ARKit, camera faces -Z, so bags protruding toward camera have LARGER Z (less negative)
+            let protrusion = vertex.z - referenceZ
+
+            // Only count forward protrusion (bags stick out, not in)
+            if protrusion > 0 {
+                protrusionValues.append(protrusion)
+            }
         }
 
-        // Average depth
-        return regionDepths.reduce(0, +) / Float(max(regionDepths.count, 1))
+        // If no protrusion detected, return minimal value (flat under-eye = good!)
+        guard !protrusionValues.isEmpty else { return 0.0005 }  // 0.5mm minimal
+
+        // STEP 4: Return average protrusion (in meters, will be converted to mm later)
+        let avgProtrusion = protrusionValues.reduce(0, +) / Float(protrusionValues.count)
+
+        // DIAGNOSTIC: Log the calculation for debugging
+        AppLogger.metrics.debug("      🔍 Protrusion calc: referenceZ=\(String(format: "%.4f", referenceZ)), samples=\(referenceZValues.count), avgProtrusion=\(String(format: "%.4f", avgProtrusion * 1000))mm")
+
+        return avgProtrusion
     }
 
     private func calculateTotalFaceVolume(geometry: FaceMeshGeometry) -> Float? {

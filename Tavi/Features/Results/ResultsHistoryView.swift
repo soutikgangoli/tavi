@@ -49,14 +49,20 @@ struct ResultsHistoryView: View {
     }
 
     private var filteredSessions: [SessionResult] {
+        // Filter out any deleted/faulted objects to prevent crashes
+        let validSessions = sessions.filter { !$0.isDeleted && !$0.isFault }
+
         guard let daysBack = selectedTimeFilter.daysBack else {
-            return Array(sessions)
+            return validSessions
         }
 
         let calendar = Calendar.current
-        let cutoffDate = calendar.date(byAdding: .day, value: -daysBack, to: Date())!
+        // Safely handle calendar date calculation - fallback to showing all if calculation fails
+        guard let cutoffDate = calendar.date(byAdding: .day, value: -daysBack, to: Date()) else {
+            return validSessions
+        }
 
-        return sessions.filter { $0.date >= cutoffDate }
+        return validSessions.filter { $0.date >= cutoffDate }
     }
 
     var body: some View {
@@ -263,30 +269,37 @@ struct ResultsHistoryView: View {
     // MARK: - Enhanced Session Card (Gentler Streak Style)
 
     private func enhancedSessionCard(_ session: SessionResult) -> some View {
-        VStack(spacing: 0) {
+        // Guard against deleted sessions
+        let isValidSession = !session.isDeleted && !session.isFault
+        let score = isValidSession ? session.overallScore : 0
+        let dateText = isValidSession ? session.relativeDate : ""
+        let dateTimeText = isValidSession ? formattedDateTime(session.date) : ""
+
+        return VStack(spacing: 0) {
             // Main content
             Button {
+                guard isValidSession else { return }
                 selectedSession = session
             } label: {
                 HStack(spacing: 14) {
                     // Score circle
                     ZStack {
                         Circle()
-                            .fill(gentlerScoreColor(session.overallScore).opacity(0.15))
+                            .fill(gentlerScoreColor(score).opacity(0.15))
                             .frame(width: 52, height: 52)
 
-                        Text("\(Int(session.overallScore))")
+                        Text("\(Int(score))")
                             .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(gentlerScoreColor(session.overallScore))
+                            .foregroundColor(gentlerScoreColor(score))
                     }
 
                     // Name, Date Time
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(session.relativeDate)
+                        Text(dateText)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(gsTextPrimary)
 
-                        Text(formattedDateTime(session.date))
+                        Text(dateTimeText)
                             .font(.system(size: 14, weight: .regular))
                             .foregroundColor(gsTextSecondary)
                     }
@@ -303,7 +316,10 @@ struct ResultsHistoryView: View {
             .buttonStyle(PlainButtonStyle())
 
             // Compare button (for non-latest scans)
-            if let latestSession = sessions.first, session.id != latestSession.id {
+            // Check both sessions are valid (not deleted) before showing comparison
+            if let latestSession = sessions.first,
+               !session.isDeleted && !latestSession.isDeleted,
+               session.id != latestSession.id {
                 Rectangle()
                     .fill(gsTextSecondary.opacity(0.1))
                     .frame(height: 1)
@@ -411,7 +427,19 @@ struct ResultsHistoryView: View {
     // MARK: - Actions
 
     private func deleteSession(_ session: SessionResult) {
+        // Clear any references to the session being deleted to prevent crashes
+        if selectedSession?.id == session.id {
+            selectedSession = nil
+        }
+        if sessionToDelete?.id == session.id {
+            sessionToDelete = nil
+        }
+
+        // Perform deletion with animation
         withAnimation {
+            // Check if session is still valid before deleting
+            guard !session.isDeleted else { return }
+
             viewContext.delete(session)
             do {
                 try viewContext.save()

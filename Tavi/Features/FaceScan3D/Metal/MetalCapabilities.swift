@@ -89,13 +89,9 @@ public final class MetalCapabilities {
     /// Check if device supports required threadgroup memory
     /// Analysis kernels need at least 16KB of shared memory
     public var supportsRequiredThreadgroupMemory: Bool {
-        guard let device = device else { return false }
+        guard device != nil else { return false }
 
-        // Check max threadgroup memory
-        // Modern iOS devices support 32KB-64KB
-        let requiredMemory = 16 * 1024  // 16KB
-
-        // Most Apple GPUs support 32KB+, but check to be safe
+        // Most Apple GPUs with Family 3+ support 32KB+ threadgroup memory
         // Unfortunately, there's no direct API to query this
         // We'll use GPU family as a proxy
         return supportsAppleGPUFamily3
@@ -104,26 +100,21 @@ public final class MetalCapabilities {
     /// Check if device supports all features required for GPU analysis
     public var supportsGPUAnalysis: Bool {
         guard isMetalAvailable else {
-            logger.info("❌ GPU analysis not supported: Metal not available")
             return false
         }
 
         guard supportsAppleGPUFamily3 else {
-            logger.info("❌ GPU analysis not supported: Requires Apple GPU Family 3+")
             return false
         }
 
         guard supportsRequiredTextureSize else {
-            logger.info("❌ GPU analysis not supported: Cannot create 4096x4096 textures")
             return false
         }
 
         guard supportsRequiredThreadgroupMemory else {
-            logger.info("❌ GPU analysis not supported: Insufficient threadgroup memory")
             return false
         }
 
-        logger.info("✅ GPU analysis fully supported on this device")
         return true
     }
 
@@ -135,7 +126,7 @@ public final class MetalCapabilities {
 
         // Try progressively larger textures to find limit
         // This is a rough estimate - actual limit may be higher
-        let testSizes = [4096, 8192, 16384, 32768]
+        let testSizes = [4096, 8192, 16384]
 
         for size in testSizes {
             let descriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -201,20 +192,29 @@ public final class MetalCapabilities {
 
     /// Log detailed device capabilities
     public func logCapabilities() {
-        guard let device = device else {
+        guard let device = self.device else {
             logger.info("📊 Metal Capabilities: Not available")
             return
         }
 
+        // Capture values before logging to avoid closure capture issues
+        let gpuFamily3 = self.supportsAppleGPUFamily3
+        let maxTex = self.maxTextureSize
+        let maxThreads = self.maxThreadsPerThreadgroup
+        let recThreadgroup = self.recommendedThreadgroupSize
+        let texSizeSupported = self.supportsRequiredTextureSize
+        let gpuAnalysisSupported = self.supportsGPUAnalysis
+        let fallbackSize = self.cpuFallbackDownsampleSize
+
         logger.info("📊 Metal Device Capabilities:")
         logger.info("   Device: \(device.name)")
         logger.info("   Metal available: ✅")
-        logger.info("   Apple GPU Family 3+: \(supportsAppleGPUFamily3 ? "✅" : "❌")")
-        logger.info("   Max texture size: \(maxTextureSize)x\(maxTextureSize)")
-        logger.info("   Max threads/threadgroup: \(maxThreadsPerThreadgroup.width)x\(maxThreadsPerThreadgroup.height)x\(maxThreadsPerThreadgroup.depth)")
-        logger.info("   Recommended threadgroup: \(recommendedThreadgroupSize.width)x\(recommendedThreadgroupSize.height)")
-        logger.info("   Supports 4096x4096 textures: \(supportsRequiredTextureSize ? "✅" : "❌")")
-        logger.info("   GPU analysis ready: \(supportsGPUAnalysis ? "✅" : "❌")")
+        logger.info("   Apple GPU Family 3+: \(gpuFamily3 ? "✅" : "❌")")
+        logger.info("   Max texture size: \(maxTex)x\(maxTex)")
+        logger.info("   Max threads/threadgroup: \(maxThreads.width)x\(maxThreads.height)x\(maxThreads.depth)")
+        logger.info("   Recommended threadgroup: \(recThreadgroup.width)x\(recThreadgroup.height)")
+        logger.info("   Supports 4096x4096 textures: \(texSizeSupported ? "✅" : "❌")")
+        logger.info("   GPU analysis ready: \(gpuAnalysisSupported ? "✅" : "❌")")
 
         // Additional GPU family checks
         if #available(iOS 13.0, *) {
@@ -229,10 +229,10 @@ public final class MetalCapabilities {
         }
 
         // Memory recommendations
-        if supportsGPUAnalysis {
+        if gpuAnalysisSupported {
             logger.info("   ✅ Use GPU acceleration (full 4096x4096 resolution)")
-        } else if isMetalAvailable {
-            logger.info("   ⚠️ Limited Metal support - use CPU with \(cpuFallbackDownsampleSize)x\(cpuFallbackDownsampleSize)")
+        } else if self.isMetalAvailable {
+            logger.info("   ⚠️ Limited Metal support - use CPU with \(fallbackSize)x\(fallbackSize)")
         } else {
             logger.info("   ⚠️ No Metal - use CPU with 1024x1024 downsampling")
         }

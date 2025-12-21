@@ -114,7 +114,7 @@ public final class TexturePool {
                 pools[key] = pool
 
                 stats.cacheHits += 1
-                logger.debug("📦 TexturePool: Cache HIT (\(width)x\(height), format: \(format.description))")
+                logger.debug("📦 TexturePool: Cache HIT (\(width)x\(height), format: \(format.rawValue))")
 
                 return pool[index].texture
             }
@@ -122,7 +122,7 @@ public final class TexturePool {
 
         // Cache miss - need to create new texture
         stats.cacheMisses += 1
-        logger.debug("📦 TexturePool: Cache MISS (\(width)x\(height), format: \(format.description)) - creating new")
+        logger.debug("📦 TexturePool: Cache MISS (\(width)x\(height), format: \(format.rawValue)) - creating new")
 
         // Create new texture
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -139,7 +139,8 @@ public final class TexturePool {
 
         // Add to pool if under max size
         var pool = pools[key] ?? []
-        if pool.count < maxPoolSize {
+        let poolMaxSize = self.maxPoolSize
+        if pool.count < poolMaxSize {
             let entry = PooledTexture(
                 texture: texture,
                 inUse: true,
@@ -148,7 +149,7 @@ public final class TexturePool {
             pool.append(entry)
             pools[key] = pool
 
-            logger.debug("📦 TexturePool: Added to pool (size: \(pool.count)/\(maxPoolSize))")
+            logger.debug("📦 TexturePool: Added to pool (size: \(pool.count)/\(poolMaxSize))")
         } else {
             logger.debug("📦 TexturePool: Pool full (\(pool.count)), texture not pooled")
         }
@@ -189,14 +190,15 @@ public final class TexturePool {
     /// Clear all pooled textures (free GPU memory)
     /// Should be called when analysis is complete or memory pressure occurs
     public func clear() {
+        // Acquire lock and clear pools
         lock.lock()
-        defer { lock.unlock() }
-
         let totalTextures = pools.values.reduce(0) { $0 + $1.count }
         pools.removeAll()
+        lock.unlock()
 
+        // Log AFTER releasing lock to prevent deadlock
+        // (logStatistics() -> getStatistics() tries to acquire the same lock)
         logger.info("🧹 TexturePool: Cleared \(totalTextures) pooled textures")
-        logStatistics()
     }
 
     /// Clear only unused textures (keep in-use textures)
@@ -296,32 +298,15 @@ public final class TexturePool {
     ///   - format: Pixel format
     ///   - work: Closure that uses the texture
     /// - Returns: Result from work closure
-    /// - Throws: Rethrows errors from work closure
+    /// - Throws: Errors from acquire or work closure
     public func withTexture<T>(
         width: Int,
         height: Int,
         format: MTLPixelFormat = .rgba8Unorm,
         work: (MTLTexture) throws -> T
-    ) rethrows -> T {
+    ) throws -> T {
         let texture = try acquire(width: width, height: height, format: format)
         defer { release(texture) }
         return try work(texture)
-    }
-}
-
-// MARK: - MTLPixelFormat Extension
-
-extension MTLPixelFormat {
-    var description: String {
-        switch self {
-        case .rgba8Unorm: return "RGBA8Unorm"
-        case .bgra8Unorm: return "BGRA8Unorm"
-        case .rgba16Float: return "RGBA16Float"
-        case .rgba32Float: return "RGBA32Float"
-        case .r8Unorm: return "R8Unorm"
-        case .r16Float: return "R16Float"
-        case .r32Float: return "R32Float"
-        default: return "Other(\(self.rawValue))"
-        }
     }
 }

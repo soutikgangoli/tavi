@@ -57,7 +57,45 @@ public class ARFaceTrackingViewController: UIViewController {
     /// Previous confidence to detect changes
     private var previousConfidence: Float = 0
 
+    /// Frame sequence number for stale Task detection
+    /// Used to skip outdated Tasks and release ARFrame references faster
+    private var frameSequenceNumber: Int = 0
+
+    /// Flag to prevent processing during/after cleanup
+    /// This prevents race conditions where callbacks fire after session is stopped
+    private var isSessionStopped: Bool = false
+
+    /// Counter for active frame processing tasks
+    /// Used to limit concurrent ARFrame retention
+    private var activeFrameProcessingCount: Int = 0
+
+    /// Maximum concurrent frame processing tasks allowed
+    /// Higher values = more memory usage, lower values = might skip frames
+    private static let maxConcurrentFrameProcessing: Int = 4
+
     // MARK: - Lifecycle
+
+    deinit {
+        // CRITICAL: Stop session synchronously in deinit - can't dispatch async from deinit
+        // Set the stop flag immediately to prevent any callbacks during deallocation
+        isSessionStopped = true
+
+        // Clear delegates synchronously to prevent callbacks
+        sceneView.delegate = nil
+        sceneView.session.delegate = nil
+
+        // Pause the session - do this synchronously in deinit
+        sceneView.session.pause()
+
+        // Clear references
+        isMultiFrameCaptureActive = false
+        frameAverager = nil
+        faceNode?.geometry = nil
+        faceNode = nil
+        viewModel = nil
+
+        AppLogger.faceScan.info("🧹 ARFaceTrackingViewController deallocated")
+    }
 
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -73,7 +111,49 @@ public class ARFaceTrackingViewController: UIViewController {
 
     public override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        // Use full cleanup instead of just pause to prevent FigXPCUtilities errors
+        stopAndCleanupSession()
+    }
+
+    /// Properly stop the AR session and clear all delegates
+    /// This prevents FigXPCUtilities error -17281 when cancelling/dismissing
+    private func stopAndCleanupSession() {
+        // CRITICAL: Set stop flag FIRST to prevent any new processing
+        // This flag is checked at the start of all delegate methods
+        guard !isSessionStopped else { return }  // Prevent multiple cleanup calls
+        isSessionStopped = true
+
+        // Cancel any active multi-frame capture
+        isMultiFrameCaptureActive = false
+        frameAverager = nil
+
+        // Reset active frame processing counter to prevent stale Task tracking
+        activeFrameProcessingCount = 0
+
+        // CRITICAL: Clear delegates BEFORE pausing to prevent callbacks during teardown
+        // This prevents FigXPCUtilities errors when camera resources are accessed during cleanup
+        sceneView.delegate = nil
+        sceneView.session.delegate = nil
+
+        // FigCaptureSourceRemote FIX: Allow camera delegate callbacks to drain
+        // This small synchronous delay gives pending camera callbacks time to complete
+        // before we pause the session, preventing -17281 errors
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        // CRITICAL FIX: Pause session SYNCHRONOUSLY to prevent hang on dismiss
+        // The async dispatch was causing the view to dismiss before cleanup completed
+        // We're already on the main thread (from viewWillDisappear), so we can pause directly
         sceneView.session.pause()
+
+        // Clear node reference after session is paused
+        faceNode?.geometry = nil
+        faceNode?.removeFromParentNode()
+        faceNode = nil
+
+        // Clear weak reference to ViewModel
+        viewModel = nil
+
+        AppLogger.faceScan.info("🛑 AR session stopped and cleaned up")
     }
 
     // MARK: - Setup
@@ -118,6 +198,12 @@ public class ARFaceTrackingViewController: UIViewController {
     }
 
     private func startFaceTracking() {
+        // Don't start if session is already stopped or stopping
+        guard !isSessionStopped else {
+            AppLogger.faceScan.info("⏸️ Skipping face tracking start - session already stopped")
+            return
+        }
+
         // Check if face tracking is supported
         guard ARFaceTrackingConfiguration.isSupported else {
             Task { @MainActor in
@@ -148,6 +234,13 @@ public class ARFaceTrackingViewController: UIViewController {
     }
 
     // MARK: - Public Methods
+
+    /// Stop the AR session immediately - call this when user cancels
+    /// This is faster than relying on the delegate check because it stops the session
+    /// before any new frames can be processed
+    public func stopSessionImmediately() {
+        stopAndCleanupSession()
+    }
 
     /// Update mesh material color
     public func setMeshColor(_ color: UIColor) {
@@ -209,6 +302,8 @@ public class ARFaceTrackingViewController: UIViewController {
 extension ARFaceTrackingViewController: ARSCNViewDelegate {
 
     public func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
+        // CRITICAL: Bail out immediately if session is stopping/stopped
+        guard !isSessionStopped else { return nil }
         guard anchor is ARFaceAnchor else { return nil }
 
         // Safely unwrap Metal device
@@ -252,9 +347,30 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
     }
 
     public func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
+        // CRITICAL: Bail out immediately if session is stopping/stopped
+        guard !isSessionStopped else { return }
+
+        // Check if viewModel signals session should stop or cleanup is in progress
+        if let vm = viewModel, (vm.shouldStopSession || vm.isCleaningUp) {
+            stopAndCleanupSession()
+            return
+        }
+
+        // Additional safety check: bail out if viewModel is nil (cleanup in progress)
+        guard let vm = viewModel else {
+            // ViewModel is nil - likely being deallocated, don't create any Tasks
+            return
+        }
+
         guard let faceAnchor = anchor as? ARFaceAnchor,
               let faceGeometry = node.geometry as? ARSCNFaceGeometry,
               let frame = sceneView.session.currentFrame else {
+            return
+        }
+
+        // Final check before any processing - also check isCleaningUp
+        guard !vm.shouldStopSession && !vm.isCleaningUp else {
+            stopAndCleanupSession()
             return
         }
 
@@ -286,17 +402,31 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
                 previousFrameCount = currentFrameCount
                 previousConfidence = confidence
 
+                // Capture session stopped flag to avoid updating deallocated viewModel
+                let sessionStopped = self.isSessionStopped
+
                 // Batch both updates in single Task to reduce allocation overhead
                 Task { [weak viewModel] in
+                    // Skip if session was stopped (prevents deadlock during cleanup)
+                    guard !sessionStopped, let vm = viewModel else { return }
+
+                    // CRITICAL: Check cleanup/stop flags BEFORE awaiting MainActor
+                    guard !vm.shouldStopSession && !vm.isCleaningUp else { return }
+
+                    // Check cancellation before MainActor.run
+                    guard !Task.isCancelled else { return }
+
                     await MainActor.run {
-                        viewModel?.onFrameCaptured(
+                        // Check cancellation and cleanup flags again after MainActor.run
+                        guard !Task.isCancelled, let vm = viewModel, !vm.shouldStopSession, !vm.isCleaningUp else { return }
+                        vm.onFrameCaptured(
                             frameCount: currentFrameCount,
                             targetCount: targetFrameCount,
                             confidence: confidence
                         )
 
                         if reachedTarget {
-                            viewModel?.onMultiFrameCaptureReachedTarget()
+                            vm.onMultiFrameCaptureReachedTarget()
                         }
                     }
                 }
@@ -331,13 +461,57 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
         let lightEstimation = LightEstimation(frame: frame)
 
         // Determine if we actually need the heavy ARFrame object
-        let isCapturing = viewModel?.captureManager.isCaptureInProgress ?? false
-        let isGuidanceActive = viewModel?.captureManager.isGuidanceActive ?? false
-        let frameRef = (isCapturing || isGuidanceActive) ? frame : nil
+        let isCapturing = vm.captureManager.isCaptureInProgress
+        let isGuidanceActive = vm.captureManager.isGuidanceActive
 
-        Task { [weak viewModel, faceAnchor, lightEstimation, frameRef] in
+        // OPTIMIZATION: Avoid implicit frame retention from ternary expression
+        // Only create frame reference when absolutely needed
+        var frameRef: ARFrame? = nil
+        if isCapturing || isGuidanceActive {
+            frameRef = frame
+        }
+
+        // Capture session stopped flag to avoid updating deallocated viewModel
+        let sessionStopped = self.isSessionStopped
+
+        // Capture current frame sequence to allow early bailout for stale Tasks
+        let frameSeq = self.frameSequenceNumber
+        self.frameSequenceNumber += 1
+
+        // MEMORY FIX: Limit concurrent frame processing to prevent ARFrame accumulation
+        // When too many Tasks are in flight, skip non-essential frame updates
+        if activeFrameProcessingCount >= Self.maxConcurrentFrameProcessing && frameRef == nil {
+            // Skip this frame - too many in flight and not capturing
+            return
+        }
+
+        // Track active processing
+        activeFrameProcessingCount += 1
+
+        Task { [weak viewModel, weak self, faceAnchor, lightEstimation, frameRef] in
+            // MEMORY FIX: Decrement counter when task completes
+            defer {
+                self?.activeFrameProcessingCount -= 1
+            }
+            // Early bailout: skip if newer frames have been queued (unless in capture mode)
+            // This releases stale frame references faster
+            if frameRef == nil, let strongSelf = self, frameSeq < strongSelf.frameSequenceNumber - 2 {
+                return  // Skip stale tracking updates, release frame ref
+            }
+            // Skip if session was stopped (prevents deadlock during cleanup)
+            guard !sessionStopped, let vm = viewModel else { return }
+
+            // CRITICAL: Check cleanup/stop flags BEFORE awaiting MainActor
+            // This prevents Tasks from piling up waiting for MainActor during dismissal
+            guard !vm.shouldStopSession && !vm.isCleaningUp else { return }
+
+            // Check cancellation before MainActor.run
+            guard !Task.isCancelled else { return }
+
             await MainActor.run {
-                viewModel?.updateGeometry(faceAnchor: faceAnchor, lightEstimation: lightEstimation, captureFrame: frameRef)
+                // Check cancellation and cleanup flags again after MainActor.run
+                guard !Task.isCancelled, !vm.shouldStopSession, !vm.isCleaningUp else { return }
+                vm.updateGeometry(faceAnchor: faceAnchor, lightEstimation: lightEstimation, captureFrame: frameRef)
             }
         }
 
@@ -376,10 +550,16 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
     }
 
     public func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
+        // CRITICAL: Bail out immediately if session is stopping/stopped
+        guard !isSessionStopped else { return }
         guard anchor is ARFaceAnchor else { return }
+        guard let vm = viewModel, !vm.shouldStopSession else { return }
 
-        Task { @MainActor in
-            viewModel?.faceTrackingLost()
+        Task { [weak viewModel] in
+            guard let vm = viewModel, !vm.shouldStopSession else { return }
+            await MainActor.run {
+                vm.faceTrackingLost()
+            }
         }
     }
 }
@@ -389,20 +569,41 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
 extension ARFaceTrackingViewController: ARSessionDelegate {
 
     public func session(_ session: ARSession, didFailWithError error: Error) {
-        Task { @MainActor in
-            viewModel?.sessionFailed(error: error)
+        // CRITICAL: Bail out immediately if session is stopping/stopped
+        guard !isSessionStopped else { return }
+        guard let vm = viewModel, !vm.shouldStopSession else { return }
+
+        Task { [weak viewModel] in
+            guard let vm = viewModel else { return }
+            await MainActor.run {
+                vm.sessionFailed(error: error)
+            }
         }
     }
 
     public func sessionWasInterrupted(_ session: ARSession) {
-        Task { @MainActor in
-            viewModel?.sessionInterrupted()
+        // CRITICAL: Bail out immediately if session is stopping/stopped
+        guard !isSessionStopped else { return }
+        guard let vm = viewModel, !vm.shouldStopSession else { return }
+
+        Task { [weak viewModel] in
+            guard let vm = viewModel else { return }
+            await MainActor.run {
+                vm.sessionInterrupted()
+            }
         }
     }
 
     public func sessionInterruptionEnded(_ session: ARSession) {
-        Task { @MainActor in
-            viewModel?.sessionInterruptionEnded()
+        // CRITICAL: Bail out immediately if session is stopping/stopped
+        guard !isSessionStopped else { return }
+        guard let vm = viewModel, !vm.shouldStopSession else { return }
+
+        Task { [weak viewModel] in
+            guard let vm = viewModel else { return }
+            await MainActor.run {
+                vm.sessionInterruptionEnded()
+            }
         }
 
         // Restart tracking

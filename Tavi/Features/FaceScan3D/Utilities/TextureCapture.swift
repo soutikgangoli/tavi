@@ -18,15 +18,25 @@ public class TextureCapture {
 
     public struct Configuration {
         /// Target texture resolution (will be scaled to fit)
-        /// Defaults to 2048×2048 (Recommended) or 4096×4096 (Best) based on High Quality Mode setting
-        /// Per POSE_REQUIREMENTS_GUIDE.md: 2K = 83-85% confidence, 4K = 90-92% confidence
+        /// Defaults to 4K (4096×4096) for devices with 6GB+ RAM, 2K (2048×2048) for older devices
+        /// User can override via Settings. Per POSE_REQUIREMENTS_GUIDE.md: 2K = 83-85% confidence, 4K = 90-92% confidence
         public var targetTextureWidth: Int = {
-            let enableHighRes = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
-            return enableHighRes ? ScanConfiguration.highResTextureWidth : ScanConfiguration.standardTextureWidth
+            // Check for explicit user override first
+            if UserDefaults.standard.object(forKey: AppDefaultsKey.enableHighResCapture) != nil {
+                let override = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
+                return override ? ScanConfiguration.highResTextureWidth : ScanConfiguration.standardTextureWidth
+            }
+            // Use device-based default (4K for 6GB+ devices)
+            return DeviceCapabilities.current.recommendedTextureResolution.width
         }()
         public var targetTextureHeight: Int = {
-            let enableHighRes = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
-            return enableHighRes ? ScanConfiguration.highResTextureHeight : ScanConfiguration.standardTextureHeight
+            // Check for explicit user override first
+            if UserDefaults.standard.object(forKey: AppDefaultsKey.enableHighResCapture) != nil {
+                let override = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableHighResCapture)
+                return override ? ScanConfiguration.highResTextureHeight : ScanConfiguration.standardTextureHeight
+            }
+            // Use device-based default (4K for 6GB+ devices)
+            return DeviceCapabilities.current.recommendedTextureResolution.height
         }()
 
         /// Quality thresholds

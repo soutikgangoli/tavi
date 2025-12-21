@@ -33,6 +33,7 @@ struct HydrationPartialResults {
 
 /// Single-pass hydration analysis with threadgroup reduction
 /// Computes specularity, texture frequency, and color variance in parallel
+/// NOTE: This kernel REQUIRES exactly 256 threads per threadgroup (16x16)
 kernel void analyzeHydration(
     texture2d<float, access::read> inputTexture [[texture(0)]],
     device HydrationPartialResults* partialResults [[buffer(0)]],
@@ -45,12 +46,18 @@ kernel void analyzeHydration(
 ) {
     // Calculate linear threadgroup index from 2D position
     uint threadgroupIndex = threadgroupPos.y * threadgroupsPerRow + threadgroupPos.x;
-    // Threadgroup shared memory (256 threads max)
+
+    // CRITICAL: Threadgroup shared memory sized for exactly 256 threads (16x16)
     threadgroup float localSpecularCount[256];
     threadgroup float localTextureEnergy[256];
     threadgroup float localLuminanceSum[256];
     threadgroup float localLuminanceSqSum[256];
     threadgroup float localValidPixels[256];
+
+    // Safety check: bail out if thread index exceeds array bounds
+    if (threadIndexInGroup >= 256) {
+        return;
+    }
 
     // Initialize local values
     float specularCount = 0.0;
@@ -118,7 +125,11 @@ kernel void analyzeHydration(
             float laplacian = 8.0 * center - (top + bottom + left + right +
                                              topLeft + topRight + bottomLeft + bottomRight);
 
-            textureEnergy = abs(laplacian);
+            // FIX: Normalize Laplacian to 0-1 range
+            // Raw Laplacian can be up to 8.0 (when center=1, all neighbors=0)
+            // Normalizing ensures consistent scale regardless of image content
+            // Typical skin texture: 0.01-0.15, high texture: 0.2-0.4
+            textureEnergy = abs(laplacian) / 8.0;
         }
     }
 
@@ -159,15 +170,21 @@ kernel void analyzeHydration(
 
 /// Calculate skin-tone adaptive specular threshold
 /// Samples center region to determine average skin brightness
+/// NOTE: This kernel REQUIRES exactly 256 threads per threadgroup (16x16)
 kernel void calculateAdaptiveThreshold(
     texture2d<float, access::read> inputTexture [[texture(0)]],
     device float* averageBrightness [[buffer(0)]],
     uint2 gid [[thread_position_in_grid]],
     uint threadIndexInGroup [[thread_index_in_threadgroup]]
 ) {
-    // Threadgroup shared memory
+    // CRITICAL: Threadgroup shared memory sized for exactly 256 threads
     threadgroup float localBrightnessSum[256];
     threadgroup float localPixelCount[256];
+
+    // Safety check: bail out if thread index exceeds array bounds
+    if (threadIndexInGroup >= 256) {
+        return;
+    }
 
     float brightnessSum = 0.0;
     float pixelCount = 0.0;
@@ -224,6 +241,7 @@ kernel void calculateAdaptiveThreshold(
 // MARK: - Regional Analysis Kernel
 
 /// Analyze hydration in specific face region
+/// NOTE: This kernel REQUIRES exactly 256 threads per threadgroup (16x16)
 kernel void analyzeRegionalHydration(
     texture2d<float, access::read> inputTexture [[texture(0)]],
     device HydrationPartialResults* partialResults [[buffer(0)]],
@@ -236,10 +254,16 @@ kernel void analyzeRegionalHydration(
 ) {
     // Calculate linear threadgroup index from 2D position
     uint threadgroupIndex = threadgroupPos.y * threadgroupsPerRow + threadgroupPos.x;
-    // Threadgroup shared memory
+
+    // CRITICAL: Threadgroup shared memory sized for exactly 256 threads (16x16)
     threadgroup float localSpecularCount[256];
     threadgroup float localTextureEnergy[256];
     threadgroup float localValidPixels[256];
+
+    // Safety check: bail out if thread index exceeds array bounds
+    if (threadIndexInGroup >= 256) {
+        return;
+    }
 
     float specularCount = 0.0;
     float textureEnergy = 0.0;
@@ -262,53 +286,62 @@ kernel void analyzeRegionalHydration(
         // FIXED: Standardized on BT.709 (sRGB)
         float luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
 
-        validPixels = 1.0;
+        // FIX: Skip black/near-black pixels (texture background)
+        float avgBrightness = (color.r + color.g + color.b) / 3.0;
+        if (avgBrightness < 0.05) {
+            validPixels = 0.0;
+            // Don't contribute to any metrics
+        } else {
+            validPixels = 1.0;
 
-        // Specularity detection
-        if (color.r > adaptiveThreshold &&
-            color.g > adaptiveThreshold &&
-            color.b > adaptiveThreshold) {
-            specularCount = 1.0;
-        }
+            // Specularity detection
+            if (color.r > adaptiveThreshold &&
+                color.g > adaptiveThreshold &&
+                color.b > adaptiveThreshold) {
+                specularCount = 1.0;
+            }
 
-        // Texture analysis (with bounds check for Laplacian)
-        if (gid.x >= regionMinX + 1 && gid.x < regionMaxX - 1 &&
-            gid.y >= regionMinY + 1 && gid.y < regionMaxY - 1) {
+            // Texture analysis (with bounds check for Laplacian)
+            if (gid.x >= regionMinX + 1 && gid.x < regionMaxX - 1 &&
+                gid.y >= regionMinY + 1 && gid.y < regionMaxY - 1) {
 
-            // Read 3x3 neighborhood and compute Laplacian
-            float center = luminance;
-            float top    = 0.299 * inputTexture.read(uint2(gid.x,     gid.y - 1)).r +
-                          0.587 * inputTexture.read(uint2(gid.x,     gid.y - 1)).g +
-                          0.114 * inputTexture.read(uint2(gid.x,     gid.y - 1)).b;
-            float bottom = 0.299 * inputTexture.read(uint2(gid.x,     gid.y + 1)).r +
-                          0.587 * inputTexture.read(uint2(gid.x,     gid.y + 1)).g +
-                          0.114 * inputTexture.read(uint2(gid.x,     gid.y + 1)).b;
-            float left   = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y    )).r +
-                          0.587 * inputTexture.read(uint2(gid.x - 1, gid.y    )).g +
-                          0.114 * inputTexture.read(uint2(gid.x - 1, gid.y    )).b;
-            float right  = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y    )).r +
-                          0.587 * inputTexture.read(uint2(gid.x + 1, gid.y    )).g +
-                          0.114 * inputTexture.read(uint2(gid.x + 1, gid.y    )).b;
+                // Read 3x3 neighborhood and compute Laplacian
+                float center = luminance;
+                float top    = 0.299 * inputTexture.read(uint2(gid.x,     gid.y - 1)).r +
+                              0.587 * inputTexture.read(uint2(gid.x,     gid.y - 1)).g +
+                              0.114 * inputTexture.read(uint2(gid.x,     gid.y - 1)).b;
+                float bottom = 0.299 * inputTexture.read(uint2(gid.x,     gid.y + 1)).r +
+                              0.587 * inputTexture.read(uint2(gid.x,     gid.y + 1)).g +
+                              0.114 * inputTexture.read(uint2(gid.x,     gid.y + 1)).b;
+                float left   = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y    )).r +
+                              0.587 * inputTexture.read(uint2(gid.x - 1, gid.y    )).g +
+                              0.114 * inputTexture.read(uint2(gid.x - 1, gid.y    )).b;
+                float right  = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y    )).r +
+                              0.587 * inputTexture.read(uint2(gid.x + 1, gid.y    )).g +
+                              0.114 * inputTexture.read(uint2(gid.x + 1, gid.y    )).b;
 
-            // Diagonal neighbors
-            float topLeft     = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).r +
-                               0.587 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).g +
-                               0.114 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).b;
-            float topRight    = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).r +
-                               0.587 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).g +
-                               0.114 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).b;
-            float bottomLeft  = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).r +
-                               0.587 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).g +
-                               0.114 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).b;
-            float bottomRight = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).r +
-                               0.587 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).g +
-                               0.114 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).b;
+                // Diagonal neighbors
+                float topLeft     = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).r +
+                                   0.587 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).g +
+                                   0.114 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).b;
+                float topRight    = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).r +
+                                   0.587 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).g +
+                                   0.114 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).b;
+                float bottomLeft  = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).r +
+                                   0.587 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).g +
+                                   0.114 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).b;
+                float bottomRight = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).r +
+                                   0.587 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).g +
+                                   0.114 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).b;
 
-            // 8-neighbor Laplacian (consistent with main analysis)
-            float laplacian = 8.0 * center - (top + bottom + left + right +
-                                             topLeft + topRight + bottomLeft + bottomRight);
-            textureEnergy = abs(laplacian);
-        }
+                // 8-neighbor Laplacian (consistent with main analysis)
+                float laplacian = 8.0 * center - (top + bottom + left + right +
+                                                 topLeft + topRight + bottomLeft + bottomRight);
+
+                // FIX: Normalize Laplacian to 0-1 range (consistent with main kernel)
+                textureEnergy = abs(laplacian) / 8.0;
+            }
+        }  // End of else block (valid non-black pixel)
     }
 
     // Store in threadgroup memory

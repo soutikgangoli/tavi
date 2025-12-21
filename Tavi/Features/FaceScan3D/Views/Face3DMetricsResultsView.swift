@@ -701,15 +701,18 @@ struct ROIMetricRow: View {
     }
 
     private func scoreColor(_ score: Float) -> Color {
+        // Score is 0-10 scale, apply same thresholds as 0-100:
+        // - Below 3 (30%): Red
+        // - 3-7 (30-70%): Yellow
+        // - 7-9 (70-89%): Green
+        // - 9-10 (90-100%): Bright green
         switch score {
-        case 8.0...10.0:
+        case 9.0...10.0:
+            return Color(red: 0.18, green: 0.82, blue: 0.35)  // Bright green
+        case 7.0..<9.0:
             return .green
-        case 6.0..<8.0:
-            return .blue
-        case 4.0..<6.0:
+        case 3.0..<7.0:
             return .yellow
-        case 2.0..<4.0:
-            return .orange
         default:
             return .red
         }

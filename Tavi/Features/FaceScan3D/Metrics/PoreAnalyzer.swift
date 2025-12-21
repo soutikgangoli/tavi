@@ -233,7 +233,11 @@ class PoreAnalyzer {
         )
 
         // Convert to visibility score (0-100)
-        let visibility = min(100, highFreqEnergy * 10)
+        // Base visibility from texture energy
+        let textureVisibility = min(100, highFreqEnergy * 10)
+        // FIX: Add penalty based on pore SIZE DISTRIBUTION (CPU path)
+        let sizePenalty = calculateSizePenalty(sizeDistribution: sizeDistribution)
+        let visibility = min(100, textureVisibility + sizePenalty)
 
         // Calculate confidence score
         let confidence = calculateConfidence(
@@ -323,7 +327,14 @@ class PoreAnalyzer {
             )
 
             // Convert to visibility score (0-100)
-            let visibility = min(100, highFreqEnergy * 10)
+            // Base visibility from texture energy
+            let textureVisibility = min(100, highFreqEnergy * 10)
+
+            // FIX: Add penalty based on pore SIZE DISTRIBUTION
+            // Previously, sizeDistribution was collected but NEVER used in scoring!
+            // This caused 99.9% scores even with 707 VeryLarge pores detected
+            let sizePenalty = calculateSizePenalty(sizeDistribution: sizeDistribution)
+            let visibility = min(100, textureVisibility + sizePenalty)
 
             // Calculate confidence
             let confidence = calculateConfidence(
@@ -397,7 +408,10 @@ class PoreAnalyzer {
         )
 
         let regionalScores = analyzeRegionalPores(image: cgImage, poreLocations: poreDetectionResult.poreLocations)
-        let visibility = min(100, highFreqEnergy * 10)
+        // FIX: Add size distribution penalty (CPU fallback path)
+        let textureVisibility = min(100, highFreqEnergy * 10)
+        let sizePenalty = calculateSizePenalty(sizeDistribution: sizeDistribution)
+        let visibility = min(100, textureVisibility + sizePenalty)
         let confidence = calculateConfidence(
             poreCount: poreDetectionResult.poreCount,
             averagePoreSize: poreDetectionResult.averagePoreSize,
@@ -425,8 +439,8 @@ class PoreAnalyzer {
         // Create output buffer
         let resultBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.size)
 
-        // Execute
-        try metalAnalyzer.executeSync(operation: "calculateSkinBrightness") { commandBuffer in
+        // Execute with cancellation support
+        try metalAnalyzer.executeCancellableSync(operation: "calculateSkinBrightness") { commandBuffer in
             guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
                 throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
             }
@@ -471,8 +485,8 @@ class PoreAnalyzer {
             format: .rgba8Unorm
         )
 
-        // Execute
-        try metalAnalyzer.executeSync(operation: "computePoreLaplacian") { commandBuffer in
+        // Execute with cancellation support
+        try metalAnalyzer.executeCancellableSync(operation: "computePoreLaplacian") { commandBuffer in
             guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
                 throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
             }
@@ -529,8 +543,8 @@ class PoreAnalyzer {
         // Initialize pore count to 0
         memset(poreCountBuffer.contents(), 0, MemoryLayout<UInt32>.size)
 
-        // Execute
-        try metalAnalyzer.executeSync(operation: "detectPoreMaxima") { commandBuffer in
+        // Execute with cancellation support
+        try metalAnalyzer.executeCancellableSync(operation: "detectPoreMaxima") { commandBuffer in
             guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
                 throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
             }
@@ -642,6 +656,30 @@ class PoreAnalyzer {
         )
     }
 
+    /// Calculate visibility penalty based on pore size distribution
+    /// Larger pores increase visibility (higher penalty = more visible = worse score)
+    private func calculateSizePenalty(sizeDistribution: PoreSizeDistribution) -> Float {
+        let total = Float(sizeDistribution.smallCount + sizeDistribution.mediumCount +
+                          sizeDistribution.largeCount + sizeDistribution.veryLargeCount)
+        guard total > 0 else { return 0 }
+
+        // Weight larger pores more heavily for visibility penalty
+        // Small pores: no penalty (normal, healthy)
+        // Medium pores: slight penalty
+        // Large pores: moderate penalty
+        // VeryLarge pores: significant penalty
+        let weightedScore = (
+            Float(sizeDistribution.smallCount) * 0.0 +
+            Float(sizeDistribution.mediumCount) * 0.5 +
+            Float(sizeDistribution.largeCount) * 2.0 +
+            Float(sizeDistribution.veryLargeCount) * 5.0
+        )
+
+        // Normalize by total pores and scale to max 50 points of penalty
+        // This ensures size distribution can add up to 50 visibility points
+        return min(50, weightedScore / max(1, total) * 10)
+    }
+
     /// Analyze regional pores using GPU
     private func analyzeRegionalPoresGPU(
         inputTexture: MTLTexture,
@@ -695,7 +733,7 @@ class PoreAnalyzer {
             memcpy(threadgroupsPerRowBuffer.contents(), &threadgroupsPerRow, MemoryLayout<UInt32>.size)
 
             // Execute
-            try metalAnalyzer.executeSync(operation: "analyzeRegionalPores") { commandBuffer in
+            try metalAnalyzer.executeCancellableSync(operation: "analyzeRegionalPores") { commandBuffer in
                 guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
                     throw GPUAnalysisError.commandBufferFailed("Failed to create encoder")
                 }

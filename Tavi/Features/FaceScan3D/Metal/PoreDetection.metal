@@ -15,11 +15,6 @@ using namespace metal;
 /// Empirically determined from testing across skin tones
 constant float PORE_LAPLACIAN_THRESHOLD = 0.1;
 
-/// Minimum skin brightness for reliable pore detection
-/// Too dark = poor lighting, too bright = overexposed
-constant float MIN_SKIN_BRIGHTNESS = 0.2;  // 51/255
-constant float MAX_SKIN_BRIGHTNESS = 0.95; // 242/255
-
 // MARK: - Structures
 
 /// Individual pore detection result
@@ -210,15 +205,21 @@ kernel void detectPoreMaxima(
 
 /// Calculate average skin brightness for adaptive thresholding
 /// Samples center region to avoid hair/edges
+/// NOTE: This kernel REQUIRES exactly 256 threads per threadgroup (16x16)
 kernel void calculateSkinBrightness(
     texture2d<float, access::read> inputTexture [[texture(0)]],
     device float* avgBrightness [[buffer(0)]],
     uint2 gid [[thread_position_in_grid]],
     uint threadIndexInGroup [[thread_index_in_threadgroup]]
 ) {
-    // Threadgroup shared memory
+    // CRITICAL: Threadgroup shared memory sized for exactly 256 threads
     threadgroup float localBrightnessSum[256];
     threadgroup float localPixelCount[256];
+
+    // Safety check: bail out if thread index exceeds array bounds
+    if (threadIndexInGroup >= 256) {
+        return;
+    }
 
     float brightnessSum = 0.0;
     float pixelCount = 0.0;
@@ -267,6 +268,7 @@ kernel void calculateSkinBrightness(
 
 /// Analyze pores in specific face region
 /// Used for regional scoring (forehead, cheeks, nose, chin)
+/// NOTE: This kernel REQUIRES exactly 256 threads per threadgroup (16x16)
 kernel void analyzeRegionalPores(
     texture2d<float, access::read> inputTexture [[texture(0)]],
     texture2d<float, access::read> laplacianMap [[texture(1)]],
@@ -280,10 +282,16 @@ kernel void analyzeRegionalPores(
 ) {
     // Calculate linear threadgroup index from 2D position
     uint threadgroupIndex = threadgroupPos.y * threadgroupsPerRow + threadgroupPos.x;
-    // Threadgroup shared memory
+
+    // CRITICAL: Threadgroup shared memory sized for exactly 256 threads (16x16)
     threadgroup float localPoreCount[256];
     threadgroup float localPoreSize[256];
     threadgroup float localValidPixels[256];
+
+    // Safety check: bail out if thread index exceeds array bounds
+    if (threadIndexInGroup >= 256) {
+        return;
+    }
 
     float poreCount = 0.0;
     float poreSize = 0.0;

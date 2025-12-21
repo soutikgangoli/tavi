@@ -57,7 +57,10 @@ public enum MetalHelpers {
         // Allocate pixel buffer
         let bytesPerPixel = 4
         let bytesPerRow = bytesPerPixel * width
-        let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue
+        // FIX: Explicitly specify byte order to match Metal's .rgba8Unorm format
+        // Without byteOrder32Big, iOS defaults to little-endian (BGRA) which causes
+        // GlowAnalyzer to read swapped channels, producing incorrect LAB L* values
+        let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
         let pixelData = UnsafeMutableRawPointer.allocate(
             byteCount: bytesPerRow * height,
             alignment: MemoryLayout<UInt8>.alignment
@@ -140,7 +143,8 @@ public enum MetalHelpers {
             return nil
         }
 
-        let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue
+        // FIX: Match byte order with texture format (.rgba8Unorm = RGBA big-endian)
+        let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
 
         guard let dataProvider = CGDataProvider(
             dataInfo: nil,
@@ -182,7 +186,7 @@ public enum MetalHelpers {
         return """
         MTLTexture:
           Size: \(texture.width)×\(texture.height)
-          Format: \(texture.pixelFormat.description)
+          Format: \(texture.pixelFormat.formatName)
           Usage: \(texture.usage)
           Memory: \(String(format: "%.2f", sizeMB)) MB
         """
@@ -192,7 +196,8 @@ public enum MetalHelpers {
 // MARK: - MTLPixelFormat Extension
 
 extension MTLPixelFormat {
-    var description: String {
+    /// Human-readable format name (avoids conflict with built-in description)
+    var formatName: String {
         switch self {
         case .rgba8Unorm: return "RGBA8Unorm"
         case .bgra8Unorm: return "BGRA8Unorm"

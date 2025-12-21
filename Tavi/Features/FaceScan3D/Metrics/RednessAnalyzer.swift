@@ -709,8 +709,8 @@ public class RednessAnalyzer {
         // Create output buffer (3 floats: R, G, B)
         let resultBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<Float>.size * 3)
 
-        // Execute
-        try metalAnalyzer.executeSync(operation: "calculateBaselineSkinTone") { commandBuffer in
+        // Execute with cancellation support
+        try metalAnalyzer.executeCancellableSync(operation: "calculateBaselineSkinTone") { commandBuffer in
             guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
                 throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
             }
@@ -766,8 +766,8 @@ public class RednessAnalyzer {
         let threadgroupsPerRowBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<UInt32>.size)
         memcpy(threadgroupsPerRowBuffer.contents(), &threadgroupsPerRow, MemoryLayout<UInt32>.size)
 
-        // Execute kernel
-        try metalAnalyzer.executeSync(operation: "analyzeRedness") { commandBuffer in
+        // Execute kernel with cancellation support
+        try metalAnalyzer.executeCancellableSync(operation: "analyzeRedness") { commandBuffer in
             guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
                 throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
             }
@@ -843,8 +843,8 @@ public class RednessAnalyzer {
             let threadgroupsPerRowBuffer = try metalAnalyzer.createBuffer(length: MemoryLayout<UInt32>.size)
             memcpy(threadgroupsPerRowBuffer.contents(), &threadgroupsPerRow, MemoryLayout<UInt32>.size)
 
-            // Execute kernel
-            try metalAnalyzer.executeSync(operation: "analyzeRegionalRedness") { commandBuffer in
+            // Execute kernel with cancellation support
+            try metalAnalyzer.executeCancellableSync(operation: "analyzeRegionalRedness") { commandBuffer in
                 guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
                     throw GPUAnalysisError.commandBufferFailed("Failed to create compute encoder")
                 }

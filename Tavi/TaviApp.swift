@@ -58,6 +58,7 @@ struct TaviApp: App {
                 }
             }
             .animation(Designs.Animation.easeOut, value: showLoadingScreen)
+            .preferredColorScheme(.light)  // Force light mode across the app
         }
     }
 }

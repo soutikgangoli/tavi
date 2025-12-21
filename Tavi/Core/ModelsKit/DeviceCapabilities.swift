@@ -406,6 +406,37 @@ public class DeviceCapabilities {
         }
     }
 
+    // MARK: - Texture Resolution Capabilities
+
+    /// Whether device should use 4K textures by default
+    /// Based on: 6GB+ RAM AND A14+ chip
+    public var supports4KTextureDefault: Bool {
+        // Check RAM first (most important factor)
+        let ramGB = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824.0
+        guard ramGB >= 5.5 else { return false }  // 6GB threshold with margin
+
+        // Check chip is A14 (iPhone 12) or newer with 6GB+ RAM
+        switch iPhoneModel {
+        // 6GB+ RAM models - 4K capable
+        case .iPhone17, .iPhone17Air, .iPhone17Pro, .iPhone17ProMax,
+             .iPhone16, .iPhone16Plus, .iPhone16Pro, .iPhone16ProMax,
+             .iPhone15, .iPhone15Plus, .iPhone15Pro, .iPhone15ProMax,
+             .iPhone14, .iPhone14Plus, .iPhone14Pro, .iPhone14ProMax,
+             .iPhone13Pro, .iPhone13ProMax,
+             .iPhone12Pro, .iPhone12ProMax,
+             .simulator:
+            return true
+        // 4GB models or older chips - 2K fallback
+        default:
+            return false
+        }
+    }
+
+    /// Recommended texture resolution for this device
+    public var recommendedTextureResolution: TextureResolution {
+        supports4KTextureDefault ? .highRes4K : .standard2K
+    }
+
     // MARK: - Performance Recommendations
 
     /// Recommended frame rate for capture
