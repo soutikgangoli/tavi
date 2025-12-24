@@ -216,13 +216,13 @@ public class MetricsCalculator {
         return (textureQuality * 0.6) + (poreVisibility * 0.4)
     }
 
-    private func performRegionalAnalysis(from poses: [GuidanceStep: CapturedPoseData]) -> RegionalAnalysis {
+    private func performRegionalAnalysis(from poses: [GuidanceStep: CapturedPoseData]) -> FacialRegionScores {
         guard let straightPose = poses[.lookStraight] else {
-            return RegionalAnalysis.empty
+            return FacialRegionScores.empty
         }
 
         // Divide face into regions and analyze each
-        return RegionalAnalysis(
+        return FacialRegionScores(
             foreheadScore: analyzeRegion(.forehead, from: straightPose),
             cheeksScore: analyzeRegion(.cheeks, from: straightPose),
             eyeAreaScore: analyzeRegion(.eyeArea, from: straightPose),
@@ -232,7 +232,7 @@ public class MetricsCalculator {
         )
     }
 
-    private func analyzeRegion(_ region: FaceRegion, from pose: CapturedPoseData) -> Double {
+    private func analyzeRegion(_ region: FacialRegionType, from pose: CapturedPoseData) -> Double {
         // Analyze specific facial region
         // This is a simplified version - would need proper region segmentation
         return analyzeTextureQuality(from: pose.geometry)
@@ -258,7 +258,7 @@ public struct FaceMetrics {
     public let volumeMetrics: VolumeMetrics
     public let symmetryScore: Double
     public let surfaceQualityScore: Double
-    public let regionalAnalysis: RegionalAnalysis
+    public let regionalAnalysis: FacialRegionScores
 }
 
 public struct VolumeMetrics {
@@ -268,7 +268,7 @@ public struct VolumeMetrics {
     public let overallFullness: Double
 }
 
-public struct RegionalAnalysis {
+public struct FacialRegionScores {
     public let foreheadScore: Double
     public let cheeksScore: Double
     public let eyeAreaScore: Double
@@ -276,7 +276,7 @@ public struct RegionalAnalysis {
     public let mouthScore: Double
     public let chinScore: Double
 
-    public static let empty = RegionalAnalysis(
+    public static let empty = FacialRegionScores(
         foreheadScore: 50.0,
         cheeksScore: 50.0,
         eyeAreaScore: 50.0,
@@ -286,7 +286,7 @@ public struct RegionalAnalysis {
     )
 }
 
-public enum FaceRegion {
+public enum FacialRegionType {
     case forehead
     case cheeks
     case eyeArea

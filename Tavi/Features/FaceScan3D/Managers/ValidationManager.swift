@@ -55,11 +55,8 @@ public class ValidationManager: ObservableObject {
         let intensity = lightEstimate.ambientIntensity
         let colorTemp = lightEstimate.ambientColorTemperature
 
-        // Update light estimation
-        self.lightEstimation = LightEstimation(
-            ambientIntensity: intensity,
-            colorTemperature: colorTemp
-        )
+        // Update light estimation using FaceMeshGeometry's LightEstimation
+        self.lightEstimation = LightEstimation(frame: frame)
 
         // Check lighting strictness
         let isValid = checkLightingStrictness(intensity: intensity, colorTemp: colorTemp)
@@ -215,10 +212,7 @@ public class ValidationManager: ObservableObject {
 
 // MARK: - Supporting Types
 
-public struct LightEstimation {
-    public let ambientIntensity: CGFloat
-    public let colorTemperature: CGFloat
-}
+// Note: LightEstimation is defined in FaceMeshGeometry.swift
 
 public struct CalibrationState {
     public var isCalibrated: Bool = false

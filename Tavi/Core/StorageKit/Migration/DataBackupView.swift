@@ -201,7 +201,7 @@ public struct DataBackupView: View {
         }
         .sheet(isPresented: $showingShareSheet) {
             if let url = shareURL {
-                ShareSheet(items: [url])
+                DataBackupShareSheet(items: [url])
             }
         }
     }
@@ -351,7 +351,7 @@ private struct CreateBackupSheet: View {
 
 // MARK: - ShareSheet Helper
 
-struct ShareSheet: UIViewControllerRepresentable {
+private struct DataBackupShareSheet: UIViewControllerRepresentable {
     let items: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
