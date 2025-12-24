@@ -769,8 +769,8 @@ class HydrationEstimator {
                 let g = Float(ptr[offset + 1])
                 let b = Float(ptr[offset + 2])
 
-                // FIXED: Standardized on BT.709 (sRGB) for consistency
-                let intensity = 0.2126 * r + 0.7152 * g + 0.0722 * b
+                // FIXED: Match GPU luminance calculation (BT.709 on normalized 0..1 values)
+                let intensity = Luminance.bt709LuminanceSRGB255(r: r, g: g, b: b)
                 intensities.append(intensity)
             }
         }
@@ -943,8 +943,8 @@ class HydrationEstimator {
                 let g = Float(ptr[offset + 1])
                 let b = Float(ptr[offset + 2])
 
-                // FIXED: Standardized on BT.709 (sRGB) for consistency
-                let intensity = 0.2126 * r + 0.7152 * g + 0.0722 * b
+                // FIXED: Match GPU luminance calculation (BT.709 on normalized 0..1 values)
+                let intensity = Luminance.bt709LuminanceSRGB255(r: r, g: g, b: b)
                 intensities.append(intensity)
             }
         }

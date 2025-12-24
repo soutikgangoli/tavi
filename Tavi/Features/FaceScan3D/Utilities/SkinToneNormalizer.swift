@@ -194,15 +194,14 @@ public class SkinToneNormalizer {
 
     /// Convert RGB to LAB color space
     private func rgbToLAB(r: Float, g: Float, b: Float) -> (l: Float, a: Float, b: Float) {
-        // First convert RGB to XYZ
-        let rLinear = r <= 0.04045 ? r / 12.92 : pow((r + 0.055) / 1.055, 2.4)
-        let gLinear = g <= 0.04045 ? g / 12.92 : pow((g + 0.055) / 1.055, 2.4)
-        let bLinear = b <= 0.04045 ? b / 12.92 : pow((b + 0.055) / 1.055, 2.4)
+        // First convert RGB to XYZ using exact D65 matrix to match GPU
+        let rgbSRGB = SIMD3<Float>(r, g, b)
+        let rgbLinear = Luminance.srgbToLinear(rgbSRGB)
+        let xyz = Luminance.linearRGBToXYZ(rgbLinear: rgbLinear)
 
-        // Convert to XYZ (D65 illuminant)
-        var x = rLinear * 0.4124 + gLinear * 0.3576 + bLinear * 0.1805
-        var y = rLinear * 0.2126 + gLinear * 0.7152 + bLinear * 0.0722
-        var z = rLinear * 0.0193 + gLinear * 0.1192 + bLinear * 0.9505
+        var x = xyz.x
+        var y = xyz.y
+        var z = xyz.z
 
         // Normalize for D65 white point
         x = x / 0.95047

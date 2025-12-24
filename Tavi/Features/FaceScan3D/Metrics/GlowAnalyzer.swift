@@ -439,8 +439,8 @@ public class GlowAnalyzer {
                 let bLinear = srgbToLinear(b)
 
                 // Step 2: Convert linear RGB to XYZ Y component (luminance)
-                // Using sRGB to XYZ matrix coefficients for Y row
-                let y_xyz = 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear
+                // Using exact D65 matrix coefficients to match GPU (GlowAnalysis.metal:49)
+                let y_xyz = Luminance.yLinearD65(rgbLinear: SIMD3<Float>(rLinear, gLinear, bLinear))
 
                 // Step 3: Convert Y to L* using CIE standard formula
                 // L* = 116 * f(Y/Yn) - 16, where Yn = 1.0 (D65 white point)
