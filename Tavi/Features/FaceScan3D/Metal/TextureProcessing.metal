@@ -9,6 +9,9 @@
 #include <metal_stdlib>
 using namespace metal;
 
+// Import shared luminance helpers
+#include "AnalyzerCommon.metal"
+
 // MARK: - Texture Blending Shader
 
 /// Blend multiple texture samples with weighted accumulation
@@ -99,8 +102,7 @@ kernel void rgbaToLuminance(
     // Read RGB pixel
     float4 color = inputTexture.read(gid);
 
-    // FIXED: Standardized on BT.709 (sRGB) for consistency across all analyzers
-    float luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+    float luminance = perceptualLuminance(color.rgb);
 
     // Write grayscale (Y, Y, Y, A)
     outputTexture.write(float4(luminance, luminance, luminance, color.a), gid);
@@ -153,8 +155,7 @@ kernel void gaussianBlurAndLuminance(
     // Normalize
     accumulatedColor /= accumulatedWeight;
 
-    // FIXED: Standardized on BT.709 (sRGB) for consistency
-    float luminance = 0.2126 * accumulatedColor.r + 0.7152 * accumulatedColor.g + 0.0722 * accumulatedColor.b;
+    float luminance = perceptualLuminance(accumulatedColor.rgb);
 
     // Write luminance output
     outputTexture.write(float4(luminance, luminance, luminance, accumulatedColor.a), gid);

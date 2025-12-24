@@ -48,8 +48,9 @@ public class SpecularAnalyzer {
 
         // Step 1: Convert to luminance (perceived brightness)
         let luminanceValues = sample.pixels.map { pixel in
-            // Standard luminance: Y = 0.2126R + 0.7152G + 0.0722B
-            return 0.2126 * pixel.x + 0.7152 * pixel.y + 0.0722 * pixel.z
+            // Use Luminance.swift single source of truth (BT.709)
+            // Ensures consistency with other analyzers and CPU-GPU parity
+            return Luminance.bt709LuminanceSRGB01(rgb01: pixel)
         }
 
         // Step 2: Calculate baseline skin reflectivity (median or mean of non-specular region)
@@ -127,7 +128,7 @@ public class SpecularAnalyzer {
         }
 
         let luminanceValues = sample.pixels.map { pixel in
-            0.2126 * pixel.x + 0.7152 * pixel.y + 0.0722 * pixel.z
+            Luminance.bt709LuminanceSRGB01(rgb01: pixel)
         }
 
         let threshold = computeAdaptiveThreshold(luminanceValues)
@@ -143,7 +144,7 @@ public class SpecularAnalyzer {
         }
 
         let luminanceValues = sample.pixels.map { pixel in
-            0.2126 * pixel.x + 0.7152 * pixel.y + 0.0722 * pixel.z
+            Luminance.bt709LuminanceSRGB01(rgb01: pixel)
         }
 
         let threshold = computeAdaptiveThreshold(luminanceValues)
@@ -218,7 +219,7 @@ public class SpecularAnalyzer {
         var validPixelCount = 0
 
         for pixel in sample.pixels {
-            let luminance = 0.2126 * pixel.x + 0.7152 * pixel.y + 0.0722 * pixel.z
+            let luminance = Luminance.bt709LuminanceSRGB01(rgb01: pixel)
             guard luminance >= 0.1 else { continue }  // Skip very dark pixels
 
             let maxChannel = max(pixel.x, pixel.y, pixel.z)

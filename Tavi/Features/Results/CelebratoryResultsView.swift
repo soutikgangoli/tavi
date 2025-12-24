@@ -122,7 +122,7 @@ public struct CelebratoryResultsView: View {
 
                         Text("Ollvy provides skin insights for general awareness only. This is not medical advice, diagnosis, or treatment. For medical concerns, consult a qualified dermatologist.")
                             .font(.caption2)
-                            .foregroundColor(.tertiary)
+                            .foregroundStyle(.tertiary)
                             .multilineTextAlignment(.center)
                     }
                     .padding()

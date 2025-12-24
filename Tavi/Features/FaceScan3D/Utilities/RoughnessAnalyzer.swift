@@ -139,8 +139,9 @@ public class RoughnessAnalyzer {
         var luminance = [Float](repeating: 0, count: pixels.count)
 
         for (i, pixel) in pixels.enumerated() {
-            // FIXED: Standardized on BT.709 (sRGB) for consistency across all analyzers
-            luminance[i] = 0.2126 * pixel.x + 0.7152 * pixel.y + 0.0722 * pixel.z
+            // Use Luminance.swift single source of truth (BT.709 sRGB, 0-1 range)
+            // Avoids hardcoded formula duplication and ensures CPU-GPU parity
+            luminance[i] = Luminance.bt709LuminanceSRGB01(rgb01: pixel)
         }
 
         return luminance

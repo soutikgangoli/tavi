@@ -149,6 +149,7 @@ public enum ScoreGrade: String, Codable {
 // MARK: - ROI Scores
 
 /// Individual scores for a region of interest
+/// Note: Composite excludes moistureScore for consistency with overall score (hydration is proxy-based, 50-70% confidence)
 public struct ROIScores: Codable {
     public let sharpnessScore: Double
     public let textureScore: Double
@@ -173,7 +174,9 @@ public struct ROIScores: Codable {
         self.moistureScore = moistureScore
 
         // Calculate composite score as average if not provided
-        let calculatedComposite = compositeScore ?? (sharpnessScore + textureScore + pigmentationScore + moistureScore) / 4.0
+        // FIXED: Exclude moistureScore (hydration) for consistency with overall score
+        // Hydration is proxy-based (50-70% confidence) and shouldn't inflate composite
+        let calculatedComposite = compositeScore ?? (sharpnessScore + textureScore + pigmentationScore) / 3.0
         self.compositeScore = calculatedComposite
 
         // Calculate grade if not provided

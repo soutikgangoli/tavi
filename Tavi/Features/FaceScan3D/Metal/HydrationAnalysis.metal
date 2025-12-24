@@ -9,6 +9,9 @@
 #include <metal_stdlib>
 using namespace metal;
 
+// Import shared luminance helpers
+#include "AnalyzerCommon.metal"
+
 // MARK: - Constants
 
 /// Adaptive specular threshold multiplier
@@ -74,8 +77,7 @@ kernel void analyzeHydration(
         // Read pixel
         float4 color = inputTexture.read(gid);
 
-        // FIXED: Standardized on BT.709 (sRGB) for consistency across all analyzers
-        float luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+        float luminance = perceptualLuminance(color.rgb);
 
         validPixels = 1.0;
         luminanceSum = luminance;
@@ -92,34 +94,16 @@ kernel void analyzeHydration(
         // Method 2: Texture frequency analysis (8-neighbor Laplacian)
         // Only process interior pixels (need 1-pixel border)
         if (gid.x >= 1 && gid.x < width - 1 && gid.y >= 1 && gid.y < height - 1) {
-            // Read 3x3 neighborhood
+            // FIXED: Use consistent BT.709 luminance for all Laplacian samples
             float center = luminance;
-            float top    = 0.299 * inputTexture.read(uint2(gid.x,     gid.y - 1)).r +
-                          0.587 * inputTexture.read(uint2(gid.x,     gid.y - 1)).g +
-                          0.114 * inputTexture.read(uint2(gid.x,     gid.y - 1)).b;
-            float bottom = 0.299 * inputTexture.read(uint2(gid.x,     gid.y + 1)).r +
-                          0.587 * inputTexture.read(uint2(gid.x,     gid.y + 1)).g +
-                          0.114 * inputTexture.read(uint2(gid.x,     gid.y + 1)).b;
-            float left   = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y    )).r +
-                          0.587 * inputTexture.read(uint2(gid.x - 1, gid.y    )).g +
-                          0.114 * inputTexture.read(uint2(gid.x - 1, gid.y    )).b;
-            float right  = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y    )).r +
-                          0.587 * inputTexture.read(uint2(gid.x + 1, gid.y    )).g +
-                          0.114 * inputTexture.read(uint2(gid.x + 1, gid.y    )).b;
-
-            // Diagonal neighbors
-            float topLeft     = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).r +
-                               0.587 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).g +
-                               0.114 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).b;
-            float topRight    = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).r +
-                               0.587 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).g +
-                               0.114 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).b;
-            float bottomLeft  = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).r +
-                               0.587 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).g +
-                               0.114 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).b;
-            float bottomRight = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).r +
-                               0.587 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).g +
-                               0.114 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).b;
+            float top         = perceptualLuminance(inputTexture.read(uint2(gid.x,     gid.y - 1)).rgb);
+            float bottom      = perceptualLuminance(inputTexture.read(uint2(gid.x,     gid.y + 1)).rgb);
+            float left        = perceptualLuminance(inputTexture.read(uint2(gid.x - 1, gid.y    )).rgb);
+            float right       = perceptualLuminance(inputTexture.read(uint2(gid.x + 1, gid.y    )).rgb);
+            float topLeft     = perceptualLuminance(inputTexture.read(uint2(gid.x - 1, gid.y - 1)).rgb);
+            float topRight    = perceptualLuminance(inputTexture.read(uint2(gid.x + 1, gid.y - 1)).rgb);
+            float bottomLeft  = perceptualLuminance(inputTexture.read(uint2(gid.x - 1, gid.y + 1)).rgb);
+            float bottomRight = perceptualLuminance(inputTexture.read(uint2(gid.x + 1, gid.y + 1)).rgb);
 
             // 8-neighbor Laplacian
             float laplacian = 8.0 * center - (top + bottom + left + right +
@@ -283,8 +267,7 @@ kernel void analyzeRegionalHydration(
         gid.y >= regionMinY && gid.y < regionMaxY) {
 
         float4 color = inputTexture.read(gid);
-        // FIXED: Standardized on BT.709 (sRGB)
-        float luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+        float luminance = perceptualLuminance(color.rgb);
 
         // FIX: Skip black/near-black pixels (texture background)
         float avgBrightness = (color.r + color.g + color.b) / 3.0;
@@ -305,34 +288,16 @@ kernel void analyzeRegionalHydration(
             if (gid.x >= regionMinX + 1 && gid.x < regionMaxX - 1 &&
                 gid.y >= regionMinY + 1 && gid.y < regionMaxY - 1) {
 
-                // Read 3x3 neighborhood and compute Laplacian
+                // FIXED: Use consistent BT.709 luminance for all Laplacian samples
                 float center = luminance;
-                float top    = 0.299 * inputTexture.read(uint2(gid.x,     gid.y - 1)).r +
-                              0.587 * inputTexture.read(uint2(gid.x,     gid.y - 1)).g +
-                              0.114 * inputTexture.read(uint2(gid.x,     gid.y - 1)).b;
-                float bottom = 0.299 * inputTexture.read(uint2(gid.x,     gid.y + 1)).r +
-                              0.587 * inputTexture.read(uint2(gid.x,     gid.y + 1)).g +
-                              0.114 * inputTexture.read(uint2(gid.x,     gid.y + 1)).b;
-                float left   = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y    )).r +
-                              0.587 * inputTexture.read(uint2(gid.x - 1, gid.y    )).g +
-                              0.114 * inputTexture.read(uint2(gid.x - 1, gid.y    )).b;
-                float right  = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y    )).r +
-                              0.587 * inputTexture.read(uint2(gid.x + 1, gid.y    )).g +
-                              0.114 * inputTexture.read(uint2(gid.x + 1, gid.y    )).b;
-
-                // Diagonal neighbors
-                float topLeft     = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).r +
-                                   0.587 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).g +
-                                   0.114 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).b;
-                float topRight    = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).r +
-                                   0.587 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).g +
-                                   0.114 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).b;
-                float bottomLeft  = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).r +
-                                   0.587 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).g +
-                                   0.114 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).b;
-                float bottomRight = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).r +
-                                   0.587 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).g +
-                                   0.114 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).b;
+                float top         = perceptualLuminance(inputTexture.read(uint2(gid.x,     gid.y - 1)).rgb);
+                float bottom      = perceptualLuminance(inputTexture.read(uint2(gid.x,     gid.y + 1)).rgb);
+                float left        = perceptualLuminance(inputTexture.read(uint2(gid.x - 1, gid.y    )).rgb);
+                float right       = perceptualLuminance(inputTexture.read(uint2(gid.x + 1, gid.y    )).rgb);
+                float topLeft     = perceptualLuminance(inputTexture.read(uint2(gid.x - 1, gid.y - 1)).rgb);
+                float topRight    = perceptualLuminance(inputTexture.read(uint2(gid.x + 1, gid.y - 1)).rgb);
+                float bottomLeft  = perceptualLuminance(inputTexture.read(uint2(gid.x - 1, gid.y + 1)).rgb);
+                float bottomRight = perceptualLuminance(inputTexture.read(uint2(gid.x + 1, gid.y + 1)).rgb);
 
                 // 8-neighbor Laplacian (consistent with main analysis)
                 float laplacian = 8.0 * center - (top + bottom + left + right +

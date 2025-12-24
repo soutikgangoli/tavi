@@ -14,6 +14,9 @@
 #include <metal_stdlib>
 using namespace metal;
 
+// Import shared luminance helpers
+#include "AnalyzerCommon.metal"
+
 // MARK: - Constants
 
 /// Minimum darkness difference to consider as potential blemish
@@ -48,9 +51,7 @@ kernel void detectDarknessVariations(
     // Read center pixel
     float4 centerColor = inputTexture.read(gid);
 
-    // Perceptual luminance (ITU-R BT.709 standard)
-    // Matches human perception better than simple averaging
-    float centerLum = 0.2126 * centerColor.r + 0.7152 * centerColor.g + 0.0722 * centerColor.b;
+    float centerLum = perceptualLuminance(centerColor.rgb);
 
     // Border handling: cannot compute darkness for edge pixels
     // Need sampleRadius pixels on all sides
@@ -80,7 +81,7 @@ kernel void detectDarknessVariations(
             if (distSq <= radiusSq) {
                 uint2 samplePos = uint2(int(gid.x) + dx, int(gid.y) + dy);
                 float4 sampleColor = inputTexture.read(samplePos);
-                float sampleLum = 0.2126 * sampleColor.r + 0.7152 * sampleColor.g + 0.0722 * sampleColor.b;
+                float sampleLum = perceptualLuminance(sampleColor.rgb);
 
                 neighborhoodSum += sampleLum;
                 neighborCount++;

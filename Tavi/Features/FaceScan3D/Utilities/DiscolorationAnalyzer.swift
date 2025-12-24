@@ -77,25 +77,10 @@ public class DiscolorationAnalyzer {
         var combinedVariance = lVariance * configuration.lightnessWeight +
                                aVariance * configuration.aChannelWeight
 
-        // LIGHTING QUALITY CORRECTION:
-        // Poor lighting causes cross-region variance due to:
-        // 1. Directional shadows (one side darker than the other)
-        // 2. Uneven illumination (center brighter than edges)
-        // 3. Color temperature gradients
-        // These create false discoloration that isn't real skin variation
-        if let quality = lightingQuality, quality < 0.7 {
-            // Same correction formula as PigmentationAnalyzer:
-            // - At quality = 0.7: correction = 1.0 (no adjustment)
-            // - At quality = 0.5: correction = 0.94 (reduce variance by 6%)
-            // - At quality = 0.3: correction = 0.88 (reduce variance by 12%)
-            // - At quality = 0.0: correction = 0.79 (reduce variance by 21%)
-            let qualityDeficit = 0.7 - quality
-            let correctionFactor = 1.0 - (qualityDeficit * 0.3)
-
-            combinedVariance *= correctionFactor
-
-            AppLogger.metrics.debug("🔦 Discoloration lighting correction: quality=\(String(format: "%.2f", quality)), correction=\(String(format: "%.3f", correctionFactor))")
-        }
+        // REMOVED: Variance correction to fix double-compensation bug
+        // Poor lighting is now handled ONLY via threshold expansion in Scoring3D
+        // See PigmentationAnalyzer.swift for full explanation
+        // This prevents score inflation for poor-quality scans
 
         // Normalize to 0-1 range
         let discolorationIndex = min(

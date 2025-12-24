@@ -9,6 +9,9 @@
 #include <metal_stdlib>
 using namespace metal;
 
+// Import shared luminance helpers
+#include "AnalyzerCommon.metal"
+
 // MARK: - Constants
 
 /// Laplacian threshold for significant pore response
@@ -55,43 +58,17 @@ kernel void computePoreLaplacian(
         return;
     }
 
-    // Read 3x3 neighborhood (convert to grayscale using legacy luminance)
-    float center = 0.299 * inputTexture.read(uint2(gid.x,     gid.y    )).r +
-                  0.587 * inputTexture.read(uint2(gid.x,     gid.y    )).g +
-                  0.114 * inputTexture.read(uint2(gid.x,     gid.y    )).b;
-
-    float top    = 0.299 * inputTexture.read(uint2(gid.x,     gid.y - 1)).r +
-                  0.587 * inputTexture.read(uint2(gid.x,     gid.y - 1)).g +
-                  0.114 * inputTexture.read(uint2(gid.x,     gid.y - 1)).b;
-
-    float bottom = 0.299 * inputTexture.read(uint2(gid.x,     gid.y + 1)).r +
-                  0.587 * inputTexture.read(uint2(gid.x,     gid.y + 1)).g +
-                  0.114 * inputTexture.read(uint2(gid.x,     gid.y + 1)).b;
-
-    float left   = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y    )).r +
-                  0.587 * inputTexture.read(uint2(gid.x - 1, gid.y    )).g +
-                  0.114 * inputTexture.read(uint2(gid.x - 1, gid.y    )).b;
-
-    float right  = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y    )).r +
-                  0.587 * inputTexture.read(uint2(gid.x + 1, gid.y    )).g +
-                  0.114 * inputTexture.read(uint2(gid.x + 1, gid.y    )).b;
-
-    // Diagonal neighbors for 8-neighbor Laplacian
-    float topLeft     = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).r +
-                       0.587 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).g +
-                       0.114 * inputTexture.read(uint2(gid.x - 1, gid.y - 1)).b;
-
-    float topRight    = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).r +
-                       0.587 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).g +
-                       0.114 * inputTexture.read(uint2(gid.x + 1, gid.y - 1)).b;
-
-    float bottomLeft  = 0.299 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).r +
-                       0.587 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).g +
-                       0.114 * inputTexture.read(uint2(gid.x - 1, gid.y + 1)).b;
-
-    float bottomRight = 0.299 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).r +
-                       0.587 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).g +
-                       0.114 * inputTexture.read(uint2(gid.x + 1, gid.y + 1)).b;
+    // Read 3x3 neighborhood using shared legacy luminance helper
+    // NOTE: Keeping legacy formula (threshold PORE_LAPLACIAN_THRESHOLD calibrated for it)
+    float center      = legacyLuminance(inputTexture.read(uint2(gid.x,     gid.y    )).rgb);
+    float top         = legacyLuminance(inputTexture.read(uint2(gid.x,     gid.y - 1)).rgb);
+    float bottom      = legacyLuminance(inputTexture.read(uint2(gid.x,     gid.y + 1)).rgb);
+    float left        = legacyLuminance(inputTexture.read(uint2(gid.x - 1, gid.y    )).rgb);
+    float right       = legacyLuminance(inputTexture.read(uint2(gid.x + 1, gid.y    )).rgb);
+    float topLeft     = legacyLuminance(inputTexture.read(uint2(gid.x - 1, gid.y - 1)).rgb);
+    float topRight    = legacyLuminance(inputTexture.read(uint2(gid.x + 1, gid.y - 1)).rgb);
+    float bottomLeft  = legacyLuminance(inputTexture.read(uint2(gid.x - 1, gid.y + 1)).rgb);
+    float bottomRight = legacyLuminance(inputTexture.read(uint2(gid.x + 1, gid.y + 1)).rgb);
 
     // 8-neighbor Laplacian: 8*center - sum(all neighbors)
     // This emphasizes high-frequency texture components (pores appear as dark spots = local minima in brightness)
