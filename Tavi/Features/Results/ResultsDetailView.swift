@@ -155,6 +155,24 @@ struct ResultsDetailView: View {
                 // Actions
                 actionsSection
 
+                // Medical Disclaimer
+                VStack(spacing: 8) {
+                    Text("Important Information")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+
+                    Text("Ollvy provides skin insights for general awareness only. This is not medical advice, diagnosis, or treatment. For medical concerns, consult a qualified dermatologist.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+                .padding(.horizontal)
+                .padding(.bottom, 20)
+
                 Spacer().frame(height: Designs.Spacing.xxl)
             }
             .padding(.horizontal, Designs.Spacing.lg)
@@ -1629,7 +1647,7 @@ struct ResultsDetailView: View {
         // 2. Add PDF report if we have clinical metrics
         if let pdfData = await generatePDFReport() {
             let tempURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("Tavi_Analysis_\(session.date.formatted(date: .abbreviated, time: .omitted)).pdf")
+                .appendingPathComponent("Ollvy_Analysis_\(session.date.formatted(date: .abbreviated, time: .omitted)).pdf")
             try? pdfData.write(to: tempURL)
             itemsToShare.append(tempURL)
         }
@@ -1672,7 +1690,7 @@ struct ResultsDetailView: View {
 
         let topMetrics = metrics.sorted { $0.value > $1.value }.prefix(3)
 
-        var text = "Tavi Skin Analysis Results\n"
+        var text = "Ollvy Skin Analysis Results\n"
         text += "Date: \(session.formattedDate)\n\n"
         text += "Overall Score: \(Int(session.overallScore))/100 (\(session.grade.rawValue))\n\n"
         text += "Top Metrics:\n"
@@ -1682,7 +1700,7 @@ struct ResultsDetailView: View {
             text += "\(prefix) \(metric.name): \(Int(metric.value))%\n"
         }
 
-        text += "\nAnalyzed with Tavi - 3D Skin Analysis"
+        text += "\nAnalyzed with Ollvy - 3D Skin Analysis"
 
         return text
     }
@@ -2114,5 +2132,6 @@ extension HeatmapType {
         }
     }
 }
+
 
 

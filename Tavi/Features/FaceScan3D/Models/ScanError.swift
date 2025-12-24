@@ -181,7 +181,7 @@ enum ScanError: Error, LocalizedError, Identifiable {
         case .arSessionFailed:
             return "Restart the app and ensure your device supports Face ID."
         case .cameraUnavailable:
-            return "Go to Settings > Tavi > Camera and enable camera access."
+            return "Go to Settings > Ollvy > Camera and enable camera access."
         case .trueDepthUnsupported:
             return "This app requires an iPhone with Face ID (iPhone X or newer, excluding SE models)."
         case .faceNotDetected:

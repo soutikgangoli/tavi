@@ -227,12 +227,12 @@ public struct ARKitErrorRecoveryView: View {
         errorInfo: ARKitErrorInfo(
             type: .permissionDenied,
             title: "Camera Access Required",
-            message: "Tavi needs camera access to scan your face.",
+            message: "Ollvy needs camera access to scan your face.",
             recoverySteps: [
                 "Open Settings app",
-                "Go to Tavi > Camera",
+                "Go to Ollvy > Camera",
                 "Enable Camera access",
-                "Return to Tavi and try again"
+                "Return to Ollvy and try again"
             ],
             icon: "camera.fill",
             shouldRetry: false

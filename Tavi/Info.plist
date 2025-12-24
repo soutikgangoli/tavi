@@ -7,7 +7,9 @@
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.soutik.tavi.app</string>
+	<string>com.soutik.ollvy</string>
+	<key>CFBundleDisplayName</key>
+	<string>Ollvy</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -21,13 +23,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Tavi needs access to your camera to capture images for analysis and 3D face scanning.</string>
+	<string>Ollvy uses your camera to capture 3D facial scans for personalized skin analysis. All face data is processed locally on your device.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Tavi uses Face ID to protect your private scan results and photos.</string>
+	<string>Ollvy performs 3D facial scanning for skin analysis only. This is not biometric authentication. All data stays on your device.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Tavi needs access to save photos to your library.</string>
+	<string>Ollvy saves your facial scans and skin analysis results to your photo library so you can track your skin health progress over time.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Tavi needs access to your photo library to analyze images.</string>
+	<string>Ollvy accesses your photo library to let you review previous scans and compare your skin health journey.</string>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>

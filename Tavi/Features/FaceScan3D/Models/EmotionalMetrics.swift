@@ -577,7 +577,7 @@ public class EmotionalMetricsGenerator {
                 severity: severity,
                 message: "Your texture score is \(score)/100. This indicates \(textureIssue).",
                 solution: solution,
-                encouragement: "With consistent treatment, you should see improvement in \(timeframe) weeks."
+                encouragement: "With a consistent skincare routine, you may see improvement over time."
             ))
         }
 
@@ -594,7 +594,7 @@ public class EmotionalMetricsGenerator {
                 severity: severity,
                 message: "Your tone evenness score is \(score)/100. This indicates noticeable color variation across your face.",
                 solution: solution,
-                encouragement: "With consistent treatment, you should see improvement in \(timeframe) weeks."
+                encouragement: "With a consistent skincare routine, you may see improvement over time."
             ))
         }
 
@@ -611,7 +611,7 @@ public class EmotionalMetricsGenerator {
                 severity: severity,
                 message: "Your discoloration score is \(score)/100. This indicates visible dark spots or patchy pigmentation.",
                 solution: solution,
-                encouragement: "With consistent treatment, you should see fading in \(timeframe) weeks. SPF is essential to prevent new spots."
+                encouragement: "With a consistent skincare routine, you may see fading over time. SPF is essential to prevent new spots."
             ))
         }
 
@@ -629,7 +629,7 @@ public class EmotionalMetricsGenerator {
                 severity: severity,
                 message: "Your wrinkle score is \(score)/100. We detected \(wrinkleCount) wrinkles with \(wrinkles.wrinkleDepth.rawValue) depth.",
                 solution: solution,
-                encouragement: "With consistent treatment, you should see improvement in \(timeframe) weeks."
+                encouragement: "With a consistent skincare routine, you may see improvement over time."
             ))
         }
 
@@ -644,9 +644,9 @@ public class EmotionalMetricsGenerator {
                 title: "Visible pores",
                 emoji: "🔬",
                 severity: severity,
-                message: "Your pore visibility is \(visibility)/100. This indicates enlarged pores that need targeted treatment.",
+                message: "Your pore visibility is \(visibility)/100. This indicates enlarged pores that may benefit from targeted care.",
                 solution: solution,
-                encouragement: "With consistent treatment, you should see improvement in \(timeframe) weeks."
+                encouragement: "With a consistent skincare routine, you may see improvement over time."
             ))
         }
 
@@ -664,7 +664,7 @@ public class EmotionalMetricsGenerator {
                 severity: severity,
                 message: "Your acne clarity score is \(score)/100. We detected \(count) active blemishes (\(acne.severity.rawValue) severity).",
                 solution: solution,
-                encouragement: "With consistent treatment, you should see improvement in \(timeframe) weeks."
+                encouragement: "With a consistent skincare routine, you may see improvement over time."
             ))
         }
 
@@ -890,14 +890,14 @@ public class EmotionalMetricsGenerator {
         let isSensitive = profile?.skinType == .sensitive
         if score < 40 {
             return isSensitive
-                ? "Apply 10% L-ascorbic acid vitamin C serum every morning (start 3x weekly), use SPF 50+ daily, and add a 5% niacinamide serum at night"
-                : "Apply 15-20% L-ascorbic acid vitamin C serum every morning, use SPF 50+ daily, and consider a prescription hydroquinone or azelaic acid treatment"
+                ? "Apply vitamin C serum every morning (start a few times weekly), use SPF 50+ daily, and add a niacinamide serum at night"
+                : "Apply vitamin C serum every morning, use SPF 50+ daily, and consider brightening products recommended by your dermatologist"
         } else if score < 60 {
             return isSensitive
-                ? "Apply 10% vitamin C serum every morning, use SPF 30+ daily, and add a 5% niacinamide serum at night"
-                : "Apply 15% vitamin C serum every morning, use SPF 30+ daily, and add a brightening serum with arbutin or kojic acid"
+                ? "Apply vitamin C serum every morning, use SPF 30+ daily, and add a niacinamide serum at night"
+                : "Apply vitamin C serum every morning, use SPF 30+ daily, and add a brightening serum with arbutin or kojic acid"
         } else {
-            return "Maintain with 10-15% vitamin C serum every morning and daily SPF 30+. Consider adding a gentle brightening serum"
+            return "Maintain with vitamin C serum every morning and daily SPF 30+. Consider adding a gentle brightening serum"
         }
     }
     
@@ -905,11 +905,11 @@ public class EmotionalMetricsGenerator {
         let isSensitive = profile?.skinType == .sensitive
         if score < 40 {
             return isSensitive
-                ? "Apply SPF 50+ daily (most important), use a 5% niacinamide serum morning and night, and add a gentle brightening serum with arbutin"
-                : "Apply SPF 50+ daily (most important), use a brightening serum with 2% hydroquinone or 10% azelaic acid, and add a vitamin C serum in the morning"
+                ? "Apply SPF 50+ daily (most important), use a niacinamide serum morning and night, and add a gentle brightening serum with arbutin"
+                : "Apply SPF 50+ daily (most important), use brightening products recommended by your dermatologist, and add a vitamin C serum in the morning"
         } else if score < 60 {
             return isSensitive
-                ? "Apply SPF 30+ daily, use a 5% niacinamide serum, and add a gentle brightening serum"
+                ? "Apply SPF 30+ daily, use a niacinamide serum, and add a gentle brightening serum"
                 : "Apply SPF 30+ daily, use a brightening serum with arbutin or kojic acid, and add vitamin C in the morning"
         } else {
             return "Maintain with daily SPF 30+ and a gentle brightening serum. SPF prevents new spots from forming"
@@ -919,19 +919,19 @@ public class EmotionalMetricsGenerator {
     private static func getSpecificWrinkleSolution(score: Float, count: Int, profile: UserProfile?) -> String {
         let age = profile?.age ?? 30
         let isSensitive = profile?.skinType == .sensitive
-        
+
         if age >= 40 {
             return isSensitive
-                ? "Consider prescription retinoid (tretinoin) from dermatologist (start 2x weekly), use a peptide serum daily, and apply SPF 50+ every morning"
-                : "Consider prescription retinoid (tretinoin) from dermatologist, use a peptide serum daily, and apply SPF 50+ every morning"
+                ? "Consider professional treatments from dermatologist, use a peptide serum daily, and apply SPF 50+ every morning"
+                : "Consider professional treatments from dermatologist, use a peptide serum daily, and apply SPF 50+ every morning"
         } else if score < 50 {
             return isSensitive
-                ? "Start with 0.25% retinol serum 2x weekly at night, use a peptide serum daily, and apply SPF 30+ every morning"
-                : "Start with 0.5% retinol serum 3-4x weekly at night, use a peptide serum daily, and apply SPF 30+ every morning"
+                ? "Start with retinol products a few times weekly at night, use a peptide serum daily, and apply SPF 30+ every morning"
+                : "Start with retinol products as recommended at night, use a peptide serum daily, and apply SPF 30+ every morning"
         } else {
             return isSensitive
-                ? "Use 0.25% retinol serum 2-3x weekly at night, add a peptide serum, and apply SPF 30+ daily"
-                : "Use 0.5% retinol serum 3x weekly at night, add a peptide serum, and apply SPF 30+ daily"
+                ? "Use retinol products a few times weekly at night, add a peptide serum, and apply SPF 30+ daily"
+                : "Use retinol products as recommended at night, add a peptide serum, and apply SPF 30+ daily"
         }
     }
     
@@ -939,14 +939,14 @@ public class EmotionalMetricsGenerator {
         let isSensitive = profile?.skinType == .sensitive
         if visibility > 60 {
             return isSensitive
-                ? "Use 2% salicylic acid cleanser daily, apply 5% niacinamide serum morning and evening, and use a gentle clay mask 1x weekly"
-                : "Use 2% salicylic acid cleanser daily, apply 10% niacinamide serum morning and evening, and use a BHA toner 2-3x weekly"
+                ? "Use salicylic acid cleanser daily, apply niacinamide serum morning and evening, and use a gentle clay mask once weekly"
+                : "Use salicylic acid cleanser daily, apply niacinamide serum morning and evening, and use a BHA toner a few times weekly"
         } else if visibility > 40 {
             return isSensitive
-                ? "Use a gentle salicylic acid cleanser 3-4x weekly, apply 5% niacinamide serum daily, and use a gentle exfoliant 1x weekly"
-                : "Use 2% salicylic acid cleanser daily, apply 10% niacinamide serum daily, and use a BHA toner 2x weekly"
+                ? "Use a gentle salicylic acid cleanser a few times weekly, apply niacinamide serum daily, and use a gentle exfoliant once weekly"
+                : "Use salicylic acid cleanser daily, apply niacinamide serum daily, and use a BHA toner a couple times weekly"
         } else {
-            return "Maintain with 5% niacinamide serum daily and gentle exfoliation 1-2x weekly"
+            return "Maintain with niacinamide serum daily and gentle exfoliation 1-2x weekly"
         }
     }
     
@@ -954,16 +954,16 @@ public class EmotionalMetricsGenerator {
         let isSensitive = profile?.skinType == .sensitive
         if count > 20 {
             return isSensitive
-                ? "Use 2% salicylic acid cleanser daily, apply 2.5% benzoyl peroxide spot treatment at night, and use a 5% niacinamide serum to reduce inflammation"
-                : "Use 2% salicylic acid cleanser daily, apply 5% benzoyl peroxide treatment at night, and consider a prescription retinoid"
+                ? "Use salicylic acid cleanser daily, apply benzoyl peroxide spot treatment at night (2.5% or lower), and use a niacinamide serum to reduce inflammation"
+                : "Use salicylic acid cleanser daily, apply acne treatment products at night, and consider professional treatments from your dermatologist"
         } else if count > 10 {
             return isSensitive
-                ? "Use 2% salicylic acid cleanser daily, apply 2.5% benzoyl peroxide spot treatment, and use a 5% niacinamide serum"
-                : "Use 2% salicylic acid cleanser daily, apply 5% benzoyl peroxide or salicylic acid treatment, and use a 10% niacinamide serum"
+                ? "Use salicylic acid cleanser daily, apply benzoyl peroxide spot treatment (2.5% or lower), and use a niacinamide serum"
+                : "Use salicylic acid cleanser daily, apply acne treatment products as recommended, and use a niacinamide serum"
         } else {
             return isSensitive
-                ? "Use a gentle salicylic acid cleanser 3-4x weekly and apply 2.5% benzoyl peroxide spot treatment as needed"
-                : "Use 2% salicylic acid cleanser daily and apply 5% salicylic acid or benzoyl peroxide spot treatment"
+                ? "Use a gentle salicylic acid cleanser a few times weekly and apply benzoyl peroxide spot treatment (2.5% or lower) as needed"
+                : "Use salicylic acid cleanser daily and apply acne spot treatment as needed"
         }
     }
     
@@ -1015,9 +1015,7 @@ public class EmotionalMetricsGenerator {
         let isSensitive = profile?.skinType == .sensitive
         
         if age >= 40 {
-            return isSensitive
-                ? "Consider prescription retinoid (tretinoin) from dermatologist (start 2x weekly)"
-                : "Consider prescription retinoid (tretinoin) from dermatologist"
+            return "Consider consulting a dermatologist about advanced skincare options for your concerns"
         } else if score < 50 {
             return isSensitive
                 ? "Start with 0.25% retinol serum 2x weekly at night"

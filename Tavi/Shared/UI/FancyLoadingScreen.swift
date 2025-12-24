@@ -122,7 +122,7 @@ struct FancyLoadingScreen: View {
                     }
 
                     // App name - better spacing
-                    Text("Tavi")
+                    Text("Ollvy")
                         .font(.app(size: 48, weight: .bold))
                         .foregroundStyle(
                             LinearGradient(

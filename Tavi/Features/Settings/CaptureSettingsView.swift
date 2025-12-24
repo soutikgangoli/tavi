@@ -162,7 +162,7 @@ struct CaptureSettingsView: View {
 
                     Text(capabilities.supports4KTextureDefault
                         ? "4K texture + 5 frames per pose. Your device supports 4K by default."
-                        : "4K texture + 5 frames per pose for clinical-grade accuracy (90-92% confidence)")
+                        : "4K texture + 5 frames per pose for advanced accuracy (90-92% confidence)")
                         .font(Designs.Typography.caption)
                         .foregroundColor(Designs.Colors.textSecondary)
                 }

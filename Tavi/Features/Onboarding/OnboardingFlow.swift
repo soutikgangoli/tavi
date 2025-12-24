@@ -45,7 +45,7 @@ public struct OnboardingFlowView: View {
         OnboardingPage(
             title: "Track Your Skin",
             subtitle: "Simple. Private. Insightful.",
-            description: "Quick 3D face scans to monitor your skin health over time.\n\n✓ Clinical-grade AI analysis\n✓ 100% on-device privacy\n✓ Track changes & progress",
+            description: "Quick 3D face scans to monitor your skin health over time.\n\n✓ Advanced AI skin analysis\n✓ 100% on-device privacy\n✓ Track changes & progress",
             imageName: "viewfinder.circle",
             requiresInput: false
         )
@@ -671,7 +671,7 @@ extension AnalysisMetricType {
             ]
         case .wrinkles:
             return [
-                "Use retinol or prescription retinoids",
+                "Use retinol products as recommended",
                 "Apply SPF 30+ daily to prevent further damage",
                 "Consider eye cream for crow's feet",
                 "Stay hydrated and get adequate sleep",
@@ -698,7 +698,7 @@ extension AnalysisMetricType {
                 "Wear SPF 30+ daily (most important!)",
                 "Use vitamin C serum in the morning",
                 "Try niacinamide for dark spots",
-                "Consider prescription treatments (hydroquinone, tretinoin)",
+                "Consider professional skincare products recommended by your dermatologist",
                 "Avoid direct sun exposure"
             ]
         case .discoloration:

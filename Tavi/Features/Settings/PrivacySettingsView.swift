@@ -47,7 +47,7 @@ public struct PrivacySettingsView: View {
                             }
                         }
 
-                        Text("Tavi stores all scan data locally on your device. We never upload your face images or analysis results to any server.")
+                        Text("Ollvy stores all scan data locally on your device. We never upload your face images or analysis results to any server.")
                             .font(AppFont.caption)
                             .foregroundColor(Designs.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -317,7 +317,7 @@ public struct PrivacySettingsView: View {
                 // Create temporary file
                 let dateFormatter = DateFormatter()
                 dateFormatter.dateFormat = "yyyy-MM-dd"
-                let fileName = "Tavi_Export_\(dateFormatter.string(from: Date())).json"
+                let fileName = "Ollvy_Export_\(dateFormatter.string(from: Date())).json"
 
                 let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
                 try jsonData.write(to: tempURL)

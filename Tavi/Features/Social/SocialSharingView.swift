@@ -274,7 +274,7 @@ public struct SocialSharingView: View {
             My Skin Health Index: \(emotionalMetrics.skinHealthScore)/100!
             \(emotionalMetrics.primaryInsight)
 
-            Tracking my skincare journey with Tavi
+            Tracking my skincare journey with Ollvy
             """
 
         case .achievement:
@@ -283,10 +283,10 @@ public struct SocialSharingView: View {
                 Achievement Unlocked!
                 \(achievement.title): \(achievement.description)
 
-                Tracking my skincare journey with Tavi
+                Tracking my skincare journey with Ollvy
                 """
             }
-            return "Tracking my skincare with Tavi!"
+            return "Tracking my skincare with Ollvy!"
 
         case .streak:
             if let streak = streak {
@@ -330,7 +330,7 @@ struct ProgressShareCard: View {
 
             VStack(spacing: Designs.Spacing.large) {
                 // App branding
-                Text("Tavi")
+                Text("Ollvy")
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundStyle(.secondary)

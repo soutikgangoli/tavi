@@ -269,7 +269,7 @@ public enum AppStrings {
         public static let startYourScan = "Start Your Scan"
         public static let poweredByBiometrics = "Powered by Advanced Biometrics"
         public static let scienceBehindGlow = "The Science Behind Your Glow"
-        public static let clinicalGradeImaging = "Clinical-grade spectral imaging and AI dermatological mapping reveal what the eye can't."
+        public static let clinicalGradeImaging = "Advanced 3D imaging and AI skin analysis reveal details invisible to the naked eye."
         public static let whatYoullGet = "What You'll Get"
         public static let eightSkinMetrics = "8 Skin Health Metrics"
         public static let comprehensiveAnalysis = "Comprehensive analysis of your skin"
@@ -360,8 +360,8 @@ public enum AppStrings {
 
         // Support
         public static let contactSupport = "Contact Support"
-        public static let rateApp = "Rate Tavi"
-        public static let shareApp = "Share Tavi"
+        public static let rateApp = "Rate Ollvy"
+        public static let shareApp = "Share Ollvy"
 
         // Legal
         public static let privacyPolicy = "Privacy Policy"
@@ -379,7 +379,7 @@ public enum AppStrings {
     // MARK: - About Screen
 
     public enum About {
-        public static let appName = "Tavi"
+        public static let appName = "Ollvy"
         public static let skinHealthAnalysis = "Skin Health Analysis"
         public static func version(_ version: String, build: String) -> String {
             return "Version \(version) (\(build))"

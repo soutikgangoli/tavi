@@ -109,7 +109,7 @@ public class DeviceCalibrator {
     /// Check if device is supported
     public func isDeviceSupported() -> (Bool, String?) {
         guard ARFaceTrackingConfiguration.isSupported else {
-            return (false, "This device does not support TrueDepth face tracking. Tavi requires an iPhone with Face ID (iPhone X or newer).")
+            return (false, "This device does not support TrueDepth face tracking. Ollvy requires an iPhone with Face ID (iPhone X or newer).")
         }
 
         let device = getCurrentDevice()
@@ -304,7 +304,7 @@ public class DeviceCompatibilityChecker {
                 isSupported: false,
                 requirementsMet: false,
                 warnings: [],
-                errorMessage: "Face tracking not supported. Tavi requires an iPhone with Face ID (iPhone X or newer)."
+                errorMessage: "Face tracking not supported. Ollvy requires an iPhone with Face ID (iPhone X or newer)."
             )
         }
 

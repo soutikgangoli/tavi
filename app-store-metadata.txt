@@ -1,0 +1,275 @@
+APP STORE METADATA FOR OLLVY
+Generated: December 24, 2025
+
+===========================================
+BASIC INFORMATION
+===========================================
+
+App Name:
+Ollvy
+
+Subtitle (30 character limit):
+AI Skin Analysis for You
+
+Keywords (100 character limit):
+ollvy,skin analysis,face scan,indian skincare,3d scan,beauty,glow,skin health,face id,truedepth
+
+Promotional Text (170 character limit):
+Track your skin health with AI built for Indian skin tones. Advanced 3D scanning, complete privacy. Your data stays on your device!
+
+===========================================
+CATEGORY & AGE RATING
+===========================================
+
+Primary Category:
+Health & Fitness
+
+Secondary Category (optional):
+Lifestyle
+
+Age Rating:
+4+ (general wellness app, no objectionable content)
+
+===========================================
+URLs
+===========================================
+
+Support URL:
+mailto:support@ollvy.app
+(OR your actual support email/website)
+
+Marketing URL (optional):
+https://ollvy.app
+(OR your actual website - leave blank if none)
+
+Privacy Policy URL:
+https://yourusername.github.io/privacy-policy.html
+(Replace with actual URL after hosting privacy-policy.html)
+
+===========================================
+APP REVIEW INFORMATION
+===========================================
+
+App Review Notes:
+---
+
+DEVICE REQUIREMENT: This app requires iPhone X or newer with TrueDepth camera (Face ID hardware). Testing on simulator or incompatible devices will show a graceful error message.
+
+HOW TO TEST THE APP:
+
+1. Launch app - onboarding will explain TrueDepth requirement
+2. Grant camera permission when prompted (permission text explains local processing)
+3. Tap "Start Scan" from home screen
+4. Position face in frame - app will guide alignment
+5. Hold steady for 10 seconds while scan completes
+6. View results screen with skin metrics and visualizations
+7. IMPORTANT: Scroll to bottom of results to see medical disclaimer
+8. Tap individual metrics to see detailed analysis
+9. Optional: Export as PDF or save scan to compare later
+
+PRIVACY & DATA:
+- All face data processed locally on-device (no server transmission)
+- Crash reports sent to Sentry with anonymized diagnostic data only
+- No facial data, photos, or personal information transmitted to any server
+- Users can delete all scans at any time from Settings
+
+MEDICAL DISCLAIMER:
+- Clear disclaimer shown on ALL results screens
+- App provides general skincare insights only (not medical advice)
+- Users directed to consult dermatologist for medical concerns
+- No prescription drug recommendations
+- No diagnostic claims
+
+TESTING NOTES:
+- Best tested on iPhone 12 or newer for optimal TrueDepth performance
+- Good lighting required for accurate scans
+- Scan quality message will appear if lighting is insufficient
+- App gracefully handles all error states (camera denied, device unsupported, etc.)
+
+---
+
+Demo Account:
+Not applicable (no account/login required)
+
+Contact Information:
+First Name: [Your First Name]
+Last Name: [Your Last Name]
+Phone: +91-XXXXXXXXXX
+Email: support@ollvy.app
+
+===========================================
+APP STORE CONNECT CHECKLIST
+===========================================
+
+Before submitting, ensure you have:
+
+☐ Screenshots for 6.7" display (1290x2796) - minimum 3 required
+☐ Screenshots for 6.5" display (1242x2688) - minimum 3 required
+☐ App icon uploaded (1024x1024 PNG, no alpha channel)
+☐ Privacy Policy URL live and accessible
+☐ Build uploaded and processing complete
+☐ Age rating questionnaire completed
+☐ Export compliance answered (select NO for encryption)
+☐ Pricing set (Free or paid)
+☐ Availability territories selected
+
+===========================================
+PRIVACY NUTRITION LABELS
+===========================================
+
+Do you collect data from this app?
+YES
+
+Data Types to Declare:
+
+1. Health & Fitness
+   - Linked to User: YES
+   - Used for Tracking: NO
+   - Purpose: App Functionality
+
+2. Photos or Videos
+   - Linked to User: YES
+   - Used for Tracking: NO
+   - Purpose: App Functionality
+
+3. User Content (Face Scans)
+   - Linked to User: YES
+   - Used for Tracking: NO
+   - Purpose: App Functionality
+
+4. Crash Data
+   - Linked to User: NO
+   - Used for Tracking: NO
+   - Purpose: App Functionality
+
+5. Performance Data
+   - Linked to User: NO
+   - Used for Tracking: NO
+   - Purpose: Analytics
+
+Do you or your third-party partners use data for tracking?
+NO
+
+===========================================
+EXPORT COMPLIANCE
+===========================================
+
+Does your app use encryption?
+NO (only uses standard HTTPS, no additional encryption)
+
+If Apple asks for more details:
+"This app only uses standard encryption provided by iOS for network communication (HTTPS). No additional encryption algorithms are implemented."
+
+===========================================
+APP STORE OPTIMIZATION (ASO) TIPS
+===========================================
+
+Best Keywords (already in Keywords field):
+- ollvy (brand name)
+- skin analysis
+- face scan
+- indian skincare
+- 3d scan
+- beauty
+- skin health
+- truedepth
+
+Avoid These Keywords (not allowed):
+- clinical, diagnosis, medical, treatment, doctor, cure
+
+Screenshot Recommendations:
+1. Home screen showing "Start Scan" with Indian skin model
+2. Scanning in progress (show TrueDepth in action)
+3. Results screen with metrics AND disclaimer visible
+4. 3D visualization of face mesh
+5. Progress tracking (before/after scans)
+6. Settings showing privacy controls
+
+App Preview Video (optional but recommended):
+- 15-30 seconds showing full scan flow
+- Show permission prompt → scan → results → disclaimer
+- Emphasize "100% Private" and "Built for Indian Skin"
+
+===========================================
+LOCALIZATION (OPTIONAL)
+===========================================
+
+If you want to add localized versions later:
+
+Priority Markets for Indian App:
+- English (U.S.) - PRIMARY
+- Hindi - HIGH PRIORITY
+- English (India) - MEDIUM
+- Tamil, Telugu, Bengali - MEDIUM
+
+For now, English (U.S.) only is sufficient for initial launch.
+
+===========================================
+REJECTION PREVENTION CHECKLIST
+===========================================
+
+Common reasons apps get rejected (verify these are handled):
+
+☑ Medical Claims - NO medical claims (only wellness/tracking)
+☑ Privacy Policy - URL is live and mentions Sentry
+☑ Functionality - App works on required devices (iPhone X+)
+☑ Disclaimer - Shown on all results screens
+☑ User Data - Privacy labels accurately filled
+☑ Camera Permission - Clear explanation in Info.plist
+☑ No Crashes - Tested on multiple iPhone models
+☑ Graceful Errors - Unsupported devices show clear message
+☑ Screenshots - Show actual app UI (no mockups)
+☑ Description - No prohibited medical terms
+
+===========================================
+POST-SUBMISSION
+===========================================
+
+Typical Review Timeline:
+- Submission → "Waiting for Review": 0-24 hours
+- "Waiting for Review" → "In Review": 1-48 hours
+- "In Review" → Decision: 12-48 hours
+- Total: 24-96 hours (1-4 days typical)
+
+If Approved:
+- Status changes to "Pending Developer Release"
+- You can release immediately or schedule release
+- App appears in App Store within 2-24 hours after release
+
+If Rejected:
+- Read rejection message in Resolution Center
+- Address specific issues mentioned
+- Increment build number
+- Resubmit (usually faster review on resubmission)
+
+===========================================
+SUPPORT RESOURCES
+===========================================
+
+App Store Connect:
+https://appstoreconnect.apple.com
+
+Review Guidelines:
+https://developer.apple.com/app-store/review/guidelines/
+
+Privacy Requirements:
+https://developer.apple.com/app-store/user-privacy-and-data-use/
+
+TestFlight Setup:
+https://developer.apple.com/testflight/
+
+Contact App Review (if rejected):
+App Store Connect → Resolution Center → Reply to message
+
+===========================================
+FINAL NOTES
+===========================================
+
+Bundle Identifier: com.soutik.ollvy
+Display Name: Ollvy
+Version: 1.0.0
+Build: 1
+
+This metadata file is your complete reference for filling out App Store Connect. Copy the exact text from each section into the corresponding field in App Store Connect.
+
+Good luck with your submission!

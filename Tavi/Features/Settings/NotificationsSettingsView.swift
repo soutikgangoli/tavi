@@ -218,7 +218,7 @@ public struct NotificationsSettingsView: View {
         case .denied:
             return "Please enable notifications in Settings to receive reminders"
         default:
-            return "Allow Tavi to send you helpful reminders and updates"
+            return "Allow Ollvy to send you helpful reminders and updates"
         }
     }
 

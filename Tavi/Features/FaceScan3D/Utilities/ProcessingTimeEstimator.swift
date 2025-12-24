@@ -137,7 +137,7 @@ public enum ProcessingPhase: Int, CaseIterable {
         case .textureBake:
             return "Ensuring every detail is captured clearly"
         case .metricsAnalysis:
-            return "Analyzing your skin with clinical-grade precision…"
+            return "Analyzing your skin with advanced precision…"
         case .emotionalMetrics:
             return "Calculating your unique skin profile"
         case .gamification, .coreDataSave:

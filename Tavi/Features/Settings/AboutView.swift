@@ -71,7 +71,7 @@ public struct AboutView: View {
                             .font(AppFont.headlineSecondary)
                             .foregroundColor(Designs.Colors.textPrimary)
 
-                        Text("Tavi uses advanced 3D face scanning technology to analyze your skin health. Track your progress, unlock achievements, and get personalized recommendations for better skin care.")
+                        Text("Ollvy uses advanced 3D face scanning technology to analyze your skin health. Track your progress, unlock achievements, and get personalized recommendations for better skin care.")
                             .font(AppFont.bodySecondary)
                             .foregroundColor(Designs.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)

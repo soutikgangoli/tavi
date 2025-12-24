@@ -1,0 +1,56 @@
+Ollvy: AI-Powered Skin Analysis for Indian Skin
+
+Discover personalized skin insights built for Indian skin tones. Ollvy uses advanced 3D facial scanning and AI to help you understand your skin health—completely privately on your device.
+
+WHY OLLVY?
+
+Built for Indian Skin
+Unlike generic beauty apps, Ollvy is optimized for Indian skin tones (Fitzpatrick Types III-VI). Our AI recognizes the unique characteristics of melanin-rich skin, including higher melanin content, distinct aging patterns, and specific pigmentation concerns that most beauty tech overlooks.
+
+100% Privacy-First
+Your face data never leaves your device. Every scan is processed locally on your iPhone. No account required. No cloud uploads. No servers. You own your data.
+
+FEATURES
+
+• 3D Facial Scanning - Use your iPhone's TrueDepth camera to capture detailed skin analysis
+
+• AI-Powered Analysis - Track skin texture, tone uniformity, hydration indicators, and more
+
+• Progress Tracking - Save and compare scans to monitor your skincare routine's effectiveness
+
+• Personalized Insights - Get tailored recommendations based on your unique skin profile
+
+• Beautiful Visualizations - View metrics through interactive 3D models and charts
+
+• PDF Export - Generate professional reports to track your skin journey
+
+• No Ads, Ever - Completely ad-free experience focused on your privacy
+
+SKIN METRICS TRACKED
+
+• Skin texture and surface quality
+• Tone uniformity across facial zones
+• Hydration indicators
+• Fine lines and expression areas
+• Overall skin health score
+• Zone-specific analysis
+• Progress trends over time
+
+PRIVACY BUILT-IN
+
+• Zero Cloud Upload - All processing on-device
+• No Account Required - Start scanning immediately
+• No Data Sharing - Facial data never transmitted
+• Full Control - Delete or export your scans anytime
+• Crash Reporting - Only anonymized diagnostic data via Sentry (no facial data)
+
+REQUIREMENTS
+
+• iPhone X or newer (requires TrueDepth camera / Face ID)
+• iOS 18.0 or later
+
+Perfect for tracking skincare routine effectiveness, monitoring seasonal skin changes, and making informed decisions about your skincare journey.
+
+DISCLAIMER
+
+Ollvy provides skin insights for general awareness and tracking purposes only. This app is not intended for medical use and does not diagnose, treat, or prevent any medical condition. The analysis results are for informational purposes and should not be considered medical advice. For any skin health concerns, questions about skin conditions, or before making significant changes to your skincare routine, please consult a qualified dermatologist or healthcare professional. Individual results may vary based on lighting conditions, device positioning, and other factors.
