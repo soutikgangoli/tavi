@@ -44,7 +44,7 @@ public class ScanStateManager: ObservableObject {
 
     private var countdownToleranceFrames: Int = 0
     private let maxToleranceFrames = 3
-    private var countdownTimer: Timer?
+    private var countdownTimerInstance: Timer?
 
     // MARK: - Initialization
 
@@ -103,7 +103,7 @@ public class ScanStateManager: ObservableObject {
         countdownToleranceFrames = 0
 
         // Use Timer for countdown
-        self.countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+        self.countdownTimerInstance = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
             guard let self = self else { return }
 
             Task { @MainActor in
@@ -119,8 +119,8 @@ public class ScanStateManager: ObservableObject {
 
     /// Stops the countdown
     public func stopCountdown() {
-        countdownTimer?.invalidate()
-        countdownTimer = nil
+        countdownTimerInstance?.invalidate()
+        countdownTimerInstance = nil
         countdownTimer = 0
         countdownToleranceFrames = 0
     }

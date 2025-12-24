@@ -174,8 +174,8 @@ public class MetricsCalculator {
     private func calculateSymmetry(from poses: [GuidanceStep: CapturedPoseData]) -> Double {
         // Check left/right symmetry
         guard let straightPose = poses[.lookStraight],
-              let leftPose = poses[.lookLeft],
-              let rightPose = poses[.lookRight] else {
+              let leftPose = poses[.turnLeft],
+              let rightPose = poses[.turnRight] else {
             return 50.0 // Insufficient data
         }
 
@@ -275,6 +275,15 @@ public struct RegionalAnalysis {
     public let noseScore: Double
     public let mouthScore: Double
     public let chinScore: Double
+
+    public static let empty = RegionalAnalysis(
+        foreheadScore: 50.0,
+        cheeksScore: 50.0,
+        eyeAreaScore: 50.0,
+        noseScore: 50.0,
+        mouthScore: 50.0,
+        chinScore: 50.0
+    )
 }
 
 public enum FaceRegion {
