@@ -95,7 +95,7 @@ public struct CelebratoryResultsView: View {
                             .offset(y: showFirstTimeBanner ? 0 : 10)
                     }
 
-                    // NEW: Detailed Skin Profile (merged metrics + clinical diagnosis)
+                    // NEW: Detailed Skin Profile (merged metrics + skin analysis)
                     detailedSkinProfileSection
                         .opacity(showActions ? 1 : 0)
                         .offset(y: showActions ? 0 : 10)
@@ -112,6 +112,24 @@ public struct CelebratoryResultsView: View {
 
                     // Share button
                     shareButton
+
+                    // Medical Disclaimer
+                    VStack(spacing: 8) {
+                        Text("Important Information")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+
+                        Text("Ollvy provides skin insights for general awareness only. This is not medical advice, diagnosis, or treatment. For medical concerns, consult a qualified dermatologist.")
+                            .font(.caption2)
+                            .foregroundColor(.tertiary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                    .padding(.bottom, 20)
 
                     Spacer().frame(height: Designs.Spacing.xxl)
                 }
@@ -354,7 +372,7 @@ public struct CelebratoryResultsView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Detailed Skin Profile (MERGED - Metrics + Clinical Diagnosis)
+    // MARK: - Detailed Skin Profile (MERGED - Metrics + Analysis)
 
     @State private var expandedProfileMetric: String? = nil
 
@@ -374,7 +392,7 @@ public struct CelebratoryResultsView: View {
                     title: "Texture",
                     icon: SFSymbol.waveformPath,
                     score: emotionalMetrics.smoothness,
-                    diagnosis: "Surface texture quality measured by analyzing pore size distribution, surface smoothness, and uniformity. We measure micro-variations in the skin surface to assess overall skin refinement.",
+                    description: "Surface texture quality measured by analyzing pore size distribution, surface smoothness, and uniformity. We measure micro-variations in the skin surface to assess overall skin refinement.",
                     metricId: "profile_texture",
                     metricType: .roughness
                 )
@@ -385,7 +403,7 @@ public struct CelebratoryResultsView: View {
                     title: "Hydration",
                     icon: "drop.fill",
                     score: emotionalMetrics.freshness,
-                    diagnosis: "Overall skin vitality measured by analyzing hydration markers and surface moisture levels. Higher scores indicate well-hydrated, healthy-looking skin with good moisture balance.",
+                    description: "Overall skin vitality measured by analyzing hydration markers and surface moisture levels. Higher scores indicate well-hydrated, healthy-looking skin with good moisture balance.",
                     metricId: "profile_hydration",
                     metricType: .hydration
                 )
@@ -396,7 +414,7 @@ public struct CelebratoryResultsView: View {
                     title: "Radiance",
                     icon: SFSymbol.sparkles,
                     score: emotionalMetrics.radiance,
-                    diagnosis: "Light reflection quality measured by analyzing light reflection patterns, skin luminosity, and color vibrance across different facial zones. Higher scores indicate healthier, more luminous skin.",
+                    description: "Light reflection quality measured by analyzing light reflection patterns, skin luminosity, and color vibrance across different facial zones. Higher scores indicate healthier, more luminous skin.",
                     metricId: "profile_radiance",
                     metricType: .brightness
                 )
@@ -407,7 +425,7 @@ public struct CelebratoryResultsView: View {
                     title: "Tone Evenness",
                     icon: "circle.hexagongrid.fill",
                     score: emotionalMetrics.evenness,
-                    diagnosis: "Skin tone uniformity calculated by measuring color consistency, detecting hyperpigmentation, and analyzing color distribution across facial regions.",
+                    description: "Skin tone uniformity calculated by measuring color consistency, detecting hyperpigmentation, and analyzing color distribution across facial regions.",
                     metricId: "profile_evenness",
                     metricType: .pigmentation
                 )
@@ -418,7 +436,7 @@ public struct CelebratoryResultsView: View {
                     title: "Redness Control",
                     icon: SFSymbol.heartFill,
                     score: emotionalMetrics.rednessScore,
-                    diagnosis: "Skin redness detected by analyzing red channel intensity, inflammation patterns, and vascular visibility across facial regions. Higher scores indicate calmer, less inflamed skin.",
+                    description: "Skin redness detected by analyzing red channel intensity, inflammation patterns, and vascular visibility across facial regions. Higher scores indicate calmer, less inflamed skin.",
                     metricId: "profile_redness",
                     metricType: .discoloration
                 )
@@ -429,7 +447,7 @@ public struct CelebratoryResultsView: View {
                     title: "Acne",
                     icon: "circle.fill",
                     score: emotionalMetrics.acneScore,
-                    diagnosis: "Breakout assessment based on detecting surface irregularities, inflammation markers, and breakout patterns. We analyze texture variations and color changes associated with active acne. Higher scores indicate clearer skin.",
+                    description: "Breakout assessment based on detecting surface irregularities, inflammation markers, and breakout patterns. We analyze texture variations and color changes associated with active acne. Higher scores indicate clearer skin.",
                     metricId: "profile_acne",
                     metricType: .pigmentation
                 )
@@ -440,7 +458,7 @@ public struct CelebratoryResultsView: View {
                     title: "Lines & Wrinkles",
                     icon: "arrow.up.circle.fill",
                     score: emotionalMetrics.youthfulness,
-                    diagnosis: "Wrinkle assessment using advanced 3D mesh analysis to detect surface irregularities and depth variations. Wrinkle severity is calculated by measuring the depth, length, and density of facial creases across 50,000+ data points. Higher scores indicate fewer, shallower wrinkles.",
+                    description: "Wrinkle assessment using advanced 3D mesh analysis to detect surface irregularities and depth variations. Wrinkle severity is calculated by measuring the depth, length, and density of facial creases across 50,000+ data points. Higher scores indicate fewer, shallower wrinkles.",
                     metricId: "profile_wrinkles",
                     metricType: .wrinkles
                 )
@@ -451,7 +469,7 @@ public struct CelebratoryResultsView: View {
                     title: "Shine Detection",
                     icon: "sparkle",
                     score: emotionalMetrics.oilControlScore,
-                    diagnosis: "Surface shine measured by analyzing specular highlights and reflection patterns. Detects areas with high reflectance that may indicate oiliness or product application. Higher scores indicate less shine and better matteness.",
+                    description: "Surface shine measured by analyzing specular highlights and reflection patterns. Detects areas with high reflectance that may indicate oiliness or product application. Higher scores indicate less shine and better matteness.",
                     metricId: "profile_shine",
                     metricType: .hydration
                 )
@@ -462,7 +480,7 @@ public struct CelebratoryResultsView: View {
                     title: "Pore Visibility",
                     icon: "circle.grid.3x3.fill",
                     score: emotionalMetrics.poreScore,
-                    diagnosis: "Pore size and visibility measured using high-frequency texture analysis. We detect enlarged pores, pore density, and size distribution across different facial zones. Higher scores indicate smaller, less visible pores.",
+                    description: "Pore size and visibility measured using high-frequency texture analysis. We detect enlarged pores, pore density, and size distribution across different facial zones. Higher scores indicate smaller, less visible pores.",
                     metricId: "profile_pores",
                     metricType: .pores
                 )
@@ -479,8 +497,8 @@ public struct CelebratoryResultsView: View {
         )
     }
 
-    /// Expandable profile metric row showing score and clinical diagnosis
-    private func profileMetricRow(title: String, icon: String, score: Int, diagnosis: String, metricId: String, metricType: AnalysisMetricType) -> some View {
+    /// Expandable profile metric row showing score and analysis
+    private func profileMetricRow(title: String, icon: String, score: Int, description: String, metricId: String, metricType: AnalysisMetricType) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // Tappable header row
             Button {
@@ -524,11 +542,11 @@ public struct CelebratoryResultsView: View {
                 .padding(Designs.Spacing.lg)
             }
 
-            // Expanded diagnosis content
+            // Expanded description content
             if expandedProfileMetric == metricId {
                 VStack(alignment: .leading, spacing: Designs.Spacing.md) {
-                    // Diagnosis text
-                    Text(diagnosis)
+                    // Description text
+                    Text(description)
                         .font(AppFont.caption)
                         .foregroundColor(Designs.Colors.textSecondary)
                         .lineSpacing(4)
@@ -903,55 +921,55 @@ public struct CelebratoryResultsView: View {
         switch metricType {
         case .brightness:
             if score < 40 {
-                return "Apply 15-20% L-ascorbic acid vitamin C serum every morning. Your radiance score of \(score) needs targeted treatment."
+                return "Apply vitamin C serum every morning and use daily SPF. Your radiance score of \(score) may benefit from brightening skincare products."
             } else if score < 60 {
-                return "Add a 10-15% vitamin C serum every morning. You'll see improvement in 3-4 weeks."
+                return "Add a vitamin C serum every morning. You may see improvement over time."
             } else {
-                return "Maintain with 10% vitamin C serum. Your radiance is already good!"
+                return "Maintain with vitamin C serum. Your radiance is already good!"
             }
         case .roughness:
             if score < 40 {
-                return "Start with 2% salicylic acid cleanser daily + 5% glycolic acid 3x weekly. Your texture score of \(score) needs targeted treatment."
+                return "Use a salicylic acid cleanser daily and gentle exfoliating products as recommended. Your texture score of \(score) may benefit from targeted care."
             } else if score < 60 {
-                return "Add a 5-7% glycolic acid toner 2-3x weekly at night. You'll see improvement in 3-4 weeks."
+                return "Add a gentle exfoliating toner a few times weekly at night. You may see improvement over time."
             } else {
                 return "Maintain with gentle exfoliation 1-2x weekly. Your texture is already good!"
             }
         case .pigmentation:
             if score < 40 {
-                return "Apply 15-20% vitamin C serum every morning + SPF 50+ daily. Your tone evenness score of \(score) needs targeted treatment."
+                return "Apply vitamin C serum every morning + SPF 50+ daily. Your tone evenness score of \(score) may benefit from targeted care."
             } else if score < 60 {
-                return "Apply 10-15% vitamin C serum every morning + SPF 30+ daily. You'll see improvement in 4-6 weeks."
+                return "Apply vitamin C serum every morning + SPF 30+ daily. You may see improvement over time."
             } else {
                 return "Maintain with daily SPF 30+ and vitamin C. Your tone is already even!"
             }
         case .wrinkles:
             if score < 50 {
-                return "Start with 0.5% retinol serum 3-4x weekly at night + peptide serum daily. Your wrinkle score of \(score) needs targeted treatment."
+                return "Consider retinol products and peptide serum as recommended. Your wrinkle score of \(score) may benefit from targeted care."
             } else if score < 70 {
-                return "Use 0.5% retinol serum 2-3x weekly at night + peptide serum. You'll see improvement in 6-8 weeks."
+                return "Use retinol products as recommended with peptide serum. You may see improvement over time."
             } else {
-                return "Maintain with retinol 1-2x weekly. Your skin firmness is already good!"
+                return "Maintain with retinol as recommended. Your skin firmness is already good!"
             }
         case .hydration:
             if score < 50 {
-                return "Apply hyaluronic acid serum (5% concentration) morning and night on damp skin + ceramide moisturizer. Your hydration score of \(score) needs improvement."
+                return "Apply hyaluronic acid serum morning and night on damp skin with a ceramide moisturizer. Your hydration score of \(score) may benefit from improvement."
             } else if score < 70 {
-                return "Apply hyaluronic acid serum morning and night on damp skin. You'll see improvement in 2-3 weeks."
+                return "Apply hyaluronic acid serum morning and night on damp skin. You may see improvement over time."
             } else {
                 return "Maintain with hyaluronic acid as needed. Your hydration is already good!"
             }
         case .discoloration:
             if score < 40 {
-                return "Apply SPF 50+ daily (most important) + brightening serum with 2% hydroquinone or 10% azelaic acid. Your discoloration score of \(score) needs targeted treatment."
+                return "Apply SPF 50+ daily (most important) and consider brightening serums recommended by your dermatologist. Your discoloration score of \(score) may benefit from targeted care."
             } else if score < 60 {
-                return "Apply SPF 30+ daily + brightening serum with arbutin or kojic acid. You'll see fading in 4-6 weeks."
+                return "Apply SPF 30+ daily with brightening serums containing arbutin or kojic acid. You may see fading over time."
             } else {
                 return "Maintain with daily SPF 30+. SPF prevents new spots from forming."
             }
         case .pores:
             if score < 40 {
-                return "Use 2% salicylic acid cleanser daily + 10% niacinamide serum twice daily. Your pore visibility score of \(score) needs targeted treatment."
+                return "Use 2% salicylic acid cleanser daily + 10% niacinamide serum twice daily. Your pore visibility score of \(score) may benefit from targeted care."
             } else if score < 60 {
                 return "Use 2% salicylic acid cleanser daily + 10% niacinamide serum. You'll see improvement in 3-4 weeks."
             } else {
@@ -967,7 +985,7 @@ public struct CelebratoryResultsView: View {
             }
         case .luminance:
             if score < 40 {
-                return "Apply 15-20% vitamin C serum every morning + brightening serum. Your brightness score of \(score) needs targeted treatment."
+                return "Apply 15-20% vitamin C serum every morning + brightening serum. Your brightness score of \(score) may benefit from targeted care."
             } else if score < 60 {
                 return "Add a 10-15% vitamin C serum every morning. You'll see improvement in 3-4 weeks."
             } else {

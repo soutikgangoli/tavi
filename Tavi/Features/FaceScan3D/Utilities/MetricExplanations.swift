@@ -132,7 +132,7 @@ public struct MetricExplanations {
             return [
                 "Consult a dermatologist",
                 "Professional treatments (laser, peels)",
-                "Prescription brightening agents",
+                "Professional brightening treatments",
                 "Strict sun protection"
             ]
         }
@@ -182,7 +182,7 @@ public struct MetricExplanations {
             return [
                 "Dermatologist consultation",
                 "Laser tone correction",
-                "Prescription treatments",
+                "Professional medical treatments",
                 "IPL (Intense Pulsed Light)"
             ]
         }
@@ -232,7 +232,7 @@ public struct MetricExplanations {
         } else {
             return [
                 "Consult a dermatologist",
-                "Prescription retinoids",
+                "Professional retinoid treatments",
                 "Professional oil-control treatments",
                 "Consider hormonal factors"
             ]

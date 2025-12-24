@@ -3,7 +3,7 @@
 //  Tavi
 //
 //  Lighting control and normalization for consistent skin analysis
-//  Critical for clinical-grade accuracy across different lighting conditions
+//  Critical for high accuracy across different lighting conditions
 //
 
 import UIKit

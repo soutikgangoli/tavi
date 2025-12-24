@@ -297,8 +297,8 @@ public class PersonalizedRecommendationEngine {
         let isOver40 = (profile.age ?? 30) >= 40
 
         let suggestion = isOver40
-            ? "Consider prescription retinoid (tretinoin) from dermatologist + peptide serum + SPF 50+"
-            : "Start retinol + vitamin C serum + daily SPF 30+"
+            ? "Consider professional treatments from dermatologist + peptide serum + SPF 50+"
+            : "Start retinol products + vitamin C serum + daily SPF 30+"
 
         let timeframe = isOver40 ? "8-12 weeks" : "6-10 weeks"
 
@@ -314,9 +314,9 @@ public class PersonalizedRecommendationEngine {
             productRecommendations: [
                 ProductRecommendation(
                     category: .retinol,
-                    ingredients: ["Retinol", "Tretinoin (prescription)"],
+                    ingredients: ["Retinol", "Peptides"],
                     usage: "Night only",
-                    exampleProducts: ["Differin Gel", "Tretinoin 0.025% (prescription)"]
+                    exampleProducts: ["Differin Gel", "The Ordinary Retinol 1%"]
                 ),
                 ProductRecommendation(
                     category: .serum,
@@ -488,11 +488,11 @@ public class PersonalizedRecommendationEngine {
                 concern: .wrinkles,
                 priority: .high,
                 severity: .moderate,
-                suggestion: "Step up to prescription retinoid + peptides + antioxidants",
+                suggestion: "Consider professional skincare products recommended by your dermatologist + peptides + antioxidants",
                 expectedImpact: "Combat visible signs of aging",
                 timeframe: "8-12 weeks",
                 productRecommendations: [],
-                lifestyleTips: ["Consider professional treatments (chemical peels, microneedling)", "Consistent routine is key"]
+                lifestyleTips: ["Consider professional in-office treatments recommended by your dermatologist", "Consistent routine is key"]
             ))
         } else if age >= 50 {
             recommendations.append(Recommendation(
@@ -501,11 +501,11 @@ public class PersonalizedRecommendationEngine {
                 concern: .sagging,
                 priority: .high,
                 severity: .moderate,
-                suggestion: "Comprehensive anti-aging: Prescription retinoid + growth factors + professional treatments",
+                suggestion: "Comprehensive anti-aging: Professional treatments + growth factors + dermatologist consultation",
                 expectedImpact: "Maintain skin quality and firmness",
                 timeframe: "Ongoing",
                 productRecommendations: [],
-                lifestyleTips: ["Consider dermatologist consultation", "Explore in-office treatments (Botox, fillers, lasers)"]
+                lifestyleTips: ["Consider dermatologist consultation", "Explore professional in-office treatments"]
             ))
         }
 

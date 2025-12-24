@@ -353,7 +353,7 @@ public struct ScanConfiguration {
     /// Per POSE_REQUIREMENTS_GUIDE.md "Best Case Scenario" tier
     /// Expected confidence: 90-92% overall system confidence
     /// Note: 16x file size vs 1K, slower processing, requires optimal conditions
-    /// Use for: Pore analysis (4K critical), clinical-grade accuracy
+    /// Use for: Pore analysis (4K critical), high accuracy
     public static let highResTextureWidth: Int = 4096
     public static let highResTextureHeight: Int = 4096
 }
@@ -394,7 +394,7 @@ extension ScanConfiguration {
 
     /// Number of frames to capture per pose - BEST CASE CONFIGURATION
     /// Per POSE_REQUIREMENTS_GUIDE.md "Best Case Scenario" tier
-    /// 5 frames provides maximum averaging for clinical-grade accuracy
+    /// 5 frames provides maximum averaging for high accuracy
     /// Expected confidence boost: +15-20 percentage points vs single frame
     /// Note: Slower capture, use for highest quality needs
     public static let framesPerPoseBest: Int = 5

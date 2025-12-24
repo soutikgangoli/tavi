@@ -48,7 +48,7 @@ public struct SettingsView: View {
 
                     Toggle(AppStrings.Settings.highQualityMode, isOn: $enableHighResCapture)
                         .accessibilityLabel("Enable high quality mode (4K texture + 5 frames)")
-                        .accessibilityHint("Clinical-grade accuracy with 90-92% confidence. Uses 4x storage and slower processing.")
+                        .accessibilityHint("High accuracy with 90-92% confidence. Uses 4x storage and slower processing.")
                         .accessibilityValue(enableHighResCapture ? "On" : "Off")
                         .onChange(of: enableHighResCapture) { newValue in
                             AnalyticsManager.shared.trackSettingChanged(

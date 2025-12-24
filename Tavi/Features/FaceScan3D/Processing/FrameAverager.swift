@@ -2,7 +2,7 @@
 //  FrameAverager.swift
 //  Tavi
 //
-//  Multi-frame averaging for clinical-grade noise reduction
+//  Multi-frame averaging for high-quality noise reduction
 //  Captures 10-15 frames per pose and averages vertex positions with outlier rejection
 //
 
