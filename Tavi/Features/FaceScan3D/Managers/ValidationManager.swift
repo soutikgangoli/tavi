@@ -24,7 +24,7 @@ public class ValidationManager: ObservableObject {
     @Published public var lightEstimation: LightEstimation?
 
     /// Calibration state for lighting consistency
-    @Published public var calibrationState: CalibrationState = CalibrationState()
+    @Published public var calibrationState: ValidationCalibrationState = ValidationCalibrationState()
 
     // MARK: - Private Properties
 
@@ -150,7 +150,7 @@ public class ValidationManager: ObservableObject {
         previousQualityWarning = nil
         baselineLighting = nil
         baselineColorTemperature = nil
-        calibrationState = CalibrationState()
+        calibrationState = ValidationCalibrationState()
         lightEstimation = nil
     }
 
@@ -213,8 +213,9 @@ public class ValidationManager: ObservableObject {
 // MARK: - Supporting Types
 
 // Note: LightEstimation is defined in FaceMeshGeometry.swift
+// Note: CalibrationState (for scan calibration) is defined in CalibrationState.swift
 
-public struct CalibrationState {
+public struct ValidationCalibrationState {
     public var isCalibrated: Bool = false
     public var calibrationTimestamp: Date?
     public var calibrationQuality: Double = 0
