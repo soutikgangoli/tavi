@@ -9,6 +9,19 @@
 import Foundation
 import SwiftUI
 
+/// Trend data for a single metric over time
+public struct MetricTrend: Codable, Sendable {
+    let change: Float              // % change from last scan (positive = improvement)
+    let direction: TrendDirection  // .improving, .stable, .declining
+    let daysSinceLast: Int         // Days since last scan
+
+    public enum TrendDirection: String, Codable, Sendable {
+        case improving = "improving"
+        case stable = "stable"
+        case declining = "declining"
+    }
+}
+
 /// Emotional metrics that consumers actually understand and care about
 public struct EmotionalMetrics: Codable, Sendable {
     let skinHealthScore: Int              // 0-100 unified "how good does my skin look" score (Skin Health Index)
@@ -26,13 +39,35 @@ public struct EmotionalMetrics: Codable, Sendable {
     let evenness: Int                     // 0-100: "Is my tone even?"
     let youthfulness: Int                 // 0-100: "Do I look young?" (Lines & Wrinkles)
     let freshness: Int                    // 0-100: "Do I look fresh and awake?" (Hydration proxy)
-    let sunProtection: Int                // 0-100: "Am I protected from sun damage?"
 
-    // New: Real analyzer scores (added for Option C fix)
-    let acneScore: Int                    // 0-100: Acne/blemish clarity (from acneAnalysis)
-    let rednessScore: Int                 // 0-100: Redness control (from rednessAnalysis)
-    let oilControlScore: Int              // 0-100: Oil/shine control (from globalSpecularScore)
-    let poreScore: Int                    // 0-100: Pore visibility (from poreAnalysis)
+    // New: Real analyzer scores (nil if analyzer didn't run - no fake 75 fallbacks)
+    let acneScore: Int?                   // 0-100: Acne/blemish clarity (from acneAnalysis)
+    let blemishCount: Int?                // Exact number of detected blemishes (from acneAnalysis)
+    let rednessScore: Int?                // 0-100: Redness control (from rednessAnalysis)
+    let oilControlScore: Int?             // 0-100: Oil/shine control (from globalSpecularScore)
+    let poreScore: Int?                   // 0-100: Pore visibility (from poreAnalysis)
+
+    // Skin type classification
+    let skinType: String?                 // "Oily", "Dry", "Combination", "Normal"
+    let skinTypeConfidence: Int?          // 0-100: Classification confidence
+
+    // Under-eye darkness (dark circles)
+    let underEyeScore: Int?               // 0-100: Higher = less darkness
+    let underEyeSeverity: String?         // "None", "Mild", "Moderate", "Severe"
+
+    // Lip health
+    let lipHealthScore: Int?              // 0-100: Lip texture/hydration
+    let lipHydrationLevel: String?        // "Well Hydrated", "Normal", "Dry", "Very Dry"
+
+    // Elasticity (requires 2+ scans for accurate temporal analysis)
+    let elasticityScore: Int?             // 0-100: Skin firmness
+    let elasticityLevel: String?          // "Excellent", "Good", "Moderate", "Poor"
+    let elasticityConfidence: Int?        // 0-100: Measurement confidence
+    let elasticityIsTemporal: Bool        // true = real data (2+ scans), false = proxy estimate
+
+    // Multi-scan tracking
+    let scanNumber: Int                   // Which scan this is (1, 2, 3...)
+    let trends: [String: MetricTrend]?    // Per-metric trends from previous scan
 
     // Memberwise initializer for direct instantiation
     public init(
@@ -49,11 +84,23 @@ public struct EmotionalMetrics: Codable, Sendable {
         evenness: Int,
         youthfulness: Int,
         freshness: Int,
-        sunProtection: Int,
-        acneScore: Int,
-        rednessScore: Int,
-        oilControlScore: Int,
-        poreScore: Int
+        acneScore: Int?,
+        blemishCount: Int? = nil,
+        rednessScore: Int?,
+        oilControlScore: Int?,
+        poreScore: Int?,
+        skinType: String? = nil,
+        skinTypeConfidence: Int? = nil,
+        underEyeScore: Int? = nil,
+        underEyeSeverity: String? = nil,
+        lipHealthScore: Int? = nil,
+        lipHydrationLevel: String? = nil,
+        elasticityScore: Int? = nil,
+        elasticityLevel: String? = nil,
+        elasticityConfidence: Int? = nil,
+        elasticityIsTemporal: Bool = false,
+        scanNumber: Int = 1,
+        trends: [String: MetricTrend]? = nil
     ) {
         self.skinHealthScore = skinHealthScore
         self.primaryInsight = primaryInsight
@@ -68,11 +115,23 @@ public struct EmotionalMetrics: Codable, Sendable {
         self.evenness = evenness
         self.youthfulness = youthfulness
         self.freshness = freshness
-        self.sunProtection = sunProtection
         self.acneScore = acneScore
+        self.blemishCount = blemishCount
         self.rednessScore = rednessScore
         self.oilControlScore = oilControlScore
         self.poreScore = poreScore
+        self.skinType = skinType
+        self.skinTypeConfidence = skinTypeConfidence
+        self.underEyeScore = underEyeScore
+        self.underEyeSeverity = underEyeSeverity
+        self.lipHealthScore = lipHealthScore
+        self.lipHydrationLevel = lipHydrationLevel
+        self.elasticityScore = elasticityScore
+        self.elasticityLevel = elasticityLevel
+        self.elasticityConfidence = elasticityConfidence
+        self.elasticityIsTemporal = elasticityIsTemporal
+        self.scanNumber = scanNumber
+        self.trends = trends
     }
 
     // Custom decoder to handle backward compatibility with old saved data
@@ -93,13 +152,25 @@ public struct EmotionalMetrics: Codable, Sendable {
         evenness = try container.decode(Int.self, forKey: .evenness)
         youthfulness = try container.decode(Int.self, forKey: .youthfulness)
         freshness = try container.decode(Int.self, forKey: .freshness)
-        // Default to 75 for old data that doesn't have sunProtection
-        sunProtection = try container.decodeIfPresent(Int.self, forKey: .sunProtection) ?? 75
-        // Default to reasonable values for new fields (backward compatibility)
-        acneScore = try container.decodeIfPresent(Int.self, forKey: .acneScore) ?? 75
-        rednessScore = try container.decodeIfPresent(Int.self, forKey: .rednessScore) ?? 75
-        oilControlScore = try container.decodeIfPresent(Int.self, forKey: .oilControlScore) ?? 75
-        poreScore = try container.decodeIfPresent(Int.self, forKey: .poreScore) ?? 75
+        // nil if old data doesn't have these fields (no fake 75 fallbacks)
+        acneScore = try container.decodeIfPresent(Int.self, forKey: .acneScore)
+        blemishCount = try container.decodeIfPresent(Int.self, forKey: .blemishCount)
+        rednessScore = try container.decodeIfPresent(Int.self, forKey: .rednessScore)
+        oilControlScore = try container.decodeIfPresent(Int.self, forKey: .oilControlScore)
+        poreScore = try container.decodeIfPresent(Int.self, forKey: .poreScore)
+        // New properties (optional for backward compatibility)
+        skinType = try container.decodeIfPresent(String.self, forKey: .skinType)
+        skinTypeConfidence = try container.decodeIfPresent(Int.self, forKey: .skinTypeConfidence)
+        underEyeScore = try container.decodeIfPresent(Int.self, forKey: .underEyeScore)
+        underEyeSeverity = try container.decodeIfPresent(String.self, forKey: .underEyeSeverity)
+        lipHealthScore = try container.decodeIfPresent(Int.self, forKey: .lipHealthScore)
+        lipHydrationLevel = try container.decodeIfPresent(String.self, forKey: .lipHydrationLevel)
+        elasticityScore = try container.decodeIfPresent(Int.self, forKey: .elasticityScore)
+        elasticityLevel = try container.decodeIfPresent(String.self, forKey: .elasticityLevel)
+        elasticityConfidence = try container.decodeIfPresent(Int.self, forKey: .elasticityConfidence)
+        elasticityIsTemporal = try container.decodeIfPresent(Bool.self, forKey: .elasticityIsTemporal) ?? false
+        scanNumber = try container.decodeIfPresent(Int.self, forKey: .scanNumber) ?? 1
+        trends = try container.decodeIfPresent([String: MetricTrend].self, forKey: .trends)
     }
     
     // Custom encoder to always save with new "skinHealthScore" key
@@ -118,19 +189,37 @@ public struct EmotionalMetrics: Codable, Sendable {
         try container.encode(evenness, forKey: .evenness)
         try container.encode(youthfulness, forKey: .youthfulness)
         try container.encode(freshness, forKey: .freshness)
-        try container.encode(sunProtection, forKey: .sunProtection)
-        try container.encode(acneScore, forKey: .acneScore)
-        try container.encode(rednessScore, forKey: .rednessScore)
-        try container.encode(oilControlScore, forKey: .oilControlScore)
-        try container.encode(poreScore, forKey: .poreScore)
+        try container.encodeIfPresent(acneScore, forKey: .acneScore)
+        try container.encodeIfPresent(blemishCount, forKey: .blemishCount)
+        try container.encodeIfPresent(rednessScore, forKey: .rednessScore)
+        try container.encodeIfPresent(oilControlScore, forKey: .oilControlScore)
+        try container.encodeIfPresent(poreScore, forKey: .poreScore)
+        // New properties
+        try container.encodeIfPresent(skinType, forKey: .skinType)
+        try container.encodeIfPresent(skinTypeConfidence, forKey: .skinTypeConfidence)
+        try container.encodeIfPresent(underEyeScore, forKey: .underEyeScore)
+        try container.encodeIfPresent(underEyeSeverity, forKey: .underEyeSeverity)
+        try container.encodeIfPresent(lipHealthScore, forKey: .lipHealthScore)
+        try container.encodeIfPresent(lipHydrationLevel, forKey: .lipHydrationLevel)
+        try container.encodeIfPresent(elasticityScore, forKey: .elasticityScore)
+        try container.encodeIfPresent(elasticityLevel, forKey: .elasticityLevel)
+        try container.encodeIfPresent(elasticityConfidence, forKey: .elasticityConfidence)
+        try container.encode(elasticityIsTemporal, forKey: .elasticityIsTemporal)
+        try container.encode(scanNumber, forKey: .scanNumber)
+        try container.encodeIfPresent(trends, forKey: .trends)
     }
 
     private enum CodingKeys: String, CodingKey {
         case glowScore, skinHealthScore  // Support both for backward compatibility
         case primaryInsight, celebration, improvements, concerns
         case personalizedMessage, nextSteps, timeEstimate, radiance, smoothness
-        case evenness, youthfulness, freshness, sunProtection
-        case acneScore, rednessScore, oilControlScore, poreScore
+        case evenness, youthfulness, freshness
+        case acneScore, blemishCount, rednessScore, oilControlScore, poreScore
+        case skinType, skinTypeConfidence
+        case underEyeScore, underEyeSeverity
+        case lipHealthScore, lipHydrationLevel
+        case elasticityScore, elasticityLevel, elasticityConfidence, elasticityIsTemporal
+        case scanNumber, trends
     }
 }
 
@@ -195,10 +284,18 @@ public enum StepPriority: String, Codable, Sendable {
 public class EmotionalMetricsGenerator {
 
     /// Convert clinical Face3DMetrics to emotional, consumer-friendly metrics
+    /// - Parameters:
+    ///   - clinicalMetrics: The clinical Face3DMetrics from the analyzer
+    ///   - previousMetrics: Optional previous scan metrics for comparison
+    ///   - userProfile: Optional user profile for personalization
+    ///   - scanNumber: The scan number (1 for first scan, 2 for second, etc.) from TemporalTracker
+    ///   - trends: Per-metric trends from TemporalTracker (nil if first scan or insufficient data)
     public static func generate(
         from clinicalMetrics: Face3DMetrics?,
         previousMetrics: Face3DMetrics? = nil,
-        userProfile: UserProfile? = nil
+        userProfile: UserProfile? = nil,
+        scanNumber: Int = 1,
+        trends: [String: MetricTrend]? = nil
     ) -> EmotionalMetrics? {
 
         // Return nil if metrics are unavailable - UI will handle error state
@@ -282,11 +379,33 @@ public class EmotionalMetricsGenerator {
         // 9. Time estimate
         let timeEstimate = generateTimeEstimate(concerns: concerns)
 
-        // 10. Extract real analyzer scores (Option C fix)
-        let acneScore = Int(clinicalMetrics.acneAnalysis?.overallScore ?? 75.0)
-        let rednessScore = Int(clinicalMetrics.rednessAnalysis?.overallScore ?? 75.0)
-        let oilControlScore = Int(clinicalMetrics.globalSpecularScore ?? 75.0)
-        let poreScore = Int(clinicalMetrics.poreAnalysis?.visibilityScore ?? 75.0)
+        // 10. Extract real analyzer scores (nil if analyzer didn't run - no fake 75 fallbacks)
+        let acneScore: Int? = clinicalMetrics.acneAnalysis.map { Int($0.overallScore) }
+        let blemishCount: Int? = clinicalMetrics.acneAnalysis?.blemishCount
+        let rednessScore: Int? = clinicalMetrics.rednessAnalysis.map { Int($0.overallScore) }
+        let oilControlScore: Int? = clinicalMetrics.globalSpecularScore.map { Int($0) }
+        let poreScore: Int? = clinicalMetrics.poreAnalysis.map { Int($0.visibilityScore) }
+
+        // 11. Extract skin type classification
+        let skinType: String? = clinicalMetrics.skinTypeAnalysis?.skinType.rawValue
+        let skinTypeConfidence: Int? = clinicalMetrics.skinTypeAnalysis.map { Int($0.confidence * 100) }
+
+        // 12. Extract under-eye darkness (dark circles)
+        let underEyeScore: Int? = clinicalMetrics.regionalAnalysis?.underEyeDarkness.map { Int($0.score) }
+        let underEyeSeverity: String? = clinicalMetrics.regionalAnalysis?.underEyeDarkness?.severity.rawValue
+
+        // 13. Extract lip health
+        let lipHealthScore: Int? = clinicalMetrics.regionalAnalysis?.lipAnalysis.map { Int($0.textureScore) }
+        let lipHydrationLevel: String? = clinicalMetrics.regionalAnalysis?.lipAnalysis?.hydrationLevel.rawValue
+
+        // 14. Extract elasticity (requires 2+ scans for accurate temporal analysis)
+        let elasticityScore: Int? = clinicalMetrics.elasticityAnalysis.map { Int($0.overallScore) }
+        let elasticityLevel: String? = clinicalMetrics.elasticityAnalysis?.elasticityLevel.rawValue
+        let elasticityConfidence: Int? = clinicalMetrics.elasticityAnalysis.map { Int($0.confidence) }
+        let elasticityIsTemporal: Bool = clinicalMetrics.elasticityAnalysis?.isTemporal ?? false
+
+        // 15. Multi-scan tracking (scan number and trends from TemporalTracker)
+        // These are now passed in as parameters from MetricsOrchestrator
 
         return EmotionalMetrics(
             skinHealthScore: skinHealthScore,
@@ -302,11 +421,23 @@ public class EmotionalMetricsGenerator {
             evenness: evenness,
             youthfulness: youthfulness,
             freshness: freshness,
-            sunProtection: Int(clinicalMetrics.sunDamageAnalysis?.protectionScore ?? 75.0),
             acneScore: acneScore,
+            blemishCount: blemishCount,
             rednessScore: rednessScore,
             oilControlScore: oilControlScore,
-            poreScore: poreScore
+            poreScore: poreScore,
+            skinType: skinType,
+            skinTypeConfidence: skinTypeConfidence,
+            underEyeScore: underEyeScore,
+            underEyeSeverity: underEyeSeverity,
+            lipHealthScore: lipHealthScore,
+            lipHydrationLevel: lipHydrationLevel,
+            elasticityScore: elasticityScore,
+            elasticityLevel: elasticityLevel,
+            elasticityConfidence: elasticityConfidence,
+            elasticityIsTemporal: elasticityIsTemporal,
+            scanNumber: scanNumber,
+            trends: trends
         )
     }
 

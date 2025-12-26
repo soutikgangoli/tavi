@@ -26,8 +26,8 @@ public class MetricsOrchestrator: ObservableObject {
 
     // MARK: - Private Properties
 
-    private let metricsAnalyzer = Face3DMetricsAnalyzer()
     private let metricsVisualizer = MetricsVisualizer()
+    private let temporalTracker = TemporalTracker()
 
     /// Track the current computation task for proper cancellation
     /// CRITICAL: Task.detached doesn't inherit cancellation, so we must track and cancel it manually
@@ -75,8 +75,16 @@ public class MetricsOrchestrator: ObservableObject {
         // Cancel any previous computation task
         computationTask?.cancel()
 
-        // Capture references before detaching
-        let analyzer = self.metricsAnalyzer
+        // Load historical scans for elasticity analysis
+        let historicalScans = temporalTracker.getHistoricalScansForElasticity()
+        let scanCount = temporalTracker.getScanCount()
+        AppLogger.faceScan.info("   📊 Loaded \(historicalScans.count) historical scans for elasticity (scan #\(scanCount + 1))")
+
+        // Create analyzer with configuration including historical scans
+        var config = Face3DMetricsAnalyzer.Configuration()
+        config.historicalScans = historicalScans.isEmpty ? nil : historicalScans
+        let analyzer = Face3DMetricsAnalyzer(configuration: config)
+
         let unifiedMesh = bakeResult.unifiedMesh
         let unifiedTexture = bakeResult.albedoTexture
 
@@ -139,6 +147,11 @@ public class MetricsOrchestrator: ObservableObject {
             AppLogger.faceScan.warning("⚠️ Metrics computation returned nil")
         } else {
             AppLogger.faceScan.info("✅ Metrics computed successfully")
+
+            // Save scan to temporal tracker for trend analysis and elasticity
+            if let m = metrics {
+                saveScanToTemporalTracker(metrics: m)
+            }
         }
 
         // Update state - defer to avoid "Publishing changes from within view updates" warning
@@ -174,6 +187,73 @@ public class MetricsOrchestrator: ObservableObject {
             self?.metricVisualizations = visualizations
         }
         AppLogger.faceScan.info("✅ Generated \(visualizations.count) visualizations")
+    }
+
+    /// Save current scan to temporal tracker for trends and elasticity
+    private func saveScanToTemporalTracker(metrics: Face3DMetrics) {
+        // Generate unique scan ID
+        let scanID = UUID().uuidString
+
+        // Extract core scores for trend tracking
+        let smoothness = Float(metrics.globalRoughnessScore)
+        let radiance = metrics.glowAnalysis.map { Float($0.radianceScore) }
+        let evenness = Float(metrics.globalPigmentationScore)
+
+        // Wrinkle data for elasticity calculation
+        let wrinkleDepth: Float? = metrics.wrinkleAnalysis.flatMap { analysis in
+            guard !analysis.wrinkleRegions.isEmpty else { return nil }
+            return analysis.wrinkleRegions.map { $0.depth }.reduce(0, +) / Float(analysis.wrinkleRegions.count)
+        }
+        let wrinkleCount = metrics.wrinkleAnalysis?.wrinkleRegions.count
+
+        // Estimate hydration from global metrics (if available)
+        let hydration = metrics.hydrationEstimate.map { Float($0.overallScore) }
+
+        // Youthfulness from wrinkle analysis (overallScore: 0-100, higher = fewer wrinkles = more youthful)
+        let youthfulness = metrics.wrinkleAnalysis.map { Float($0.overallScore) }
+
+        // Optional scores
+        let acneScore = metrics.acneAnalysis.map { Float($0.overallScore) }
+        let rednessScore = metrics.rednessAnalysis.map { Float($0.overallScore) }
+        let poreScore = metrics.poreAnalysis.map { Float($0.visibilityScore) }
+
+        // Create legacy metrics dict for backwards compatibility
+        let legacyMetrics: [String: Float] = [
+            "roughness": metrics.globalRoughnessProxy,
+            "pigmentation": metrics.globalPigmentationIndex,
+            "discoloration": metrics.globalDiscolorationIndex,
+            "specular": metrics.globalSpecularProxy ?? 0,
+            "overall": Float(metrics.overallScore)
+        ]
+
+        // Save to temporal tracker
+        temporalTracker.saveScan(
+            metrics: legacyMetrics,
+            scanID: scanID,
+            smoothness: smoothness,
+            hydration: hydration,
+            radiance: radiance,
+            evenness: evenness,
+            youthfulness: youthfulness,
+            wrinkleDepth: wrinkleDepth,
+            wrinkleCount: wrinkleCount,
+            acneScore: acneScore,
+            rednessScore: rednessScore,
+            poreScore: poreScore
+        )
+
+        let scanNumber = temporalTracker.getScanCount()
+        AppLogger.faceScan.info("📊 Saved scan #\(scanNumber) to TemporalTracker")
+    }
+
+    /// Get scan count from temporal tracker
+    public func getScanCount() -> Int {
+        return temporalTracker.getScanCount()
+    }
+
+    /// Get trends for all metrics
+    public func getAllTrends() -> [String: MetricTrend] {
+        return temporalTracker.getAllTrends()
     }
 
     /// Get visualization for specific metric type

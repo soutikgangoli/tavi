@@ -169,7 +169,6 @@
 		E2EACC48B68F7FB563E125AE /* HeatmapOverlayGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96164BAB8E255D0A3B59983E /* HeatmapOverlayGenerator.swift */; };
 		E4D22E5F13924E1EAE5E45DF /* RednessAnalysis.metal in Sources */ = {isa = PBXBuildFile; fileRef = DA3860CC62964D9CBF987578 /* RednessAnalysis.metal */; };
 		E7023553B1286CFA8E225761 /* LightingCalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AA7DEA764AA593D33401375 /* LightingCalibrationView.swift */; };
-		E8698A1E30266EAAD58FD9D1 /* SunDamageAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D592CCA57900933846ADBA0C /* SunDamageAnalyzer.swift */; };
 		E9573210E80E41F28D66126F /* AppStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B487B6E8A3D4EE9BE7E2267 /* AppStrings.swift */; };
 		EA94EE066F9F1BD85D70B9B7 /* PerformanceDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CE537A4ECA3F57F8FE2444B /* PerformanceDiagnosticsView.swift */; };
 		EAF188C49DD72EF8D60AB41E /* SkinTypeClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47C210707F9500DD3822B85F /* SkinTypeClassifier.swift */; };
@@ -361,7 +360,6 @@
 		D528A9FDA601DB84BBD5792A /* CalibrationManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalibrationManager.swift; sourceTree = "<group>"; };
 		D5396817D3682E5DACAF2CD4 /* GamificationSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GamificationSystem.swift; sourceTree = "<group>"; };
 		D57D023CCA82215EDFE4BAE6 /* HeatmapView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeatmapView.swift; sourceTree = "<group>"; };
-		D592CCA57900933846ADBA0C /* SunDamageAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SunDamageAnalyzer.swift; sourceTree = "<group>"; };
 		D5C440DF51BA6E61B8C86EC6 /* AppLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
 		D994B50896F0253A7AC45F71 /* OnboardingFlow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OnboardingFlow.swift; path = Onboarding/OnboardingFlow.swift; sourceTree = "<group>"; };
 		DA3860CC62964D9CBF987578 /* RednessAnalysis.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = RednessAnalysis.metal; sourceTree = "<group>"; };
@@ -852,7 +850,6 @@
 				EC393D853D09878A720EDC0B /* RegionalAnalyzers.swift */,
 				47C210707F9500DD3822B85F /* SkinTypeClassifier.swift */,
 				2395F842D49ABD9ADA6BC372 /* AcneAnalyzer.swift */,
-				D592CCA57900933846ADBA0C /* SunDamageAnalyzer.swift */,
 				04D06A6C52C4438A958C7367 /* RednessAnalyzer.swift */,
 				D39CED2746B5AABEFB50801A /* MeshTopologyAnalyzer.swift */,
 				CF675DA44DF685061893BCF7 /* GlowAnalyzer.swift */,
@@ -1170,7 +1167,6 @@
 				8D8BAF1F2A90624B6839DED4 /* EnvironmentalAdapter.swift in Sources */,
 				573A6F63B728A5AAAF53AF50 /* DeviceCalibration.swift in Sources */,
 				DB9FAA12E3BBDE338EBC34F9 /* AcneAnalyzer.swift in Sources */,
-				E8698A1E30266EAAD58FD9D1 /* SunDamageAnalyzer.swift in Sources */,
 				F1CB69BD4D2CCA67027E7FD3 /* RednessAnalyzer.swift in Sources */,
 				ECA039220CF197F5DA10E8EF /* MeshTopologyAnalyzer.swift in Sources */,
 				742D526D1F4B3597173AA61B /* SkinToneNormalizer.swift in Sources */,

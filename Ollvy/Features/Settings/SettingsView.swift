@@ -357,7 +357,6 @@ public struct SettingsView: View {
         UserDefaults.standard.set(false, forKey: AppDefaultsKey.debugModeEnabled)
         UserDefaults.standard.set(false, forKey: AppDefaultsKey.skipOnboarding)
         UserDefaults.standard.set(true, forKey: AppDefaultsKey.useRealtimeProcessing)
-        UserDefaults.standard.set(false, forKey: AppDefaultsKey.enableSunDamageAnalysis)
 
         // Edge case detection defaults
         UserDefaults.standard.set(true, forKey: AppDefaultsKey.detectGlasses)

@@ -394,7 +394,8 @@ public struct CelebratoryResultsView: View {
                     score: emotionalMetrics.smoothness,
                     description: "Surface texture quality measured by analyzing pore size distribution, surface smoothness, and uniformity. We measure micro-variations in the skin surface to assess overall skin refinement.",
                     metricId: "profile_texture",
-                    metricType: .roughness
+                    metricType: .roughness,
+                    trend: emotionalMetrics.trends?["smoothness"]
                 )
 
                 Divider().padding(.horizontal, Designs.Spacing.lg)
@@ -405,7 +406,8 @@ public struct CelebratoryResultsView: View {
                     score: emotionalMetrics.freshness,
                     description: "Overall skin vitality measured by analyzing hydration markers and surface moisture levels. Higher scores indicate well-hydrated, healthy-looking skin with good moisture balance.",
                     metricId: "profile_hydration",
-                    metricType: .hydration
+                    metricType: .hydration,
+                    trend: emotionalMetrics.trends?["hydration"]
                 )
 
                 Divider().padding(.horizontal, Designs.Spacing.lg)
@@ -416,7 +418,8 @@ public struct CelebratoryResultsView: View {
                     score: emotionalMetrics.radiance,
                     description: "Light reflection quality measured by analyzing light reflection patterns, skin luminosity, and color vibrance across different facial zones. Higher scores indicate healthier, more luminous skin.",
                     metricId: "profile_radiance",
-                    metricType: .brightness
+                    metricType: .brightness,
+                    trend: emotionalMetrics.trends?["radiance"]
                 )
 
                 Divider().padding(.horizontal, Designs.Spacing.lg)
@@ -427,30 +430,39 @@ public struct CelebratoryResultsView: View {
                     score: emotionalMetrics.evenness,
                     description: "Skin tone uniformity calculated by measuring color consistency, detecting hyperpigmentation, and analyzing color distribution across facial regions.",
                     metricId: "profile_evenness",
-                    metricType: .pigmentation
+                    metricType: .pigmentation,
+                    trend: emotionalMetrics.trends?["evenness"]
                 )
 
-                Divider().padding(.horizontal, Designs.Spacing.lg)
+                // Only show if analyzer actually ran (no fake 75 fallbacks)
+                if let rednessScore = emotionalMetrics.rednessScore {
+                    Divider().padding(.horizontal, Designs.Spacing.lg)
 
-                profileMetricRow(
-                    title: "Redness Control",
-                    icon: SFSymbol.heartFill,
-                    score: emotionalMetrics.rednessScore,
-                    description: "Skin redness detected by analyzing red channel intensity, inflammation patterns, and vascular visibility across facial regions. Higher scores indicate calmer, less inflamed skin.",
-                    metricId: "profile_redness",
-                    metricType: .discoloration
-                )
+                    profileMetricRow(
+                        title: "Redness Control",
+                        icon: SFSymbol.heartFill,
+                        score: rednessScore,
+                        description: "Skin redness detected by analyzing red channel intensity, inflammation patterns, and vascular visibility across facial regions. Higher scores indicate calmer, less inflamed skin.",
+                        metricId: "profile_redness",
+                        metricType: .discoloration,
+                        trend: emotionalMetrics.trends?["redness"]
+                    )
+                }
 
-                Divider().padding(.horizontal, Designs.Spacing.lg)
+                // Only show if analyzer actually ran (no fake 75 fallbacks)
+                if let acneScore = emotionalMetrics.acneScore {
+                    Divider().padding(.horizontal, Designs.Spacing.lg)
 
-                profileMetricRow(
-                    title: "Acne",
-                    icon: "circle.fill",
-                    score: emotionalMetrics.acneScore,
-                    description: "Breakout assessment based on detecting surface irregularities, inflammation markers, and breakout patterns. We analyze texture variations and color changes associated with active acne. Higher scores indicate clearer skin.",
-                    metricId: "profile_acne",
-                    metricType: .pigmentation
-                )
+                    profileMetricRow(
+                        title: "Acne",
+                        icon: "circle.fill",
+                        score: acneScore,
+                        description: acneDescription,
+                        metricId: "profile_acne",
+                        metricType: .pigmentation,
+                        trend: emotionalMetrics.trends?["acne"]
+                    )
+                }
 
                 Divider().padding(.horizontal, Designs.Spacing.lg)
 
@@ -460,30 +472,85 @@ public struct CelebratoryResultsView: View {
                     score: emotionalMetrics.youthfulness,
                     description: "Wrinkle assessment using advanced 3D mesh analysis to detect surface irregularities and depth variations. Wrinkle severity is calculated by measuring the depth, length, and density of facial creases across 50,000+ data points. Higher scores indicate fewer, shallower wrinkles.",
                     metricId: "profile_wrinkles",
-                    metricType: .wrinkles
+                    metricType: .wrinkles,
+                    trend: emotionalMetrics.trends?["youthfulness"]
                 )
 
-                Divider().padding(.horizontal, Designs.Spacing.lg)
+                // Only show if analyzer actually ran (no fake 75 fallbacks)
+                if let oilControlScore = emotionalMetrics.oilControlScore {
+                    Divider().padding(.horizontal, Designs.Spacing.lg)
 
-                profileMetricRow(
-                    title: "Shine Detection",
-                    icon: "sparkle",
-                    score: emotionalMetrics.oilControlScore,
-                    description: "Surface shine measured by analyzing specular highlights and reflection patterns. Detects areas with high reflectance that may indicate oiliness or product application. Higher scores indicate less shine and better matteness.",
-                    metricId: "profile_shine",
-                    metricType: .hydration
-                )
+                    profileMetricRow(
+                        title: "Shine Detection",
+                        icon: "sparkle",
+                        score: oilControlScore,
+                        description: "Surface shine measured by analyzing specular highlights and reflection patterns. Detects areas with high reflectance that may indicate oiliness or product application. Higher scores indicate less shine and better matteness.",
+                        metricId: "profile_shine",
+                        metricType: .hydration
+                    )
+                }
 
-                Divider().padding(.horizontal, Designs.Spacing.lg)
+                // Only show if analyzer actually ran (no fake 75 fallbacks)
+                if let poreScore = emotionalMetrics.poreScore {
+                    Divider().padding(.horizontal, Designs.Spacing.lg)
 
-                profileMetricRow(
-                    title: "Pore Visibility",
-                    icon: "circle.grid.3x3.fill",
-                    score: emotionalMetrics.poreScore,
-                    description: "Pore size and visibility measured using high-frequency texture analysis. We detect enlarged pores, pore density, and size distribution across different facial zones. Higher scores indicate smaller, less visible pores.",
-                    metricId: "profile_pores",
-                    metricType: .pores
-                )
+                    profileMetricRow(
+                        title: "Pore Visibility",
+                        icon: "circle.grid.3x3.fill",
+                        score: poreScore,
+                        description: "Pore size and visibility measured using high-frequency texture analysis. We detect enlarged pores, pore density, and size distribution across different facial zones. Higher scores indicate smaller, less visible pores.",
+                        metricId: "profile_pores",
+                        metricType: .pores,
+                        trend: emotionalMetrics.trends?["pores"]
+                    )
+                }
+
+                // NEW: Skin Type Classification
+                if let skinType = emotionalMetrics.skinType {
+                    Divider().padding(.horizontal, Designs.Spacing.lg)
+
+                    skinTypeRow(skinType: skinType)
+                }
+
+                // NEW: Under-Eye Darkness (Dark Circles)
+                if let underEyeScore = emotionalMetrics.underEyeScore {
+                    Divider().padding(.horizontal, Designs.Spacing.lg)
+
+                    profileMetricRow(
+                        title: "Dark Circles",
+                        icon: "eye.fill",
+                        score: underEyeScore,
+                        description: "Under-eye darkness measured by analyzing the color intensity and contrast between the under-eye area and surrounding skin. Higher scores indicate less visible dark circles.",
+                        metricId: "profile_darkcircles",
+                        metricType: .brightness
+                    )
+                }
+
+                // NEW: Lip Health
+                if let lipHealthScore = emotionalMetrics.lipHealthScore {
+                    Divider().padding(.horizontal, Designs.Spacing.lg)
+
+                    profileMetricRow(
+                        title: "Lip Health",
+                        icon: "mouth.fill",
+                        score: lipHealthScore,
+                        description: "Lip texture and hydration measured by analyzing surface smoothness and moisture indicators. Higher scores indicate healthier, more hydrated lips.",
+                        metricId: "profile_liphealth",
+                        metricType: .hydration
+                    )
+                }
+
+                // NEW: Elasticity (with scan count messaging)
+                if let elasticityScore = emotionalMetrics.elasticityScore {
+                    Divider().padding(.horizontal, Designs.Spacing.lg)
+
+                    elasticityRow(
+                        score: elasticityScore,
+                        level: emotionalMetrics.elasticityLevel,
+                        isTemporal: emotionalMetrics.elasticityIsTemporal,
+                        scanNumber: emotionalMetrics.scanNumber
+                    )
+                }
             }
             .padding(.bottom, Designs.Spacing.md)
         }
@@ -498,7 +565,7 @@ public struct CelebratoryResultsView: View {
     }
 
     /// Expandable profile metric row showing score and analysis
-    private func profileMetricRow(title: String, icon: String, score: Int, description: String, metricId: String, metricType: AnalysisMetricType) -> some View {
+    private func profileMetricRow(title: String, icon: String, score: Int, description: String, metricId: String, metricType: AnalysisMetricType, trend: MetricTrend? = nil) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // Tappable header row
             Button {
@@ -534,6 +601,11 @@ public struct CelebratoryResultsView: View {
                         .font(AppFont.title2)
                         .foregroundColor(metricColor(score))
 
+                    // Trend indicator (between score and chevron)
+                    if let trend = trend {
+                        trendIndicator(trend)
+                    }
+
                     // Chevron
                     Image(systemName: expandedProfileMetric == metricId ? SFSymbol.chevronUp : SFSymbol.chevronDown)
                         .font(AppFont.metricLabel)
@@ -542,51 +614,193 @@ public struct CelebratoryResultsView: View {
                 .padding(Designs.Spacing.lg)
             }
 
-            // Expanded description content
-            if expandedProfileMetric == metricId {
-                VStack(alignment: .leading, spacing: Designs.Spacing.md) {
-                    // Description text
-                    Text(description)
-                        .font(AppFont.caption)
-                        .foregroundColor(Designs.Colors.textSecondary)
-                        .lineSpacing(4)
-                        .fixedSize(horizontal: false, vertical: true)
+            // Expanded description content - wrapped for smooth animation
+            VStack(spacing: 0) {
+                if expandedProfileMetric == metricId {
+                    VStack(alignment: .leading, spacing: Designs.Spacing.md) {
+                        // Description text
+                        Text(description)
+                            .font(AppFont.caption)
+                            .foregroundColor(Designs.Colors.textSecondary)
+                            .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                    // Improvement suggestion (if applicable)
-                    if let suggestion = improvementSuggestion(for: score, metricType: metricType) {
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: SFSymbol.lightbulbFill)
-                                .font(AppFont.caption)
-                                .foregroundColor(Designs.Colors.warning)
+                        // Improvement suggestion (if applicable)
+                        if let suggestion = improvementSuggestion(for: score, metricType: metricType) {
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: SFSymbol.lightbulbFill)
+                                    .font(AppFont.caption)
+                                    .foregroundColor(Designs.Colors.warning)
 
-                            Text(suggestion)
-                                .font(AppFont.caption)
-                                .foregroundColor(Designs.Colors.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
+                                Text(suggestion)
+                                    .font(AppFont.caption)
+                                    .foregroundColor(Designs.Colors.textPrimary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(Designs.Spacing.md)
+                            .background(Designs.Colors.warning.opacity(Designs.Opacity.veryLight))
+                            .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                         }
-                        .padding(Designs.Spacing.md)
-                        .background(Designs.Colors.warning.opacity(Designs.Opacity.veryLight))
-                        .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
+
+                        // Help button
+                        Button {
+                            selectedMetricForHelp = metricType
+                            hasViewedMetricHelp = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: SFSymbol.questionmarkCircle)
+                                    .font(AppFont.caption)
+                                Text("Learn more about \(title.lowercased())")
+                                    .font(AppFont.footnote)
+                            }
+                            .foregroundColor(Designs.Colors.primary)
+                        }
                     }
+                    .padding(.horizontal, Designs.Spacing.lg)
+                    .padding(.bottom, Designs.Spacing.lg)
+                    .transition(.asymmetric(
+                        insertion: .opacity.animation(.easeOut(duration: 0.2).delay(0.05)),
+                        removal: .opacity.animation(.easeIn(duration: 0.15))
+                    ))
+                }
+            }
+            .clipped()
+        }
+        .clipped()
+    }
 
-                    // Help button
-                    Button {
-                        selectedMetricForHelp = metricType
-                        hasViewedMetricHelp = true
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: SFSymbol.questionmarkCircle)
-                                .font(AppFont.caption)
-                            Text("Learn more about \(title.lowercased())")
-                                .font(AppFont.footnote)
-                        }
-                        .foregroundColor(Designs.Colors.primary)
+    /// Trend indicator showing direction and percentage change
+    @ViewBuilder
+    private func trendIndicator(_ trend: MetricTrend) -> some View {
+        HStack(spacing: 2) {
+            // Trend arrow
+            Image(systemName: trendArrowIcon(trend.direction))
+                .font(AppFont.caption)
+                .foregroundColor(trendColor(trend.direction))
+
+            // Percentage change (only show if >= 1%)
+            if abs(trend.change) >= 1 {
+                Text("\(Int(abs(trend.change)))%")
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(trendColor(trend.direction).opacity(Designs.Opacity.veryLight))
+        .clipShape(Capsule())
+    }
+
+    /// Get arrow icon for trend direction
+    private func trendArrowIcon(_ direction: MetricTrend.TrendDirection) -> String {
+        switch direction {
+        case .improving:
+            return "arrow.up"
+        case .declining:
+            return "arrow.down"
+        case .stable:
+            return "minus"
+        }
+    }
+
+    /// Get color for trend direction
+    private func trendColor(_ direction: MetricTrend.TrendDirection) -> Color {
+        switch direction {
+        case .improving:
+            return Designs.Colors.success
+        case .declining:
+            return Designs.Colors.error
+        case .stable:
+            return Designs.Colors.textSecondary
+        }
+    }
+
+    /// Skin type classification row (not a score, just a category)
+    private func skinTypeRow(skinType: String) -> some View {
+        HStack(spacing: Designs.Spacing.md) {
+            // Icon
+            ZStack {
+                Circle()
+                    .fill(Designs.Colors.primary.opacity(Designs.Opacity.veryLight))
+                    .frame(width: Designs.Sizes.iconMedium, height: Designs.Sizes.iconMedium)
+
+                Image(systemName: "face.smiling.fill")
+                    .font(AppFont.cardTitle)
+                    .foregroundColor(Designs.Colors.primary)
+            }
+
+            // Title and skin type
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Skin Type")
+                    .font(AppFont.subheadingPrimary)
+                    .foregroundColor(Designs.Colors.textPrimary)
+
+                Text(skinType)
+                    .font(AppFont.footnote)
+                    .foregroundColor(Designs.Colors.textSecondary)
+            }
+
+            Spacer()
+        }
+        .padding(Designs.Spacing.lg)
+    }
+
+    /// Elasticity row with messaging about temporal analysis
+    /// Only shows when temporal analysis is available (2+ scans)
+    private func elasticityRow(score: Int, level: String?, isTemporal: Bool, scanNumber: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: Designs.Spacing.md) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(metricColor(score).opacity(Designs.Opacity.veryLight))
+                        .frame(width: Designs.Sizes.iconMedium, height: Designs.Sizes.iconMedium)
+
+                    Image(systemName: "hand.raised.fill")
+                        .font(AppFont.cardTitle)
+                        .foregroundColor(metricColor(score))
+                }
+
+                // Title and level
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Elasticity")
+                        .font(AppFont.subheadingPrimary)
+                        .foregroundColor(Designs.Colors.textPrimary)
+
+                    if let levelText = level {
+                        Text(levelText)
+                            .font(AppFont.footnote)
+                            .foregroundColor(Designs.Colors.textSecondary)
                     }
                 }
-                .padding(.horizontal, Designs.Spacing.lg)
-                .padding(.bottom, Designs.Spacing.lg)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+
+                Spacer()
+
+                // Score
+                Text("\(score)")
+                    .font(AppFont.title2)
+                    .foregroundColor(metricColor(score))
             }
+            .padding(Designs.Spacing.lg)
+
+            // Informational note about temporal analysis (no confidence shown)
+            HStack(spacing: 4) {
+                Image(systemName: "info.circle")
+                    .font(AppFont.caption)
+                    .foregroundColor(Designs.Colors.textSecondary)
+
+                if scanNumber == 2 {
+                    Text("Now available with enough scan data")
+                        .font(AppFont.caption)
+                        .foregroundColor(Designs.Colors.textSecondary)
+                } else {
+                    Text("Based on \(scanNumber) scans")
+                        .font(AppFont.caption)
+                        .foregroundColor(Designs.Colors.textSecondary)
+                }
+            }
+            .padding(.horizontal, Designs.Spacing.lg)
+            .padding(.bottom, Designs.Spacing.md)
         }
     }
 
@@ -842,6 +1056,16 @@ public struct CelebratoryResultsView: View {
     }
 
     // MARK: - Helpers
+
+    /// Acne description with blemish count if available
+    private var acneDescription: String {
+        let baseDescription = "Breakout assessment based on detecting surface irregularities, inflammation markers, and breakout patterns."
+        if let count = emotionalMetrics.blemishCount {
+            return "\(baseDescription) We detected \(count) blemish\(count == 1 ? "" : "es"). Higher scores indicate clearer skin."
+        } else {
+            return "\(baseDescription) Higher scores indicate clearer skin."
+        }
+    }
 
     private var scoreInterpretationTitle: String {
         switch emotionalMetrics.skinHealthScore {

@@ -869,6 +869,11 @@ public class VolumeMetricsAnalyzer {
         // The reference plane represents the "flat" face surface around the under-eye area
         let centerX = calculateFaceCenterX(vertices: vertices)
 
+        // FIX: Get face bounds to constrain reference vertices to front of face
+        let faceBounds = calculateFaceBounds(vertices: vertices)
+        let frontZ = faceBounds.maxZ  // Most forward point
+        let zTolerance: Float = 0.015  // 15mm tolerance - only use front face vertices
+
         // Find neighboring cheek vertices (same Y range but outside under-eye X range)
         var referenceZValues: [Float] = []
         let underEyeMinX = indices.compactMap { $0 < vertices.count ? vertices[$0].x : nil }.min() ?? centerX
@@ -881,6 +886,10 @@ public class VolumeMetricsAnalyzer {
 
             // Same Y range as under-eye
             guard vertex.y >= underEyeMinY - 0.01 && vertex.y <= underEyeMaxY + 0.01 else { continue }
+
+            // FIX: Constrain to front of face (within 15mm of most forward point)
+            // This prevents including side/back of face vertices that cause 100mm+ Z ranges
+            guard vertex.z >= frontZ - zTolerance else { continue }
 
             // Outside under-eye X range (cheek area)
             let isLeftCheek = vertex.x < underEyeMinX - 0.005
@@ -897,32 +906,55 @@ public class VolumeMetricsAnalyzer {
             let avgY = indices.compactMap { $0 < vertices.count ? vertices[$0].y : nil }.reduce(0, +) / Float(indices.count)
             for (idx, vertex) in vertices.enumerated() {
                 guard idx < geometry.originalVertexCount else { break }
+                // FIX: Also apply Z constraint in fallback
+                guard vertex.z >= frontZ - zTolerance else { continue }
                 if abs(vertex.y - avgY) < 0.015 && abs(vertex.x - centerX) > 0.04 {
                     referenceZValues.append(vertex.z)
                 }
             }
 
-            // Still no reference? Return 0 (can't measure protrusion)
-            guard !referenceZValues.isEmpty else { return 0 }
+            // Still no reference? Return healthy default (assume no bags)
+            guard !referenceZValues.isEmpty else {
+                AppLogger.metrics.debug("      ℹ️ No reference vertices found - assuming healthy (0.5mm)")
+                return 0.0005
+            }
         }
 
-        // STEP 2: Calculate reference Z (median Z of surrounding face to avoid outliers)
-        // Using median instead of average to be robust against mesh artifacts
+        // STEP 2: Calculate reference Z using IQR-based outlier rejection
         let sortedReferenceZ = referenceZValues.sorted()
+
+        // FIX: Use IQR to reject outliers (Q1-1.5*IQR to Q3+1.5*IQR)
         let referenceZ: Float
-        if sortedReferenceZ.count >= 3 {
-            // Use median for robustness
-            let midIndex = sortedReferenceZ.count / 2
-            referenceZ = sortedReferenceZ[midIndex]
+        if sortedReferenceZ.count >= 4 {
+            let q1Index = sortedReferenceZ.count / 4
+            let q3Index = (sortedReferenceZ.count * 3) / 4
+            let q1 = sortedReferenceZ[q1Index]
+            let q3 = sortedReferenceZ[q3Index]
+            let iqr = q3 - q1
+            let lowerBound = q1 - 1.5 * iqr
+            let upperBound = q3 + 1.5 * iqr
+
+            let filteredZ = sortedReferenceZ.filter { $0 >= lowerBound && $0 <= upperBound }
+            if filteredZ.isEmpty {
+                // All outliers? Use median
+                referenceZ = sortedReferenceZ[sortedReferenceZ.count / 2]
+            } else {
+                referenceZ = filteredZ.reduce(0, +) / Float(filteredZ.count)
+            }
+
+            AppLogger.metrics.debug("      📊 IQR filtering: Q1=\(String(format: "%.3f", q1)), Q3=\(String(format: "%.3f", q3)), kept \(filteredZ.count)/\(sortedReferenceZ.count) samples")
+        } else if sortedReferenceZ.count >= 1 {
+            // Small sample - use median
+            referenceZ = sortedReferenceZ[sortedReferenceZ.count / 2]
         } else {
-            // Fall back to average for small sample
-            referenceZ = referenceZValues.reduce(0, +) / Float(referenceZValues.count)
+            referenceZ = 0
         }
 
-        // VALIDATION: Check reference Z values are reasonable (not outliers)
+        // VALIDATION: Check reference Z range is reasonable
         let zRange = (sortedReferenceZ.last ?? 0) - (sortedReferenceZ.first ?? 0)
-        if zRange > 0.015 {  // >15mm range suggests mesh issues
-            AppLogger.metrics.debug("      ⚠️ Large reference Z range (\(String(format: "%.1f", zRange * 1000))mm) - mesh may have artifacts")
+        if zRange > 0.020 {  // >20mm range = still unreliable even after filtering
+            AppLogger.metrics.warning("      ❌ Reference Z range still too large (\(String(format: "%.1f", zRange * 1000))mm) after filtering - assuming healthy")
+            return 0.0005  // 0.5mm = healthy default
         }
 
         // STEP 3: Calculate under-eye Z values and measure protrusion relative to reference

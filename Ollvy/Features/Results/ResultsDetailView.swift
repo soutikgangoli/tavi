@@ -1092,52 +1092,11 @@ struct ResultsDetailView: View {
             .background(Designs.Colors.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
 
-            // MARK: - Clinical Data (Collapsible - Sun Damage to Scan Quality)
+            // MARK: - Clinical Data (Collapsible - Redness to Scan Quality)
             DisclosureGroup(
                 isExpanded: $isClinicalDataExpanded,
                 content: {
                     VStack(alignment: .leading, spacing: Designs.Spacing.lg) {
-                        // Sun Damage Analysis
-                        if let sunDamage = metrics.sunDamageAnalysis {
-                            VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
-                                HStack {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.orange.opacity(Designs.Opacity.veryLight))
-                                            .frame(width: Designs.Sizes.iconSmall, height: Designs.Sizes.iconSmall)
-                                        Image(systemName: "sun.max.fill")
-                                            .foregroundColor(.orange)
-                                            .font(AppFont.footnote)
-                                    }
-                                    Text("Sun Damage Analysis")
-                                        .font(AppFont.subheadingPrimary)
-                                        .foregroundColor(Designs.Colors.textPrimary)
-                                }
-
-                                Text("Protection Score: \(Int(sunDamage.protectionScore))/100")
-                                    .font(AppFont.bodySecondary)
-                                    .foregroundColor(Designs.Colors.textSecondary)
-
-                                Text("Damage Level: \(sunDamage.damageLevel.rawValue)")
-                                    .font(AppFont.bodySecondary)
-                                    .foregroundColor(Designs.Colors.textSecondary)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("• Pigmentation Health: \(Int(sunDamage.pigmentationHealth))%")
-                                    Text("• Photoaging Resistance: \(Int(sunDamage.photoagingResistance))%")
-                                    Text("• Texture Health: \(Int(sunDamage.textureHealth))%")
-                                    Text("• Vascular Health: \(Int(sunDamage.vascularHealth))%")
-                                    Text("• Pore Health: \(Int(sunDamage.poreHealth))%")
-                                }
-                                .font(AppFont.caption)
-                                .foregroundColor(Designs.Colors.textSecondary)
-                            }
-                            .padding(Designs.Spacing.md)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Designs.Colors.background)
-                            .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.sm))
-                        }
-
                         // Redness Analysis
                         if let redness = metrics.rednessAnalysis {
                             VStack(alignment: .leading, spacing: Designs.Spacing.sm) {

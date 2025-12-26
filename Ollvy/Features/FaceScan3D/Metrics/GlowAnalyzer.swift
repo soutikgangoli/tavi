@@ -98,10 +98,53 @@ public class GlowAnalyzer {
         static let specularHighlightWeight: Float = 0.30
 
         // Specular detection - RELATIVE threshold (multiplier over baseline)
-        // Indian skin (Fitzpatrick III-IV) has brightness ~0.45-0.65
-        // Using 1.25x baseline ensures specular detection works for all skin tones
-        static let specularRelativeMultiplier: Float = 1.25
+        // Base multiplier - actual value is skin-tone-adaptive (see specularMultiplier function)
+        static let specularRelativeMultiplierBase: Float = 1.25
         static let specularMaxThreshold: Float = 0.95  // Never exceed this
+    }
+
+    /// Skin tone normalizer for adaptive thresholds
+    private let skinToneNormalizer = SkinToneNormalizer()
+
+    // MARK: - Input Validation
+
+    /// Validate and clamp input metric to prevent cascading NaN/Inf failures
+    /// Returns a safe value within expectedRange, logging warnings for outliers
+    private func validateAndClamp(_ value: Float, name: String, expectedRange: ClosedRange<Float> = 0...100) -> Float {
+        // Handle NaN/Inf
+        if value.isNaN || value.isInfinite {
+            AppLogger.metrics.error("❌ Glow input '\(name)' is NaN/Inf - using 50")
+            return 50.0
+        }
+
+        // Handle out-of-range values
+        if value < expectedRange.lowerBound || value > expectedRange.upperBound {
+            let clamped = min(max(value, expectedRange.lowerBound), expectedRange.upperBound)
+            AppLogger.metrics.warning("⚠️ Glow input '\(name)'=\(String(format: "%.1f", value)) outside \(expectedRange) - clamped to \(String(format: "%.1f", clamped))")
+            return clamped
+        }
+
+        return value
+    }
+
+    /// Get specular multiplier based on skin tone
+    /// Lighter skin has more visible specular highlights, needs higher threshold
+    private func specularMultiplier(for skinTone: SkinToneCategory) -> Float {
+        let multiplier: Float
+
+        switch skinTone {
+        case .veryLight, .light:
+            multiplier = 1.35  // Higher threshold - more natural shine visible
+        case .medium:
+            multiplier = 1.30
+        case .mediumDark:
+            multiplier = 1.25  // Original calibration (Indian skin)
+        case .dark, .veryDark:
+            multiplier = 1.20  // Lower threshold - harder to detect shine
+        }
+
+        AppLogger.metrics.debug("✨ Specular multiplier for \(skinTone.rawValue): \(String(format: "%.2f", multiplier))")
+        return multiplier
     }
 
     // MARK: - Public API
@@ -138,17 +181,21 @@ public class GlowAnalyzer {
         // PART 1: SKIN HEALTH SCORE (Overall Health Index)
         // ONLY HIGH-CONFIDENCE METRICS - NO AGE-RELATED FEATURES
 
-        let smoothness = existingMetrics.globalRoughnessScore
-        let evenness = existingMetrics.globalPigmentationScore
+        // VALIDATION: Sanity check input metrics to prevent cascade failures
+        // If any input is NaN/Inf or out-of-range, clamp to safe value
+        let smoothness = validateAndClamp(existingMetrics.globalRoughnessScore, name: "smoothness")
+        let evenness = validateAndClamp(existingMetrics.globalPigmentationScore, name: "evenness")
         // FIXED: globalDiscolorationScore already returns higher = better (more uniform skin)
         // No inversion needed - uniform skin (80) should contribute 80, not 20
-        let clarity = existingMetrics.globalDiscolorationScore
+        let clarity = validateAndClamp(existingMetrics.globalDiscolorationScore, name: "clarity")
 
         // Get additional HIGH-CONFIDENCE metrics
         // FIXED: rednessAnalysis.overallScore already returns higher = better (less inflammation)
         // No inversion needed - healthy skin (95) should contribute 95, not 5
-        let redness = existingMetrics.rednessAnalysis?.overallScore ?? 50.0
-        let acne = existingMetrics.acneAnalysis?.overallScore ?? 80.0
+        let redness = validateAndClamp(existingMetrics.rednessAnalysis?.overallScore ?? 50.0, name: "redness")
+        let acne = validateAndClamp(existingMetrics.acneAnalysis?.overallScore ?? 80.0, name: "acne")
+
+        AppLogger.metrics.info("   Glow inputs validated: smoothness=\(String(format: "%.1f", smoothness)), evenness=\(String(format: "%.1f", evenness)), clarity=\(String(format: "%.1f", clarity))")
 
         // Get radiance from LAB analysis
         let radiancePreview = analyzeLABLightness(texture: analysisTexture) * 100.0
@@ -618,6 +665,7 @@ public class GlowAnalyzer {
     }
 
     /// CPU fallback for specular highlight analysis
+    /// IMPROVED: Uses skin-tone-adaptive specular multiplier
     private func analyzeSpecularHighlightsCPU(texture: UIImage) -> Float {
         guard let cgImage = texture.cgImage else { return 0 }
 
@@ -635,11 +683,15 @@ public class GlowAnalyzer {
         // STEP 1: Calculate baseline skin brightness from center region
         let baselineBrightness = calculateBaselineBrightness(ptr: ptr, width: width, height: height, dataLength: CFDataGetLength(data))
 
-        // STEP 2: Calculate RELATIVE specular threshold
-        // Specular highlights are 25% brighter than baseline skin
+        // STEP 2: Detect skin tone for adaptive specular threshold
+        let skinTone = skinToneNormalizer.detectSkinTone(texture: texture)
+        let adaptiveMultiplier = specularMultiplier(for: skinTone)
+
+        // STEP 3: Calculate RELATIVE specular threshold (skin-tone-aware)
+        // Specular highlights are brighter than baseline skin by adaptive multiplier
         let specularThreshold = min(
             Configuration.specularMaxThreshold,
-            baselineBrightness * Configuration.specularRelativeMultiplier
+            baselineBrightness * adaptiveMultiplier
         )
 
         // STEP 3: Count pixels above relative threshold

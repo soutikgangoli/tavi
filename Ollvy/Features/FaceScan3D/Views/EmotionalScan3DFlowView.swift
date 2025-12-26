@@ -1082,10 +1082,16 @@ public struct EmotionalScan3DFlowView: View {
                 let previousClinicalMetrics = await loadPreviousClinicalMetrics()
                 let loadedPreviousMetrics = await loadPreviousMetrics()
 
+                // Get temporal tracking data for scan number and trends display
+                let scanNumber = viewModel.getScanCount() + 1  // +1 because this scan hasn't been saved yet
+                let trends = viewModel.getAllTrends()
+
                 guard let emotional = EmotionalMetricsGenerator.generate(
                     from: computedClinicalMetrics,
                     previousMetrics: previousClinicalMetrics,
-                    userProfile: userProfile
+                    userProfile: userProfile,
+                    scanNumber: scanNumber,
+                    trends: trends.isEmpty ? nil : trends
                 ) else {
                     throw ScanError.metricsGenerationFailed
                 }

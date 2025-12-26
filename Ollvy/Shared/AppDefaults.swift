@@ -56,9 +56,6 @@ enum AppDefaultsKey {
 
     // MARK: - Feature Detection Settings
 
-    /// Enable sun damage analysis
-    static let enableSunDamageAnalysis = "enableSunDamageAnalysis"
-
     /// Detect glasses during validation
     static let detectGlasses = "detectGlasses"
 

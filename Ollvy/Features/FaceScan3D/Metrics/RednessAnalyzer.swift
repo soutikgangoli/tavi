@@ -121,20 +121,36 @@ public class RednessAnalyzer {
     private let skinToneNormalizer = SkinToneNormalizer()
 
     /// Get adaptive redness thresholds based on skin tone
-    /// FIXED: Indian skin (medium/mediumDark) has natural warmth, needs higher thresholds
-    /// to avoid false positives for inflammation
+    /// IMPROVED: More granular categories with diagnostic logging
+    /// Each skin tone gets individual thresholds to reduce false positives
     private func getAdaptiveThresholds(skinTone: SkinToneCategory) -> (moderate: Float, severe: Float) {
+        let thresholds: (moderate: Float, severe: Float)
+
         switch skinTone {
-        case .medium, .mediumDark:
-            // Indian skin (Fitzpatrick III-IV) - higher tolerance for natural warmth
-            return (moderate: 0.25, severe: 0.38)
-        case .dark, .veryDark:
-            // Very dark skin - use darkening detection, not redness
-            return (moderate: 0.22, severe: 0.35)
-        case .veryLight, .light:
-            // Light skin - standard thresholds
-            return (moderate: 0.20, severe: 0.30)
+        case .veryLight:
+            // Very fair skin (Fitzpatrick I) - redness shows easily
+            thresholds = (moderate: 0.18, severe: 0.28)
+        case .light:
+            // Light skin (Fitzpatrick II) - standard sensitivity
+            thresholds = (moderate: 0.20, severe: 0.30)
+        case .medium:
+            // Medium skin (Fitzpatrick III - South Asian, Mediterranean) - natural warmth
+            thresholds = (moderate: 0.24, severe: 0.36)
+        case .mediumDark:
+            // Medium-dark (Fitzpatrick IV - Indian, Middle Eastern) - higher tolerance
+            thresholds = (moderate: 0.28, severe: 0.40)
+        case .dark:
+            // Dark skin (Fitzpatrick V) - use darkening detection primarily
+            thresholds = (moderate: 0.25, severe: 0.38)
+        case .veryDark:
+            // Very dark skin (Fitzpatrick VI) - darkening-based detection
+            thresholds = (moderate: 0.22, severe: 0.35)
         }
+
+        AppLogger.metrics.debug("🎨 Redness thresholds for \(skinTone.rawValue):")
+        AppLogger.metrics.debug("   moderate=\(String(format: "%.2f", thresholds.moderate)), severe=\(String(format: "%.2f", thresholds.severe))")
+
+        return thresholds
     }
 
     // MARK: - Public API

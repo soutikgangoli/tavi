@@ -324,10 +324,6 @@ public struct InsightsTabView: View {
 
                         VStack(spacing: 12) {
                             metricProgressBar(label: "Skin Health", score: Double(metrics.glowAnalysis?.skinHealthScore ?? 0), color: gsSoftYellow)
-
-                            if let sunDamage = metrics.sunDamageAnalysis {
-                                metricProgressBar(label: "Sun Protection", score: Double(sunDamage.protectionScore), color: gsSoftYellow)
-                            }
                         }
                     }
                 }
@@ -1007,12 +1003,6 @@ public struct InsightsTabView: View {
             if change < -3 { declines.append(("Roughness", abs(change))) }
         }
 
-        if let latestDamage = latest.skinMetrics?.sunDamageAnalysis?.protectionScore,
-           let prevDamage = previous.skinMetrics?.sunDamageAnalysis?.protectionScore {
-            let change = Double(latestDamage - prevDamage)
-            if change < -3 { declines.append(("Sun Damage", abs(change))) }
-        }
-
         if let latestRedness = latest.skinMetrics?.rednessAnalysis?.overallScore,
            let prevRedness = previous.skinMetrics?.rednessAnalysis?.overallScore {
             let change = Double(latestRedness - prevRedness)
@@ -1037,7 +1027,6 @@ public struct InsightsTabView: View {
             ("Hydration", avgMoisture, qualityLabel(avgMoisture)),
             ("Skin Health", Double(metrics.glowAnalysis?.skinHealthScore ?? 0), qualityLabel(Double(metrics.glowAnalysis?.skinHealthScore ?? 0))),
             ("Pigmentation", Double(metrics.globalPigmentationScore), qualityLabel(Double(metrics.globalPigmentationScore))),
-            ("Sun Damage", Double(metrics.sunDamageAnalysis?.protectionScore ?? 0), qualityLabel(Double(metrics.sunDamageAnalysis?.protectionScore ?? 0))),
             ("Redness", Double(metrics.rednessAnalysis?.overallScore ?? 0), qualityLabel(Double(metrics.rednessAnalysis?.overallScore ?? 0))),
             ("Roughness", Double(metrics.globalRoughnessScore), qualityLabel(Double(metrics.globalRoughnessScore)))
         ]
@@ -1330,10 +1319,6 @@ public struct InsightsTabView: View {
             recommendations.append("Use vitamin C serum in the morning to even out skin tone")
         }
 
-        if let sunDamage = metrics.sunDamageAnalysis, sunDamage.protectionScore < 75 {
-            recommendations.append("Apply SPF 30+ daily and reapply every 2 hours when outdoors")
-        }
-
         if let pores = metrics.poreAnalysis, pores.visibilityScore < 70 {
             recommendations.append("Use a BHA (salicylic acid) product 2-3 times weekly to minimize pore appearance")
         }
@@ -1418,10 +1403,6 @@ public struct InsightsTabView: View {
 
         if metrics.globalPigmentationScore < 70 {
             products.append(("Vitamin C Brightening Serum", "Brightening"))
-        }
-
-        if let sunDamage = metrics.sunDamageAnalysis, sunDamage.protectionScore < 75 {
-            products.append(("Broad Spectrum SPF 50", "Sun Protection"))
         }
 
         if let pores = metrics.poreAnalysis, pores.visibilityScore < 70 {

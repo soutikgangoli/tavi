@@ -28,13 +28,12 @@ public class Face3DMetricsAnalyzer {
     private let skinElasticityAnalyzer: SkinElasticityAnalyzer
     private let volumeMetricsAnalyzer: VolumeMetricsAnalyzer
     private let regionalAnalyzers: RegionalAnalyzers
-    // REMOVED: SkinTypeClassifier - was running every scan but result never displayed anywhere
+    private let skinTypeClassifier: SkinTypeClassifier
     private let wrinkleAnalyzer: WrinkleAnalyzer
     private let poreAnalyzer: PoreAnalyzer
     private let acneAnalyzer: AcneAnalyzer
     private let rednessAnalyzer: RednessAnalyzer
     private let topologyAnalyzer: MeshTopologyAnalyzer
-    private let sunDamageAnalyzer: SunDamageAnalyzer
     private let hydrationEstimator: HydrationEstimator
 
     // Normalizers for diverse skin tones and lighting conditions
@@ -88,13 +87,12 @@ public class Face3DMetricsAnalyzer {
         self.skinElasticityAnalyzer = SkinElasticityAnalyzer()
         self.volumeMetricsAnalyzer = VolumeMetricsAnalyzer()
         self.regionalAnalyzers = RegionalAnalyzers()
-        // REMOVED: SkinTypeClassifier initialization
+        self.skinTypeClassifier = SkinTypeClassifier()
         self.wrinkleAnalyzer = WrinkleAnalyzer()
         self.poreAnalyzer = PoreAnalyzer()
         self.acneAnalyzer = AcneAnalyzer()
         self.rednessAnalyzer = RednessAnalyzer()
         self.topologyAnalyzer = MeshTopologyAnalyzer()
-        self.sunDamageAnalyzer = SunDamageAnalyzer()
         self.hydrationEstimator = HydrationEstimator()
         self.skinToneNormalizer = SkinToneNormalizer()
         self.colorTempNormalizer = ColorTemperatureNormalizer()
@@ -318,23 +316,11 @@ public class Face3DMetricsAnalyzer {
                 AppLogger.metrics.info("   ✅ Using temporal elasticity analysis (2+ scans)")
             }
         } else {
-            // Proxy analysis (first-time user, lower confidence 40%)
-            // Use wrinkle depth from analysis if available, otherwise use roughness proxy
-            let wrinkleDepthForProxy: Float
-            if let wrinkles = wrinkleAnalysis, !wrinkles.wrinkleRegions.isEmpty {
-                wrinkleDepthForProxy = wrinkles.wrinkleRegions.map { $0.depth }.reduce(0, +) / Float(wrinkles.wrinkleRegions.count)
-            } else {
-                wrinkleDepthForProxy = globalResults.roughness * 0.001
-            }
-
-            elasticityAnalysis = skinElasticityAnalyzer.estimateElasticityProxy(
-                currentWrinkleDepth: wrinkleDepthForProxy,
-                roughnessScore: globalResults.roughnessScore,
-                texture: textureImage
-            )
-            if let elasticity = elasticityAnalysis {
-                AppLogger.metrics.info("   💡 Using elasticity proxy (first-time user, \(String(format: "%.0f", elasticity.confidence))% confidence)")
-            }
+            // No elasticity analysis for first-time users
+            // Elasticity requires 2+ scans separated by 3+ days for accurate temporal analysis
+            // No proxy/placeholder values - only real data
+            elasticityAnalysis = nil
+            AppLogger.metrics.info("   ℹ️ Elasticity analysis skipped (requires 2+ scans for temporal analysis)")
         }
 
         // Step 5c: Compute remaining advanced metrics
@@ -493,6 +479,16 @@ public class Face3DMetricsAnalyzer {
         let avgMoisture = Float(moistureValues.reduce(0, +)) / Float(moistureValues.count)
         let _ = avgMoisture * 100  // Convert 0-1 to 0-100 score (reserved for future use)
 
+        // Run skin type classification
+        AppLogger.metrics.info("   🔍 Running SkinTypeClassifier...")
+        let skinTypeAnalysis = skinTypeClassifier.classifySkinType(
+            texture: textureImage,
+            roughnessScore: globalResults.roughnessScore,
+            specularity: globalResults.specular ?? 0.5
+        )
+        AppLogger.metrics.info("   - Skin Type: \(skinTypeAnalysis.skinType.rawValue) (confidence: \(String(format: "%.0f", skinTypeAnalysis.confidence * 100))%)")
+        AppLogger.metrics.info("      Oiliness: \(String(format: "%.0f", skinTypeAnalysis.oilinessScore))%, Dryness: \(String(format: "%.0f", skinTypeAnalysis.drynessScore))%")
+
         // Recalculate overall score with normalized values using new 5-metric formula
         // ONLY includes high-confidence metrics (70%+ confidence):
         // - Smoothness (85%), Pores (70-90%), Pigmentation (80%), Discoloration (80%), Acne (75-85%)
@@ -531,35 +527,13 @@ public class Face3DMetricsAnalyzer {
             elasticityAnalysis: elasticityAnalysis,
             volumeAnalysis: volumeAnalysis,
             regionalAnalysis: regionalAnalysis,
-            skinTypeAnalysis: nil,  // REMOVED: SkinTypeClassifier (was never displayed)
+            skinTypeAnalysis: skinTypeAnalysis,
             wrinkleAnalysis: wrinkleAnalysis,
             poreAnalysis: poreAnalysis,
             acneAnalysis: acneAnalysis,
             rednessAnalysis: rednessAnalysis,
             topologyAnalysis: topologyAnalysis
         )
-
-        // Sun damage analysis (runs AFTER normalization to use corrected scores)
-        // Check if sun damage analysis is enabled in settings
-        let enableSunDamageAnalysis = UserDefaults.standard.bool(forKey: AppDefaultsKey.enableSunDamageAnalysis)
-
-        let sunDamageAnalysis: SunDamageAnalysis?
-        if enableSunDamageAnalysis {
-            AppLogger.metrics.info("   🔍 Running SunDamageAnalyzer...")
-            sunDamageAnalysis = sunDamageAnalyzer.analyzeSunDamage(
-                from: metrics,
-                skinTone: skinTone
-            )
-
-            if let sunDamage = sunDamageAnalysis {
-                AppLogger.metrics.info("   - Sun Protection: \(String(format: "%.1f", sunDamage.protectionScore))/100 (\(sunDamage.damageLevel.rawValue))")
-                AppLogger.metrics.info("      Components: Pigmentation \(String(format: "%.0f", sunDamage.pigmentationHealth))%, Photoaging \(String(format: "%.0f", sunDamage.photoagingResistance))%, Texture \(String(format: "%.0f", sunDamage.textureHealth))%")
-                AppLogger.metrics.info("      Normalized for \(skinTone.rawValue): ✅")
-            }
-        } else {
-            AppLogger.metrics.info("   ⏭️  Skipping SunDamageAnalyzer (disabled in settings)")
-            sunDamageAnalysis = nil
-        }
 
         // Glow and radiance analysis (differentiated measurements)
         // IMPORTANT: Uses same RAW textureImage as all other analyzers for consistency
@@ -646,14 +620,13 @@ public class Face3DMetricsAnalyzer {
             elasticityAnalysis: metrics.elasticityAnalysis,
             volumeAnalysis: metrics.volumeAnalysis,
             regionalAnalysis: metrics.regionalAnalysis,
-            skinTypeAnalysis: nil,  // REMOVED: SkinTypeClassifier
+            skinTypeAnalysis: metrics.skinTypeAnalysis,
             wrinkleAnalysis: metrics.wrinkleAnalysis,
             poreAnalysis: metrics.poreAnalysis,
             acneAnalysis: metrics.acneAnalysis,
             rednessAnalysis: metrics.rednessAnalysis,
             hydrationEstimate: hydrationEstimate,
             topologyAnalysis: metrics.topologyAnalysis,
-            sunDamageAnalysis: sunDamageAnalysis,
             glowAnalysis: glowAnalysis
         )
 

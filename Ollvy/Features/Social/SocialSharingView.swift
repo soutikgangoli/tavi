@@ -620,7 +620,6 @@ struct SocialButton: View {
             evenness: 82,
             youthfulness: 90,
             freshness: 86,
-            sunProtection: 78,
             acneScore: 85,
             rednessScore: 80,
             oilControlScore: 75,

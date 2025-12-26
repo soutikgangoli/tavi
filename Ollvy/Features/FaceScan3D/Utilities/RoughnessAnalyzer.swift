@@ -17,16 +17,57 @@ public class RoughnessAnalyzer {
     // MARK: - Configuration
 
     public struct Configuration {
-        /// High-pass filter radius (pixels)
+        /// High-pass filter radius (pixels) - default for unknown resolution
         public var filterRadius: Int = 3
 
-        /// Normalization factor for energy
-        /// ADJUSTED: Reduced from 2.0 to 0.5 to produce realistic proxy values
-        /// Analysis showed normalizedEnergy ~0.19-0.62 (high-pass/luminance ratio)
-        /// With 2.0: produced 0.38-1.0 proxy (too high, causing 0 smoothness scores)
-        /// With 0.5: produces 0.10-0.31 proxy (within expected range)
+        /// Normalization factor for energy - now device-aware
+        /// Different cameras have different noise characteristics affecting high-pass energy
         /// Expected proxy ranges: <0.08 excellent, 0.08-0.25 good, 0.25-0.50 moderate, >0.50 rough
-        public var normalizationFactor: Float = 0.5
+        public var normalizationFactor: Float {
+            let model = DeviceCapabilities.current.iPhoneModel
+            let factor: Float
+
+            switch model {
+            // iPhone 12 series (A14) - slightly less aggressive
+            case .iPhone12, .iPhone12Mini, .iPhone12Pro, .iPhone12ProMax:
+                factor = 0.45
+            // iPhone 13 series (A15)
+            case .iPhone13, .iPhone13Mini, .iPhone13Pro, .iPhone13ProMax:
+                factor = 0.45
+            // iPhone 14 series (A15/A16) - standard
+            case .iPhone14, .iPhone14Plus, .iPhone14Pro, .iPhone14ProMax:
+                factor = 0.50
+            // iPhone 15 series (A16/A17)
+            case .iPhone15, .iPhone15Plus, .iPhone15Pro, .iPhone15ProMax:
+                factor = 0.50
+            // iPhone 16 series (A18) - newer sensor captures more detail
+            case .iPhone16, .iPhone16Plus, .iPhone16Pro, .iPhone16ProMax:
+                factor = 0.55
+            // iPhone 17 series (A19)
+            case .iPhone17, .iPhone17Air, .iPhone17Pro, .iPhone17ProMax:
+                factor = 0.55
+            default:
+                factor = 0.50  // Safe default
+            }
+
+            AppLogger.mesh.debug("📱 Normalization factor for \(String(describing: model)): \(factor)")
+            return factor
+        }
+
+        /// Calculate resolution-aware filter radius
+        /// At 4096x4096, 3px ≈ 0.075mm physical size on face
+        public func filterRadiusForResolution(width: Int, height: Int) -> Int {
+            let referenceSize: Float = 4096.0
+            let actualSize = Float(max(width, height))
+            let scale = actualSize / referenceSize
+
+            // Scale radius proportionally, with min 2 and max 8
+            let scaledRadius = max(2, min(8, Int((3.0 * scale).rounded())))
+
+            AppLogger.mesh.debug("📐 Filter radius: \(scaledRadius)px for \(width)x\(height) texture (scale=\(String(format: "%.2f", scale)))")
+
+            return scaledRadius
+        }
 
         /// Enable regional consistency validation for higher confidence
         public var enableRegionalValidation: Bool = true
@@ -106,8 +147,17 @@ public class RoughnessAnalyzer {
         var meanHighpass: Float = 0
         vDSP_meanv(absHighpass, 1, &meanHighpass, vDSP_Length(absHighpass.count))
 
+        // SAFE LUMINANCE DIVISION: Prevent division by near-zero causing inflated roughness
+        let minLuminance: Float = 0.05  // 5% minimum to avoid division issues
+        let safeMeanLuma = max(meanLuma, minLuminance)
+
+        if meanLuma < minLuminance {
+            AppLogger.mesh.warning("⚠️ Low luminance detected: \(String(format: "%.3f", meanLuma)) < \(minLuminance)")
+            AppLogger.mesh.warning("   → Using floor value \(minLuminance) to prevent inflated roughness")
+        }
+
         // Normalized energy = mean(abs(highpass)) / mean(luma)
-        let normalizedEnergy = meanLuma > 0 ? meanHighpass / meanLuma : 0
+        let normalizedEnergy = meanHighpass / safeMeanLuma
 
         // Scale to 0-1 range
         let roughnessProxy = min(normalizedEnergy * configuration.normalizationFactor, 1.0)
@@ -413,8 +463,24 @@ public class RoughnessAnalyzer {
             var meanHighpass: Float = 0
             vDSP_meanv(absHighpass, 1, &meanHighpass, vDSP_Length(absHighpass.count))
 
+            // SAFE LUMINANCE DIVISION: Prevent division by near-zero causing inflated roughness
+            let minLuminance: Float = 0.05  // 5% minimum to avoid division issues
+            let safeMeanLuma = max(meanLuma, minLuminance)
+
+            if meanLuma < minLuminance {
+                AppLogger.mesh.warning("⚠️ Low luminance detected: \(String(format: "%.3f", meanLuma)) < \(minLuminance)")
+                AppLogger.mesh.warning("   → Using floor value \(minLuminance) to prevent inflated roughness")
+                AppLogger.mesh.warning("   → Possible causes: shadow, very dark skin, underexposed region")
+            }
+
             // Normalized energy = mean(abs(highpass)) / mean(luma)
-            let normalizedEnergy = meanLuma > 0 ? meanHighpass / meanLuma : 0
+            let normalizedEnergy = meanHighpass / safeMeanLuma
+
+            // Diagnostic: flag suspiciously high values
+            if normalizedEnergy > 0.5 {
+                AppLogger.mesh.warning("⚠️ High normalizedEnergy: \(String(format: "%.3f", normalizedEnergy))")
+                AppLogger.mesh.warning("   meanHighpass=\(String(format: "%.3f", meanHighpass)), safeMeanLuma=\(String(format: "%.3f", safeMeanLuma))")
+            }
 
             // Scale to 0-1 range
             let roughnessProxy = min(normalizedEnergy * configuration.normalizationFactor, 1.0)
@@ -556,18 +622,44 @@ public class RoughnessAnalyzer {
         }
 
         // Second pass: Fill gaps by extending from nearest valid neighbor
-        // Use simple flood-fill approach with 4-connectivity
+        // FIXED: Scale search radius based on texture size (2% of smallest dimension)
+        let maxSearchRadius = max(10, min(cropWidth, cropHeight) / 50)
+        AppLogger.mesh.debug("   Edge extension: maxSearchRadius=\(maxSearchRadius)px for \(cropWidth)×\(cropHeight) crop")
+
+        // Calculate ROI average color as final fallback (prevents black pixels)
+        var avgR: Float = 0, avgG: Float = 0, avgB: Float = 0
+        var validCount = 0
+        for idx in 0..<pixelMask.count {
+            if pixelMask[idx] {
+                let offset = idx * 4
+                avgR += Float(rgbaData[offset])
+                avgG += Float(rgbaData[offset + 1])
+                avgB += Float(rgbaData[offset + 2])
+                validCount += 1
+            }
+        }
+        if validCount > 0 {
+            avgR /= Float(validCount)
+            avgG /= Float(validCount)
+            avgB /= Float(validCount)
+            AppLogger.mesh.debug("   ROI average color fallback: R=\(Int(avgR)) G=\(Int(avgG)) B=\(Int(avgB))")
+        }
+
+        var gapsFilled = 0
+        var usedFallback = 0
+
         for y in 0..<cropHeight {
             for x in 0..<cropWidth {
                 let idx = y * cropWidth + x
                 if !pixelMask[idx] {
-                    // Find nearest valid pixel (simple 3×3 search)
-                    var nearestR: UInt8 = 0, nearestG: UInt8 = 0, nearestB: UInt8 = 0
-                    var found = false
+                    // Start with average color as fallback (instead of black)
+                    var nearestR: UInt8 = UInt8(avgR)
+                    var nearestG: UInt8 = UInt8(avgG)
+                    var nearestB: UInt8 = UInt8(avgB)
+                    var foundNeighbor = false
 
                     // Search in expanding square around current pixel
-                    for radius in 1...5 {
-                        if found { break }
+                    searchLoop: for radius in 1...maxSearchRadius {
                         for dy in -radius...radius {
                             for dx in -radius...radius {
                                 let ny = y + dy
@@ -579,23 +671,28 @@ public class RoughnessAnalyzer {
                                         nearestR = rgbaData[offset + 0]
                                         nearestG = rgbaData[offset + 1]
                                         nearestB = rgbaData[offset + 2]
-                                        found = true
-                                        break
+                                        foundNeighbor = true
+                                        break searchLoop
                                     }
                                 }
                             }
-                            if found { break }
                         }
                     }
 
-                    // Fill with nearest neighbor value
+                    // Fill with nearest neighbor or fallback average
                     let offset = idx * 4
                     rgbaData[offset + 0] = nearestR
                     rgbaData[offset + 1] = nearestG
                     rgbaData[offset + 2] = nearestB
                     rgbaData[offset + 3] = 255
+                    gapsFilled += 1
+                    if !foundNeighbor { usedFallback += 1 }
                 }
             }
+        }
+
+        if gapsFilled > 0 {
+            AppLogger.mesh.debug("   Filled \(gapsFilled) gap pixels (\(usedFallback) used average fallback)")
         }
 
         AppLogger.mesh.debug("✅ Created cropped ROI image: \(cropWidth)×\(cropHeight) from \(sample.pixels.count) pixels")

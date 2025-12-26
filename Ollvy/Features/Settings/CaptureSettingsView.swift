@@ -55,7 +55,6 @@ struct CaptureSettingsView: View {
     @AppStorage(AppDefaultsKey.useRealtimeProcessing) private var useRealtimeProcessing = true
     @AppStorage(AppDefaultsKey.enableHapticFeedback) private var enableHapticFeedback = true
     @AppStorage(AppDefaultsKey.lightingStrictness) private var lightingStrictnessRaw = LightingStrictness.strict.rawValue
-    @AppStorage(AppDefaultsKey.enableSunDamageAnalysis) private var enableSunDamageAnalysis = false
 
     // Edge Case Detection Settings
     @AppStorage(AppDefaultsKey.detectGlasses) private var detectGlasses: Bool = true
@@ -120,9 +119,6 @@ struct CaptureSettingsView: View {
 
             // Lighting Guide (all devices)
             lightingGuideSection
-
-            // Sun Damage Analysis (all devices)
-            sunDamageAnalysisSection
 
             // Edge Case Detection (all devices)
             edgeCaseDetectionSection
@@ -287,39 +283,6 @@ struct CaptureSettingsView: View {
                 Text("• Off: No blocking, warnings only")
             }
             .font(Designs.Typography.caption)
-        }
-    }
-
-    // MARK: - Sun Damage Analysis Section
-
-    private var sunDamageAnalysisSection: some View {
-        Section {
-            Toggle(isOn: $enableSunDamageAnalysis) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("Sun Damage Analysis")
-                            .font(Designs.Typography.body)
-
-                        Badge(text: "Advanced", color: Designs.Colors.warning)
-                    }
-
-                    Text("Assess UV protection and photoaging indicators")
-                        .font(Designs.Typography.caption)
-                        .foregroundColor(Designs.Colors.textSecondary)
-                }
-            }
-            .accessibilityLabel("Sun damage analysis")
-            .accessibilityHint("Analyzes pigmentation, photoaging, texture, redness, and pores to assess UV damage")
-            .accessibilityValue(enableSunDamageAnalysis ? "On" : "Off")
-            .tint(Designs.Colors.accent)
-            .onChange(of: enableSunDamageAnalysis) { _, newValue in
-                if newValue {
-                    HapticManager.shared.light()
-                }
-            }
-        } footer: {
-            Text("Analyzes 5 indicators (pigmentation, photoaging, texture, redness, pores) to assess sun damage. Normalized for all skin tones. Disable if you prefer not to track UV damage.")
-                .font(Designs.Typography.caption)
         }
     }
 

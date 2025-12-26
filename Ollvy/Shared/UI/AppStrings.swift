@@ -197,7 +197,6 @@ public enum AppStrings {
         public static let acne = "Acne"
         public static let redness = "Redness"
         public static let oilControl = "Oil Control"
-        public static let sunProtection = "Sun Protection"
         public static let skinHealth = "Skin Health"
     }
 

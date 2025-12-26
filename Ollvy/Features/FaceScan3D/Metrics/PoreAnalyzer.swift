@@ -92,6 +92,37 @@ public struct PoreAnalysis: Codable, Sendable {
 /// Pore analyzer using texture frequency analysis
 class PoreAnalyzer {
 
+    // MARK: - Resolution-Aware Pore Thresholds
+
+    /// Resolution-aware pore size thresholds
+    /// Based on 4096x4096 reference resolution (1 pixel ≈ 0.025mm on face)
+    private struct PoreThresholds {
+        let small: Float      // Upper bound for "small" pores
+        let medium: Float     // Upper bound for "medium" pores
+        let large: Float      // Upper bound for "large" pores
+        // Anything above large is "veryLarge"
+
+        /// Calculate thresholds for given texture resolution
+        static func forResolution(width: Int, height: Int) -> PoreThresholds {
+            // Reference: At 4096x4096, thresholds are 3, 6, 10 pixels
+            let referenceSize: Float = 4096.0
+            let actualSize = Float(max(width, height))
+            let scale = actualSize / referenceSize
+
+            AppLogger.metrics.debug("📐 Pore thresholds: resolution=\(width)x\(height), scale=\(String(format: "%.2f", scale))")
+            AppLogger.metrics.debug("   small<\(String(format: "%.1f", 3.0 * scale))px, medium<\(String(format: "%.1f", 6.0 * scale))px, large<\(String(format: "%.1f", 10.0 * scale))px")
+
+            return PoreThresholds(
+                small: 3.0 * scale,
+                medium: 6.0 * scale,
+                large: 10.0 * scale
+            )
+        }
+
+        /// Default thresholds (for unknown resolution or legacy paths)
+        static let `default` = PoreThresholds(small: 3.0, medium: 6.0, large: 10.0)
+    }
+
     // MARK: - GPU Acceleration
 
     /// Metal analyzer for GPU-accelerated analysis (if available)
@@ -201,18 +232,19 @@ class PoreAnalyzer {
         // Calculate average pore size
         let averageSize = poreDetectionResult.averagePoreSize
 
-        // Classify pores by size
+        // Classify pores by size using resolution-aware thresholds
+        let cpuPoreThresholds = PoreThresholds.forResolution(width: cgImage.width, height: cgImage.height)
         var smallCount = 0
         var mediumCount = 0
         var largeCount = 0
         var veryLargeCount = 0
 
         for pore in poreDetectionResult.poreLocations {
-            if pore.size < 3.0 {
+            if pore.size < cpuPoreThresholds.small {
                 smallCount += 1
-            } else if pore.size < 6.0 {
+            } else if pore.size < cpuPoreThresholds.medium {
                 mediumCount += 1
-            } else if pore.size < 10.0 {
+            } else if pore.size < cpuPoreThresholds.large {
                 largeCount += 1
             } else {
                 veryLargeCount += 1
@@ -315,8 +347,9 @@ class PoreAnalyzer {
             let faceAreaCm2: Float = 100.0
             let density = Float(poreDetectionResult.poreCount) / faceAreaCm2
 
-            // Classify pores by size
-            let sizeDistribution = classifyPoreSizes(pores: poreDetectionResult.poreLocations)
+            // Classify pores by size using resolution-aware thresholds
+            let poreThresholds = PoreThresholds.forResolution(width: width, height: height)
+            let sizeDistribution = classifyPoreSizes(pores: poreDetectionResult.poreLocations, thresholds: poreThresholds)
 
             // Analyze regional distribution
             let regionalScores = try analyzeRegionalPoresGPU(
@@ -392,11 +425,13 @@ class PoreAnalyzer {
         let faceAreaCm2: Float = 100.0
         let density = Float(poreDetectionResult.poreCount) / faceAreaCm2
 
+        // Use resolution-aware thresholds for CPU fallback path
+        let fallbackThresholds = PoreThresholds.forResolution(width: cgImage.width, height: cgImage.height)
         var smallCount = 0, mediumCount = 0, largeCount = 0, veryLargeCount = 0
         for pore in poreDetectionResult.poreLocations {
-            if pore.size < 3.0 { smallCount += 1 }
-            else if pore.size < 6.0 { mediumCount += 1 }
-            else if pore.size < 10.0 { largeCount += 1 }
+            if pore.size < fallbackThresholds.small { smallCount += 1 }
+            else if pore.size < fallbackThresholds.medium { mediumCount += 1 }
+            else if pore.size < fallbackThresholds.large { largeCount += 1 }
             else { veryLargeCount += 1 }
         }
 
@@ -629,19 +664,19 @@ class PoreAnalyzer {
         return count > 0 ? totalEnergy / Float(count) : 0
     }
 
-    /// Classify pores by size
-    private func classifyPoreSizes(pores: [(x: Int, y: Int, size: Float)]) -> PoreSizeDistribution {
+    /// Classify pores by size using resolution-aware thresholds
+    private func classifyPoreSizes(pores: [(x: Int, y: Int, size: Float)], thresholds: PoreThresholds) -> PoreSizeDistribution {
         var smallCount = 0
         var mediumCount = 0
         var largeCount = 0
         var veryLargeCount = 0
 
         for pore in pores {
-            if pore.size < 3.0 {
+            if pore.size < thresholds.small {
                 smallCount += 1
-            } else if pore.size < 6.0 {
+            } else if pore.size < thresholds.medium {
                 mediumCount += 1
-            } else if pore.size < 10.0 {
+            } else if pore.size < thresholds.large {
                 largeCount += 1
             } else {
                 veryLargeCount += 1

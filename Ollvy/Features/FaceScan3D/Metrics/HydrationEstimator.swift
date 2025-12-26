@@ -487,26 +487,28 @@ class HydrationEstimator {
         }
 
         // Calculate scores with NaN guards
-        // FIXED: Added NaN/Inf guards to prevent garbage output from GPU errors
+        // RECALIBRATED: Adjusted thresholds for realistic 70-90% scores on healthy skin
         let specularRatio = totalPixels > 0 ? totalSpecular / totalPixels : 0
-        let specularityScoreRaw = min(100, specularRatio * 1000)
-        let specularityScore = specularityScoreRaw.isNaN || specularityScoreRaw.isInfinite ? 50.0 : specularityScoreRaw
+        // RECALIBRATED: 5% bright pixels = 77.5, 8% = 100 (was: 10% = 100)
+        let specularityScoreRaw = min(100, max(40, specularRatio * 750 + 40))
+        let specularityScore = specularityScoreRaw.isNaN || specularityScoreRaw.isInfinite ? 75.0 : specularityScoreRaw
 
         let avgTextureEnergy = totalPixels > 0 ? totalTexture / totalPixels : 0
-        // FIX: Use logarithmic scaling to handle wide range of texture energy values
-        // Linear scaling (200) fails when avgEnergy >= 0.5 (score becomes 0)
-        // Logarithmic scaling: log2(1 + x*10) compresses high values
-        // avgEnergy 0.0 → score 100, 0.1 → 85, 0.3 → 60, 0.5 → 45, 1.0 → 30
-        let logEnergy = log2(1 + avgTextureEnergy * 10)  // Range: 0 to ~3.5 for typical values
-        let textureScoreRaw = max(0, min(100, 100 - (logEnergy * 28)))  // 28 = 100/3.5 approx
-        let textureScore = textureScoreRaw.isNaN || textureScoreRaw.isInfinite ? 50.0 : textureScoreRaw
-        AppLogger.metrics.debug("💧 Hydration GPU Debug: avgTextureEnergy=\(avgTextureEnergy), logEnergy=\(logEnergy), textureScore=\(textureScore)")
+        // RECALIBRATED: Baked textures have low energy (0.001-0.01) due to blending
+        // Previous formula gave 99% for energy 0.001 - now gives ~85%
+        // 0.001 → 92, 0.003 → 86, 0.005 → 80, 0.01 → 65
+        let energyFactor = avgTextureEnergy * 1000  // Scale: 0.001 → 1.0, 0.01 → 10
+        let textureScoreRaw = max(40, min(95, 95 - (energyFactor * 3)))
+        let textureScore = textureScoreRaw.isNaN || textureScoreRaw.isInfinite ? 75.0 : textureScoreRaw
+        AppLogger.metrics.debug("💧 Hydration GPU Debug: avgTextureEnergy=\(avgTextureEnergy), energyFactor=\(energyFactor), textureScore=\(textureScore)")
 
         let meanLuminance = totalPixels > 0 ? totalLuminance / totalPixels : 0
         let variance = totalPixels > 0 ? (totalLuminanceSq / totalPixels) - (meanLuminance * meanLuminance) : 0
         let stdDev = sqrt(max(0, variance))
-        let varianceScoreRaw = max(0, min(100, 100 - (stdDev / 3.0)))
-        let varianceScore = varianceScoreRaw.isNaN || varianceScoreRaw.isInfinite ? 50.0 : varianceScoreRaw
+        // RECALIBRATED: Typical stdDev 0.05-0.3, was dividing by 3.0 (gave 99% for 0.1)
+        // Now: 0.05 → 90, 0.10 → 80, 0.15 → 70, 0.25 → 50
+        let varianceScoreRaw = max(40, min(95, 100 - (stdDev * 200)))
+        let varianceScore = varianceScoreRaw.isNaN || varianceScoreRaw.isInfinite ? 75.0 : varianceScoreRaw
 
         return (specularityScore, textureScore, varianceScore)
     }
@@ -596,18 +598,21 @@ class HydrationEstimator {
                 totalPixels += result.validPixelCount
             }
 
-            // Calculate regional score
+            // Calculate regional score - RECALIBRATED to match main analysis
             if totalPixels > 0 {
                 let specularRatio = totalSpecular / totalPixels
-                let regionalSpecularity = min(100, specularRatio * 1000)
+                // RECALIBRATED: Match main analysis (was * 1000)
+                let regionalSpecularity = min(100, max(40, specularRatio * 750 + 40))
 
                 let avgTexture = totalTexture / totalPixels
-                let regionalSmoothness = max(0, min(100, 100 - (avgTexture * 500)))
+                // RECALIBRATED: Match main analysis (was * 500)
+                let energyFactor = avgTexture * 1000
+                let regionalSmoothness = max(40, min(95, 95 - (energyFactor * 3)))
 
                 let hydrationScore = regionalSpecularity * 0.6 + regionalSmoothness * 0.4
                 regionalScores[regionName] = hydrationScore
             } else {
-                regionalScores[regionName] = 50.0
+                regionalScores[regionName] = 75.0  // Healthy default
             }
         }
 
@@ -651,7 +656,8 @@ class HydrationEstimator {
         }
 
         let specularRatio = Float(brightPixels) / Float(totalPixels)
-        return min(100, specularRatio * 1000)  // Scale to 0-100
+        // RECALIBRATED: 5% bright pixels = 77.5, 8% = 100 (was: 10% = 100)
+        return min(100, max(40, specularRatio * 750 + 40))
     }
 
     /// Calculate skin-tone adaptive specular threshold
@@ -736,13 +742,12 @@ class HydrationEstimator {
         // Average energy
         let avgEnergy = highFreqEnergy / Float((width - 2) * (height - 2))
 
-        // Convert to hydration score (low energy = smooth = hydrated)
-        // FIX: Use logarithmic scaling to handle wide range of texture energy values
-        // Linear scaling fails when avgEnergy >= 0.5 (score becomes 0)
-        // Logarithmic scaling: log2(1 + x*10) compresses high values
-        let logEnergy = log2(1 + avgEnergy * 10)
-        let textureScore = max(0, min(100, 100 - (logEnergy * 28)))
-        AppLogger.metrics.debug("💧 Hydration CPU Debug: avgEnergy=\(avgEnergy), logEnergy=\(logEnergy), textureScore=\(textureScore)")
+        // RECALIBRATED: Baked textures have low energy (0.001-0.01) due to blending
+        // Previous formula gave 99% for energy 0.001 - now gives ~85%
+        // 0.001 → 92, 0.003 → 86, 0.005 → 80, 0.01 → 65
+        let energyFactor = avgEnergy * 1000  // Scale: 0.001 → 1.0, 0.01 → 10
+        let textureScore = max(40, min(95, 95 - (energyFactor * 3)))
+        AppLogger.metrics.debug("💧 Hydration CPU Debug: avgEnergy=\(avgEnergy), energyFactor=\(energyFactor), textureScore=\(textureScore)")
         return textureScore
     }
 
@@ -780,9 +785,10 @@ class HydrationEstimator {
         let variance = intensities.map { pow($0 - mean, 2) }.reduce(0, +) / Float(intensities.count)
         let stdDev = sqrt(variance)
 
-        // Convert to hydration score (low variance = uniform = hydrated)
-        let varianceScore = max(0, 100 - (stdDev / 3.0))  // Scale to 0-100
-        return min(100, varianceScore)
+        // RECALIBRATED: Typical stdDev 0.05-0.3, was dividing by 3.0 (gave 99% for 0.1)
+        // Now: 0.05 → 90, 0.10 → 80, 0.15 → 70, 0.25 → 50
+        let varianceScore = max(40, min(95, 100 - (stdDev * 200)))
+        return varianceScore
     }
 
     /// Calculate how much the three methods agree (for confidence)

@@ -739,14 +739,6 @@ public struct MetricDetailView: View {
                     color: Designs.Colors.secondary
                 )
 
-                if let sunDamage = metrics.sunDamageAnalysis {
-                    MetricBar(
-                        label: "Sun Protection",
-                        score: Double(sunDamage.protectionScore),
-                        color: Designs.Colors.metricPigmentationColors[1]
-                    )
-                }
-
                 if let topology = metrics.topologyAnalysis {
                     MetricBar(
                         label: "Mesh Quality",

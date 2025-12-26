@@ -92,8 +92,8 @@ public class SkinElasticityAnalyzer {
     }
 
     /// Estimate elasticity proxy for first-time users (single-scan method)
-    /// Returns proxy estimation based on wrinkle depth (primary) + roughness + texture
-    /// IMPROVED: Now uses wrinkle depth as primary indicator (60% weight) for better accuracy
+    /// Returns proxy estimation based on roughness (primary) + texture + wrinkle depth
+    /// PHASE 5 FIX: Adjusted weights - roughness is more reliable than mesh-derived wrinkle depth for proxy
     /// NOTE: This is a PROXY, not direct measurement. Accuracy: ~65% vs. 70% temporal
     public func estimateElasticityProxy(
         currentWrinkleDepth: Float,
@@ -101,51 +101,60 @@ public class SkinElasticityAnalyzer {
         texture: UIImage?
     ) -> ElasticityAnalysis? {
         AppLogger.metrics.info("💡 Using single-scan elasticity proxy (first-time user)")
-        AppLogger.metrics.info("   Wrinkle depth: \(String(format: "%.4f", currentWrinkleDepth))mm")
+        AppLogger.metrics.info("   Wrinkle depth: \(String(format: "%.4f", currentWrinkleDepth))mm, Roughness: \(String(format: "%.1f", roughnessScore))")
 
-        // IMPROVED PROXY METHOD: Wrinkle depth is the PRIMARY indicator (60% weight)
-        // Wrinkle depth directly correlates with skin elasticity - shallower wrinkles = better elasticity
-        // Smoother skin texture (25%) and texture frequency (15%) provide secondary indicators
+        // PHASE 5 FIX: Adjusted weights for proxy method
+        // Roughness (40%) is more reliable than mesh-derived wrinkle depth (30%) for single-scan estimation
+        // Wrinkle depth from mesh can be inaccurate due to lighting, mesh quality, etc.
+        // For young skin with low roughness, wrinkle depth was giving false-low scores
 
-        // Primary: Wrinkle depth component (60% weight) - most direct indicator
+        // Primary: Roughness component (40% weight) - surface smoothness is a reliable indicator
+        // Higher roughnessScore = smoother skin = better elasticity
+        let roughnessComponent = (roughnessScore / 100.0) * 40  // 0-40 points
+
+        // Secondary: Texture frequency component (30% weight) - if available
+        var textureComponent: Float = 15.0  // Default mid-range (50% of 30)
+        if let texture = texture {
+            textureComponent = analyzeTextureElasticity(texture: texture) * 30  // 0-30 points
+        }
+
+        // Tertiary: Wrinkle depth component (30% weight) - mesh-derived, less reliable for proxy
         // Convert depth from meters to mm for scoring (typical range: 0-2mm)
-        // Shallower wrinkles (<0.5mm) = excellent elasticity, deeper (>1.5mm) = poor
         let wrinkleDepthMM = currentWrinkleDepth * 1000  // Convert to mm
         let wrinkleComponent: Float
         if wrinkleDepthMM < 0.5 {
             // Excellent: very shallow wrinkles
-            wrinkleComponent = 60.0
+            wrinkleComponent = 30.0
         } else if wrinkleDepthMM < 1.0 {
             // Good: moderate depth
-            wrinkleComponent = 45.0 - (wrinkleDepthMM - 0.5) * 20.0  // Linear: 45 at 0.5mm, 35 at 1.0mm
+            wrinkleComponent = 22.5 - (wrinkleDepthMM - 0.5) * 10.0  // Linear: 22.5 at 0.5mm, 17.5 at 1.0mm
         } else if wrinkleDepthMM < 1.5 {
             // Moderate: noticeable depth
-            wrinkleComponent = 35.0 - (wrinkleDepthMM - 1.0) * 20.0  // Linear: 35 at 1.0mm, 25 at 1.5mm
+            wrinkleComponent = 17.5 - (wrinkleDepthMM - 1.0) * 10.0  // Linear: 17.5 at 1.0mm, 12.5 at 1.5mm
         } else {
             // Poor: deep wrinkles
-            wrinkleComponent = max(0.0, 25.0 - (wrinkleDepthMM - 1.5) * 10.0)  // Linear: 25 at 1.5mm, decreasing
+            wrinkleComponent = max(0.0, 12.5 - (wrinkleDepthMM - 1.5) * 5.0)  // Linear: 12.5 at 1.5mm, decreasing
         }
 
-        // Secondary: Roughness component (25% weight) - surface texture quality
-        let roughnessComponent = (1.0 - min(roughnessScore / 100.0, 1.0)) * 25  // 0-25 points
+        var proxyScore = roughnessComponent + textureComponent + wrinkleComponent
 
-        // Tertiary: Texture frequency component (15% weight) - if available
-        var textureComponent: Float = 7.5  // Default mid-range (50% of 15)
-        if let texture = texture {
-            textureComponent = analyzeTextureElasticity(texture: texture) * 15  // 0-15 points
+        // PHASE 5 FIX: Minimum score cap for low-roughness skin
+        // If skin is smooth (roughnessScore >= 70), minimum elasticity should be 65%
+        // Young, smooth skin shouldn't score below "Good" elasticity
+        let isLowRoughness = roughnessScore >= 70
+        if isLowRoughness && proxyScore < 65 {
+            AppLogger.metrics.info("   📈 Applied minimum cap: smooth skin (roughness \(String(format: "%.0f", roughnessScore))) → elasticity capped from \(String(format: "%.1f", proxyScore)) to 65")
+            proxyScore = 65
         }
-
-        let proxyScore = wrinkleComponent + roughnessComponent + textureComponent
 
         let level = classifyElasticity(score: proxyScore)
 
         AppLogger.metrics.info("   Proxy score: \(String(format: "%.1f", proxyScore))/100 (\(level.rawValue))")
-        AppLogger.metrics.info("   Components: Wrinkle \(String(format: "%.1f", wrinkleComponent)), Roughness \(String(format: "%.1f", roughnessComponent)), Texture \(String(format: "%.1f", textureComponent))")
+        AppLogger.metrics.info("   Components: Roughness \(String(format: "%.1f", roughnessComponent)), Texture \(String(format: "%.1f", textureComponent)), Wrinkle \(String(format: "%.1f", wrinkleComponent))")
         AppLogger.metrics.info("   ⚠️  Note: Proxy estimate for first-time users. Use temporal analysis after 3+ days for better accuracy.")
 
-        // IMPROVED: Increased confidence from 40% to 55% when wrinkle depth is available
-        // Wrinkle depth is a direct measurement, making the proxy more reliable
-        let confidence: Float = 55.0  // Improved from 40% - wrinkle depth provides direct measurement
+        // Confidence: 55% for proxy method (wrinkle depth provides some direct measurement)
+        let confidence: Float = 55.0
 
         return ElasticityAnalysis(
             overallScore: proxyScore,

@@ -109,10 +109,20 @@ public class AcneAnalyzer {
 
     // MARK: - Configuration
 
-    // ADJUSTED: Increased minBlemishSize from 2.0 to 4.0 to reduce false positives
-    // At 2048px downsampled resolution, 2px catches texture noise/pores
-    private let minBlemishSize: Float = 4.0      // pixels (was 2.0)
+    // ADJUSTED: Increased minBlemishSize from 4.0 to 8.0 to reduce false positives
+    // At 2048px downsampled resolution, real acne is typically 8+ pixels
+    // Smaller spots are usually pores, texture, or noise
+    private let minBlemishSize: Float = 8.0      // pixels (was 4.0, originally 2.0)
     private let maxBlemishSize: Float = 50.0     // pixels
+
+    // Minimum circularity for a blemish to be counted (0-1, 1 = perfect circle)
+    // Real acne is roughly circular, elongated shapes are likely wrinkles/texture
+    private let minCircularity: Float = 0.4
+
+    // Minimum contrast required between blemish and surrounding skin
+    // Blemish must be at least this much darker (0-1 scale) than local average
+    private let minContrastRatio: Float = 0.18
+
     private let skinToneNormalizer = SkinToneNormalizer()
 
     // MARK: - Initialization
@@ -479,19 +489,19 @@ public class AcneAnalyzer {
         // FIXED: Skin-tone-adaptive minimum threshold to prevent over-detection
         // Light skin shows blemishes more clearly → lower minimum threshold
         // Dark skin has natural variations → higher minimum to avoid false positives
-        // Previous fixed threshold of 0.10 caused 126 false positives for mediumDark skin
+        // PHASE 5 FIX: Significantly raised thresholds after detecting 212 blemishes (should be ~20-50)
         let baseMinimum: Float
         switch skinTone {
         case .veryLight, .light:
-            baseMinimum = 0.08   // Light skin shows blemishes clearly
+            baseMinimum = 0.12   // Light skin shows blemishes clearly (was 0.08)
         case .medium:
-            baseMinimum = 0.10   // Medium skin - standard threshold
+            baseMinimum = 0.15   // Medium skin - standard threshold (was 0.10)
         case .mediumDark:
-            baseMinimum = 0.12   // Indian/Mediterranean skin - more natural variation
+            baseMinimum = 0.18   // Indian/Mediterranean skin - more natural variation (was 0.12)
         case .dark:
-            baseMinimum = 0.14   // Dark skin - higher threshold for natural texture
+            baseMinimum = 0.20   // Dark skin - higher threshold for natural texture (was 0.14)
         case .veryDark:
-            baseMinimum = 0.16   // Very dark skin - highest threshold
+            baseMinimum = 0.22   // Very dark skin - highest threshold (was 0.16)
         }
         let darknessThreshold = max(baseMinimum, avgDarkness * darknessMultiplier)
 
@@ -510,12 +520,12 @@ public class AcneAnalyzer {
 
                 // Check if this pixel exceeds threshold
                 if darkness > darknessThreshold && isLocalDarknessMaximum(data: darknessData, x: x, y: y, width: width, height: height) {
-                    // Flood-fill to measure connected dark region
+                    // Flood-fill to measure connected dark region with shape analysis
                     // TIGHTENED: Reduced from 0.85 to 0.70 to prevent over-connecting adjacent spots
                     // 0.85 (15% tolerance) was too permissive, combining texture noise into large regions
                     // 0.70 (30% tolerance) requires pixels to be more similar to join the same blemish
                     let floodThreshold = darkness * 0.70
-                    let (size, avgDarkness) = measureDarkRegion(
+                    let regionResult = measureDarkRegionExtended(
                         data: darknessData,
                         startX: x,
                         startY: y,
@@ -525,8 +535,16 @@ public class AcneAnalyzer {
                         visited: &visited
                     )
 
-                    if size >= minBlemishSize && size <= maxBlemishSize {
-                        darkSpots.append((x, y, avgDarkness, size))
+                    // PHASE 5 FIX: Apply multiple filters to reduce false positives
+                    // 1. Size filter (already existing)
+                    // 2. Circularity filter - reject elongated shapes (likely wrinkles/texture)
+                    // 3. Contrast filter - must be significantly darker than surrounding skin
+                    let passesSize = regionResult.size >= minBlemishSize && regionResult.size <= maxBlemishSize
+                    let passesCircularity = regionResult.circularity >= minCircularity
+                    let passesContrast = regionResult.localContrast >= minContrastRatio
+
+                    if passesSize && passesCircularity && passesContrast {
+                        darkSpots.append((x, y, regionResult.avgDarkness, regionResult.size))
                     }
                 }
             }
@@ -558,8 +576,20 @@ public class AcneAnalyzer {
         return true
     }
 
-    /// Flood-fill to measure connected dark region
-    private func measureDarkRegion(
+    /// Extended result from flood-fill including shape information
+    private struct DarkRegionResult {
+        let size: Float
+        let avgDarkness: Float
+        let circularity: Float      // 0-1, 1 = perfect circle
+        let localContrast: Float    // Difference from surrounding skin (0-1)
+        let minX: Int
+        let maxX: Int
+        let minY: Int
+        let maxY: Int
+    }
+
+    /// Flood-fill to measure connected dark region with shape analysis
+    private func measureDarkRegionExtended(
         data: [Float],
         startX: Int,
         startY: Int,
@@ -567,13 +597,21 @@ public class AcneAnalyzer {
         height: Int,
         threshold: Float,
         visited: inout Set<Int>
-    ) -> (size: Float, avgDarkness: Float) {
+    ) -> DarkRegionResult {
         var queue = [(startX, startY)]
         var size: Float = 0
         var totalDarkness: Float = 0
         let startIdx = startY * width + startX
 
+        // Track bounding box for circularity calculation
+        var minX = startX, maxX = startX
+        var minY = startY, maxY = startY
+
+        // Track region pixels for perimeter calculation
+        var regionPixels = Set<Int>()
+
         visited.insert(startIdx)
+        regionPixels.insert(startIdx)
 
         while !queue.isEmpty && size < maxBlemishSize {
             let (x, y) = queue.removeFirst()
@@ -581,6 +619,12 @@ public class AcneAnalyzer {
 
             size += 1
             totalDarkness += darkness
+
+            // Update bounding box
+            minX = min(minX, x)
+            maxX = max(maxX, x)
+            minY = min(minY, y)
+            maxY = max(maxY, y)
 
             // 4-connected neighbors
             for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
@@ -591,6 +635,7 @@ public class AcneAnalyzer {
                     let idx = ny * width + nx
                     if !visited.contains(idx) && data[idx] >= threshold {
                         visited.insert(idx)
+                        regionPixels.insert(idx)
                         queue.append((nx, ny))
                     }
                 }
@@ -598,7 +643,93 @@ public class AcneAnalyzer {
         }
 
         let avgDarkness = size > 0 ? totalDarkness / size : 0
-        return (size, avgDarkness)
+
+        // Calculate circularity: 4π × Area / Perimeter²
+        // For a perfect circle, this equals 1.0
+        let bboxWidth = Float(maxX - minX + 1)
+        let bboxHeight = Float(maxY - minY + 1)
+        let aspectRatio = min(bboxWidth, bboxHeight) / max(bboxWidth, bboxHeight, 1)
+
+        // Estimate perimeter by counting boundary pixels
+        var perimeter: Float = 0
+        for pixelIdx in regionPixels {
+            let px = pixelIdx % width
+            let py = pixelIdx / width
+            var isBoundary = false
+            for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                let neighborIdx = (py + dy) * width + (px + dx)
+                if !regionPixels.contains(neighborIdx) {
+                    isBoundary = true
+                    break
+                }
+            }
+            if isBoundary { perimeter += 1 }
+        }
+
+        // Circularity formula: 4π × Area / Perimeter²
+        // Simplified: use aspect ratio as proxy since we have limited resolution
+        let circularity: Float
+        if perimeter > 0 {
+            let rawCircularity = (4 * Float.pi * size) / (perimeter * perimeter)
+            // Blend with aspect ratio for robustness at small sizes
+            circularity = (rawCircularity * 0.5 + aspectRatio * 0.5)
+        } else {
+            circularity = aspectRatio
+        }
+
+        // Calculate local contrast: compare region darkness to surrounding skin
+        // Sample pixels just outside the bounding box
+        var surroundingSum: Float = 0
+        var surroundingCount = 0
+        let margin = 3
+
+        for y in (minY - margin)...(maxY + margin) {
+            for x in (minX - margin)...(maxX + margin) {
+                if x >= 0 && x < width && y >= 0 && y < height {
+                    let idx = y * width + x
+                    if !regionPixels.contains(idx) {
+                        surroundingSum += data[idx]
+                        surroundingCount += 1
+                    }
+                }
+            }
+        }
+
+        let surroundingAvg = surroundingCount > 0 ? surroundingSum / Float(surroundingCount) : avgDarkness
+        let localContrast = avgDarkness - surroundingAvg  // Positive = darker than surroundings
+
+        return DarkRegionResult(
+            size: size,
+            avgDarkness: avgDarkness,
+            circularity: min(1.0, max(0, circularity)),
+            localContrast: localContrast,
+            minX: minX,
+            maxX: maxX,
+            minY: minY,
+            maxY: maxY
+        )
+    }
+
+    /// Legacy wrapper for backward compatibility
+    private func measureDarkRegion(
+        data: [Float],
+        startX: Int,
+        startY: Int,
+        width: Int,
+        height: Int,
+        threshold: Float,
+        visited: inout Set<Int>
+    ) -> (size: Float, avgDarkness: Float) {
+        let result = measureDarkRegionExtended(
+            data: data,
+            startX: startX,
+            startY: startY,
+            width: width,
+            height: height,
+            threshold: threshold,
+            visited: &visited
+        )
+        return (result.size, result.avgDarkness)
     }
 
     // MARK: - Step 1: CPU Fallback Darkness Detection

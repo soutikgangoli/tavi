@@ -462,9 +462,6 @@ public struct Face3DMetrics: Codable, Sendable {
     /// Mesh topology quality analysis
     public let topologyAnalysis: TopologyAnalysis?
 
-    /// Sun damage/UV protection analysis
-    public let sunDamageAnalysis: SunDamageAnalysis?
-
     /// Comprehensive scan quality assessment
     public let scanQuality: ScanQuality?
 
@@ -501,7 +498,6 @@ public struct Face3DMetrics: Codable, Sendable {
         rednessAnalysis: RednessAnalysis? = nil,
         hydrationEstimate: HydrationEstimate? = nil,
         topologyAnalysis: TopologyAnalysis? = nil,
-        sunDamageAnalysis: SunDamageAnalysis? = nil,
         scanQuality: ScanQuality? = nil,
         glowAnalysis: GlowAnalysis? = nil
     ) {
@@ -535,7 +531,6 @@ public struct Face3DMetrics: Codable, Sendable {
         self.rednessAnalysis = rednessAnalysis
         self.hydrationEstimate = hydrationEstimate
         self.topologyAnalysis = topologyAnalysis
-        self.sunDamageAnalysis = sunDamageAnalysis
         self.scanQuality = scanQuality
         self.glowAnalysis = glowAnalysis
     }
@@ -590,7 +585,7 @@ public struct Face3DMetrics: Codable, Sendable {
         case timestamp, processingTime, textureQuality, lowConfidenceROIs, isHighQuality
         case elasticityAnalysis, volumeAnalysis, regionalAnalysis, skinTypeAnalysis
         case wrinkleAnalysis, poreAnalysis, acneAnalysis, rednessAnalysis
-        case topologyAnalysis, sunDamageAnalysis, scanQuality, glowAnalysis
+        case topologyAnalysis, scanQuality, glowAnalysis
         case hydrationEstimate
     }
 
@@ -630,7 +625,6 @@ public struct Face3DMetrics: Codable, Sendable {
         acneAnalysis = try container.decode(Optional<AcneAnalysis>.self, forKey: .acneAnalysis)
         rednessAnalysis = try container.decode(Optional<RednessAnalysis>.self, forKey: .rednessAnalysis)
         topologyAnalysis = try container.decode(Optional<TopologyAnalysis>.self, forKey: .topologyAnalysis)
-        sunDamageAnalysis = try container.decode(Optional<SunDamageAnalysis>.self, forKey: .sunDamageAnalysis)
         scanQuality = try container.decode(Optional<ScanQuality>.self, forKey: .scanQuality)
         glowAnalysis = try container.decodeIfPresent(GlowAnalysis.self, forKey: .glowAnalysis)
         hydrationEstimate = try container.decodeIfPresent(HydrationEstimate.self, forKey: .hydrationEstimate)
@@ -669,7 +663,6 @@ public struct Face3DMetrics: Codable, Sendable {
         try container.encode(acneAnalysis, forKey: .acneAnalysis)
         try container.encode(rednessAnalysis, forKey: .rednessAnalysis)
         try container.encode(topologyAnalysis, forKey: .topologyAnalysis)
-        try container.encode(sunDamageAnalysis, forKey: .sunDamageAnalysis)
         try container.encode(scanQuality, forKey: .scanQuality)
         try container.encode(glowAnalysis, forKey: .glowAnalysis)
         try container.encode(hydrationEstimate, forKey: .hydrationEstimate)

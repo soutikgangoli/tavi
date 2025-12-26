@@ -827,6 +827,16 @@ public class FaceScan3DViewModel: ObservableObject {
         return self.metricsOrchestrator.getMetrics(for: roi)
     }
 
+    /// Get total scan count from temporal tracker (for multi-scan tracking)
+    public func getScanCount() -> Int {
+        return self.metricsOrchestrator.getScanCount()
+    }
+
+    /// Get all metric trends from temporal tracker (for trend display)
+    public func getAllTrends() -> [String: MetricTrend] {
+        return self.metricsOrchestrator.getAllTrends()
+    }
+
     /// Export current geometry to OBJ format
     public func exportToOBJ() -> String? {
         guard let geometry = self.currentGeometry else { return nil }
