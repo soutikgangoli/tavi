@@ -173,18 +173,15 @@ public enum GuidanceStep: Int, CaseIterable, Sendable {
 
     /// Check if the current face pose matches this step
     /// STRICT validation using ScanConfiguration constants (matches documentation)
+    /// NOTE: Debug logging removed to reduce log spam (called 60+ times/second)
     func isPoseValid(yaw: Float, pitch: Float, roll: Float) -> Bool {
-        AppLogger.faceScan.debug("📐 isPoseValid(\(self.shortName)): yaw=\(String(format: "%.1f", yaw))° pitch=\(String(format: "%.1f", pitch))° roll=\(String(format: "%.1f", roll))°")
-
         switch self {
         case .lookStraight:
             // STRICT: ±5° for yaw and pitch, ±8° for roll (per documentation)
             // This ensures accurate center position detection
-            let valid = abs(yaw) <= ScanConfiguration.maxCenterYawDegrees &&
-                        abs(pitch) <= ScanConfiguration.maxCenterPitchDegrees &&
-                        abs(roll) <= ScanConfiguration.maxCenterRollDegrees
-            AppLogger.faceScan.debug("   → lookStraight: \(valid ? "✅ VALID" : "❌ INVALID") (yaw ≤\(ScanConfiguration.maxCenterYawDegrees)°, pitch ≤\(ScanConfiguration.maxCenterPitchDegrees)°, roll ≤\(ScanConfiguration.maxCenterRollDegrees)°)")
-            return valid
+            return abs(yaw) <= ScanConfiguration.maxCenterYawDegrees &&
+                   abs(pitch) <= ScanConfiguration.maxCenterPitchDegrees &&
+                   abs(roll) <= ScanConfiguration.maxCenterRollDegrees
 
         case .turnLeft:
             // yaw must be in left range (15-35°)
@@ -404,6 +401,8 @@ public struct CalibrationState: Sendable {
     }
 
     /// Update lighting from ARKit light estimate
+    /// NOTE: Debug logging removed to reduce log spam (60fps). Lighting state is logged
+    /// by CalibrationManager every 30 frames (~0.5s) which is sufficient for debugging.
     public mutating func updateLighting(from lightEstimate: LightEstimation?) {
         guard let light = lightEstimate else {
             lighting = .tooDark
@@ -412,30 +411,31 @@ public struct CalibrationState: Sendable {
 
         // Use ScanConfiguration constants for lighting thresholds
         let intensity = light.ambientIntensity
+        let previousLighting = lighting
 
         // ARKit ambientIntensity is in lumens - typical indoor range is 500-2000
-        AppLogger.faceScan.debug("🔆 ARKit ambientIntensity: \(intensity) lumens (min: \(ScanConfiguration.minAmbientLighting), optimal: \(ScanConfiguration.optimalLightingMin)-\(ScanConfiguration.optimalLightingMax))")
-
         if intensity < ScanConfiguration.minAmbientLighting {
             // Too dark - need good illumination for skin analysis
             lighting = .tooDark
-            AppLogger.faceScan.debug("   → VERDICT: tooDark (< \(ScanConfiguration.minAmbientLighting))")
         } else if intensity < ScanConfiguration.optimalLightingMin {
             // Acceptable but not ideal
             lighting = .acceptable
-            AppLogger.faceScan.debug("   → VERDICT: acceptable (< \(ScanConfiguration.optimalLightingMin))")
         } else if intensity > ScanConfiguration.maxAmbientLighting {
             // Too bright - risk of overexposure
             lighting = .tooBright
-            AppLogger.faceScan.debug("   → VERDICT: tooBright (> \(ScanConfiguration.maxAmbientLighting))")
         } else if intensity > ScanConfiguration.optimalLightingMax {
             // Acceptable but bright
             lighting = .acceptable
-            AppLogger.faceScan.debug("   → VERDICT: acceptable (> \(ScanConfiguration.optimalLightingMax))")
         } else {
             // Good lighting range: optimal min-max
             lighting = .good
-            AppLogger.faceScan.debug("   → VERDICT: good (\(ScanConfiguration.optimalLightingMin)-\(ScanConfiguration.optimalLightingMax))")
+        }
+
+        // Only log when lighting state changes (reduces log spam from 60/s to occasional)
+        if lighting != previousLighting {
+            // Capture values before logging to avoid escaping autoclosure issue
+            let newLightingValue = lighting.rawValue
+            AppLogger.faceScan.debug("🔆 Lighting changed: \(previousLighting.rawValue) → \(newLightingValue) (intensity: \(Int(intensity)) lumens)")
         }
     }
 

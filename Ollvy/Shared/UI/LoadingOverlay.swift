@@ -2,6 +2,7 @@
 //  LoadingOverlay.swift
 //  Ollvy
 //
+//  Full-screen loading overlay - clean modern design
 //  Created on 2025-10-27.
 //
 
@@ -13,6 +14,12 @@ struct LoadingOverlay: View {
     let message: String
     let showProgress: Bool
 
+    // Theme colors
+    private let backgroundColor = Color(red: 252/255, green: 250/255, blue: 245/255)
+    private let textPrimary = Color(red: 60/255, green: 60/255, blue: 60/255)
+    private let textSecondary = Color(red: 120/255, green: 115/255, blue: 110/255)
+    private let accentGreen = Color(red: 0/255, green: 180/255, blue: 110/255)
+
     init(message: String = "Loading...", showProgress: Bool = true) {
         self.message = message
         self.showProgress = showProgress
@@ -20,29 +27,31 @@ struct LoadingOverlay: View {
 
     var body: some View {
         ZStack {
-            // Overlay background
-            Designs.Colors.overlay
+            // Semi-transparent overlay
+            Color.black.opacity(0.3)
                 .ignoresSafeArea()
 
             // Loading card
-            VStack(spacing: Designs.Spacing.large) {
+            VStack(spacing: 20) {
                 if showProgress {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: Designs.Colors.accent))
-                        .scaleEffect(1.5)
+                    LoadingSpinner(color: accentGreen)
+                        .frame(width: 40, height: 40)
                 }
 
                 Text(message)
-                    .font(Designs.Typography.headline)
-                    .foregroundColor(Designs.Colors.textPrimary)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(textPrimary)
                     .multilineTextAlignment(.center)
             }
-            .padding(Designs.Spacing.xxLarge)
-            .background(Designs.Colors.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: Designs.CornerRadius.large))
-            .modalShadow()
+            .padding(.horizontal, 32)
+            .padding(.vertical, 28)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(backgroundColor)
+                    .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 8)
+            )
         }
-        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
     }
 }
 
@@ -62,7 +71,7 @@ struct LoadingOverlayModifier: ViewModifier {
                 LoadingOverlay(message: message)
             }
         }
-        .animation(Designs.Animation.standard, value: isLoading)
+        .animation(.easeInOut(duration: 0.25), value: isLoading)
     }
 }
 
@@ -78,17 +87,20 @@ extension View {
 struct InlineLoadingView: View {
     let message: String
 
+    private let textSecondary = Color(red: 120/255, green: 115/255, blue: 110/255)
+    private let accentGreen = Color(red: 0/255, green: 180/255, blue: 110/255)
+
     var body: some View {
-        HStack(spacing: Designs.Spacing.medium) {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: Designs.Colors.accent))
+        HStack(spacing: 12) {
+            LoadingSpinner(color: accentGreen)
+                .frame(width: 20, height: 20)
 
             Text(message)
-                .font(Designs.Typography.body)
-                .foregroundColor(Designs.Colors.textSecondary)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .center)
-        .padding(Designs.Spacing.large)
+        .padding(.vertical, 20)
     }
 }
 
@@ -98,7 +110,8 @@ struct InlineLoadingView: View {
     ZStack {
         VStack {
             Text("Background Content")
-                .font(Designs.Typography.title)
+                .font(.title)
+                .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
 
             Button("Tap Me") {}
                 .buttonStyle(PrimaryButtonStyle())
@@ -107,23 +120,25 @@ struct InlineLoadingView: View {
 
         LoadingOverlay(message: "Analyzing skin...")
     }
+    .background(Color(red: 252/255, green: 250/255, blue: 245/255))
 }
 
 #Preview("With Modifier") {
     VStack {
         Text("Content")
-            .font(Designs.Typography.title)
+            .font(.title)
 
         Button("Button") {}
             .buttonStyle(PrimaryButtonStyle())
             .padding()
     }
     .loadingOverlay(isLoading: true, message: "Processing...")
+    .background(Color(red: 252/255, green: 250/255, blue: 245/255))
 }
 
 #Preview("Inline Loading") {
     VStack {
         InlineLoadingView(message: "Loading results...")
     }
-    .background(Designs.Colors.backgroundSecondary)
+    .background(Color(red: 252/255, green: 250/255, blue: 245/255))
 }

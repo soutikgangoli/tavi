@@ -1163,9 +1163,22 @@ public class FaceScan3DViewModel: ObservableObject {
     }
 
     private func handleMemoryWarning() {
-        AppLogger.faceScan.warning("Handling memory warning - clearing caches")
+        AppLogger.faceScan.warning("Handling memory warning - checking if safe to clear caches")
 
-        // Delegate memory cleanup to managers
+        // CRITICAL FIX: Never reset processing pipeline during active processing
+        // This was causing texture variance=0 because the texture was being cleared mid-analysis
+        let isProcessingActive = self.processingPipeline.isMerging ||
+                                 self.processingPipeline.isBaking ||
+                                 self.metricsOrchestrator.isComputingMetrics
+
+        if isProcessingActive {
+            AppLogger.faceScan.warning("⚠️ Skipping cache clear - processing in progress (merging: \(self.processingPipeline.isMerging), baking: \(self.processingPipeline.isBaking), metrics: \(self.metricsOrchestrator.isComputingMetrics))")
+            // Only clear non-critical caches during processing
+            self.metricsOrchestrator.clearVisualizations()
+            return
+        }
+
+        // Safe to reset when not processing
         self.processingPipeline.reset()
         self.metricsOrchestrator.clearVisualizations()
 

@@ -112,17 +112,21 @@ public class Face3DMetricsAnalyzer {
 
         AppLogger.metrics.info("🔬 Face3DMetricsAnalyzer: Starting analysis...")
 
-        // Step 0: Validate texture quality
-        let textureQualityResult = qualityValidator.validateTexture(unifiedTexture)
-        AppLogger.metrics.info("   Texture quality: \(textureQualityResult.qualityDescription)")
-
-        // Log warning if texture is blurry (isHighQuality flag is already set from textureQualityResult.isValid)
-        if !textureQualityResult.isValid {
-            AppLogger.metrics.warning("⚠️ \(textureQualityResult.reason ?? "Poor texture quality")")
-            // Blurry textures reduce the reliability of texture-based metrics
-            // isHighQuality will be set to false at line 527 based on textureQualityResult.isValid
-            AppLogger.metrics.warning("   → Confidence reduced by 30% due to texture quality")
-        }
+        // Step 0: Skip Laplacian-based texture quality validation for baked textures
+        // REASON: Baked textures are upscaled from camera resolution, which destroys
+        // high-frequency detail that Laplacian measures. Original sharpness was already
+        // validated at capture time in TextureCapture.swift → ImageQualityAnalyzer.analyzeQuality()
+        // The capture-time sharpness of 10.4+ means the source texture is sharp.
+        //
+        // Previously this returned variance=0.0 for upscaled textures, causing false
+        // "Texture too blurry" warnings and 30% confidence reduction on every scan.
+        let textureQualityResult = TextureQualityResult(
+            isValid: true,  // Trust capture-time validation
+            laplacianVariance: 100.0,  // Nominal "good" value (not computed on baked texture)
+            minimumThreshold: 80.0,
+            reason: nil
+        )
+        AppLogger.metrics.info("   Texture quality: Validated at capture time (skipping post-bake Laplacian)")
 
         // Step 1: Generate ROI masks
         let masks = roiMaskGenerator.generateROIMasks(

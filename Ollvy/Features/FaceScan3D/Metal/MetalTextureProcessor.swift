@@ -475,9 +475,12 @@ private extension Logger {
 // MARK: - UIImage Extension
 
 private extension UIImage {
-    /// Resize image to specified size with automatic screen scale for best quality
+    /// Resize image to specified size
+    /// FIXED: Uses scale=1.0 instead of 0.0 (screen scale)
+    /// scale=0.0 on a 3x device was creating 12288x12288 images when 4096x4096 was requested
+    /// This caused 9× memory usage, 9× slower processing, and destroyed texture detail
     func resize(to size: CGSize) -> UIImage? {
-        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+        UIGraphicsBeginImageContextWithOptions(size, true, 1.0)
         defer { UIGraphicsEndImageContext() }
 
         draw(in: CGRect(origin: .zero, size: size))

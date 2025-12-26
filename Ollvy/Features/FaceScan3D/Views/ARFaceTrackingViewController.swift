@@ -71,7 +71,8 @@ public class ARFaceTrackingViewController: UIViewController {
 
     /// Maximum concurrent frame processing tasks allowed
     /// Higher values = more memory usage, lower values = might skip frames
-    private static let maxConcurrentFrameProcessing: Int = 4
+    /// REDUCED from 4 to 2 to prevent ARFrame retention warnings (each frame ~10MB)
+    private static let maxConcurrentFrameProcessing: Int = 2
 
     // MARK: - Lifecycle
 
@@ -410,13 +411,14 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
                 previousFrameCount = currentFrameCount
                 previousConfidence = confidence
 
-                // Capture session stopped flag to avoid updating deallocated viewModel
-                let sessionStopped = self.isSessionStopped
+                // Capture targetFrameCount to avoid implicit self capture warning
+                let targetCount = self.targetFrameCount
 
                 // Batch both updates in single Task to reduce allocation overhead
-                Task { [weak viewModel] in
-                    // Skip if session was stopped (prevents deadlock during cleanup)
-                    guard !sessionStopped, let vm = viewModel else { return }
+                Task { [weak viewModel, weak self] in
+                    // CRITICAL FIX: Check session stopped flag AT EXECUTION TIME
+                    guard let strongSelf = self, !strongSelf.isSessionStopped else { return }
+                    guard let vm = viewModel else { return }
 
                     // CRITICAL: Check cleanup/stop flags BEFORE awaiting MainActor
                     guard !vm.shouldStopSession && !vm.isCleaningUp else { return }
@@ -429,7 +431,7 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
                         guard !Task.isCancelled, let vm = viewModel, !vm.shouldStopSession, !vm.isCleaningUp else { return }
                         vm.onFrameCaptured(
                             frameCount: currentFrameCount,
-                            targetCount: targetFrameCount,
+                            targetCount: targetCount,
                             confidence: confidence
                         )
 
@@ -479,9 +481,6 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
             frameRef = frame
         }
 
-        // Capture session stopped flag to avoid updating deallocated viewModel
-        let sessionStopped = self.isSessionStopped
-
         // Capture current frame sequence to allow early bailout for stale Tasks
         let frameSeq = self.frameSequenceNumber
         self.frameSequenceNumber += 1
@@ -501,13 +500,18 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
             defer {
                 self?.activeFrameProcessingCount -= 1
             }
+
+            // CRITICAL FIX: Check session stopped flag AT EXECUTION TIME, not at capture time
+            // This prevents ambient intensity logging after session stops
+            guard let strongSelf = self, !strongSelf.isSessionStopped else { return }
+
             // Early bailout: skip if newer frames have been queued (unless in capture mode)
             // This releases stale frame references faster
-            if frameRef == nil, let strongSelf = self, frameSeq < strongSelf.frameSequenceNumber - 2 {
+            if frameRef == nil, frameSeq < strongSelf.frameSequenceNumber - 2 {
                 return  // Skip stale tracking updates, release frame ref
             }
             // Skip if session was stopped (prevents deadlock during cleanup)
-            guard !sessionStopped, let vm = viewModel else { return }
+            guard let vm = viewModel else { return }
 
             // CRITICAL: Check cleanup/stop flags BEFORE awaiting MainActor
             // This prevents Tasks from piling up waiting for MainActor during dismissal

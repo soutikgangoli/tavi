@@ -114,15 +114,15 @@ public enum MetalHelpers {
         let height = texture.height
         let bytesPerPixel = 4
         let bytesPerRow = bytesPerPixel * width
+        let totalBytes = bytesPerRow * height
 
-        // Allocate pixel buffer
-        let pixelData = UnsafeMutableRawPointer.allocate(
-            byteCount: bytesPerRow * height,
-            alignment: MemoryLayout<UInt8>.alignment
-        )
-        defer {
-            pixelData.deallocate()
-        }
+        // FIX: Use Data which manages its own memory lifecycle
+        // Previously used UnsafeMutableRawPointer with defer { deallocate() } which caused
+        // use-after-free: the defer ran when function returned, but CGDataProvider still
+        // held a pointer to that memory. When RoughnessAnalyzer later read the blurred
+        // image, it got zeros → original - 0 = original → roughness = 0.5 constant.
+        // CGDataProvider(data: CFData) retains the Data until CGImage is deallocated.
+        var pixelData = Data(count: totalBytes)
 
         // Copy texture data to CPU
         let region = MTLRegion(
@@ -130,28 +130,36 @@ public enum MetalHelpers {
             size: MTLSize(width: width, height: height, depth: 1)
         )
 
-        texture.getBytes(
-            pixelData,
-            bytesPerRow: bytesPerRow,
-            from: region,
-            mipmapLevel: 0
-        )
+        var copySuccess = false
+        pixelData.withUnsafeMutableBytes { rawBufferPointer in
+            guard let baseAddress = rawBufferPointer.baseAddress else {
+                logger.error("Failed to get base address from pixel data buffer")
+                return
+            }
+            texture.getBytes(
+                baseAddress,
+                bytesPerRow: bytesPerRow,
+                from: region,
+                mipmapLevel: 0
+            )
+            copySuccess = true
+        }
 
-        // Create CGImage from pixel data
+        guard copySuccess else {
+            logger.error("Failed to copy texture bytes to CPU - buffer was invalid")
+            return nil
+        }
+
+        // Create CGImage from pixel data - Data manages memory lifecycle
         guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else {
             logger.error("Failed to create color space")
             return nil
         }
 
-        // FIX: Match byte order with texture format (.rgba8Unorm = RGBA big-endian)
+        // Match byte order with texture format (.rgba8Unorm = RGBA big-endian)
         let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
 
-        guard let dataProvider = CGDataProvider(
-            dataInfo: nil,
-            data: pixelData,
-            size: bytesPerRow * height,
-            releaseData: { _, _, _ in }
-        ) else {
+        guard let dataProvider = CGDataProvider(data: pixelData as CFData) else {
             logger.error("Failed to create data provider")
             return nil
         }

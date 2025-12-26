@@ -306,11 +306,14 @@ public class CalibrationManager: ObservableObject {
             self.continueAnywayOverride = false
             self.qualityWarning = nil
             self.isPoseCorrect = false
-        }
 
-        // Reset cancellation flag for next session
-        // (done last so async Tasks have time to see the cancelled state)
-        isCancelled = false
+            // CRITICAL FIX: Reset cancellation flag AFTER a short delay
+            // This gives in-flight Tasks time to see the cancelled state
+            // Previous code reset immediately, causing race conditions
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.isCancelled = false
+            }
+        }
     }
 
     /// Clear quality warning
