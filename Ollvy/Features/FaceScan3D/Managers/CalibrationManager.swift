@@ -76,10 +76,9 @@ public class CalibrationManager: ObservableObject {
             state.lighting = .tooDark
             state.distance = .tooFar
             state.stability = .moving
-            // CRITICAL FIX: Defer @Published update to next run loop iteration
-            // Using DispatchQueue.main.async to truly defer (Task @MainActor may execute immediately)
+            // CRITICAL FIX: Defer @Published update using Task to break out of view update cycle
             let invalidState = state
-            DispatchQueue.main.async { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.calibrationState = invalidState
             }
             return
@@ -143,14 +142,12 @@ public class CalibrationManager: ObservableObject {
         // Store transform before deferring
         lastTransform = faceAnchor.transform
 
-        // CRITICAL FIX: Defer @Published property updates to next run loop iteration
-        // This prevents "Publishing changes from within view updates" warnings
-        // Using DispatchQueue.main.async to truly defer (Task @MainActor may execute immediately)
+        // CRITICAL FIX: Defer @Published property updates using Task to break out of view update cycle
         let finalState = state
         let poseChanged = self.isPoseCorrect != poseIsCorrect
         let shouldLogAngles = debugLogFrameCounter == 0
 
-        DispatchQueue.main.async { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self else { return }
 
             // Update @Published angle properties for SwiftUI reactivity
@@ -207,8 +204,8 @@ public class CalibrationManager: ObservableObject {
         }
 
         // CRITICAL: Reassign to trigger @Published
-        // Defer @Published property update to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        // Defer @Published property update using Task to break out of view update cycle
+        Task { @MainActor [weak self] in
             self?.calibrationState = state
         }
 
@@ -299,8 +296,9 @@ public class CalibrationManager: ObservableObject {
         qualityCheckFrameCounter = 0
         debugLogFrameCounter = 0
 
-        // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        // Defer @Published property updates using Task to avoid "Publishing changes from within view updates"
+        // Task defers execution to after the current SwiftUI view update cycle completes
+        Task { @MainActor [weak self] in
             guard let self else { return }
             self.calibrationState = CalibrationState()
             self.continueAnywayOverride = false
@@ -309,18 +307,16 @@ public class CalibrationManager: ObservableObject {
 
             // CRITICAL FIX: Reset cancellation flag AFTER a short delay
             // This gives in-flight Tasks time to see the cancelled state
-            // Previous code reset immediately, causing race conditions
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                self?.isCancelled = false
-            }
+            try? await Task.sleep(nanoseconds: 100_000_000)  // 0.1 seconds
+            self.isCancelled = false
         }
     }
 
     /// Clear quality warning
     public func clearQualityWarning() {
         previousQualityWarning = nil
-        // Defer @Published property update to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        // Defer @Published property update using Task to avoid "Publishing changes from within view updates"
+        Task { @MainActor [weak self] in
             self?.qualityWarning = nil
         }
     }
@@ -334,8 +330,8 @@ public class CalibrationManager: ObservableObject {
             }
             previousQualityWarning = warning
         }
-        // Defer @Published property update to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        // Defer @Published property update using Task to break out of view update cycle
+        Task { @MainActor [weak self] in
             self?.qualityWarning = warning
         }
     }
@@ -371,8 +367,8 @@ public class CalibrationManager: ObservableObject {
         // Check for warning issues (don't block, but inform user)
         if !edgeCases.warnings.isEmpty {
             let warning = edgeCases.warnings.first
-            // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.async { [weak self] in
+            // Defer @Published property update using Task to break out of view update cycle
+            Task { @MainActor [weak self] in
                 self?.qualityWarning = warning
             }
         }
@@ -419,8 +415,8 @@ public class CalibrationManager: ObservableObject {
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
 
         guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
-            // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.async { [weak self] in
+            // Defer @Published property update using Task to break out of view update cycle
+            Task { @MainActor [weak self] in
                 self?.qualityWarning = nil
             }
             lastQualityCheckResult = true
@@ -450,8 +446,8 @@ public class CalibrationManager: ObservableObject {
 
         // All quality checks passed
         AppLogger.faceScan.debug("✅ QUALITY CHECK PASSED: Lighting=\(lightingOK), Expression=\(expressionOK), Exposure=\(exposureOK), Sharpness=\(sharpnessOK)")
-        // Defer @Published property update to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        // Defer @Published property update using Task to break out of view update cycle
+        Task { @MainActor [weak self] in
             self?.qualityWarning = nil
         }
         lastQualityCheckResult = true
@@ -488,8 +484,8 @@ public class CalibrationManager: ObservableObject {
         let lightingChange = abs(current - baseline) / baseline
         if lightingChange > 0.50 {  // Only catch major changes
             AppLogger.faceScan.warning("❌ Major lighting change detected (\(Int(lightingChange * 100))%)")
-            // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.async { [weak self] in
+            // Defer @Published property update using Task to break out of view update cycle
+            Task { @MainActor [weak self] in
                 self?.qualityWarning = "Lighting changed significantly"
             }
             return false
@@ -537,8 +533,8 @@ public class CalibrationManager: ObservableObject {
         // Only warn for EXTREME underexposure (very dark)
         if bestExposure < 0.15 {
             AppLogger.faceScan.warning("❌ Very dark image (exposure: \(String(format: "%.3f", bestExposure)))")
-            // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.async { [weak self] in
+            // Defer @Published property update using Task to break out of view update cycle
+            Task { @MainActor [weak self] in
                 self?.qualityWarning = "Too dark - find better lighting"
             }
             return false
@@ -547,8 +543,8 @@ public class CalibrationManager: ObservableObject {
         // Only warn for EXTREME overexposure (very bright/washed out)
         if bestExposure > 0.85 {
             AppLogger.faceScan.warning("❌ Overexposed image (exposure: \(String(format: "%.3f", bestExposure)))")
-            // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.async { [weak self] in
+            // Defer @Published property update using Task to break out of view update cycle
+            Task { @MainActor [weak self] in
                 self?.qualityWarning = "Too bright - avoid direct light"
             }
             return false
@@ -571,8 +567,8 @@ public class CalibrationManager: ObservableObject {
         if bestSharpness < sharpnessThreshold {
             // Only show warning for significantly blurry images
             AppLogger.faceScan.warning("❌ Image blur detected (sharpness: \(String(format: "%.1f", bestSharpness)))")
-            // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.async { [weak self] in
+            // Defer @Published property update using Task to break out of view update cycle
+            Task { @MainActor [weak self] in
                 self?.qualityWarning = "Hold phone steady"
             }
             return false
@@ -580,8 +576,8 @@ public class CalibrationManager: ObservableObject {
 
         // Clear blur-related warnings on success
         if qualityWarning?.contains("steady") == true || qualityWarning?.contains("blur") == true {
-            // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.async { [weak self] in
+            // Defer @Published property update using Task to break out of view update cycle
+            Task { @MainActor [weak self] in
                 self?.qualityWarning = nil
             }
         }

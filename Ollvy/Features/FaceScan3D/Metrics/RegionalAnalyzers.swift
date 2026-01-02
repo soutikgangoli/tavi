@@ -626,16 +626,28 @@ public class RegionalAnalyzers {
 
         // Analyze texture roughness
         let pixels = extractPixels(from: region)
+        guard !pixels.isEmpty else { return 60 }
 
-        // Calculate variance (smooth lips = low variance)
+        // Calculate standard deviation (not variance) for proper 0-100 scaling
         let avg = pixels.map { (Float($0.0) + Float($0.1) + Float($0.2)) / 3.0 }.reduce(0, +) / Float(pixels.count)
         let variance = pixels.map { pixel in
             let val = (Float(pixel.0) + Float(pixel.1) + Float(pixel.2)) / 3.0
             return pow(val - avg, 2)
         }.reduce(0, +) / Float(pixels.count)
 
-        // Score (lower variance = smoother = better)
-        return max(0, 100 - variance)
+        // Use standard deviation (sqrt of variance) which is in 0-128 range for 8-bit images
+        let stdDev = sqrt(variance)
+
+        // Normalize: stdDev of 0 = perfectly smooth = 100, stdDev of 50+ = rough = 0
+        // Typical healthy lip stdDev is 10-30
+        let normalizedRoughness = min(1.0, stdDev / 50.0)
+
+        // Score (lower roughness = smoother = better)
+        let score = (1.0 - normalizedRoughness) * 100
+
+        AppLogger.metrics.info("      📊 Lip texture: stdDev=\(String(format: "%.1f", stdDev)), score=\(String(format: "%.0f", score))")
+
+        return max(0, min(100, score))
     }
 
     private func classifyLipHydration(textureScore: Float) -> LipHydrationLevel {

@@ -101,11 +101,51 @@ public class SkinTypeClassifier {
     }
 
     private func calculateConfidence(oiliness: Float, dryness: Float) -> Float {
-        // Confidence based on how clear the classification is
-        let spread = abs(oiliness - dryness)
+        // Confidence based on how clearly the classification matches a skin type
+        // Each skin type has different confidence criteria
 
-        // High spread = clear classification = high confidence
-        return min(1.0, spread / 100.0)
+        let skinType = determineSkinType(oiliness: oiliness, dryness: dryness)
+
+        switch skinType {
+        case .oily:
+            // Oily: high confidence when oiliness is clearly high and dryness is low
+            let oilyClarity = (oiliness - 60) / 40  // How much above threshold
+            let dryClarity = (40 - dryness) / 40    // How much below threshold
+            return min(1.0, max(0.4, (oilyClarity + dryClarity) / 2 + 0.5))
+
+        case .dry:
+            // Dry: high confidence when dryness is clearly high and oiliness is low
+            let dryClarity = (dryness - 60) / 40
+            let oilyClarity = (40 - oiliness) / 40
+            return min(1.0, max(0.4, (dryClarity + oilyClarity) / 2 + 0.5))
+
+        case .combination:
+            // Combination: high confidence when BOTH oiliness AND dryness are moderate-high
+            // This is a valid, distinct skin type - not just "unclear"
+            let bothModerate = min(oiliness, dryness) > 45
+            let bothHigh = oiliness > 50 && dryness > 50
+            if bothHigh {
+                // Classic combination skin - high confidence
+                return min(1.0, 0.7 + (min(oiliness, dryness) - 50) / 100)
+            } else if bothModerate {
+                return 0.6
+            }
+            return 0.5
+
+        case .normal:
+            // Normal: high confidence when both are in the moderate range (30-50)
+            let oilyInRange = oiliness >= 30 && oiliness <= 50
+            let dryInRange = dryness >= 30 && dryness <= 50
+            if oilyInRange && dryInRange {
+                return 0.8
+            }
+            // If one is slightly out of range
+            return 0.6
+
+        case .sensitive:
+            // Sensitive is typically detected from redness, not this classifier
+            return 0.5
+        }
     }
 
     private func analyzeRegionalTypes(texture: UIImage, roughness: Float) -> [FaceRegion: SkinType] {
