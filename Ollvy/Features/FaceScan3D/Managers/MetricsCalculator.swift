@@ -149,9 +149,10 @@ public class MetricsCalculator {
             )
         }
 
-        // Calculate bounding box
-        let minPoint = totalVertices.reduce(totalVertices[0]) { simd_min($0, $1) }
-        let maxPoint = totalVertices.reduce(totalVertices[0]) { simd_max($0, $1) }
+        // Calculate bounding box - safe to force unwrap after guard check above
+        let firstVertex = totalVertices.first!
+        let minPoint = totalVertices.reduce(firstVertex) { simd_min($0, $1) }
+        let maxPoint = totalVertices.reduce(firstVertex) { simd_max($0, $1) }
 
         let width = maxPoint.x - minPoint.x
         let height = maxPoint.y - minPoint.y

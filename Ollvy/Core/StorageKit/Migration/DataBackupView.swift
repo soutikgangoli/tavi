@@ -22,12 +22,35 @@ public struct DataBackupView: View {
     @State private var backupToDelete: BackupInfo?
     @State private var showingShareSheet = false
     @State private var shareURL: URL?
+    private let initializationFailed: Bool
 
     public init(storeURL: URL) {
-        _backupManager = StateObject(wrappedValue: DataBackupManager(storeURL: storeURL))
+        if let manager = DataBackupManager(storeURL: storeURL) {
+            _backupManager = StateObject(wrappedValue: manager)
+            initializationFailed = false
+        } else {
+            // Create a placeholder manager that will show error state
+            // This should never happen on iOS but handles edge case gracefully
+            _backupManager = StateObject(wrappedValue: DataBackupManager.disabled)
+            initializationFailed = true
+        }
     }
 
     public var body: some View {
+        if initializationFailed {
+            ContentUnavailableView(
+                "Backup Unavailable",
+                systemImage: "externaldrive.badge.exclamationmark",
+                description: Text("Unable to access storage for backups. Please restart the app.")
+            )
+            .navigationTitle("Data Backups")
+        } else {
+            backupListView
+        }
+    }
+
+    @ViewBuilder
+    private var backupListView: some View {
         List {
             // Summary Section
             Section {

@@ -12,6 +12,7 @@ import StoreKit
 public struct AboutView: View {
 
     @Environment(\.dismiss) private var dismiss
+    @State private var showingFAQ = false
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -145,7 +146,9 @@ public struct AboutView: View {
                             .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                         }
 
-                        Link(destination: URL(string: "https://example.com/faq")!) {
+                        Button {
+                            showingFAQ = true
+                        } label: {
                             HStack {
                                 Image(systemName: "questionmark.circle.fill")
                                     .font(.app(size: 18))
@@ -155,8 +158,8 @@ public struct AboutView: View {
 
                                 Spacer()
 
-                                Image(systemName: "arrow.up.forward")
-                                    .font(.app(size: 13))
+                                Image(systemName: "chevron.right")
+                                    .font(.app(size: 13, weight: .semibold))
                                     .foregroundColor(Designs.Colors.textTertiary)
                             }
                             .foregroundColor(Designs.Colors.textPrimary)
@@ -199,6 +202,9 @@ public struct AboutView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showingFAQ) {
+                FAQView()
+            }
         }
     }
 
@@ -233,7 +239,7 @@ public struct AboutView: View {
     // MARK: - Actions
 
     private func openEmail() {
-        if let url = URL(string: "mailto:support@taviapp.com") {
+        if let url = URL(string: "mailto:support@ollvy.app") {
             UIApplication.shared.open(url)
         }
     }

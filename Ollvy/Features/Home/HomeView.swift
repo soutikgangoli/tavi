@@ -607,7 +607,7 @@ public struct HomeView: View {
 
             // Label and date
             VStack(spacing: 6) {
-                Text("Skin Health Score")
+                Text("Skin Analysis Score")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(HomeColors.textPrimary)
 
@@ -1091,7 +1091,7 @@ public struct HomeView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Skin Health Score")
+                        Text("Skin Analysis Score")
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(HomeColors.textSecondary)
 
@@ -1341,7 +1341,7 @@ public struct HomeView: View {
                         Text("Start Your")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(HomeColors.textPrimary)
-                        Text("Skin Health Journey")
+                        Text("Skin Analysis Journey")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(HomeColors.textPrimary)
                     }
@@ -1763,10 +1763,10 @@ public struct HomeView: View {
                                 .font(.system(size: 48, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                         }
-                        .accessibilityLabel("Skin Health Score")
+                        .accessibilityLabel("Skin Analysis Score")
                         .accessibilityValue("\(Int(session.overallScore)) out of 100, \(scoreDescription(session.overallScore))")
 
-                        Text("Your Skin Health Score")
+                        Text("Your Skin Analysis Score")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.white.opacity(0.9))
                             .accessibilityHidden(true)

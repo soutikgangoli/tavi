@@ -463,6 +463,10 @@ public class CaptureSequenceManager: ObservableObject {
     // MARK: - Private Methods
 
     private func startCaptureCountdown(faceAnchor: ARFaceAnchor, yaw: Float, pitch: Float, roll: Float) {
+        // Invalidate any existing timer before creating a new one to prevent orphaned timers
+        self.holdStableTimer?.invalidate()
+        self.holdStableTimer = nil
+
         // OPTIMIZATION: 0.5 second countdown for snappy capture while allowing stabilization
         AppLogger.faceScan.info("Starting capture countdown (0.5s)")
         self.countdownTimer = 1

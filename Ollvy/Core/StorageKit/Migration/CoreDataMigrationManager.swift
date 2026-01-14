@@ -31,6 +31,7 @@ public final class CoreDataMigrationManager {
         case migrationFailed(from: String, to: String, Error)
         case rollbackFailed(Error)
         case invalidModelVersion(String)
+        case cachesDirectoryUnavailable
 
         public var errorDescription: String? {
             switch self {
@@ -48,6 +49,8 @@ public final class CoreDataMigrationManager {
                 return "Rollback failed: \(error.localizedDescription)"
             case .invalidModelVersion(let version):
                 return "Invalid model version: \(version)"
+            case .cachesDirectoryUnavailable:
+                return "Unable to access Caches directory"
             }
         }
     }
@@ -64,7 +67,7 @@ public final class CoreDataMigrationManager {
 
     // MARK: - Initialization
 
-    public init(
+    public init?(
         modelName: String,
         storeURL: URL,
         bundle: Bundle = .main
@@ -75,7 +78,8 @@ public final class CoreDataMigrationManager {
 
         // Create backup directory in Caches (not backed up to iCloud)
         guard let cachesURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-            fatalError("Unable to access Caches directory")
+            AppLogger.storage.error("CoreDataMigrationManager: Unable to access Caches directory")
+            return nil
         }
         self.backupDirectory = cachesURL.appendingPathComponent("CoreDataBackups", isDirectory: true)
 

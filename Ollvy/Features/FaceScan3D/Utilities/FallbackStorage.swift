@@ -72,8 +72,17 @@ public class FallbackStorage: ObservableObject {
     }
 
     private init() {
-        // Create fallback directory in Documents
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        // Create fallback directory in Documents - using .first for safety
+        guard let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            // Fallback to temporary directory if Documents is somehow unavailable
+            AppLogger.storage.error("FallbackStorage: Documents directory unavailable, using temp directory")
+            let tempPath = FileManager.default.temporaryDirectory
+            self.fallbackDirectory = tempPath.appendingPathComponent("OllvyFallbackStorage", isDirectory: true)
+            self.sessionListFile = fallbackDirectory.appendingPathComponent("sessions.json")
+            try? FileManager.default.createDirectory(at: fallbackDirectory, withIntermediateDirectories: true)
+            updateFallbackStatus()
+            return
+        }
         self.fallbackDirectory = documentsPath.appendingPathComponent("OllvyFallbackStorage", isDirectory: true)
         self.sessionListFile = fallbackDirectory.appendingPathComponent("sessions.json")
 

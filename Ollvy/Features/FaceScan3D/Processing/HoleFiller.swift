@@ -173,12 +173,16 @@ class HoleFiller {
         // Simple ear-clipping triangulation for small holes
         if boundary.count == 3 {
             // Triangle hole - just create one triangle
-            return ([(boundary[0], boundary[1], boundary[2])], [], [], [])
+            // Safe: count check guarantees indices 0-2 exist
+            let b0 = boundary[0], b1 = boundary[1], b2 = boundary[2]
+            return ([(b0, b1, b2)], [], [], [])
         } else if boundary.count == 4 {
             // Quad hole - create two triangles
+            // Safe: count check guarantees indices 0-3 exist
+            let b0 = boundary[0], b1 = boundary[1], b2 = boundary[2], b3 = boundary[3]
             return ([
-                (boundary[0], boundary[1], boundary[2]),
-                (boundary[0], boundary[2], boundary[3])
+                (b0, b1, b2),
+                (b0, b2, b3)
             ], [], [], [])
         } else {
             // Larger hole - fan triangulation from centroid

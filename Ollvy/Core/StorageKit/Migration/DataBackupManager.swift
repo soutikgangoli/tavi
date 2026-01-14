@@ -21,6 +21,7 @@ public final class DataBackupManager: ObservableObject {
         case restoreFailed(Error)
         case exportFailed(Error)
         case importFailed(Error)
+        case documentsDirectoryUnavailable
 
         public var errorDescription: String? {
             switch self {
@@ -34,6 +35,8 @@ public final class DataBackupManager: ObservableObject {
                 return "Export failed: \(error.localizedDescription)"
             case .importFailed(let error):
                 return "Import failed: \(error.localizedDescription)"
+            case .documentsDirectoryUnavailable:
+                return "Unable to access Documents directory"
             }
         }
     }
@@ -50,12 +53,13 @@ public final class DataBackupManager: ObservableObject {
 
     // MARK: - Initialization
 
-    public init(storeURL: URL) {
+    public init?(storeURL: URL) {
         self.storeURL = storeURL
 
         // Use Documents directory for user-initiated backups (backed up to iCloud)
         guard let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            fatalError("Unable to access Documents directory")
+            AppLogger.storage.error("DataBackupManager: Unable to access Documents directory")
+            return nil
         }
         self.backupDirectory = documentsURL.appendingPathComponent("Backups", isDirectory: true)
 
@@ -64,6 +68,17 @@ public final class DataBackupManager: ObservableObject {
 
         // Load available backups
         refreshBackupList()
+    }
+
+    /// Disabled placeholder for error states - should never be used in normal operation
+    private init(disabled: Bool) {
+        self.storeURL = URL(fileURLWithPath: "/dev/null")
+        self.backupDirectory = URL(fileURLWithPath: "/dev/null")
+    }
+
+    /// Factory for creating a disabled backup manager (used when initialization fails)
+    public static var disabled: DataBackupManager {
+        DataBackupManager(disabled: true)
     }
 
     // MARK: - Public API

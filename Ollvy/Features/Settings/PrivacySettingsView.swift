@@ -23,6 +23,7 @@ public struct PrivacySettingsView: View {
     @State private var showingExportSheet = false
     @State private var exportedFileURL: URL?
     @State private var showingShareSheet = false
+    @State private var showingTermsOfService = false
 
     public init() {}
 
@@ -127,7 +128,8 @@ public struct PrivacySettingsView: View {
 
                 // Legal links
                 Section {
-                    Link(destination: URL(string: "https://example.com/privacy")!) {
+                    // TODO: Replace with your actual Notion/hosted Privacy Policy URL
+                    Link(destination: URL(string: "https://ollvy.notion.site/Privacy-Policy")!) {
                         HStack {
                             Text("Privacy Policy")
                                 .font(AppFont.bodyMedium)
@@ -140,15 +142,18 @@ public struct PrivacySettingsView: View {
                         }
                     }
 
-                    Link(destination: URL(string: "https://example.com/terms")!) {
+                    Button {
+                        showingTermsOfService = true
+                    } label: {
                         HStack {
                             Text("Terms of Service")
                                 .font(AppFont.bodyMedium)
+                                .foregroundColor(Designs.Colors.textPrimary)
 
                             Spacer()
 
-                            Image(systemName: "arrow.up.forward")
-                                .font(.app(size: 13))
+                            Image(systemName: "chevron.right")
+                                .font(.app(size: 13, weight: .semibold))
                                 .foregroundColor(Designs.Colors.textTertiary)
                         }
                     }
@@ -180,6 +185,9 @@ public struct PrivacySettingsView: View {
                 if let url = exportedFileURL {
                     ActivityViewController(activityItems: [url])
                 }
+            }
+            .sheet(isPresented: $showingTermsOfService) {
+                TermsOfServiceView()
             }
         }
     }

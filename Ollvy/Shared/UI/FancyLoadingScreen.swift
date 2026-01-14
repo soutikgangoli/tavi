@@ -81,7 +81,7 @@ struct FancyLoadingScreen: View {
                             .font(.system(size: 38, weight: .bold, design: .rounded))
                             .foregroundColor(textPrimary)
 
-                        Text("Skin Health Tracker")
+                        Text("Skin Analysis Tracker")
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(textSecondary)
                     }

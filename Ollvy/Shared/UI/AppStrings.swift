@@ -85,7 +85,7 @@ public enum AppStrings {
         public static let yourData = "Your Data"
         public static let storageInfo = "Storage Information"
         public static let dataPortability = "Data Portability"
-        public static let skinHealth = "Skin Health"
+        public static let skinHealth = "Skin Analysis"
         public static let agingIndicators = "Aging Indicators"
         public static let additionalIndicators = "Additional Indicators"
     }
@@ -197,7 +197,7 @@ public enum AppStrings {
         public static let acne = "Acne"
         public static let redness = "Redness"
         public static let oilControl = "Oil Control"
-        public static let skinHealth = "Skin Health"
+        public static let skinHealth = "Skin Analysis"
     }
 
     // MARK: - Time Ranges
@@ -226,7 +226,7 @@ public enum AppStrings {
         public static let scanButton = "Start face scan"
         public static let settingsHint = "Opens app settings and preferences"
         public static let latestScanHint = "Tap to view complete results. Swipe left to delete."
-        public static let skinHealthScore = "Skin Health Score"
+        public static let skinHealthScore = "Skin Analysis Score"
     }
 
     // MARK: - Home Screen
@@ -270,7 +270,7 @@ public enum AppStrings {
         public static let scienceBehindGlow = "The Science Behind Your Glow"
         public static let clinicalGradeImaging = "Advanced 3D imaging and AI skin analysis reveal details invisible to the naked eye."
         public static let whatYoullGet = "What You'll Get"
-        public static let eightSkinMetrics = "8 Skin Health Metrics"
+        public static let eightSkinMetrics = "8 Skin Analysis Metrics"
         public static let comprehensiveAnalysis = "Comprehensive analysis of your skin"
         public static let progressTracking = "Progress Tracking"
         public static let seeImprovements = "See improvements over time"
@@ -278,7 +278,7 @@ public enum AppStrings {
         public static let recommendationsTailored = "Get recommendations tailored to you"
 
         // Scan card
-        public static let yourSkinHealthScore = "Your Skin Health Score"
+        public static let yourSkinHealthScore = "Your Skin Analysis Score"
         public static let lastScanned = "Last scanned"
         public static let viewDetails = "View details"
         public static let skinScore = "Skin Score"
@@ -379,7 +379,7 @@ public enum AppStrings {
 
     public enum About {
         public static let appName = "Ollvy"
-        public static let skinHealthAnalysis = "Skin Health Analysis"
+        public static let skinHealthAnalysis = "Skin Analysis"
         public static func version(_ version: String, build: String) -> String {
             return "Version \(version) (\(build))"
         }

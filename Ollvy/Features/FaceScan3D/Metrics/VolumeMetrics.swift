@@ -532,9 +532,11 @@ public class VolumeMetricsAnalyzer {
             return (0, 0, 0, 0, 0, 0)
         }
 
-        var minX = vertices[0].x, maxX = vertices[0].x
-        var minY = vertices[0].y, maxY = vertices[0].y
-        var minZ = vertices[0].z, maxZ = vertices[0].z
+        // Safe to force unwrap after guard check above
+        let first = vertices.first!
+        var minX = first.x, maxX = first.x
+        var minY = first.y, maxY = first.y
+        var minZ = first.z, maxZ = first.z
 
         for vertex in vertices {
             minX = min(minX, vertex.x)

@@ -117,7 +117,7 @@
 		9E47A5E348E3F07CE6C3666E /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058616E444A18736A88D60C2 /* PrimaryButton.swift */; };
 		9F9180BC48FD44EDB8A5EC14 /* StreamingMeshMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D50E5227FC5623C8E7600E1 /* StreamingMeshMerger.swift */; };
 		A19EAEDAEF7F731CE50142FF /* TextureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D022F426A297217275C6E6F /* TextureExtractor.swift */; };
-		A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* TaviModel.xcdatamodeld in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */; };
+		A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* CoreData/TaviModel.xcdatamodeld in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* CoreData/TaviModel.xcdatamodeld */; };
 		A33DCEF17DACB170BA92523B /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F004FB0FB5D0FF29C951E78 /* LoadingView.swift */; };
 		A767C7593E42BD4FC5FE42BE /* HeadspaceDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92A5F472A028D41A7D5022D /* HeadspaceDesignSystem.swift */; };
 		A7A6DCE377134090B5FBF8BA /* MetalAnalyzerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF4E2692C2A946D0A0A4B73F /* MetalAnalyzerBase.swift */; };
@@ -177,14 +177,12 @@
 		ECA039220CF197F5DA10E8EF /* MeshTopologyAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D39CED2746B5AABEFB50801A /* MeshTopologyAnalyzer.swift */; };
 		EEE706DD6CC0EAE18A4E1BC3 /* ARKitErrorAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15BA5870167432044EA62D8 /* ARKitErrorAnalyzer.swift */; };
 		F1CB69BD4D2CCA67027E7FD3 /* RednessAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04D06A6C52C4438A958C7367 /* RednessAnalyzer.swift */; };
-		F420D41B65A3B6343BE4354A /* TermsOfServiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAC430266D9270E9BA4072E /* TermsOfServiceView.swift */; };
 		F4863FBB7D9848C3AFEE7A7C /* MemoryManagedResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30DEAFABD9D148D7B5463AD0 /* MemoryManagedResource.swift */; };
 		F4DEA18EB1FCE07F991EBB63 /* PoreAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15EC623A8C87285A2A33338 /* PoreAnalyzer.swift */; };
 		F6298A4BC13CF46406FA3B2E /* EmotionalMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61AF2748394F42FFC1D2C1FC /* EmotionalMetrics.swift */; };
 		F6CC8FFF0DDE2E1639E698D6 /* ComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE86DBCA6B5C694D330D3B18 /* ComparisonView.swift */; };
 		F931F86DCB63C4CCBFD43BAE /* HeatmapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D57D023CCA82215EDFE4BAE6 /* HeatmapView.swift */; };
 		F982B139CB7C918D522770C4 /* MeshValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E557D608A8032801829AFAD3 /* MeshValidator.swift */; };
-		FAAC3D8A2968FC0E3AA7AE81 /* FAQView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACA96A3B6D0CE3F3A37E81A7 /* FAQView.swift */; };
 		FAC3031908711C70D987AF6C /* ICPAligner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 068C72346597C2B3DDBCC141 /* ICPAligner.swift */; };
 		FAD6CA5178F0F7FEABF21FA0 /* CalibrationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D528A9FDA601DB84BBD5792A /* CalibrationManager.swift */; };
 		FDDAA531EBDE8B051AC04C7E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 39D36200F591BF9382118EAA /* Assets.xcassets */; };
@@ -330,13 +328,12 @@
 		AB146B2985764E9C95A98654 /* PoreDetection.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = PoreDetection.metal; sourceTree = "<group>"; };
 		AC2831201652495C93067A85 /* AnalyzerCommon.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = AnalyzerCommon.metal; sourceTree = "<group>"; };
 		AC5B35DA91BC231D5E96E1B4 /* VolumeMetrics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolumeMetrics.swift; sourceTree = "<group>"; };
-		ACA96A3B6D0CE3F3A37E81A7 /* FAQView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FAQView.swift; path = Ollvy/Features/Settings/FAQView.swift; sourceTree = "<group>"; };
 		AGSP0001000000000000001A /* AppleGlassSegmentedPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleGlassSegmentedPicker.swift; sourceTree = "<group>"; };
 		APPDEFAULTSREF00000001 /* AppDefaults.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppDefaults.swift; path = Ollvy/Shared/AppDefaults.swift; sourceTree = "<group>"; };
 		APPFONTREF0000000000001 /* AppFont.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppFont.swift; path = Ollvy/Shared/UI/AppFont.swift; sourceTree = "<group>"; };
 		B242FF021916A4AC9DC29F69 /* HoleFiller.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HoleFiller.swift; sourceTree = "<group>"; };
 		B27D9D3FED53D8B5D3E58A0D /* CalibrationState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalibrationState.swift; sourceTree = "<group>"; };
-		B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CoreData/TaviModel.xcdatamodeld; sourceTree = "<group>"; };
+		B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* CoreData/TaviModel.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CoreData/TaviModel.xcdatamodeld; sourceTree = "<group>"; };
 		B591178BA8F83750059D6FF7 /* ProcessingPipeline.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProcessingPipeline.swift; sourceTree = "<group>"; };
 		B5BDF38A009147F437A39E78 /* FrameAverager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FrameAverager.swift; sourceTree = "<group>"; };
 		B604BFC89DE914D082466007 /* ResultsHistoryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ResultsHistoryView.swift; path = Results/ResultsHistoryView.swift; sourceTree = "<group>"; };
@@ -367,7 +364,6 @@
 		D994B50896F0253A7AC45F71 /* OnboardingFlow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OnboardingFlow.swift; path = Onboarding/OnboardingFlow.swift; sourceTree = "<group>"; };
 		DA3860CC62964D9CBF987578 /* RednessAnalysis.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = RednessAnalysis.metal; sourceTree = "<group>"; };
 		DB705E9E7DC1403D34B3D22B /* FaceGuidanceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceGuidanceView.swift; sourceTree = "<group>"; };
-		DDAC430266D9270E9BA4072E /* TermsOfServiceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TermsOfServiceView.swift; path = Ollvy/Features/Settings/TermsOfServiceView.swift; sourceTree = "<group>"; };
 		DEB7DF9F43C4254874B81D73 /* AsyncTimeout.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AsyncTimeout.swift; sourceTree = "<group>"; };
 		DF4E2692C2A946D0A0A4B73F /* MetalAnalyzerBase.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetalAnalyzerBase.swift; sourceTree = "<group>"; };
 		E090007A7AD1D87C747C7F1D /* MeshTextureExporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshTextureExporter.swift; sourceTree = "<group>"; };
@@ -639,8 +635,6 @@
 				75F3DACA88C2BAE8D02A5828 /* CaptureSettingsView.swift */,
 				4BB91D0720210964BC83130C /* DeviceInfoView.swift */,
 				4CDD8FAF2C3E90A61A0969F4 /* SettingsView.swift */,
-				DDAC430266D9270E9BA4072E /* TermsOfServiceView.swift */,
-				ACA96A3B6D0CE3F3A37E81A7 /* FAQView.swift */,
 			);
 			name = Settings;
 			sourceTree = "<group>";
@@ -950,7 +944,7 @@
 			);
 			sourceTree = "<group>";
 		};
-		P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1 /* Fonts */ = {
+		P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1 /* Resources/Fonts */ = {
 			isa = PBXGroup;
 			children = (
 				GS01BOLDREF0000000000000000001 /* GeneralSans-Bold.otf */,
@@ -986,8 +980,8 @@
 				D8B235600CEB8B02576410D8 /* Shared */,
 				384DC700FEA2E36C5C2DEEF6 /* OllvyApp.swift */,
 				39D36200F591BF9382118EAA /* Assets.xcassets */,
-				B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */,
-				P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1 /* Fonts */,
+				B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* CoreData/TaviModel.xcdatamodeld */,
+				P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1 /* Resources/Fonts */,
 				7B0FA72460DB37D8AF2330DD /* Info.plist */,
 			);
 			path = Ollvy;
@@ -1047,7 +1041,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FDDAA531EBDE8B051AC04C7E /* Assets.xcassets in Resources */,
-				A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* TaviModel.xcdatamodeld in Resources */,
+				A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* CoreData/TaviModel.xcdatamodeld in Resources */,
 				GS01BOLD000000000000000000000001 /* GeneralSans-Bold.otf in Resources */,
 				GS02BOLDIT00000000000000000000002 /* GeneralSans-BoldItalic.otf in Resources */,
 				GS03EXLT000000000000000000000003 /* GeneralSans-Extralight.otf in Resources */,
@@ -1250,8 +1244,6 @@
 				5D224A9F2EBAEFB922F3B06D /* MetricsCalculator.swift in Sources */,
 				DEEECB1DF277F78ECFA7F83F /* ScanPreparationView.swift in Sources */,
 				D99DC7C3205DB50A97E270EF /* Face3DMetricsResultsView.swift in Sources */,
-				F420D41B65A3B6343BE4354A /* TermsOfServiceView.swift in Sources */,
-				FAAC3D8A2968FC0E3AA7AE81 /* FAQView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1385,7 +1377,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Ollvy/Ollvy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = Ollvy/Info.plist;
@@ -1413,7 +1404,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Ollvy/Ollvy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = Ollvy/Info.plist;

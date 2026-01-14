@@ -88,8 +88,12 @@ class FrameAverager {
 
         AppLogger.faceScan.info("📊 Averaging \(self.capturedFrames.count) frames...")
 
-        // Get reference geometry (first frame)
-        let referenceGeometry = self.capturedFrames[0].geometry
+        // Get reference geometry (first frame) - using .first for safety
+        guard let firstFrame = self.capturedFrames.first else {
+            AppLogger.faceScan.error("❌ No frames available for averaging")
+            return nil
+        }
+        let referenceGeometry = firstFrame.geometry
         let vertexCount = referenceGeometry.vertices.count
 
         // Collect all vertex positions

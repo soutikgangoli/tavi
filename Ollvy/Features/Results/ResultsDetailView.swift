@@ -128,7 +128,7 @@ struct ResultsDetailView: View {
                 // Face Image with Heatmap Toggle
                 imageSection
 
-                // Overall Score Card (Skin Health Score)
+                // Overall Score Card (Skin Analysis Score)
                 overallScoreCard
 
                 // Aging Indicators Section (Wrinkles & Volume - separate from health score)
@@ -433,7 +433,7 @@ struct ResultsDetailView: View {
                         }
                     }
 
-                    Text("Your Skin Health Score")
+                    Text("Your Skin Analysis Score")
                         .font(.app(size: 18, weight: .medium))
                         .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
                 }
@@ -548,10 +548,10 @@ struct ResultsDetailView: View {
 
                     // ===== ADDITIONAL INDICATORS (NOT IN OVERALL SCORE) =====
 
-                    // Glow (Composite Health Index)
+                    // Glow (Composite Analysis Index)
                     if let glowAnalysis = metrics.glowAnalysis {
                         ResultsMetricCardWithConfidence(
-                            title: "Skin Health",
+                            title: "Skin Analysis",
                             value: Double(glowAnalysis.skinHealthScore),
                             confidence: Double(glowAnalysis.confidence),
                             icon: "sparkles",

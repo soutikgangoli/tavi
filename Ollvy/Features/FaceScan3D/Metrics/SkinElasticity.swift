@@ -51,10 +51,12 @@ public class SkinElasticityAnalyzer {
 
         // Require scans to be separated by at least 3 days for meaningful temporal analysis
         let minTimeDelta: TimeInterval = 3 * 24 * 3600  // 3 days
-        let mostRecentScans = historicalScans.sorted { $0.timestamp > $1.timestamp }.prefix(2)
-        guard mostRecentScans.count == 2 else { return nil }
+        let sortedScans = historicalScans.sorted { $0.timestamp > $1.timestamp }
+        guard sortedScans.count >= 2,
+              let newestScan = sortedScans.first,
+              let secondNewest = sortedScans.dropFirst().first else { return nil }
 
-        let timeDiff = abs(mostRecentScans[0].timestamp - mostRecentScans[1].timestamp)
+        let timeDiff = abs(newestScan.timestamp - secondNewest.timestamp)
         guard timeDiff >= minTimeDelta else {
             AppLogger.metrics.info("⚠️ Scans too close together for elasticity analysis (need 3+ days apart)")
             return nil

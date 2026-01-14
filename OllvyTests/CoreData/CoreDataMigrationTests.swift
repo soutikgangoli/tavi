@@ -27,11 +27,15 @@ final class CoreDataMigrationTests: XCTestCase {
 
         storeURL = tempDirectory.appendingPathComponent("TestStore.sqlite")
 
-        migrationManager = CoreDataMigrationManager(
+        guard let manager = CoreDataMigrationManager(
             modelName: "TaviModel",
             storeURL: storeURL,
             bundle: .main
-        )
+        ) else {
+            XCTFail("Failed to initialize CoreDataMigrationManager")
+            return
+        }
+        migrationManager = manager
     }
 
     override func tearDown() {
