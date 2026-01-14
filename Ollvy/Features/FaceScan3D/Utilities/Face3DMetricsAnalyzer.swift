@@ -395,9 +395,10 @@ public class Face3DMetricsAnalyzer {
             return (volume, regional, topology)
         }
 
-        // STEP 2: Run GPU-heavy texture analyzers SEQUENTIALLY to avoid thread pool exhaustion
-        // These now use cancellable polling instead of blocking waitUntilCompleted()
-        AppLogger.metrics.debug("   🎨 Running texture-based analyzers sequentially (GPU)...")
+        // STEP 2: Run GPU-heavy texture analyzers IN PARALLEL for speed optimization
+        // Each analyzer creates independent Metal command buffers with polling-based completion
+        // Modern Metal handles concurrent command buffer submission efficiently
+        AppLogger.metrics.debug("   🎨 Running texture-based analyzers in PARALLEL (GPU)...")
 
         // Check cancellation before starting GPU analyzers (non-throwing check)
         guard !Task.isCancelled else {
@@ -405,29 +406,58 @@ public class Face3DMetricsAnalyzer {
             return nil
         }
 
-        // Pore analysis (GPU-accelerated)
-        let poreAnalysis: PoreAnalysis? = poreAnalyzer.analyzePores(texture: textureImage)
-        AppLogger.metrics.debug("      ✓ Pore analysis complete")
-        
-        // Check cancellation between analyzer steps
-        guard !Task.isCancelled else {
-            AppLogger.metrics.info("🛑 GPU analyzers cancelled after pore analysis")
-            return nil
-        }
+        // Run all three GPU analyzers in parallel
+        let (poreAnalysis, acneAnalysis, rednessAnalysis) = await withTaskGroup(
+            of: AnalysisResult.self,
+            returning: (PoreAnalysis?, AcneAnalysis?, RednessAnalysis?).self
+        ) { group in
+            // Task 1: Pore analysis (GPU-accelerated)
+            group.addTask { [poreAnalyzer] in
+                let result = poreAnalyzer.analyzePores(texture: textureImage)
+                return .pore(result)
+            }
 
-        // Acne analysis (GPU-accelerated)
-        let acneAnalysis: AcneAnalysis? = acneAnalyzer.analyzeAcne(texture: textureImage)
-        AppLogger.metrics.debug("      ✓ Acne analysis complete")
-        
-        // Check cancellation between analyzer steps
-        guard !Task.isCancelled else {
-            AppLogger.metrics.info("🛑 GPU analyzers cancelled after acne analysis")
-            return nil
-        }
+            // Task 2: Acne analysis (GPU-accelerated)
+            group.addTask { [acneAnalyzer] in
+                let result = acneAnalyzer.analyzeAcne(texture: textureImage)
+                return .acne(result)
+            }
 
-        // Redness analysis (GPU-accelerated)
-        let rednessAnalysis: RednessAnalysis? = rednessAnalyzer.analyzeRedness(texture: textureImage)
-        AppLogger.metrics.debug("      ✓ Redness analysis complete")
+            // Task 3: Redness analysis (GPU-accelerated)
+            group.addTask { [rednessAnalyzer] in
+                let result = rednessAnalyzer.analyzeRedness(texture: textureImage)
+                return .redness(result)
+            }
+
+            // Collect GPU analysis results
+            var pore: PoreAnalysis?
+            var acne: AcneAnalysis?
+            var redness: RednessAnalysis?
+
+            for await result in group {
+                // Check cancellation while collecting results
+                guard !Task.isCancelled else {
+                    AppLogger.metrics.info("🛑 GPU analysis cancelled")
+                    break
+                }
+
+                switch result {
+                case .pore(let analysis):
+                    AppLogger.metrics.debug("      ✓ Pore analysis complete")
+                    pore = analysis
+                case .acne(let analysis):
+                    AppLogger.metrics.debug("      ✓ Acne analysis complete")
+                    acne = analysis
+                case .redness(let analysis):
+                    AppLogger.metrics.debug("      ✓ Redness analysis complete")
+                    redness = analysis
+                default:
+                    break
+                }
+            }
+
+            return (pore, acne, redness)
+        }
 
         let parallelTime = Date().timeIntervalSince1970 - parallelStartTime
         AppLogger.metrics.info("   ⚡️ Advanced analysis completed in \(String(format: "%.3f", parallelTime))s")
