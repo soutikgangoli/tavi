@@ -102,7 +102,7 @@ public struct HomeView: View {
                             Circle()
                                 .fill(HomeColors.accentCoral.opacity(0.15))
                                 .frame(width: 36, height: 36)
-                            Image(systemName: "person.fill")
+                            Image(systemName: "gearshape.fill")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(HomeColors.accentCoral)
                         }
@@ -2561,6 +2561,12 @@ public struct HomeView: View {
     // MARK: - Session Management
 
     private func deleteSession(_ session: SessionResult) {
+        // Guard against already deleted/faulted sessions to prevent crash
+        guard !session.isDeleted && !session.isFault else {
+            AppLogger.ui.warning("HomeView: Attempted to delete already deleted session")
+            return
+        }
+
         withAnimation {
             viewContext.delete(session)
             do {

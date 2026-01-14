@@ -277,6 +277,22 @@ public struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                // Delete Account Section (App Store Requirement 5.1.1)
+                Section {
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        HStack {
+                            Label("Delete Account", systemImage: "person.crop.circle.badge.minus")
+                            Spacer()
+                        }
+                    }
+                    .accessibilityLabel("Delete Account")
+                    .accessibilityHint("Permanently deletes all your data and resets the app")
+                } footer: {
+                    Text("Ollvy stores all data locally on your device. Deleting your account will permanently remove all scans, analysis results, achievements, and settings. This cannot be undone.")
+                }
             }
             .navigationTitle(AppStrings.Titles.settings)
             .navigationBarTitleDisplayMode(.inline)

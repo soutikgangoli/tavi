@@ -13,6 +13,24 @@ import SceneKit
 import ModelIO
 import UniformTypeIdentifiers
 
+/// Errors that can occur during mesh export
+public enum ExportError: Error, LocalizedError {
+    case textureEncodingFailed
+    case invalidMesh
+    case fileWriteFailed(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .textureEncodingFailed:
+            return "Failed to encode texture to PNG format"
+        case .invalidMesh:
+            return "Invalid mesh data"
+        case .fileWriteFailed(let path):
+            return "Failed to write file at: \(path)"
+        }
+    }
+}
+
 /// Exports textured meshes to various 3D formats
 public class MeshTextureExporter {
 
@@ -421,7 +439,9 @@ public class MeshTextureExporter {
         let material = MDLMaterial(name: "FaceMaterial", scatteringFunction: scatteringFunction)
 
         // Create texture from CGImage
-        let textureData = UIImage(cgImage: texture).pngData()!
+        guard let textureData = UIImage(cgImage: texture).pngData() else {
+            throw ExportError.textureEncodingFailed
+        }
         let dimensions = vector_int2(Int32(texture.width), Int32(texture.height))
         let mdlTexture = MDLTexture(
             data: textureData,

@@ -128,16 +128,18 @@ public struct PrivacySettingsView: View {
 
                 // Legal links
                 Section {
-                    Link(destination: URL(string: "https://skinny-wednesday-61d.notion.site/Privacy-Policy-Ollvy-23fe22666e7580a18104c21256536cc0")!) {
-                        HStack {
-                            Text("Privacy Policy")
-                                .font(AppFont.bodyMedium)
+                    if let privacyURL = URL(string: "https://ollvy.app/privacy") {
+                        Link(destination: privacyURL) {
+                            HStack {
+                                Text("Privacy Policy")
+                                    .font(AppFont.bodyMedium)
 
-                            Spacer()
+                                Spacer()
 
-                            Image(systemName: "arrow.up.forward")
-                                .font(.app(size: 13))
+                                Image(systemName: "arrow.up.forward")
+                                    .font(.app(size: 13))
                                 .foregroundColor(Designs.Colors.textTertiary)
+                            }
                         }
                     }
 

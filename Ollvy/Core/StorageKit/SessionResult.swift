@@ -52,6 +52,8 @@ public class SessionResult: NSManagedObject {
 
     /// Computed property to decode clinical metrics on-demand
     public var skinMetrics: Face3DMetrics? {
+        // Guard against deleted/faulted session to prevent crash
+        guard !isDeleted && !isFault else { return nil }
         guard let data = clinicalMetricsData else { return nil }
         let result = VersionedMetricsLoader.loadFace3DMetrics(from: data)
         return result.metrics
@@ -225,24 +227,34 @@ extension SessionResult {
 extension SessionResult {
 
     public var thumbnailImage: UIImage? {
+        // Guard against deleted/faulted session to prevent crash
+        guard !isDeleted && !isFault else { return nil }
         guard let data = thumbnail else { return nil }
         return UIImage(data: data)
     }
 
     public var faceUIImage: UIImage? {
+        // Guard against deleted/faulted session to prevent crash
+        guard !isDeleted && !isFault else { return nil }
         guard let data = faceImage else { return nil }
         return UIImage(data: data)
     }
 
     public var faceCGImage: CGImage? {
-        faceUIImage?.cgImage
+        // Guard against deleted/faulted session to prevent crash
+        guard !isDeleted && !isFault else { return nil }
+        return faceUIImage?.cgImage
     }
 
     public var grade: ScoreGrade {
+        // Guard against deleted/faulted session to prevent crash
+        guard !isDeleted && !isFault else { return .fair }
         return ScoreGrade(from: Float(overallScore))
     }
 
     public var formattedDate: String {
+        // Guard against deleted/faulted session to prevent crash
+        guard !isDeleted && !isFault else { return "" }
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
@@ -250,6 +262,8 @@ extension SessionResult {
     }
 
     public var relativeDate: String {
+        // Guard against deleted/faulted session to prevent crash
+        guard !isDeleted && !isFault else { return "" }
         let calendar = Calendar.current
         let now = Date()
 
@@ -271,6 +285,8 @@ extension SessionResult {
 
     /// Decode the full Face3DMetrics from stored JSON
     public var face3DMetrics: Face3DMetrics? {
+        // Guard against deleted/faulted session to prevent crash
+        guard !isDeleted && !isFault else { return nil }
         guard let data = clinicalMetricsData else {
             AppLogger.storage.debug("No clinicalMetricsData available for session \(self.id)")
             return nil

@@ -228,10 +228,10 @@ public class CoreDataSaveQueue: ObservableObject {
 
     private func startRetryTimer() {
         // Retry every 30 seconds
-        // FIXED: Use DispatchQueue.main.async instead of Task { @MainActor } to ensure
+        // FIXED: Use DispatchQueue.main.asyncAfter with 1ms delay to ensure
         // state updates are deferred to next run loop, avoiding "Publishing changes" warnings
         retryTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
-            DispatchQueue.main.async {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
                 Task {
                     await self?.processQueue()
                 }

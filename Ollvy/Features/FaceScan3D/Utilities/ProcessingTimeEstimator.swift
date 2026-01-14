@@ -596,15 +596,27 @@ public class ProcessingTimeEstimator: ObservableObject {
 
         // Smoothly animate to completion (96 -> 97 -> 98 -> 99 -> 100)
         // This prevents a jarring jump from wherever we were to 100%
-        Task { @MainActor in
-            // Quick countdown from current remaining to 0
-            for remaining in stride(from: min(self.remainingSeconds, 4), through: 0, by: -1) {
-                self.remainingSeconds = remaining
-                self.progressPercent = 96 + Double(4 - remaining)
-                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second per tick
+        let startRemaining = min(self.remainingSeconds, 4)
+        var animationStep = 0
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
             }
-            self.remainingSeconds = 0
-            self.progressPercent = 100
+            let remaining = startRemaining - animationStep
+            if remaining >= 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                    self.remainingSeconds = remaining
+                    self.progressPercent = 96 + Double(animationStep)
+                }
+                animationStep += 1
+            } else {
+                timer.invalidate()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                    self.remainingSeconds = 0
+                    self.progressPercent = 100
+                }
+            }
         }
 
         // Log accuracy report

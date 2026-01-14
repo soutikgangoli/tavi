@@ -88,7 +88,7 @@ public class CaptureSequenceManager: ObservableObject {
         self.currentSequence = CaptureSequence()
 
         // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             guard let self else { return }
             // Start guidance
             self.isGuidanceActive = true
@@ -115,7 +115,7 @@ public class CaptureSequenceManager: ObservableObject {
         self.stepTransitionTask = nil
 
         // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             guard let self else { return }
             self.isGuidanceActive = false
             self.capturedPoses = [:]
@@ -180,7 +180,7 @@ public class CaptureSequenceManager: ObservableObject {
         // CRITICAL FIX: Defer @Published property updates to next run loop iteration
         // This prevents "Publishing changes from within view updates" warnings
         // Using DispatchQueue.main.async to truly defer (Task @MainActor may execute immediately)
-        DispatchQueue.main.async { [weak self, feedback] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self, feedback] in
             guard let self else { return }
             // Store current angles for debug display
             self.currentYaw = yaw
@@ -370,7 +370,7 @@ public class CaptureSequenceManager: ObservableObject {
 
         // Defer UI-only @Published property updates to avoid "Publishing changes from within view updates"
         // NOTE: isCaptureInProgress is already set above - this is just for UI updates
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             guard let self else { return }
             // Update capturedPoses - this triggers SwiftUI onChange and view transition
             self.capturedPoses[capturedStep] = poseData
@@ -411,7 +411,7 @@ public class CaptureSequenceManager: ObservableObject {
             // Don't set isCaptureInProgress = false here!
             // Keep it true to block any further capture attempts
             // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.async { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
                 self?.isCaptureFullyComplete = true
             }
             AppLogger.faceScan.info("✅ All captures including textures complete - ready for processing")
@@ -431,7 +431,7 @@ public class CaptureSequenceManager: ObservableObject {
                     guard let self = self, !self.isCleaningUp else { return }
 
                     // Defer @Published property updates to avoid "Publishing changes from within view updates"
-                    DispatchQueue.main.async { [weak self] in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
                         guard let self else { return }
                         self.currentGuidanceStep = nextStep
                         self.isCaptureInProgress = false
@@ -455,7 +455,7 @@ public class CaptureSequenceManager: ObservableObject {
         AppLogger.faceScan.info("✅ Sequence complete")
 
         // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             self?.isGuidanceActive = false
         }
     }
@@ -472,7 +472,7 @@ public class CaptureSequenceManager: ObservableObject {
         self.countdownTimer = 1
 
         let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] timer in
-            DispatchQueue.main.async { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
                 guard let self = self else {
                     timer.invalidate()
                     return
@@ -532,7 +532,7 @@ public class CaptureSequenceManager: ObservableObject {
                 self.countdownToleranceFrames = 0
 
                 // Defer @Published property updates to avoid "Publishing changes from within view updates"
-                DispatchQueue.main.async { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
                     guard let self else { return }
                     self.countdownTimer = 0
                     self.guidanceFeedback = nil
@@ -568,7 +568,7 @@ public class CaptureSequenceManager: ObservableObject {
     public func onMultiFrameCaptureCompleted(frameCount: Int) {
         AppLogger.faceScan.info("✅ Multi-frame capture completed with \(frameCount) frames")
         // Defer @Published property update to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             self?.isCaptureInProgress = false
         }
     }

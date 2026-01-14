@@ -55,7 +55,7 @@ public class ScanStateManager: ObservableObject {
     /// Starts the scanning guidance flow
     public func startGuidance() {
         // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             guard let self else { return }
             self.isGuidanceActive = true
             self.currentGuidanceStep = .lookStraight
@@ -68,7 +68,7 @@ public class ScanStateManager: ObservableObject {
     public func stopGuidance() {
         stopCountdown()
         // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             guard let self else { return }
             self.isGuidanceActive = false
             self.capturedPoses.removeAll()
@@ -86,7 +86,7 @@ public class ScanStateManager: ObservableObject {
 
         let feedbackMessage = guidanceFeedbackMessage(for: nextStep)
         // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             guard let self else { return }
             self.currentGuidanceStep = nextStep
             self.guidanceFeedback = feedbackMessage
@@ -98,7 +98,7 @@ public class ScanStateManager: ObservableObject {
     public func capturePose(data: CapturedPoseData) {
         let step = currentGuidanceStep
         // Defer @Published property update to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             self?.capturedPoses[step] = data
         }
 
@@ -106,9 +106,8 @@ public class ScanStateManager: ObservableObject {
         HapticManager.shared.success()
 
         // Move to next step after brief delay
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
-            self.moveToNextStep()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.moveToNextStep()
         }
     }
 
@@ -136,7 +135,7 @@ public class ScanStateManager: ObservableObject {
 
             // CRITICAL: Defer @Published property updates to next run loop
             // to avoid "Publishing changes from within view updates" warnings
-            DispatchQueue.main.async {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
                 self.countdownTimer -= 1
 
                 if self.countdownTimer <= 0 {
@@ -201,7 +200,7 @@ public class ScanStateManager: ObservableObject {
 
     private func completeGuidance() {
         // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             guard let self else { return }
             self.isGuidanceActive = false
             self.guidanceFeedback = "Scan complete! Processing..."
@@ -224,9 +223,8 @@ public class ScanStateManager: ObservableObject {
         )
 
         // Reset after brief delay
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 200_000_000) // 0.2s
-            self.isCaptureInProgress = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            self?.isCaptureInProgress = false
         }
     }
 

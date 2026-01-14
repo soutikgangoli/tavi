@@ -472,31 +472,42 @@ struct SessionCard: View {
 
     let session: SessionResult
 
+    // Guard against deleted/faulted sessions
+    private var isValidSession: Bool {
+        !session.isDeleted && !session.isFault
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
-            // Name, Date Time, Score% in one line
-            Text(compactDisplayText)
-                .font(.body)
-                .foregroundStyle(.primary)
+        // Return empty view if session is deleted
+        if !isValidSession {
+            EmptyView()
+        } else {
+            HStack(spacing: 12) {
+                // Name, Date Time, Score% in one line
+                Text(compactDisplayText)
+                    .font(.body)
+                    .foregroundStyle(.primary)
 
-            Spacer()
+                Spacer()
 
-            // Chevron
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(Color(uiColor: .secondarySystemBackground))
+            .cornerRadius(12)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Scan from \(session.relativeDate), overall score \(Int(session.overallScore)) percent")
+            .accessibilityHint("Double tap to view detailed results")
+            .accessibilityAddTraits(.isButton)
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
-        .background(Color(uiColor: .secondarySystemBackground))
-        .cornerRadius(12)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Scan from \(session.relativeDate), overall score \(Int(session.overallScore)) percent")
-        .accessibilityHint("Double tap to view detailed results")
-        .accessibilityAddTraits(.isButton)
     }
 
     private var compactDisplayText: String {
+        guard isValidSession else { return "" }
         let name = UserProfileManager.shared.loadProfile().name ?? "User"
         let dateString = formattedDateTime
         let scoreString = "\(Int(session.overallScore))%"
@@ -505,6 +516,7 @@ struct SessionCard: View {
     }
 
     private var formattedDateTime: String {
+        guard isValidSession else { return "" }
         let date = session.date
         let formatter = DateFormatter()
 

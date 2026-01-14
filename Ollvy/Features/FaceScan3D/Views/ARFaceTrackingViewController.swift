@@ -207,8 +207,8 @@ public class ARFaceTrackingViewController: UIViewController {
 
         // Check if face tracking is supported
         guard ARFaceTrackingConfiguration.isSupported else {
-            Task { @MainActor in
-                viewModel?.sessionFailed(error: NSError(
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+                self?.viewModel?.sessionFailed(error: NSError(
                     domain: "ARKit",
                     code: -1,
                     userInfo: [NSLocalizedDescriptionKey: "Face tracking not supported on this device"]
@@ -225,8 +225,8 @@ public class ARFaceTrackingViewController: UIViewController {
         // Run session
         sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
 
-        Task { @MainActor in
-            viewModel?.sessionStarted()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            self?.viewModel?.sessionStarted()
         }
     }
 
@@ -263,8 +263,8 @@ public class ARFaceTrackingViewController: UIViewController {
         )
         isMultiFrameCaptureActive = true
 
-        Task { @MainActor in
-            viewModel?.onMultiFrameCaptureStarted()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            self?.viewModel?.onMultiFrameCaptureStarted()
         }
     }
 
@@ -278,9 +278,10 @@ public class ARFaceTrackingViewController: UIViewController {
         guard let averager = frameAverager else { return nil }
 
         let result = averager.average()
+        let frameCount = averager.frameCount
 
-        Task { @MainActor in
-            viewModel?.onMultiFrameCaptureCompleted(frameCount: averager.frameCount)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            self?.viewModel?.onMultiFrameCaptureCompleted(frameCount: frameCount)
         }
 
         return result

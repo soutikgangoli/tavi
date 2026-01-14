@@ -528,12 +528,9 @@ public class VolumeMetricsAnalyzer {
 
     /// Calculate bounding box of face vertices
     private func calculateFaceBounds(vertices: [SIMD3<Float>]) -> (minX: Float, maxX: Float, minY: Float, maxY: Float, minZ: Float, maxZ: Float) {
-        guard !vertices.isEmpty else {
+        guard let first = vertices.first else {
             return (0, 0, 0, 0, 0, 0)
         }
-
-        // Safe to force unwrap after guard check above
-        let first = vertices.first!
         var minX = first.x, maxX = first.x
         var minY = first.y, maxY = first.y
         var minZ = first.z, maxZ = first.z

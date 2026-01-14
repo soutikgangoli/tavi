@@ -48,7 +48,7 @@ public class ValidationManager: ObservableObject {
     public func validateLighting(from frame: ARFrame) -> Bool {
         guard let lightEstimate = frame.lightEstimate else {
             // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.async { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
                 self?.qualityWarning = "Unable to estimate lighting"
             }
             return false
@@ -61,7 +61,7 @@ public class ValidationManager: ObservableObject {
         // Update light estimation using FaceMeshGeometry's LightEstimation
         // Defer @Published property update to avoid "Publishing changes from within view updates"
         let newLightEstimation = LightEstimation(frame: frame)
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             self?.lightEstimation = newLightEstimation
         }
 
@@ -135,7 +135,7 @@ public class ValidationManager: ObservableObject {
         baselineLighting = intensity
         baselineColorTemperature = colorTemp
         // Defer @Published property update to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             self?.calibrationState.isCalibrated = true
         }
     }
@@ -160,7 +160,7 @@ public class ValidationManager: ObservableObject {
         baselineLighting = nil
         baselineColorTemperature = nil
         // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             guard let self else { return }
             self.qualityWarning = nil
             self.calibrationState = ValidationCalibrationState()
@@ -204,7 +204,7 @@ public class ValidationManager: ObservableObject {
         if warning != previousQualityWarning {
             previousQualityWarning = warning
             // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.async { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
                 self?.qualityWarning = warning
             }
             HapticManager.shared.warning()
@@ -215,7 +215,7 @@ public class ValidationManager: ObservableObject {
         if qualityWarning != nil {
             previousQualityWarning = nil
             // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.async { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
                 self?.qualityWarning = nil
             }
         }

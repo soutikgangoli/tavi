@@ -43,8 +43,7 @@ https://ollvy.app
 (OR your actual website - leave blank if none)
 
 Privacy Policy URL:
-https://yourusername.github.io/privacy-policy.html
-(Replace with actual URL after hosting privacy-policy.html)
+https://skinny-wednesday-61d.notion.site/Privacy-Policy-Ollvy-23fe22666e7580a18104c21256536cc0
 
 ===========================================
 APP REVIEW INFORMATION
