@@ -454,7 +454,7 @@ public class RegionalAnalyzers {
 
     /// Get lip region indices dynamically based on vertex positions
     /// Adapts to different face shapes
-    /// PHASE 5 FIX: Expanded bounds to detect lips more reliably
+    /// FIXED: Improved lip region detection with correct coordinate handling
     private func getLipIndices(geometry: FaceMeshGeometry) -> [Int] {
         let vertices = geometry.vertices
 
@@ -462,14 +462,15 @@ public class RegionalAnalyzers {
         let bounds = calculateFaceBounds(vertices: vertices)
         let centerX = vertices.map { $0.x }.reduce(0, +) / Float(vertices.count)
 
-        // PHASE 5 FIX: Expanded lip region bounds
-        // Previous: 10-35% from bottom, ±4cm from center - too tight, missing lips
-        // New: 8-40% from bottom, ±6cm from center - more generous detection
-        let lipYMin = bounds.minY + (bounds.maxY - bounds.minY) * 0.08  // 8% from bottom (was 10%)
-        let lipYMax = bounds.minY + (bounds.maxY - bounds.minY) * 0.40  // 40% from bottom (was 35%)
-        let lipXMin = centerX - 0.06  // Within 6cm of center (was ±4cm)
+        // FIXED: Lip region bounds with proper ARKit coordinate handling
+        // In ARKit face coords: minY = chin (bottom), maxY = forehead (top)
+        // Lips are in the lower portion of the face, roughly 15-35% from bottom
+        let faceHeight = bounds.maxY - bounds.minY
+        let lipYMin = bounds.minY + faceHeight * 0.15  // 15% from bottom (chin area)
+        let lipYMax = bounds.minY + faceHeight * 0.35  // 35% from bottom (below nose)
+        let lipXMin = centerX - 0.06  // Within 6cm of center
         let lipXMax = centerX + 0.06
-        let lipZMin = bounds.minZ + (bounds.maxZ - bounds.minZ) * 0.4   // Front 60% of face (was 50%)
+        let lipZMin = bounds.minZ + (bounds.maxZ - bounds.minZ) * 0.4   // Front 60% of face
 
         // Log bounds for diagnostic purposes
         AppLogger.metrics.debug("      Lip detection bounds: Y=\(String(format: "%.3f", lipYMin))-\(String(format: "%.3f", lipYMax)), X=\(String(format: "%.3f", lipXMin))-\(String(format: "%.3f", lipXMax)), Z>=\(String(format: "%.3f", lipZMin))")
@@ -477,8 +478,8 @@ public class RegionalAnalyzers {
         var lipIndices: [Int] = []
 
         for (index, vertex) in vertices.enumerated() {
-            // Skip extended vertices
-            guard index < geometry.originalVertexCount else { break }
+            // Skip extended vertices but DON'T break - continue checking remaining original vertices
+            guard index < geometry.originalVertexCount else { continue }
 
             // Check if vertex is in lip region
             guard vertex.y >= lipYMin && vertex.y <= lipYMax else { continue }
@@ -488,7 +489,7 @@ public class RegionalAnalyzers {
             lipIndices.append(index)
         }
 
-        AppLogger.metrics.debug("      Lip region: Found \(lipIndices.count) vertices in expanded bounds")
+        AppLogger.metrics.debug("      Lip region: Found \(lipIndices.count) vertices in bounds")
 
         return lipIndices
     }
@@ -662,20 +663,23 @@ public class RegionalAnalyzers {
         }
     }
 
-    /// PHASE 5 FIX: Texture-only fallback for lip analysis when mesh vertices are unavailable
+    /// FIXED: Texture-only fallback for lip analysis - ALWAYS returns valid data (never nil)
     /// This provides a degraded but still useful analysis based on texture alone
-    private func analyzeLipsFromTextureOnly(texture: UIImage) -> LipAnalysis? {
+    private func analyzeLipsFromTextureOnly(texture: UIImage) -> LipAnalysis {
         AppLogger.metrics.info("      📸 Using texture-only lip analysis fallback")
 
-        guard let cgImage = texture.cgImage else {
-            AppLogger.metrics.warning("      ❌ No texture available for lip fallback analysis")
-            return nil
-        }
+        // Default values if texture analysis fails
+        var textureScore: Float = 65  // Default mid-range
+        var hydration: LipHydrationLevel = .normal
 
-        // Extract lip region from texture (approximate center-bottom of face)
-        let lipRegion = extractLipRegion(image: cgImage)
-        let textureScore = analyzeLipTexture(region: lipRegion)
-        let hydration = classifyLipHydration(textureScore: textureScore)
+        // Try to analyze from texture if available
+        if let cgImage = texture.cgImage {
+            let lipRegion = extractLipRegion(image: cgImage)
+            textureScore = analyzeLipTexture(region: lipRegion)
+            hydration = classifyLipHydration(textureScore: textureScore)
+        } else {
+            AppLogger.metrics.warning("      ⚠️ No texture available, using default lip values")
+        }
 
         // Estimate volume and symmetry with default values (can't calculate from texture alone)
         let volumeScore: Float = 60  // Default mid-range

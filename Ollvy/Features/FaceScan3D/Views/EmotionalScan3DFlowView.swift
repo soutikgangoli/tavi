@@ -437,15 +437,15 @@ public struct EmotionalScan3DFlowView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, Designs.Spacing.xxLarge)
 
-                    // Detailed status
+                    // Detailed status - smooth crossfade
                     if let currentPhase = getCurrentProcessingPhase() {
                         Text(currentPhase.getCyclingMessage(index: cyclingMessageIndex))
                             .font(AppFont.caption)
                             .foregroundColor(gsTextSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Designs.Spacing.xxLarge)
-                            .animation(Designs.Animation.standard, value: cyclingMessageIndex)
-                            .transition(.opacity)
+                            .id(cyclingMessageIndex)  // Force view recreation for proper transition
+                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
                     }
 
                     // Step progress indicator
@@ -1212,7 +1212,7 @@ public struct EmotionalScan3DFlowView: View {
                 } catch {
                     // Timeout error - add to persistent queue and alert user
                     AppLogger.faceScan.error("⚠️ Core Data save timed out: \(error.localizedDescription)")
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
                         self.saveQueue.enqueueSave(emotionalMetrics: emotional, clinicalMetrics: computedClinicalMetrics)
                         self.pendingSaveData = (emotional, computedClinicalMetrics)
                         self.saveErrorMessage = "Save operation timed out. Your results are queued for automatic retry."
@@ -1348,7 +1348,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 case .incompatible(let version, let reason):
                     AppLogger.faceScan.warning("⚠️ Incompatible clinical metrics version v\(version.versionString): \(reason)")
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
                         self.comparisonUnavailableReason = "Your previous scan is from an older app version and can't be compared"
                     }
                     return nil
@@ -1356,7 +1356,7 @@ public struct EmotionalScan3DFlowView: View {
                 case .corrupted(let error):
                     AppLogger.faceScan.error("❌ Corrupted clinical metrics data: \(error.localizedDescription)")
                     CrashReporter.shared.logError(error, context: ["operation": "json_decode_clinical_versioned"])
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
                         self.comparisonUnavailableReason = "Your previous scan data appears to be damaged and can't be compared"
                     }
                     return nil
@@ -1409,7 +1409,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 case .incompatible(let version, let reason):
                     AppLogger.faceScan.warning("⚠️ Incompatible emotional metrics version v\(version.versionString): \(reason)")
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
                         self.comparisonUnavailableReason = "Your previous scan is from an older app version and can't be compared"
                     }
                     return nil
@@ -1417,7 +1417,7 @@ public struct EmotionalScan3DFlowView: View {
                 case .corrupted(let error):
                     AppLogger.faceScan.error("❌ Corrupted emotional metrics data: \(error.localizedDescription)")
                     CrashReporter.shared.logError(error, context: ["operation": "json_decode_emotional_versioned"])
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
                         self.comparisonUnavailableReason = "Your previous scan data appears to be damaged and can't be compared"
                     }
                     return nil
@@ -1897,7 +1897,7 @@ extension EmotionalScan3DFlowView {
         // FIXED: Wrap state updates in DispatchQueue.main.async to avoid
         // "Publishing changes from within view updates" warnings
         let timer = Timer(timeInterval: 0.05, repeats: true) { [self] _ in
-            DispatchQueue.main.async {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
                 // Smooth sine wave animation (completes full cycle every ~3 seconds)
                 breathingPhase += 0.1
                 if breathingPhase > .pi * 2 {
@@ -1998,7 +1998,7 @@ extension EmotionalScan3DFlowView {
         // FIXED: Wrap state updates in DispatchQueue.main.async to avoid
         // "Publishing changes from within view updates" warnings
         let timer = Timer(timeInterval: 3.0, repeats: true) { [self] _ in
-            DispatchQueue.main.async {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
                 withAnimation(Designs.Animation.standard) {
                     cyclingMessageIndex += 1
                 }
@@ -2017,7 +2017,7 @@ extension EmotionalScan3DFlowView {
     /// Smoothly animate progress to target step with intermediate values
     /// Uses DispatchQueue.main.async to avoid "Publishing changes from within view updates" warning
     private func smoothlyUpdateProgress(to targetStep: Int) {
-        DispatchQueue.main.async {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
             withAnimation(Designs.Animation.linear) {
                 self.processingStep = Double(targetStep)
             }
@@ -2027,7 +2027,7 @@ extension EmotionalScan3DFlowView {
     /// Update processing progress description safely
     /// Uses DispatchQueue.main.async to avoid "Publishing changes from within view updates" warning
     private func updateProcessingProgress(_ description: String) {
-        DispatchQueue.main.async {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
             self.processingProgress = description
         }
     }

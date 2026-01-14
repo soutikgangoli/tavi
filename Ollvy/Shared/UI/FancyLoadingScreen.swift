@@ -134,55 +134,43 @@ struct FancyLoadingScreen: View {
     // MARK: - Loading Sequence
 
     private func startLoadingSequence() {
-        // Phase 1: Reveal logo with spring animation
-        withAnimation(.spring(response: 0.7, dampingFraction: 0.75).delay(0.2)) {
+        // Phase 1: Reveal logo immediately with snappy spring
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             ringScale = 1.0
             ringOpacity = 1.0
         }
 
-        // Phase 2: Reveal text
-        withAnimation(.easeOut(duration: 0.5).delay(0.5)) {
+        // Phase 2: Reveal text quickly
+        withAnimation(.easeOut(duration: 0.3).delay(0.15)) {
             textOpacity = 1.0
         }
 
         // Phase 3: Show progress bar
-        withAnimation(.easeOut(duration: 0.4).delay(0.8)) {
+        withAnimation(.easeOut(duration: 0.25).delay(0.25)) {
             progressBarOpacity = 1.0
         }
 
-        // Phase 4: Animate progress smoothly
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        // Phase 4: Animate progress quickly
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             animateProgress()
         }
     }
 
     private func animateProgress() {
-        // Smooth continuous progress animation
-        withAnimation(.easeInOut(duration: 0.6)) {
-            progress = 30
+        // Fast, smooth progress animation
+        withAnimation(.easeOut(duration: 0.25)) {
+            progress = 50
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            withAnimation(.easeInOut(duration: 0.5)) {
-                progress = 60
-            }
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-            withAnimation(.easeInOut(duration: 0.4)) {
-                progress = 85
-            }
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            withAnimation(.easeInOut(duration: 0.3)) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation(.easeOut(duration: 0.2)) {
                 progress = 100
             }
         }
 
-        // Complete and transition
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
-            withAnimation(.easeOut(duration: 0.35)) {
+        // Complete quickly
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            withAnimation(.easeOut(duration: 0.2)) {
                 onComplete()
             }
         }

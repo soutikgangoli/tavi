@@ -29,9 +29,9 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>Ollvy performs 3D facial scanning for skin analysis only. This is not biometric authentication. All data stays on your device.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Ollvy saves your facial scans and skin analysis results to your photo library so you can track your skin health progress over time.</string>
+	<string>Ollvy saves your facial scans and skin analysis results to your photo library so you can track your skin analysis progress over time.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Ollvy accesses your photo library to let you review previous scans and compare your skin health journey.</string>
+	<string>Ollvy accesses your photo library to let you review previous scans and compare your skin analysis journey.</string>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>
@@ -205,7 +205,10 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchScreen</key>
-	<dict/>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arkit</string>
