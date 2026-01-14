@@ -186,7 +186,8 @@ public class RegionalAnalyzers {
     // MARK: - Lip Analysis
 
     public func analyzeLips(geometry: FaceMeshGeometry, texture: UIImage) -> LipAnalysis? {
-        AppLogger.metrics.info("   🔍 Analyzing lip region...")
+        AppLogger.metrics.info("   🔍 LIP ANALYSIS START ========================")
+        AppLogger.metrics.info("      📊 Geometry stats: totalVertices=\(geometry.vertices.count), originalVertexCount=\(geometry.originalVertexCount)")
 
         // Extract lip region from geometry (dynamically adapts to face shape)
         let lipIndices = getLipIndices(geometry: geometry)
@@ -194,43 +195,54 @@ public class RegionalAnalyzers {
             index < geometry.vertices.count ? geometry.vertices[index] : nil
         }
 
-        AppLogger.metrics.debug("      Found \(lipVertices.count) lip vertices")
+        AppLogger.metrics.info("      🎯 Lip vertex detection: found \(lipVertices.count) vertices (indices: \(lipIndices.count))")
 
         // PHASE 5 FIX: Lowered vertex requirement from 3 to 2
         // Also added texture-only fallback if < 2 vertices
         guard lipVertices.count >= 2 else {
-            AppLogger.metrics.warning("      ⚠️ Insufficient lip vertices (\(lipVertices.count) < 2), using texture-only fallback")
+            AppLogger.metrics.warning("      ⚠️ FALLBACK: Insufficient lip vertices (\(lipVertices.count) < 2)")
+            AppLogger.metrics.warning("      ⚠️ Using texture-only analysis (volumeScore and symmetryScore will be defaults)")
             // Texture-only fallback analysis
-            return analyzeLipsFromTextureOnly(texture: texture)
+            let fallbackResult = analyzeLipsFromTextureOnly(texture: texture)
+            AppLogger.metrics.info("      📋 FALLBACK RESULT: texture=\(String(format: "%.0f", fallbackResult.textureScore)), volume=\(String(format: "%.0f", fallbackResult.volumeScore)) (DEFAULT), symmetry=\(String(format: "%.0f", fallbackResult.symmetryScore)) (DEFAULT), hydration=\(fallbackResult.hydrationLevel.rawValue), confidence=\(String(format: "%.0f", fallbackResult.confidence))%")
+            AppLogger.metrics.info("   🔍 LIP ANALYSIS END (FALLBACK) ================")
+            return fallbackResult
         }
 
         // Calculate confidence based on vertex count
         let confidence: Float
         if lipVertices.count >= 20 {
             confidence = 85  // High confidence
+            AppLogger.metrics.info("      ✅ Confidence: HIGH (85%) - \(lipVertices.count) vertices >= 20")
         } else if lipVertices.count >= 10 {
             confidence = 70  // Medium confidence
+            AppLogger.metrics.info("      ✅ Confidence: MEDIUM (70%) - \(lipVertices.count) vertices >= 10")
         } else if lipVertices.count >= 5 {
             confidence = 55  // Low-medium confidence
+            AppLogger.metrics.info("      ⚡ Confidence: LOW-MEDIUM (55%) - \(lipVertices.count) vertices >= 5")
         } else if lipVertices.count >= 3 {
             confidence = 40  // Low confidence (3-4 vertices)
+            AppLogger.metrics.info("      ⚠️ Confidence: LOW (40%) - \(lipVertices.count) vertices >= 3")
         } else {
             confidence = 30  // Very low confidence (2 vertices)
+            AppLogger.metrics.info("      ⚠️ Confidence: VERY LOW (30%) - only \(lipVertices.count) vertices")
         }
 
-        // Calculate volume (fullness)
+        // Calculate volume (fullness) - REAL 3D CALCULATION
         let upperLipVolume = calculateLipVolume(vertices: lipVertices, region: .upper)
         let lowerLipVolume = calculateLipVolume(vertices: lipVertices, region: .lower)
-
         let totalVolume = upperLipVolume + lowerLipVolume
         let volumeScore = min(100, totalVolume / 2.0 * 100)  // Normalize
+        AppLogger.metrics.info("      📐 Volume (REAL 3D): upper=\(String(format: "%.3f", upperLipVolume)), lower=\(String(format: "%.3f", lowerLipVolume)), total=\(String(format: "%.3f", totalVolume)), score=\(String(format: "%.0f", volumeScore))")
 
-        // Calculate symmetry
+        // Calculate symmetry - REAL 3D CALCULATION
         let symmetryScore = calculateLipSymmetry(vertices: lipVertices)
+        AppLogger.metrics.info("      📐 Symmetry (REAL 3D): score=\(String(format: "%.0f", symmetryScore))")
 
         // Analyze texture from image
         guard let cgImage = texture.cgImage else {
-            return LipAnalysis(
+            AppLogger.metrics.warning("      ⚠️ No CGImage available - using default textureScore=60")
+            let result = LipAnalysis(
                 textureScore: 60,
                 volumeScore: volumeScore,
                 symmetryScore: symmetryScore,
@@ -239,15 +251,17 @@ public class RegionalAnalyzers {
                 lowerLipVolume: lowerLipVolume,
                 confidence: confidence
             )
+            AppLogger.metrics.info("      📋 RESULT: texture=60 (DEFAULT), volume=\(String(format: "%.0f", volumeScore)) (REAL), symmetry=\(String(format: "%.0f", symmetryScore)) (REAL), hydration=normal (DEFAULT), confidence=\(String(format: "%.0f", confidence))%")
+            AppLogger.metrics.info("   🔍 LIP ANALYSIS END (PARTIAL) =================")
+            return result
         }
 
         let lipRegion = extractLipRegion(image: cgImage)
         let textureScore = analyzeLipTexture(region: lipRegion)
         let hydration = classifyLipHydration(textureScore: textureScore)
+        AppLogger.metrics.info("      🎨 Texture (REAL): score=\(String(format: "%.0f", textureScore)), hydration=\(hydration.rawValue)")
 
-        AppLogger.metrics.info("      ✅ Lip analysis: confidence=\(String(format: "%.0f", confidence))%")
-
-        return LipAnalysis(
+        let result = LipAnalysis(
             textureScore: textureScore,
             volumeScore: volumeScore,
             symmetryScore: symmetryScore,
@@ -256,6 +270,11 @@ public class RegionalAnalyzers {
             lowerLipVolume: lowerLipVolume,
             confidence: confidence
         )
+
+        AppLogger.metrics.info("      📋 FINAL RESULT: texture=\(String(format: "%.0f", textureScore)) (REAL), volume=\(String(format: "%.0f", volumeScore)) (REAL), symmetry=\(String(format: "%.0f", symmetryScore)) (REAL), hydration=\(hydration.rawValue) (REAL), confidence=\(String(format: "%.0f", confidence))%")
+        AppLogger.metrics.info("   🔍 LIP ANALYSIS END (SUCCESS) ==================")
+
+        return result
     }
 
     // MARK: - Nose Pore Analysis
@@ -462,6 +481,10 @@ public class RegionalAnalyzers {
         let bounds = calculateFaceBounds(vertices: vertices)
         let centerX = vertices.map { $0.x }.reduce(0, +) / Float(vertices.count)
 
+        // Log face bounds for debugging
+        AppLogger.metrics.info("      📏 Face bounds: X=[\(String(format: "%.3f", bounds.minX)) to \(String(format: "%.3f", bounds.maxX))], Y=[\(String(format: "%.3f", bounds.minY)) to \(String(format: "%.3f", bounds.maxY))], Z=[\(String(format: "%.3f", bounds.minZ)) to \(String(format: "%.3f", bounds.maxZ))]")
+        AppLogger.metrics.info("      📏 Face center X: \(String(format: "%.3f", centerX))")
+
         // FIXED: Lip region bounds with proper ARKit coordinate handling
         // In ARKit face coords: minY = chin (bottom), maxY = forehead (top)
         // Lips are in the lower portion of the face, roughly 15-35% from bottom
@@ -472,14 +495,22 @@ public class RegionalAnalyzers {
         let lipXMax = centerX + 0.06
         let lipZMin = bounds.minZ + (bounds.maxZ - bounds.minZ) * 0.4   // Front 60% of face
 
-        // Log bounds for diagnostic purposes
-        AppLogger.metrics.debug("      Lip detection bounds: Y=\(String(format: "%.3f", lipYMin))-\(String(format: "%.3f", lipYMax)), X=\(String(format: "%.3f", lipXMin))-\(String(format: "%.3f", lipXMax)), Z>=\(String(format: "%.3f", lipZMin))")
+        // Log lip detection bounds
+        AppLogger.metrics.info("      👄 Lip detection region: Y=[\(String(format: "%.3f", lipYMin)) to \(String(format: "%.3f", lipYMax))], X=[\(String(format: "%.3f", lipXMin)) to \(String(format: "%.3f", lipXMax))], Z>=\(String(format: "%.3f", lipZMin))")
+        AppLogger.metrics.info("      👄 Lip Y range: \(String(format: "%.0f", 15))%-\(String(format: "%.0f", 35))% from bottom (faceHeight=\(String(format: "%.3f", faceHeight)))")
 
         var lipIndices: [Int] = []
+        var verticesChecked = 0
+        var verticesSkippedExtended = 0
 
         for (index, vertex) in vertices.enumerated() {
             // Skip extended vertices but DON'T break - continue checking remaining original vertices
-            guard index < geometry.originalVertexCount else { continue }
+            if index >= geometry.originalVertexCount {
+                verticesSkippedExtended += 1
+                continue
+            }
+
+            verticesChecked += 1
 
             // Check if vertex is in lip region
             guard vertex.y >= lipYMin && vertex.y <= lipYMax else { continue }
@@ -488,6 +519,8 @@ public class RegionalAnalyzers {
 
             lipIndices.append(index)
         }
+
+        AppLogger.metrics.info("      👄 Vertex scan: checked=\(verticesChecked), skippedExtended=\(verticesSkippedExtended), foundInLipRegion=\(lipIndices.count)")
 
         AppLogger.metrics.debug("      Lip region: Found \(lipIndices.count) vertices in bounds")
 
