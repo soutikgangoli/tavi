@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - Ollvy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f9f9;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007aff;
+        }
+
+        .faq-item {
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #007aff;
+        }
+
+        .question {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+
+        .answer {
+            color: #555;
+        }
+
+        .answer p {
+            margin-bottom: 10px;
+        }
+
+        .answer ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .answer li {
+            margin-bottom: 6px;
+        }
+
+        strong {
+            color: #1a1a1a;
+        }
+
+        a {
+            color: #007aff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .highlight-box {
+            background-color: #e8f4fd;
+            border: 1px solid #007aff;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .contact-section {
+            background-color: #f0f0f5;
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .contact-section h3 {
+            margin-bottom: 15px;
+            color: #1a1a1a;
+        }
+
+        .toc {
+            background-color: #f5f5f7;
+            padding: 20px 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .toc h3 {
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #666;
+        }
+
+        .toc ul {
+            list-style: none;
+            margin: 0;
+        }
+
+        .toc li {
+            margin-bottom: 8px;
+        }
+
+        .toc a {
+            font-size: 15px;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+
+            .faq-item {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Frequently Asked Questions</h1>
+        <p class="subtitle">Everything you need to know about Ollvy</p>
+
+        <div class="toc">
+            <h3>Quick Navigation</h3>
+            <ul>
+                <li><a href="#getting-started">Getting Started</a></li>
+                <li><a href="#using-ollvy">Using Ollvy</a></li>
+                <li><a href="#privacy-security">Privacy & Security</a></li>
+                <li><a href="#results-analysis">Results & Analysis</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+                <li><a href="#account-data">Account & Data</a></li>
+            </ul>
+        </div>
+
+        <!-- GETTING STARTED -->
+        <h2 id="getting-started">Getting Started</h2>
+
+        <div class="faq-item">
+            <p class="question">What is Ollvy?</p>
+            <div class="answer">
+                <p>Ollvy is an AI-powered skin analysis app that uses your iPhone's TrueDepth camera (the same technology used for Face ID) to perform detailed 3D facial scans. The app analyzes various aspects of your skin including texture, tone, hydration indicators, and more, providing personalized insights to help you understand and track your skin over time.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">Which devices are compatible with Ollvy?</p>
+            <div class="answer">
+                <p>Ollvy requires an iPhone with a TrueDepth camera system. Compatible devices include:</p>
+                <ul>
+                    <li>iPhone X and newer (iPhone X, XS, XS Max, XR)</li>
+                    <li>iPhone 11 series (11, 11 Pro, 11 Pro Max)</li>
+                    <li>iPhone 12 series (12 mini, 12, 12 Pro, 12 Pro Max)</li>
+                    <li>iPhone 13 series (13 mini, 13, 13 Pro, 13 Pro Max)</li>
+                    <li>iPhone 14 series (14, 14 Plus, 14 Pro, 14 Pro Max)</li>
+                    <li>iPhone 15 series (15, 15 Plus, 15 Pro, 15 Pro Max)</li>
+                    <li>iPhone 16 series and newer</li>
+                </ul>
+                <p><strong>Note:</strong> iPad Pro models with Face ID are not currently supported as the app is optimized for iPhone.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">What iOS version do I need?</p>
+            <div class="answer">
+                <p>Ollvy requires iOS 18.0 or later. To check your iOS version, go to <strong>Settings > General > About</strong> and look for "iOS Version."</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">Do I need to create an account?</p>
+            <div class="answer">
+                <p><strong>No!</strong> Ollvy is designed with privacy in mind and does not require any account creation, registration, or sign-in. You can start using the app immediately after downloading. All your data stays on your device.</p>
+            </div>
+        </div>
+
+        <!-- USING OLLVY -->
+        <h2 id="using-ollvy">Using Ollvy</h2>
+
+        <div class="faq-item">
+            <p class="question">How do I perform a skin scan?</p>
+            <div class="answer">
+                <p>Performing a scan is simple:</p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>Open Ollvy</strong> and tap "Start Scan" on the home screen</li>
+                    <li><strong>Grant camera permission</strong> when prompted (required for scanning)</li>
+                    <li><strong>Position your face</strong> within the on-screen guide</li>
+                    <li><strong>Follow the prompts</strong> - the app will guide you to ensure proper lighting and positioning</li>
+                    <li><strong>Hold steady</strong> for about 10 seconds while the scan completes</li>
+                    <li><strong>View your results</strong> immediately after the scan</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">What are the best conditions for scanning?</p>
+            <div class="answer">
+                <p>For the most accurate results:</p>
+                <ul>
+                    <li><strong>Lighting:</strong> Use natural, even lighting. Avoid harsh shadows or very dim conditions</li>
+                    <li><strong>Clean face:</strong> Remove makeup and cleanse your face for accurate skin analysis</li>
+                    <li><strong>Distance:</strong> Hold your phone at arm's length (about 12-18 inches from your face)</li>
+                    <li><strong>Steady hands:</strong> Keep your phone and head as still as possible during the scan</li>
+                    <li><strong>Hair:</strong> Pull back hair from your forehead and sides of your face</li>
+                    <li><strong>Glasses:</strong> Remove glasses for better accuracy</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">How often should I scan?</p>
+            <div class="answer">
+                <p>We recommend scanning once daily or every few days to track your skin's progress effectively. Scanning too frequently (multiple times per day) won't show meaningful changes. For the best comparison:</p>
+                <ul>
+                    <li>Scan at the same time of day</li>
+                    <li>Use similar lighting conditions</li>
+                    <li>Scan with a clean, product-free face</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">What metrics does Ollvy analyze?</p>
+            <div class="answer">
+                <p>Ollvy analyzes multiple aspects of your skin, including:</p>
+                <ul>
+                    <li><strong>Skin Texture:</strong> Surface smoothness and evenness</li>
+                    <li><strong>Skin Tone:</strong> Overall color evenness and clarity</li>
+                    <li><strong>Hydration Indicators:</strong> Visual signs related to skin moisture</li>
+                    <li><strong>Pore Appearance:</strong> Visibility and distribution of pores</li>
+                    <li><strong>Redness:</strong> Areas of redness or sensitivity</li>
+                    <li><strong>Fine Lines:</strong> Visible lines and wrinkles</li>
+                    <li><strong>Glow/Radiance:</strong> Overall skin luminosity</li>
+                    <li><strong>And more...</strong> Additional metrics based on your skin type</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- PRIVACY & SECURITY -->
+        <h2 id="privacy-security">Privacy & Security</h2>
+
+        <div class="faq-item">
+            <p class="question">Is my facial data safe?</p>
+            <div class="answer">
+                <div class="highlight-box">
+                    <strong>Yes, absolutely!</strong> Ollvy is built with a privacy-first approach:
+                    <ul style="margin-top: 10px; margin-bottom: 0;">
+                        <li>All facial scans are processed <strong>entirely on your device</strong></li>
+                        <li>Your face data is <strong>never uploaded</strong> to any server</li>
+                        <li><strong>No cloud storage</strong> - everything stays on your iPhone</li>
+                        <li><strong>No account required</strong> - no personal information collected</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">Does Ollvy send my data to servers?</p>
+            <div class="answer">
+                <p><strong>No.</strong> Your facial scans, images, and analysis results never leave your device. The only data that may be transmitted is anonymized crash reports (if a technical error occurs), which contain no facial data or personal information - only technical diagnostic information to help us fix bugs.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">Can I delete my data?</p>
+            <div class="answer">
+                <p>Yes, you have complete control over your data:</p>
+                <ul>
+                    <li><strong>Delete individual scans:</strong> Swipe left on any scan in your history to delete it</li>
+                    <li><strong>Delete all data:</strong> Go to Settings > Privacy > Delete All Data</li>
+                    <li><strong>Uninstall the app:</strong> Removing Ollvy from your device deletes all associated data permanently</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">Does Ollvy use Face ID?</p>
+            <div class="answer">
+                <p>Ollvy uses the same <strong>TrueDepth camera hardware</strong> that powers Face ID, but it does <strong>not</strong> access or interact with your Face ID data. The app performs its own separate facial scanning for skin analysis purposes only. Your Face ID enrollment and authentication data remains completely separate and secure.</p>
+            </div>
+        </div>
+
+        <!-- RESULTS & ANALYSIS -->
+        <h2 id="results-analysis">Results & Analysis</h2>
+
+        <div class="faq-item">
+            <p class="question">How accurate is the analysis?</p>
+            <div class="answer">
+                <p>Ollvy uses advanced AI algorithms combined with 3D depth sensing to provide detailed skin analysis. While our technology is sophisticated, please note:</p>
+                <ul>
+                    <li>Results are intended for <strong>general awareness and tracking</strong></li>
+                    <li>Accuracy can vary based on <strong>lighting, positioning, and skin conditions</strong></li>
+                    <li>Results are <strong>not medical diagnoses</strong></li>
+                    <li>For medical concerns, always <strong>consult a dermatologist</strong></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">Can I export my results?</p>
+            <div class="answer">
+                <p>Yes! You can export your scan results as a professional PDF report:</p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>Open any scan result</li>
+                    <li>Tap the <strong>Share</strong> button</li>
+                    <li>Select <strong>"Export as PDF"</strong></li>
+                    <li>Save or share the PDF as needed</li>
+                </ol>
+                <p>The PDF includes all metrics, visualizations, and can be useful for tracking your progress or sharing with skincare professionals.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">What do the scores mean?</p>
+            <div class="answer">
+                <p>Each metric is scored on a scale of 0-100:</p>
+                <ul>
+                    <li><strong>80-100:</strong> Excellent - Your skin shows strong indicators in this area</li>
+                    <li><strong>60-79:</strong> Good - Above average with room for improvement</li>
+                    <li><strong>40-59:</strong> Average - Typical range, may benefit from attention</li>
+                    <li><strong>20-39:</strong> Below Average - Consider focusing on this area</li>
+                    <li><strong>0-19:</strong> Needs Attention - This area may need extra care</li>
+                </ul>
+                <p>Remember, these scores are for tracking and awareness purposes, not medical assessment.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">Is Ollvy a medical device?</p>
+            <div class="answer">
+                <div class="warning-box">
+                    <strong>No, Ollvy is NOT a medical device.</strong>
+                    <p style="margin-top: 10px; margin-bottom: 0;">Ollvy provides general skin analysis for informational and educational purposes only. It does not diagnose, treat, cure, or prevent any disease or medical condition. If you have concerns about your skin health, moles, rashes, or any skin symptoms, please consult a qualified dermatologist or healthcare professional.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TROUBLESHOOTING -->
+        <h2 id="troubleshooting">Troubleshooting</h2>
+
+        <div class="faq-item">
+            <p class="question">The app says my device is not compatible. What should I do?</p>
+            <div class="answer">
+                <p>Ollvy requires a TrueDepth camera, which is only available on iPhone X and newer models. If you see this message:</p>
+                <ul>
+                    <li>Verify your iPhone model (Settings > General > About)</li>
+                    <li>Older iPhones (8, 7, 6s, SE 1st gen) do not have TrueDepth cameras</li>
+                    <li>iPad models are not currently supported</li>
+                </ul>
+                <p>Unfortunately, there is no workaround for devices without TrueDepth hardware.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">The scan keeps failing. How can I fix this?</p>
+            <div class="answer">
+                <p>If your scans are failing, try these steps:</p>
+                <ul>
+                    <li><strong>Improve lighting:</strong> Ensure you have bright, even lighting on your face</li>
+                    <li><strong>Check camera:</strong> Clean the front camera and TrueDepth sensors</li>
+                    <li><strong>Remove obstructions:</strong> Take off glasses, pull back hair, remove face masks</li>
+                    <li><strong>Hold steady:</strong> Keep your phone and head as still as possible</li>
+                    <li><strong>Proper distance:</strong> Hold the phone 12-18 inches from your face</li>
+                    <li><strong>Restart app:</strong> Close and reopen Ollvy</li>
+                    <li><strong>Restart phone:</strong> A restart can resolve temporary issues</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">Camera permission was denied. How do I enable it?</p>
+            <div class="answer">
+                <p>To enable camera access for Ollvy:</p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>Open your iPhone's <strong>Settings</strong> app</li>
+                    <li>Scroll down and tap <strong>Ollvy</strong></li>
+                    <li>Toggle <strong>Camera</strong> to ON (green)</li>
+                    <li>Return to Ollvy and try scanning again</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">The app is running slowly or crashing. What can I do?</p>
+            <div class="answer">
+                <p>If you're experiencing performance issues:</p>
+                <ul>
+                    <li><strong>Free up storage:</strong> Ensure you have at least 1GB of free space</li>
+                    <li><strong>Close other apps:</strong> Ollvy uses significant processing power for 3D scanning</li>
+                    <li><strong>Restart your iPhone:</strong> This clears temporary memory issues</li>
+                    <li><strong>Update iOS:</strong> Ensure you're running the latest iOS version</li>
+                    <li><strong>Reinstall:</strong> Delete and reinstall Ollvy (note: this will delete saved scans)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ACCOUNT & DATA -->
+        <h2 id="account-data">Account & Data</h2>
+
+        <div class="faq-item">
+            <p class="question">Can I transfer my data to a new phone?</p>
+            <div class="answer">
+                <p>If you're upgrading to a new iPhone, your Ollvy data will transfer automatically if you:</p>
+                <ul>
+                    <li>Use <strong>iCloud Backup</strong> and restore from backup on your new device</li>
+                    <li>Use <strong>Quick Start</strong> to transfer data directly between iPhones</li>
+                    <li>Use <strong>iTunes/Finder backup</strong> and restore</li>
+                </ul>
+                <p>Since all data is stored locally, standard iPhone backup methods will include your Ollvy scans and history.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">Is Ollvy free to use?</p>
+            <div class="answer">
+                <p>Yes, Ollvy is currently free to download and use with all features available at no cost. We believe everyone should have access to skin analysis tools regardless of budget.</p>
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <p class="question">How do I contact support?</p>
+            <div class="answer">
+                <p>We're here to help! You can reach us at:</p>
+                <ul>
+                    <li><strong>Email:</strong> <a href="mailto:support@ollvy.app">support@ollvy.app</a></li>
+                    <li><strong>App Store:</strong> Visit the Ollvy page and tap "App Support"</li>
+                </ul>
+                <p>We typically respond within 24-48 hours.</p>
+            </div>
+        </div>
+
+        <div class="contact-section">
+            <h3>Still have questions?</h3>
+            <p>We're happy to help! Contact us at <a href="mailto:support@ollvy.app">support@ollvy.app</a></p>
+            <p style="margin-top: 15px; font-size: 14px; color: #666;">
+                <a href="privacy-policy.html">Privacy Policy</a> &nbsp;|&nbsp;
+                <a href="terms-of-service.html">Terms of Service</a>
+            </p>
+        </div>
+
+        <hr style="margin-top: 40px; margin-bottom: 20px; border: none; border-top: 1px solid #e0e0e0;">
+
+        <p style="font-size: 14px; color: #666; text-align: center;">
+            Last updated: January 15, 2026
+        </p>
+    </div>
+</body>
+</html>
