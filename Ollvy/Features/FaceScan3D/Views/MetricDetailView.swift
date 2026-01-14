@@ -599,8 +599,8 @@ public struct MetricDetailView: View {
 
             // Try to use full Face3DMetrics first (contains ALL calculated metrics)
             if let metrics = session.face3DMetrics {
-                // SKIN HEALTH METRICS (included in Overall Score - 5 metrics only)
-                Text("Skin Health Metrics (In Overall Score)")
+                // SKIN ANALYSIS METRICS (included in Overall Score - 5 metrics only)
+                Text("Skin Analysis Metrics (In Overall Score)")
                     .font(AppFont.subheadingPrimary)
                     .foregroundColor(Designs.Colors.textPrimary)
                     .padding(.top, Designs.Spacing.xSmall)
@@ -701,7 +701,7 @@ public struct MetricDetailView: View {
                     )
                 }
 
-                // AGING INDICATORS (separate from Skin Health Score)
+                // AGING INDICATORS (separate from Skin Analysis Score)
                 Divider()
                     .padding(.vertical, 8)
 
@@ -734,7 +734,7 @@ public struct MetricDetailView: View {
                     .foregroundColor(Designs.Colors.textSecondary)
 
                 MetricBar(
-                    label: "Skin Health (Composite)",
+                    label: "Skin Analysis (Composite)",
                     score: Double(metrics.glowAnalysis?.skinHealthScore ?? 0),
                     color: Designs.Colors.secondary
                 )

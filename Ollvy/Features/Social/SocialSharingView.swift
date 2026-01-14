@@ -271,7 +271,7 @@ public struct SocialSharingView: View {
         switch selectedShareType {
         case .progress:
             return """
-            My Skin Health Index: \(emotionalMetrics.skinHealthScore)/100!
+            My Skin Analysis Index: \(emotionalMetrics.skinHealthScore)/100!
             \(emotionalMetrics.primaryInsight)
 
             Tracking my skincare journey with Ollvy
@@ -304,7 +304,7 @@ public struct SocialSharingView: View {
                 return """
                 30-Day Glow Challenge Progress!
                 Day \(challenge.daysCompleted)/\(challenge.goalDays)
-                Skin Health Index: \(challenge.baselineSkinHealthScore) → \(challenge.currentSkinHealthScore) (+\(challenge.skinHealthImprovement))
+                Skin Analysis Index: \(challenge.baselineSkinHealthScore) → \(challenge.currentSkinHealthScore) (+\(challenge.skinHealthImprovement))
 
                 Join me in the challenge!
                 """
@@ -341,7 +341,7 @@ struct ProgressShareCard: View {
                         .font(AppFont.custom(size: 72, weight: .bold))
                         .foregroundColor(scoreColor)
 
-                    Text("Skin Health Index")
+                    Text("Skin Analysis Index")
                         .font(AppFont.title3)
                 }
 

@@ -2,7 +2,7 @@
 //  FAQView.swift
 //  Ollvy
 //
-//  Frequently Asked Questions displayed in-app
+//  Frequently Asked Questions displayed in-app (India-compliant)
 //  Created on 2026-01-15
 //
 
@@ -163,7 +163,7 @@ public struct FAQView: View {
 
                         FAQItem(
                             question: "Is Ollvy a medical device?",
-                            answer: "No, Ollvy is NOT a medical device. It provides general skin analysis for informational purposes only. It does not diagnose, treat, cure, or prevent any disease. If you have concerns about your skin health, please consult a qualified dermatologist."
+                            answer: "No, Ollvy is NOT a medical device registered with CDSCO (Central Drugs Standard Control Organisation). It provides general skin analysis for informational purposes only. It does not diagnose, treat, cure, or prevent any disease. If you have concerns about your skin health, please consult a qualified dermatologist registered with the Medical Council of India."
                         )
                     }
 
@@ -232,6 +232,57 @@ public struct FAQView: View {
                         FAQItem(
                             question: "How do I contact support?",
                             answer: "You can reach us at support@ollvy.app. We typically respond within 24-48 hours."
+                        )
+                    }
+
+                    // Legal & Privacy (India) Section
+                    faqSection(title: "Legal & Privacy (India)", icon: "building.columns.fill") {
+                        FAQItem(
+                            question: "What Indian laws does Ollvy comply with?",
+                            answer: """
+                            Ollvy complies with:
+                            • Digital Personal Data Protection Act, 2023 (DPDPA)
+                            • Information Technology Act, 2000
+                            • IT (SPDI) Rules, 2011
+                            • Consumer Protection Act, 2019
+                            • Consumer Protection (E-Commerce) Rules, 2020
+                            """
+                        )
+
+                        FAQItem(
+                            question: "What are my rights under DPDPA 2023?",
+                            answer: """
+                            As a Data Principal, you have:
+                            • Right to Access your data
+                            • Right to Correction of data
+                            • Right to Erasure (deletion)
+                            • Right to Data Portability (export)
+                            • Right to Withdraw Consent
+                            • Right to Grievance Redressal
+                            """
+                        )
+
+                        FAQItem(
+                            question: "Who is the Grievance Officer?",
+                            answer: """
+                            As required by Indian law:
+
+                            Email: grievance@ollvy.app
+                            Response: Within 24 hours
+                            Resolution: Within 15 days
+
+                            You may also approach Consumer Forums under Consumer Protection Act, 2019.
+                            """
+                        )
+
+                        FAQItem(
+                            question: "Is my biometric data safe under Indian law?",
+                            answer: "Yes. Under Indian law, biometric data (including facial geometry) is classified as Sensitive Personal Data. Ollvy processes this data 100% on your device - it never leaves your phone. We comply with all IT (SPDI) Rules, 2011 security requirements."
+                        )
+
+                        FAQItem(
+                            question: "Which courts have jurisdiction?",
+                            answer: "Any disputes are subject to the exclusive jurisdiction of courts in Bangalore, Karnataka, India. You also have the right to approach Consumer Disputes Redressal Forums at District/State/National level."
                         )
                     }
 

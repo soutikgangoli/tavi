@@ -545,7 +545,7 @@ public class Face3DMetricsAnalyzer {
             existingMetrics: metrics,
             specularAnalyzer: specularAnalyzer
         )
-        AppLogger.metrics.info("   - Skin Health Score: \(String(format: "%.1f", glowAnalysis.skinHealthScore))/100")
+        AppLogger.metrics.info("   - Skin Analysis Score: \(String(format: "%.1f", glowAnalysis.skinHealthScore))/100")
         AppLogger.metrics.info("   - Radiance Score (Luminosity): \(String(format: "%.1f", glowAnalysis.radianceScore))/100")
 
         // Hydration estimation (multi-method ensemble)

@@ -24,7 +24,7 @@ public enum ProcessingPhase: Int, CaseIterable {
         case .meshMerge: return "Merging your 3D face scan... ✨"
         case .textureBake: return "Creating your skin texture map... 🎨"
         case .metricsAnalysis: return "Analyzing your skin 🔬"
-        case .emotionalMetrics: return "Calculating your Skin Health Index... 🌟"
+        case .emotionalMetrics: return "Calculating your Skin Analysis Index... 🌟"
         case .gamification: return "Updating your progress... 🎉"
         case .coreDataSave: return "Saving your results... 💾"
         }
@@ -91,7 +91,7 @@ public enum ProcessingPhase: Int, CaseIterable {
             return messages[index % messages.count]
         case .emotionalMetrics:
             let messages = [
-                "Computing your personalized Skin Health Index",
+                "Computing your personalized Skin Analysis Index",
                 "Comparing with your previous scan results",
                 "Calculating improvement percentage",
                 "Generating personalized recommendations",

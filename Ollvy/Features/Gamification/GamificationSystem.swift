@@ -282,7 +282,7 @@ public struct Achievement: Codable, Identifiable {
         Achievement(
             id: "glow_up_10",
             title: "Glow Up",
-            description: "Improve Skin Health Index by 10 points",
+            description: "Improve Skin Analysis Index by 10 points",
             iconName: "sparkles",
             category: .improvement,
             isUnlocked: false
@@ -290,7 +290,7 @@ public struct Achievement: Codable, Identifiable {
         Achievement(
             id: "glow_up_25",
             title: "Transformation",
-            description: "Improve Skin Health Index by 25 points",
+            description: "Improve Skin Analysis Index by 25 points",
             iconName: "star.circle.fill",
             category: .improvement,
             isUnlocked: false
@@ -298,7 +298,7 @@ public struct Achievement: Codable, Identifiable {
         Achievement(
             id: "glow_90",
             title: "Radiant Skin",
-            description: "Achieve a Skin Health Index of 90+",
+            description: "Achieve a Skin Analysis Index of 90+",
             iconName: "sparkle",
             category: .improvement,
             isUnlocked: false

@@ -24,7 +24,7 @@ public struct MetricTrend: Codable, Sendable {
 
 /// Emotional metrics that consumers actually understand and care about
 public struct EmotionalMetrics: Codable, Sendable {
-    let skinHealthScore: Int              // 0-100 unified "how good does my skin look" score (Skin Health Index)
+    let skinHealthScore: Int              // 0-100 unified "how good does my skin look" score (Skin Analysis Index)
     let primaryInsight: String            // Main message: "Your skin looks AMAZING! ✨"
     let celebration: String               // Emoji-rich celebration message
     let improvements: [EmotionalImprovement]
@@ -303,7 +303,7 @@ public class EmotionalMetricsGenerator {
             return nil
         }
 
-        // 1. Calculate Skin Health Index (unified 0-100)
+        // 1. Calculate Skin Analysis Index (unified 0-100)
         let skinHealthScore = calculateSkinHealthScore(from: clinicalMetrics)
 
         // 2. Calculate emotional sub-scores
@@ -456,7 +456,7 @@ public class EmotionalMetricsGenerator {
         let discoloration = metrics.globalDiscolorationScore
         let specular = metrics.globalSpecularScore ?? 50.0
 
-        // Skin Health Index = 40% smoothness + 30% evenness + 20% discoloration + 10% healthy shine
+        // Skin Analysis Index = 40% smoothness + 30% evenness + 20% discoloration + 10% healthy shine
         let score = (smoothness * 0.4) + (evenness * 0.3) + (discoloration * 0.2) + (specular * 0.1)
 
         return Int(score.rounded())

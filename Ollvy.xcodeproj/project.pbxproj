@@ -330,7 +330,7 @@
 		AB146B2985764E9C95A98654 /* PoreDetection.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = PoreDetection.metal; sourceTree = "<group>"; };
 		AC2831201652495C93067A85 /* AnalyzerCommon.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = AnalyzerCommon.metal; sourceTree = "<group>"; };
 		AC5B35DA91BC231D5E96E1B4 /* VolumeMetrics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolumeMetrics.swift; sourceTree = "<group>"; };
-		ACA96A3B6D0CE3F3A37E81A7 /* FAQView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FAQView.swift; path = Ollvy/Features/Settings/FAQView.swift; sourceTree = "<group>"; };
+		ACA96A3B6D0CE3F3A37E81A7 /* FAQView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FAQView.swift; path = Ollvy/Features/Settings/FAQView.swift; sourceTree = SOURCE_ROOT; };
 		AGSP0001000000000000001A /* AppleGlassSegmentedPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleGlassSegmentedPicker.swift; sourceTree = "<group>"; };
 		APPDEFAULTSREF00000001 /* AppDefaults.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppDefaults.swift; path = Ollvy/Shared/AppDefaults.swift; sourceTree = "<group>"; };
 		APPFONTREF0000000000001 /* AppFont.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppFont.swift; path = Ollvy/Shared/UI/AppFont.swift; sourceTree = "<group>"; };
@@ -367,7 +367,7 @@
 		D994B50896F0253A7AC45F71 /* OnboardingFlow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OnboardingFlow.swift; path = Onboarding/OnboardingFlow.swift; sourceTree = "<group>"; };
 		DA3860CC62964D9CBF987578 /* RednessAnalysis.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = RednessAnalysis.metal; sourceTree = "<group>"; };
 		DB705E9E7DC1403D34B3D22B /* FaceGuidanceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceGuidanceView.swift; sourceTree = "<group>"; };
-		DDAC430266D9270E9BA4072E /* TermsOfServiceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TermsOfServiceView.swift; path = Ollvy/Features/Settings/TermsOfServiceView.swift; sourceTree = "<group>"; };
+		DDAC430266D9270E9BA4072E /* TermsOfServiceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TermsOfServiceView.swift; path = Ollvy/Features/Settings/TermsOfServiceView.swift; sourceTree = SOURCE_ROOT; };
 		DEB7DF9F43C4254874B81D73 /* AsyncTimeout.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AsyncTimeout.swift; sourceTree = "<group>"; };
 		DF4E2692C2A946D0A0A4B73F /* MetalAnalyzerBase.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetalAnalyzerBase.swift; sourceTree = "<group>"; };
 		E090007A7AD1D87C747C7F1D /* MeshTextureExporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshTextureExporter.swift; sourceTree = "<group>"; };

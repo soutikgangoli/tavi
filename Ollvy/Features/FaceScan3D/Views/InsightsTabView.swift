@@ -191,7 +191,7 @@ public struct InsightsTabView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     baselineMetricRow(label: "Overall Score", value: session.overallScore)
                     if let glowAnalysis = session.skinMetrics?.glowAnalysis {
-                        baselineMetricRow(label: "Skin Health", value: Double(glowAnalysis.skinHealthScore))
+                        baselineMetricRow(label: "Skin Analysis", value: Double(glowAnalysis.skinHealthScore))
                     }
                     if let metrics = session.skinMetrics {
                         let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
@@ -246,9 +246,9 @@ public struct InsightsTabView: View {
 
             if let session = sessions.first, let metrics = session.skinMetrics {
                 VStack(spacing: 16) {
-                    // Skin Health Metrics
+                    // Skin Analysis Metrics
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Skin Health (In Overall Score)")
+                        Text("Skin Analysis (In Overall Score)")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(gsTextPrimary)
 
@@ -323,7 +323,7 @@ public struct InsightsTabView: View {
                             .foregroundColor(gsTextSecondary)
 
                         VStack(spacing: 12) {
-                            metricProgressBar(label: "Skin Health", score: Double(metrics.glowAnalysis?.skinHealthScore ?? 0), color: gsSoftYellow)
+                            metricProgressBar(label: "Skin Analysis", score: Double(metrics.glowAnalysis?.skinHealthScore ?? 0), color: gsSoftYellow)
                         }
                     }
                 }
@@ -967,7 +967,7 @@ public struct InsightsTabView: View {
         if let latestGlow = latest.skinMetrics?.glowAnalysis?.skinHealthScore,
            let prevGlow = previous.skinMetrics?.glowAnalysis?.skinHealthScore {
             let change = Double(latestGlow - prevGlow)
-            if change > 2 { improvements.append(("Skin Health", change)) }
+            if change > 2 { improvements.append(("Skin Analysis", change)) }
         }
 
         if let latestMetrics = latest.skinMetrics,
@@ -1025,7 +1025,7 @@ public struct InsightsTabView: View {
             ("Acne", Double(metrics.acneAnalysis?.overallScore ?? 0), qualityLabel(Double(metrics.acneAnalysis?.overallScore ?? 0))),
             ("Smoothness", Double(metrics.globalRoughnessScore), qualityLabel(Double(metrics.globalRoughnessScore))),
             ("Hydration", avgMoisture, qualityLabel(avgMoisture)),
-            ("Skin Health", Double(metrics.glowAnalysis?.skinHealthScore ?? 0), qualityLabel(Double(metrics.glowAnalysis?.skinHealthScore ?? 0))),
+            ("Skin Analysis", Double(metrics.glowAnalysis?.skinHealthScore ?? 0), qualityLabel(Double(metrics.glowAnalysis?.skinHealthScore ?? 0))),
             ("Pigmentation", Double(metrics.globalPigmentationScore), qualityLabel(Double(metrics.globalPigmentationScore))),
             ("Redness", Double(metrics.rednessAnalysis?.overallScore ?? 0), qualityLabel(Double(metrics.rednessAnalysis?.overallScore ?? 0))),
             ("Roughness", Double(metrics.globalRoughnessScore), qualityLabel(Double(metrics.globalRoughnessScore)))

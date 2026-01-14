@@ -114,7 +114,7 @@ public struct ChallengeDetailView: View {
                     .background(Designs.Colors.textSecondary.opacity(Designs.Opacity.light))
 
                 statItem(
-                    title: "Skin Health",
+                    title: "Skin Analysis",
                     value: challenge.skinHealthImprovement > 0 ? "+\(challenge.skinHealthImprovement)" : "\(challenge.skinHealthImprovement)",
                     subtitle: "improvement"
                 )

@@ -943,9 +943,9 @@ struct ResultsDetailView: View {
                 isExpanded: $isDebugSectionExpanded,
                 content: {
                     VStack(alignment: .leading, spacing: Designs.Spacing.lg) {
-                        // Skin Health Metrics Header
+                        // Skin Analysis Metrics Header
                         VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
-                            Text("Skin Health Metrics")
+                            Text("Skin Analysis Metrics")
                                 .font(AppFont.headlineSecondary)
                                 .foregroundColor(Designs.Colors.textPrimary)
                                 .padding(.top, Designs.Spacing.sm)

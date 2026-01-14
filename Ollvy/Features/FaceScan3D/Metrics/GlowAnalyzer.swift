@@ -211,7 +211,7 @@ public class GlowAnalyzer {
             acne * Configuration.acneWeight
         )
 
-        AppLogger.metrics.info("   Skin Health Score (High-Confidence Metrics Only): \(String(format: "%.1f", skinHealthScore))/100")
+        AppLogger.metrics.info("   Skin Analysis Score (High-Confidence Metrics Only): \(String(format: "%.1f", skinHealthScore))/100")
         AppLogger.metrics.info("     - Smoothness (25%): \(String(format: "%.1f", smoothness)) → \(String(format: "%.1f", smoothness * Configuration.smoothnessWeight))")
         AppLogger.metrics.info("     - Evenness (20%): \(String(format: "%.1f", evenness)) → \(String(format: "%.1f", evenness * Configuration.evennessWeight))")
         AppLogger.metrics.info("     - Radiance (20%): \(String(format: "%.1f", radiancePreview)) → \(String(format: "%.1f", radiancePreview * Configuration.radianceWeight))")

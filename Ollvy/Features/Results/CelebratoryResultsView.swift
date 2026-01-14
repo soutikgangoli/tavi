@@ -208,7 +208,7 @@ public struct CelebratoryResultsView: View {
                             .animation(Designs.Animation.slowEaseOut, value: animatedScore)
                     }
 
-                    Text("Your Skin Health Score")
+                    Text("Your Skin Analysis Score")
                         .font(.app(size: 18, weight: .medium))
                         .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
                 }
