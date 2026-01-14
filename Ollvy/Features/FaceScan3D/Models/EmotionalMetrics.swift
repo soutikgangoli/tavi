@@ -556,18 +556,18 @@ public class EmotionalMetricsGenerator {
         
         switch skinHealthScore {
         case 90...100:
-            return "Your skin health score is \(skinHealthScore)/100. Your \(topMetric) is particularly strong. Keep doing what you're doing."
+            return "Your skin analysis score is \(skinHealthScore)/100. Your \(topMetric) is particularly strong. Keep doing what you're doing."
         case 80..<90:
-            return "Your skin health score is \(skinHealthScore)/100. Your \(topMetric) is strong. Focus on improving \(lowestMetric) to reach the next level."
+            return "Your skin analysis score is \(skinHealthScore)/100. Your \(topMetric) is strong. Focus on improving \(lowestMetric) to reach the next level."
         case 70..<80:
-            return "Your skin health score is \(skinHealthScore)/100. Prioritize \(topConcerns.joined(separator: " and ")) for noticeable improvement."
+            return "Your skin analysis score is \(skinHealthScore)/100. Prioritize \(topConcerns.joined(separator: " and ")) for noticeable improvement."
         case 60..<70:
             let primaryConcern = topConcerns.first ?? "your main concern"
-            return "Your skin health score is \(skinHealthScore)/100. Focus on \(primaryConcern) first. Small consistent changes will show results in 3-4 weeks."
+            return "Your skin analysis score is \(skinHealthScore)/100. Focus on \(primaryConcern) first. Small consistent changes will show results in 3-4 weeks."
         case 50..<60:
-            return "Your skin health score is \(skinHealthScore)/100. Let's build a targeted routine. Start with the most critical issue below and track progress weekly."
+            return "Your skin analysis score is \(skinHealthScore)/100. Let's build a targeted routine. Start with the most critical issue below and track progress weekly."
         default:
-            return "Your skin health score is \(skinHealthScore)/100. We've identified specific areas to address. Follow the action plan below to see improvement."
+            return "Your skin analysis score is \(skinHealthScore)/100. We've identified specific areas to address. Follow the action plan below to see improvement."
         }
     }
     
@@ -580,7 +580,7 @@ public class EmotionalMetricsGenerator {
             ("pores", metrics.poreAnalysis?.visibilityScore ?? 0),
             ("acne clarity", metrics.acneAnalysis?.overallScore ?? 0)
         ]
-        return metrics.max(by: { $0.1 < $1.1 })?.0 ?? "overall skin health"
+        return metrics.max(by: { $0.1 < $1.1 })?.0 ?? "overall skin analysis"
     }
     
     // Helper: Get lowest performing metric
@@ -592,7 +592,7 @@ public class EmotionalMetricsGenerator {
             ("pores", 100 - (metrics.poreAnalysis?.visibilityScore ?? 50)), // Invert pore visibility
             ("acne clarity", metrics.acneAnalysis?.overallScore ?? 75)
         ]
-        return metrics.min(by: { $0.1 < $1.1 })?.0 ?? "overall skin health"
+        return metrics.min(by: { $0.1 < $1.1 })?.0 ?? "overall skin analysis"
     }
     
     // Helper: Get top concerns
@@ -622,23 +622,23 @@ public class EmotionalMetricsGenerator {
         if let prev = previousScore {
             let change = skinHealthScore - prev
             if change > 10 {
-                return "Your skin health score improved from \(prev) to \(skinHealthScore) (+\(change) points). Your routine is working!"
+                return "Your skin analysis score improved from \(prev) to \(skinHealthScore) (+\(change) points). Your routine is working!"
             } else if change > 5 {
-                return "Your skin health score improved from \(prev) to \(skinHealthScore) (+\(change) points). Keep up the consistent care!"
+                return "Your skin analysis score improved from \(prev) to \(skinHealthScore) (+\(change) points). Keep up the consistent care!"
             } else if change > 0 {
-                return "Your skin health score improved from \(prev) to \(skinHealthScore) (+\(change) points). Small progress adds up!"
+                return "Your skin analysis score improved from \(prev) to \(skinHealthScore) (+\(change) points). Small progress adds up!"
             } else if change == 0 {
-                return "Your skin health score is \(skinHealthScore)/100, same as last time. Consistency is key - keep maintaining your routine!"
+                return "Your skin analysis score is \(skinHealthScore)/100, same as last time. Consistency is key - keep maintaining your routine!"
             } else {
                 let decline = abs(change)
-                return "Your skin health score decreased from \(prev) to \(skinHealthScore) (-\(decline) points). Review the recommendations below to get back on track."
+                return "Your skin analysis score decreased from \(prev) to \(skinHealthScore) (-\(decline) points). Review the recommendations below to get back on track."
             }
         } else {
             // First scan
             if skinHealthScore >= 80 {
-                return "Your baseline skin health score is \(skinHealthScore)/100. Great starting point! Track changes over time to see your progress."
+                return "Your baseline skin analysis score is \(skinHealthScore)/100. Great starting point! Track changes over time to see your progress."
             } else {
-                return "Your baseline skin health score is \(skinHealthScore)/100. This is your starting point. Follow the recommendations to improve."
+                return "Your baseline skin analysis score is \(skinHealthScore)/100. This is your starting point. Follow the recommendations to improve."
             }
         }
     }
@@ -810,9 +810,9 @@ public class EmotionalMetricsGenerator {
                 title: "Skin redness and sensitivity",
                 emoji: "🌸",
                 severity: severity,
-                message: "Your redness control score is \(score)/100. This indicates \(redness.rednessLevel.rawValue) redness that needs calming treatment.",
+                message: "Your redness control score is \(score)/100. This indicates \(redness.rednessLevel.rawValue) redness that needs soothing care.",
                 solution: solution,
-                encouragement: "With consistent gentle treatment, you should see improvement in \(timeframe) weeks."
+                encouragement: "With consistent gentle care, you should see improvement in \(timeframe) weeks."
             ))
         }
 
@@ -836,12 +836,12 @@ public class EmotionalMetricsGenerator {
             return "\(name), your routine is paying off! Keep up the consistent care."
         } else if skinHealthScore >= 80 {
             let topMetric = getTopMetric(metrics)
-            return "\(name), your skin health score is \(skinHealthScore)/100. Your \(topMetric) is particularly strong. Maintain your current routine."
+            return "\(name), your skin analysis score is \(skinHealthScore)/100. Your \(topMetric) is particularly strong. Maintain your current routine."
         } else if concerns.isEmpty {
-            return "\(name), your skin health score is \(skinHealthScore)/100. You're doing well. Focus on the recommendations below to reach the next level."
+            return "\(name), your skin analysis score is \(skinHealthScore)/100. You're doing well. Focus on the recommendations below to reach the next level."
         } else {
             let primaryConcern = concerns.first?.title.lowercased() ?? "main concern"
-            return "\(name), your skin health score is \(skinHealthScore)/100. We've identified \(primaryConcern) as the priority. Follow the action plan below."
+            return "\(name), your skin analysis score is \(skinHealthScore)/100. We've identified \(primaryConcern) as the priority. Follow the action plan below."
         }
     }
 
@@ -858,7 +858,7 @@ public class EmotionalMetricsGenerator {
             action: "Apply SPF 30+ sunscreen",
             frequency: "Every morning",
             timing: "After moisturizer",
-            expectedResult: "Prevent new UV damage and maintain your current skin health score",
+            expectedResult: "Prevent new UV damage and maintain your current skin analysis score",
             priority: .critical,
             icon: "sun.max.fill"
         ))
@@ -996,7 +996,7 @@ public class EmotionalMetricsGenerator {
         if let pores = metrics.poreAnalysis, pores.visibility > 50 {
             return "enlarged pores and surface roughness"
         } else if metrics.globalRoughnessScore < 40 {
-            return "significant texture irregularities that need targeted treatment"
+            return "significant texture irregularities that need focused care"
         } else {
             return "mild texture concerns that can improve with consistent care"
         }

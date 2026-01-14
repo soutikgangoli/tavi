@@ -45,7 +45,7 @@ public struct OnboardingFlowView: View {
         OnboardingPage(
             title: "Track Your Skin",
             subtitle: "Simple. Private. Insightful.",
-            description: "Quick 3D face scans to monitor your skin health over time.\n\n✓ Advanced AI skin analysis\n✓ 100% on-device privacy\n✓ Track changes & progress",
+            description: "Quick 3D face scans to monitor your skin analysis over time.\n\n✓ Advanced AI skin analysis\n✓ 100% on-device privacy\n✓ Track changes & progress",
             imageName: "viewfinder.circle",
             requiresInput: false
         )
@@ -602,7 +602,7 @@ extension AnalysisMetricType {
         case .pores:
             return "While pore size is largely genetic, visible pores can be minimized with proper skincare. Enlarged pores often indicate oily skin or clogged pores."
         case .pigmentation:
-            return "Even skin tone is a key indicator of skin health. Uneven pigmentation can result from sun damage, hormones, or inflammation."
+            return "Even skin tone is a key indicator of skin analysis. Uneven pigmentation can result from sun damage, hormones, or inflammation."
         case .discoloration:
             return "Color uniformity across your face is important for a healthy, youthful appearance. Regional discoloration can indicate sun damage, inflammation, or circulation issues."
         case .specular:

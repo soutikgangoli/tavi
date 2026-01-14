@@ -163,7 +163,7 @@ public struct FAQView: View {
 
                         FAQItem(
                             question: "Is Ollvy a medical device?",
-                            answer: "No, Ollvy is NOT a medical device registered with CDSCO (Central Drugs Standard Control Organisation). It provides general skin analysis for informational purposes only. It does not diagnose, treat, cure, or prevent any disease. If you have concerns about your skin health, please consult a qualified dermatologist registered with the Medical Council of India."
+                            answer: "No, Ollvy is NOT a medical device registered with CDSCO (Central Drugs Standard Control Organisation). It provides general skin analysis for informational purposes only. It does not diagnose, treat, cure, or prevent any disease. If you have concerns about your skin, please consult a qualified dermatologist registered with the Medical Council of India."
                         )
                     }
 

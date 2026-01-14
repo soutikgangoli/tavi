@@ -393,12 +393,12 @@ struct ResultsDetailView: View {
 
     private var scoreInterpretation: String {
         switch session.overallScore {
-        case 90...100: return "Your skin health is outstanding. Keep up your excellent routine."
-        case 80..<90: return "Your skin health is in great shape. Continue your current routine."
+        case 90...100: return "Your skin analysis is outstanding. Keep up your excellent routine."
+        case 80..<90: return "Your skin analysis is in great shape. Continue your current routine."
         case 70..<80: return "You're making good progress. Follow recommendations for improvement."
-        case 60..<70: return "Your skin health is fair. Implement the suggested actions."
+        case 60..<70: return "Your skin analysis is fair. Implement the suggested actions."
         case 50..<60: return "There's room for improvement. Follow the action plan."
-        default: return "Let's work together to improve your skin health."
+        default: return "Let's work together to improve your skin analysis."
         }
     }
 
@@ -811,7 +811,7 @@ struct ResultsDetailView: View {
                 Image(systemName: "lightbulb.fill")
                     .font(AppFont.caption)
                     .foregroundColor(Designs.Colors.warning)
-                Text("**Glow** measures overall skin health (texture + tone + shine), while **Radiance** measures how much light your skin reflects (physics-based brightness).")
+                Text("**Glow** measures overall skin analysis (texture + tone + shine), while **Radiance** measures how much light your skin reflects (physics-based brightness).")
                     .font(AppFont.caption)
                     .foregroundColor(Designs.Colors.textSecondary)
             }
@@ -1358,7 +1358,7 @@ struct ResultsDetailView: View {
                     .font(AppFont.sectionHeader)
                     .foregroundColor(Designs.Colors.textPrimary)
 
-                Text("Separate from skin health score")
+                Text("Separate from skin analysis score")
                     .font(AppFont.caption)
                     .foregroundColor(Designs.Colors.textSecondary)
             }

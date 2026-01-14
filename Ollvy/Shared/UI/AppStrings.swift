@@ -236,8 +236,8 @@ public enum AppStrings {
         public static let goodMorning = "Good morning"
         public static let goodAfternoon = "Good afternoon"
         public static let goodEvening = "Good evening"
-        public static let readyToDiscover = "Ready to discover your skin's true health?"
-        public static let trackYourJourney = "Track your skin health journey"
+        public static let readyToDiscover = "Ready to discover your skin's true potential?"
+        public static let trackYourJourney = "Track your skin care journey"
 
         // Status widgets
         public static let active = "Active"
@@ -264,7 +264,7 @@ public enum AppStrings {
 
         // First scan card
         public static let startYourFirstScan = "Start Your First Scan"
-        public static let getCompleteAnalysis = "Get your complete skin health analysis in just 1 minute"
+        public static let getCompleteAnalysis = "Get your complete skin analysis in just 1 minute"
         public static let startYourScan = "Start Your Scan"
         public static let poweredByBiometrics = "Powered by Advanced Biometrics"
         public static let scienceBehindGlow = "The Science Behind Your Glow"

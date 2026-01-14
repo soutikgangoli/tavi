@@ -1041,7 +1041,7 @@ struct MetricInfoSheet: View {
     private var metricDescription: String {
         switch metricType {
         case .overall:
-            return "Your overall skin health score is calculated using 5 high-confidence metrics (70%+ confidence): Smoothness (22.4%), Pigmentation (22.4%), Pores (14.9%), Discoloration (14.9%), and Acne (14.9%). Additional indicators (Elasticity, Hydration, Oil Control, Redness) are displayed separately due to measurement limitations but aren't included in the Overall Score."
+            return "Your overall skin analysis score is calculated using 5 high-confidence metrics (70%+ confidence): Smoothness (22.4%), Pigmentation (22.4%), Pores (14.9%), Discoloration (14.9%), and Acne (14.9%). Additional indicators (Elasticity, Hydration, Oil Control, Redness) are displayed separately due to measurement limitations but aren't included in the Overall Score."
         case .smoothness:
             return "Smoothness measures the texture quality of your skin surface, including fine lines, pores, and overall surface consistency. Higher scores indicate smoother, more refined skin texture."
         case .hydration:

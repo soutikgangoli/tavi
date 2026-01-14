@@ -280,7 +280,7 @@ public class Scoring3D {
 
     // MARK: - Composite Scores
 
-    /// Compute overall skin health score (weighted average of 5 high-confidence metrics)
+    /// Compute overall skin analysis score (weighted average of 5 high-confidence metrics)
     /// This represents skin quality based on reliable measurements only
     /// Excludes: Elasticity (requires 2+ scans), Hydration (proxy method), Oil Control (disabled), Redness (measurement limitations)
     public func computeOverallScore(

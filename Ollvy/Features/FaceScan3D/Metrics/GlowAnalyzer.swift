@@ -178,7 +178,7 @@ public class GlowAnalyzer {
             }
         }
 
-        // PART 1: SKIN HEALTH SCORE (Overall Health Index)
+        // PART 1: SKIN ANALYSIS SCORE (Overall Index)
         // ONLY HIGH-CONFIDENCE METRICS - NO AGE-RELATED FEATURES
 
         // VALIDATION: Sanity check input metrics to prevent cascade failures
@@ -200,7 +200,7 @@ public class GlowAnalyzer {
         // Get radiance from LAB analysis
         let radiancePreview = analyzeLABLightness(texture: analysisTexture) * 100.0
 
-        // Compute skin health score with HIGH-CONFIDENCE metrics ONLY
+        // Compute skin analysis score with HIGH-CONFIDENCE metrics ONLY
         // EXCLUDED: Firmness/Wrinkles (age-related) and Oil Control (low confidence)
         let skinHealthScore = (
             smoothness * Configuration.smoothnessWeight +

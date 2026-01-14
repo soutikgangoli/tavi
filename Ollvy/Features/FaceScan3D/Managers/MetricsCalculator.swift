@@ -10,7 +10,7 @@ import Foundation
 import ARKit
 import simd
 
-/// Calculates skin health metrics from 3D face mesh data
+/// Calculates skin analysis metrics from 3D face mesh data
 @MainActor
 public class MetricsCalculator {
 

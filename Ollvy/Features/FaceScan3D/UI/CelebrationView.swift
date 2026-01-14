@@ -146,7 +146,7 @@ public struct CelebrationView: View {
     }
 
     private var celebrationSubtitle: String {
-        "Your skin health improved by \(String(format: "%.1f", overallChange))%"
+        "Your skin improved by \(String(format: "%.1f", overallChange))%"
     }
 }
 
@@ -300,7 +300,7 @@ public struct Milestone {
 
     public static let firstScan = Milestone(
         title: "First Scan Complete!",
-        description: "You've taken the first step towards better skin health",
+        description: "You've taken the first step towards better skin care",
         icon: "star.fill",
         color: .blue,
         reward: nil

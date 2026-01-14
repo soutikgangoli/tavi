@@ -101,10 +101,10 @@ public struct MetricExplanations {
             return "Moderate pigmentation irregularities. Sun protection and brightening products may help."
 
         case 2.0..<4.0:
-            return "Noticeable pigmentation concerns. Targeted treatments for dark spots recommended."
+            return "Noticeable pigmentation concerns. Targeted products for dark spots recommended."
 
         default:
-            return "Significant pigmentation irregularities. Professional treatments like laser or chemical peels may benefit."
+            return "Significant pigmentation irregularities. Professional dermatologist consultation may benefit."
         }
     }
 

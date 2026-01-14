@@ -168,50 +168,68 @@ struct CustomTabBar: View {
                     selectTab(.profile)
                 }
             }
-            .frame(height: 70)
+            .frame(height: 72)
             .background(
-                // Apple Liquid Glass Effect
+                // Perfect Liquid Glass Effect
                 ZStack {
-                    // Frosted glass blur background
+                    // Base frosted glass
                     Capsule()
                         .fill(.ultraThinMaterial)
 
-                    // Subtle inner glow/highlight at top
+                    // Inner light refraction layer
                     Capsule()
                         .fill(
                             LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.6),
-                                    Color.white.opacity(0.1),
-                                    Color.clear
+                                stops: [
+                                    .init(color: Color.white.opacity(0.4), location: 0.0),
+                                    .init(color: Color.white.opacity(0.15), location: 0.3),
+                                    .init(color: Color.clear, location: 0.5),
+                                    .init(color: Color.black.opacity(0.03), location: 1.0)
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
                         .padding(1)
-                        .mask(Capsule())
 
-                    // Subtle border for definition
+                    // Specular highlight (top-left light source)
+                    Capsule()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    Color.white.opacity(0.5),
+                                    Color.white.opacity(0.0)
+                                ],
+                                center: .topLeading,
+                                startRadius: 0,
+                                endRadius: 180
+                            )
+                        )
+                        .padding(2)
+
+                    // Glass edge definition
                     Capsule()
                         .stroke(
                             LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.5),
-                                    Color.white.opacity(0.2),
-                                    Color.black.opacity(0.05)
+                                stops: [
+                                    .init(color: Color.white.opacity(0.7), location: 0.0),
+                                    .init(color: Color.white.opacity(0.3), location: 0.4),
+                                    .init(color: Color.white.opacity(0.15), location: 0.6),
+                                    .init(color: Color.black.opacity(0.08), location: 1.0)
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
                             ),
-                            lineWidth: 0.5
+                            lineWidth: 0.75
                         )
                 }
-                .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
-                .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                // Layered shadows for floating depth
+                .shadow(color: Color.black.opacity(0.06), radius: 1, x: 0, y: 1)
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                .shadow(color: Color.black.opacity(0.06), radius: 20, x: 0, y: 10)
             )
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 28)
         }
         .background(Color.clear)
     }
@@ -243,58 +261,93 @@ struct LiquidGlassTabButton: View {
         Button {
             action()
         } label: {
-            VStack(spacing: 5) {
-                ZStack {
-                    // Glow effect behind icon when selected
-                    if isSelected {
-                        Circle()
-                            .fill(accentColor.opacity(0.25))
-                            .frame(width: 36, height: 36)
-                            .blur(radius: 8)
-                    }
-
-                    Image(systemName: icon)
-                        .font(.system(size: isSelected ? 22 : 20, weight: .medium))
-                        .foregroundStyle(isSelected ? accentColor : secondaryColor)
-                        .shadow(color: isSelected ? accentColor.opacity(0.5) : .clear, radius: 4, x: 0, y: 0)
-                }
-                .frame(height: 28)
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: isSelected ? 22 : 20, weight: isSelected ? .semibold : .medium))
+                    .foregroundStyle(isSelected ? accentColor : secondaryColor)
+                    .shadow(color: isSelected ? accentColor.opacity(0.35) : .clear, radius: 5, x: 0, y: 0)
+                    .frame(height: 26)
 
                 Text(label)
-                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
+                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
                     .foregroundStyle(isSelected ? accentColor : secondaryColor)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 60)
+            .frame(height: 62)
             .background(
                 Group {
                     if isSelected {
-                        // Glass pill indicator with inner glow
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        accentColor.opacity(0.2),
-                                        accentColor.opacity(0.08)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
+                        // Perfect liquid glass pill
+                        ZStack {
+                            // White glass base
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        stops: [
+                                            .init(color: Color.white.opacity(0.98), location: 0.0),
+                                            .init(color: Color.white.opacity(0.9), location: 0.4),
+                                            .init(color: Color.white.opacity(0.8), location: 1.0)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
                                 )
-                            )
-                            .overlay(
-                                Capsule()
-                                    .stroke(accentColor.opacity(0.3), lineWidth: 1)
-                            )
-                            .matchedGeometryEffect(id: "selectedTab", in: namespace)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 6)
+
+                            // Top specular shine
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        stops: [
+                                            .init(color: Color.white, location: 0.0),
+                                            .init(color: Color.white.opacity(0.5), location: 0.15),
+                                            .init(color: Color.clear, location: 0.4)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                                .padding(.horizontal, 6)
+                                .padding(.top, 1)
+                                .padding(.bottom, 24)
+
+                            // Subtle accent tint
+                            Capsule()
+                                .fill(accentColor.opacity(0.06))
+
+                            // Inner depth shadow
+                            Capsule()
+                                .stroke(Color.black.opacity(0.04), lineWidth: 1.5)
+                                .blur(radius: 0.5)
+                                .padding(0.5)
+
+                            // Crisp border with accent
+                            Capsule()
+                                .stroke(
+                                    LinearGradient(
+                                        stops: [
+                                            .init(color: Color.white, location: 0.0),
+                                            .init(color: Color.white.opacity(0.6), location: 0.25),
+                                            .init(color: accentColor.opacity(0.25), location: 0.75),
+                                            .init(color: accentColor.opacity(0.35), location: 1.0)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    ),
+                                    lineWidth: 1
+                                )
+                        }
+                        .shadow(color: accentColor.opacity(0.12), radius: 6, x: 0, y: 2)
+                        .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
+                        .matchedGeometryEffect(id: "selectedTab", in: namespace)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 4)
                     }
                 }
             )
-            .scaleEffect(isPressed ? 0.92 : 1.0)
+            .scaleEffect(isPressed ? 0.94 : 1.0)
         }
         .buttonStyle(PlainButtonStyle())
-        .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isPressed)
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in if !isPressed { isPressed = true } }
@@ -853,7 +906,7 @@ extension ProfileTabView {
                             HStack(spacing: 4) {
                                 Image(systemName: "arrow.up.right")
                                     .font(.system(size: 12, weight: .bold))
-                                Text("+\(challenge.skinHealthImprovement) skin health")
+                                Text("+\(challenge.skinHealthImprovement) skin score")
                                     .font(.system(size: 13, weight: .medium))
                             }
                             .foregroundColor(Designs.GentlerStreak.softGreen)

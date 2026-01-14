@@ -114,7 +114,7 @@ public enum ProcessingPhase: Int, CaseIterable {
             return messages[index % messages.count]
         case .coreDataSave:
             let messages = [
-                "Encrypting and saving your results securely",
+                "Saving your results securely",
                 "Writing scan data to device storage",
                 "Creating timestamped history entry",
                 "Backing up metrics for future comparison"
@@ -395,10 +395,10 @@ public class ProcessingTimeEstimator: ObservableObject {
         // Calculate initial estimate
         let initialEstimate = estimateTotalTime()
 
-        // CRITICAL FIX: Defer @Published property updates to avoid
+        // CRITICAL FIX: Defer @Published property updates using asyncAfter to avoid
         // "Publishing changes from within view updates" warning
         // This ensures updates happen on next run loop iteration
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             guard let self = self else { return }
             self.elapsedSeconds = 0
             self.estimatedTotalSeconds = initialEstimate
@@ -411,8 +411,8 @@ public class ProcessingTimeEstimator: ObservableObject {
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
 
-            // Use DispatchQueue.main.async to avoid view update conflicts
-            DispatchQueue.main.async {
+            // Use DispatchQueue.main.asyncAfter to avoid view update conflicts
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
                 // Update elapsed time
                 if let start = self.processingStartTime {
                     self.elapsedSeconds = Int(Date().timeIntervalSince(start))
@@ -439,9 +439,9 @@ public class ProcessingTimeEstimator: ObservableObject {
         guard let currentPhase = activePhase else {
             // No active phase yet - just decrement normally
             if remainingSeconds > 1 {
-                // Defer @Published property update to avoid "Publishing changes from within view updates"
+                // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
                 let newValue = remainingSeconds - 1
-                DispatchQueue.main.async { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
                     self?.remainingSeconds = newValue
                 }
             }
@@ -492,8 +492,8 @@ public class ProcessingTimeEstimator: ObservableObject {
             newRemainingSeconds = remainingSeconds
         }
 
-        // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.async { [weak self] in
+        // Defer @Published property updates using asyncAfter to avoid "Publishing changes from within view updates"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             guard let self else { return }
             self.progressPercent = newProgressPercent
             self.remainingSeconds = newRemainingSeconds
@@ -526,8 +526,8 @@ public class ProcessingTimeEstimator: ObservableObject {
         activePhase = phase
         phaseStartTime = Date()
 
-        // CRITICAL FIX: Defer @Published property update to avoid view update conflicts
-        DispatchQueue.main.async { [weak self] in
+        // CRITICAL FIX: Defer @Published property update using asyncAfter to avoid view update conflicts
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             self?.currentPhase = phase
         }
 
@@ -617,8 +617,8 @@ public class ProcessingTimeEstimator: ObservableObject {
         phaseStartTime = nil
         processingStartTime = nil
 
-        // CRITICAL FIX: Defer @Published property update to avoid view update conflicts
-        DispatchQueue.main.async { [weak self] in
+        // CRITICAL FIX: Defer @Published property update using asyncAfter to avoid view update conflicts
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             self?.currentPhase = nil
         }
 
@@ -639,8 +639,8 @@ public class ProcessingTimeEstimator: ObservableObject {
         processingStartTime = nil
         currentScanActualTimes = [:]
 
-        // CRITICAL FIX: Defer @Published property updates to avoid view update conflicts
-        DispatchQueue.main.async { [weak self] in
+        // CRITICAL FIX: Defer @Published property updates using asyncAfter to avoid view update conflicts
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
             guard let self = self else { return }
             self.currentPhase = nil
             self.remainingSeconds = 0

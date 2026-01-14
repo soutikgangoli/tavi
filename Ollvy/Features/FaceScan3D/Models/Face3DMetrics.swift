@@ -17,7 +17,7 @@ import simd
 public struct GlowAnalysis: Codable, Sendable {
     // MARK: - Overall Scores
 
-    /// Overall skin health score (0-100)
+    /// Overall skin analysis score (0-100)
     /// Formula: 40% smoothness + 30% evenness + 20% discoloration + 10% specular
     public let skinHealthScore: Float
 

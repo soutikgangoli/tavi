@@ -18,7 +18,7 @@ import ARKit
 
 /// Summary of all skin analysis scores
 public struct ScoreSummary: Codable {
-    /// Overall skin health score (0-100)
+    /// Overall skin analysis score (0-100)
     public let overallScore: Float
 
     /// Individual metric scores

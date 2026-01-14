@@ -72,7 +72,7 @@ public struct AboutView: View {
                             .font(AppFont.headlineSecondary)
                             .foregroundColor(Designs.Colors.textPrimary)
 
-                        Text("Ollvy uses advanced 3D face scanning technology to analyze your skin health. Track your progress, unlock achievements, and get personalized recommendations for better skin care.")
+                        Text("Ollvy uses advanced 3D face scanning technology to analyze your skin. Track your progress, unlock achievements, and get personalized recommendations for better skin care.")
                             .font(AppFont.bodySecondary)
                             .foregroundColor(Designs.Colors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -90,7 +90,7 @@ public struct AboutView: View {
 
                         VStack(spacing: Designs.Spacing.md) {
                             featureRow(icon: "camera.metering.center.weighted", title: "3D Face Scanning", description: "Advanced ARKit-powered analysis")
-                            featureRow(icon: "chart.line.uptrend.xyaxis", title: "8 Skin Metrics", description: "Comprehensive skin health tracking")
+                            featureRow(icon: "chart.line.uptrend.xyaxis", title: "8 Skin Metrics", description: "Comprehensive skin analysis tracking")
                             featureRow(icon: SFSymbol.flameFill, title: "Gamification", description: "Challenges, streaks, and achievements")
                             featureRow(icon: "lock.shield.fill", title: "Privacy First", description: "All data stays on your device")
                         }

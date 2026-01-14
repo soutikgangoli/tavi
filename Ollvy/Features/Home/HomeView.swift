@@ -1073,7 +1073,7 @@ public struct HomeView: View {
     private func generateSubheadline(for session: SessionResult) -> String {
         if let trend = calculateTrend(for: session), trend != 0 {
             if trend > 0 {
-                return "Your skin health improved by \(Int(trend))% since last scan."
+                return "Your skin improved by \(Int(trend))% since last scan."
             } else {
                 return "Your skin needs a little extra care this week."
             }

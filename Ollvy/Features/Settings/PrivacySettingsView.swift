@@ -128,8 +128,7 @@ public struct PrivacySettingsView: View {
 
                 // Legal links
                 Section {
-                    // TODO: Replace with your actual Notion/hosted Privacy Policy URL
-                    Link(destination: URL(string: "https://ollvy.notion.site/Privacy-Policy")!) {
+                    Link(destination: URL(string: "https://skinny-wednesday-61d.notion.site/Privacy-Policy-Ollvy-23fe22666e7580a18104c21256536cc0")!) {
                         HStack {
                             Text("Privacy Policy")
                                 .font(AppFont.bodyMedium)

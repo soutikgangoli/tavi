@@ -960,7 +960,7 @@ public struct ClinicalInfoView: View {
         case 40...59:
             return "Your skin tone shows noticeable unevenness that could be improved. We found significant color variations across your face. This is definitely something to work on for a more balanced, flawless look."
         default: // 0-39
-            return "Your skin tone has considerable unevenness that needs attention. We detected major color inconsistencies across your face. With targeted treatments, you can work towards a more balanced complexion."
+            return "Your skin tone has considerable unevenness that needs attention. We detected major color inconsistencies across your face. With targeted skincare, you can work towards a more balanced complexion."
         }
     }
 

@@ -283,7 +283,7 @@ public struct CelebratoryResultsView: View {
             if let topStrength = strengths.max(by: { $0.1 < $1.1 }) {
                 return "Excellent results! Your \(topStrength.0) is outstanding. Keep up your current routine to maintain these results."
             }
-            return "Excellent results! Your skin health is in great shape across all metrics."
+            return "Excellent results! Your skin analysis is in great shape across all metrics."
         } else if overallScore >= 60 {
             let strengthText = strengths.first.map { "Your \($0.0) is high" } ?? "Good foundation"
             let attentionText = needsAttention.first.map { ", but \($0.0) needs attention" } ?? ""
@@ -292,7 +292,7 @@ public struct CelebratoryResultsView: View {
             if let focus = needsAttention.min(by: { $0.1 < $1.1 }) {
                 return "Focus on improving \(focus.0) first. Small consistent steps will show results over time."
             }
-            return "Let's work together on improving your skin health. Start with the action plan below."
+            return "Let's work together on improving your skin analysis. Start with the action plan below."
         }
     }
 
@@ -1088,12 +1088,12 @@ public struct CelebratoryResultsView: View {
 
     private var scoreInterpretation: String {
         switch emotionalMetrics.skinHealthScore {
-        case 90...100: return "Your skin health is outstanding. Keep up your excellent routine to maintain these results."
-        case 80..<90: return "Your skin health is in great shape. Continue your current routine for best results."
+        case 90...100: return "Your skin analysis is outstanding. Keep up your excellent routine to maintain these results."
+        case 80..<90: return "Your skin analysis is in great shape. Continue your current routine for best results."
         case 70..<80: return "You're making good progress. Follow the recommendations below to improve further."
-        case 60..<70: return "Your skin health is fair. Implement the actions below to see improvements."
+        case 60..<70: return "Your skin analysis is fair. Implement the actions below to see improvements."
         case 50..<60: return "There's room for improvement. Follow our personalized action plan below."
-        default: return "Let's work together to improve your skin health with the action plan below."
+        default: return "Let's work together to improve your skin analysis with the action plan below."
         }
     }
 

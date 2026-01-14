@@ -518,7 +518,7 @@ class ResultsInterpretation {
     }
 
     private func generateSummary(overallRating: HealthRating, overallScore: Float, topIssues: [String]) -> String {
-        var summary = "Your skin health is \(overallRating.rawValue) with an overall score of \(String(format: "%.0f", overallScore))/100."
+        var summary = "Your skin analysis is \(overallRating.rawValue) with an overall score of \(String(format: "%.0f", overallScore))/100."
 
         if !topIssues.isEmpty {
             summary += " Focus areas: \(topIssues.joined(separator: ", "))."

@@ -85,7 +85,7 @@ public struct InsightsTabView: View {
                     .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundColor(gsTextPrimary)
 
-                Text("Complete your first scan to get personalized insights and recommendations tailored to your skin health.")
+                Text("Complete your first scan to get personalized insights and recommendations tailored to your skin.")
                     .font(.system(size: 15, weight: .regular))
                     .foregroundColor(gsTextSecondary)
                     .multilineTextAlignment(.center)
@@ -103,7 +103,7 @@ public struct InsightsTabView: View {
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(gsTextPrimary)
 
-                featurePreviewCard(icon: "chart.line.uptrend.xyaxis", title: "Progress Tracking", description: "Monitor your skin health over time")
+                featurePreviewCard(icon: "chart.line.uptrend.xyaxis", title: "Progress Tracking", description: "Monitor your skin over time")
                 featurePreviewCard(icon: "lightbulb.fill", title: "Personalized Recommendations", description: "Get tips based on your unique data")
                 featurePreviewCard(icon: "target", title: "Areas to Improve", description: "Focus on what matters most")
             }
@@ -149,22 +149,28 @@ public struct InsightsTabView: View {
     }
 
     private func forYouHeader(text: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             Image(systemName: "lightbulb.fill")
-                .font(.system(size: 18, weight: .medium))
+                .font(.system(size: 20, weight: .medium))
                 .foregroundColor(gsAccentCoral)
 
-            Text("For You")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(gsTextPrimary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("For You")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(gsTextPrimary)
+
+                Text(text)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundColor(gsTextSecondary)
+            }
 
             Spacer()
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 12)
         .padding(.horizontal, 16)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(gsAccentCoral.opacity(0.1))
+            RoundedRectangle(cornerRadius: 12)
+                .fill(gsAccentCoral.opacity(0.08))
         )
     }
 
@@ -1332,7 +1338,7 @@ public struct InsightsTabView: View {
         }
 
         if recommendations.isEmpty {
-            recommendations.append("Continue your current skincare routine to maintain your skin health")
+            recommendations.append("Continue your current skincare routine to maintain your skin")
             recommendations.append("Apply SPF daily to protect against future damage")
         }
 
