@@ -14,9 +14,16 @@ struct OllvyApp: App {
     @State private var showLoadingScreen = true
     @State private var isInitialized = false
 
+    // Match FancyLoadingScreen background to prevent white flash
+    private let launchBackgroundColor = Color(red: 252/255, green: 250/255, blue: 245/255)
+
     var body: some Scene {
         WindowGroup {
             ZStack {
+                // CRITICAL: Background color prevents white flash during initial render
+                launchBackgroundColor
+                    .ignoresSafeArea()
+
                 // Main app content - only show after initialization
                 if isInitialized {
                     ContentView()
@@ -46,8 +53,8 @@ struct OllvyApp: App {
     /// Deferred initialization - runs AFTER loading screen appears
     @MainActor
     private func initializeApp() async {
-        // Small delay to ensure loading screen is rendered first
-        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        // Minimal delay - just enough for SwiftUI to commit first frame
+        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms (was 50ms)
 
         // Now do heavy initialization (loading screen is already visible)
 
