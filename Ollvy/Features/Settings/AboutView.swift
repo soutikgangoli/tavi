@@ -30,25 +30,13 @@ public struct AboutView: View {
                 VStack(spacing: Designs.Spacing.xl) {
                     // App icon and version
                     VStack(spacing: Designs.Spacing.lg) {
-                        // App icon placeholder
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 24)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Designs.Colors.primary,
-                                            Designs.Colors.secondary
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: Designs.Sizes.frameXXLarge, height: Designs.Sizes.frameXXLarge)
-
-                            Image(systemName: "face.smiling")
-                                .font(.app(size: 48, weight: .medium))
-                                .foregroundColor(.white)
-                        }
+                        // Actual Ollvy App Icon
+                        Image("OllvyLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: Designs.Sizes.frameXXLarge, height: Designs.Sizes.frameXXLarge)
+                            .clipShape(RoundedRectangle(cornerRadius: 24))
+                            .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
 
                         VStack(spacing: Designs.Spacing.sm) {
                             Text(AppStrings.About.appName)
@@ -200,12 +188,17 @@ public struct AboutView: View {
                     Button(AppStrings.Buttons.done) {
                         dismiss()
                     }
+                    .foregroundColor(Designs.Colors.primary)
                 }
             }
+            .toolbarBackground(Designs.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(isPresented: $showingFAQ) {
                 FAQView()
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Feature Row

@@ -780,7 +780,9 @@ public struct HomeView: View {
             Text(name)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(HomeColors.textPrimary)
-                .frame(width: 80, alignment: .leading)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(width: 90, alignment: .leading)
 
             // Progress bar
             GeometryReader { geo in

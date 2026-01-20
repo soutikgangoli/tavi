@@ -164,6 +164,8 @@ public struct PrivacySettingsView: View {
                     Text("Legal")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Designs.Colors.background)
             .navigationTitle("Privacy & Data")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -171,8 +173,12 @@ public struct PrivacySettingsView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .foregroundColor(Designs.Colors.primary)
                 }
             }
+            .toolbarBackground(Designs.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .alert("Delete All Data?", isPresented: $showingDeleteAlert) {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete All", role: .destructive) {
@@ -196,6 +202,7 @@ public struct PrivacySettingsView: View {
                 PrivacyPolicyView()
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Export Sheet
@@ -247,8 +254,11 @@ public struct PrivacySettingsView: View {
                 }
             }
             .padding(Designs.Spacing.xl)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Designs.Colors.background)
             .navigationBarTitleDisplayMode(.inline)
         }
+        .preferredColorScheme(.dark)
     }
 
     private func exportInfoRow(icon: String, text: String) -> some View {

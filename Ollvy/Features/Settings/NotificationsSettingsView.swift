@@ -161,6 +161,8 @@ public struct NotificationsSettingsView: View {
                     Text("Progress Tracking")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Designs.Colors.background)
             .navigationTitle("Notifications")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -168,9 +170,14 @@ public struct NotificationsSettingsView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .foregroundColor(Designs.Colors.primary)
                 }
             }
+            .toolbarBackground(Designs.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
+        .preferredColorScheme(.dark)
         .onAppear {
             checkNotificationPermissionStatus()
         }

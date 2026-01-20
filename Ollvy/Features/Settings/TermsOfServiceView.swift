@@ -303,9 +303,14 @@ public struct TermsOfServiceView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .foregroundColor(Designs.Colors.primary)
                 }
             }
+            .toolbarBackground(Designs.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Section Builder

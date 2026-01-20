@@ -26,6 +26,7 @@ struct ResultsDetailView: View {
     @State private var errorState: ResultsDetailViewErrorState?
     @State private var isDebugSectionExpanded = false  // Collapsible for detailed metrics (Smoothness to Redness)
     @State private var isClinicalDataExpanded = false  // Collapsible for Clinical Data section
+    @State private var isDeleting = false  // Prevents crash by blocking session access during delete
 
     init(session: SessionResult) {
         self.session = session
@@ -53,9 +54,9 @@ struct ResultsDetailView: View {
         }
     }
 
-    /// Check if session is still valid (not deleted/faulted)
+    /// Check if session is still valid (not deleted/faulted/being deleted)
     private var isSessionValid: Bool {
-        !session.isDeleted && !session.isFault
+        !isDeleting && !session.isDeleted && !session.isFault
     }
 
     var body: some View {
@@ -1624,16 +1625,24 @@ struct ResultsDetailView: View {
                 applicationActivities: nil
             )
 
-            // For iPad support
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let rootVC = windowScene.windows.first?.rootViewController {
-                if let popover = activityVC.popoverPresentationController {
-                    popover.sourceView = rootVC.view
-                    popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
-                    popover.permittedArrowDirections = []
-                }
-                rootVC.present(activityVC, animated: true)
+            // Find the topmost presented view controller (important when inside sheets)
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootVC = windowScene.windows.first?.rootViewController else {
+                return
             }
+
+            var topVC = rootVC
+            while let presented = topVC.presentedViewController {
+                topVC = presented
+            }
+
+            // For iPad support
+            if let popover = activityVC.popoverPresentationController {
+                popover.sourceView = topVC.view
+                popover.sourceRect = CGRect(x: topVC.view.bounds.midX, y: topVC.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            topVC.present(activityVC, animated: true)
         }
     }
 
@@ -1723,14 +1732,22 @@ struct ResultsDetailView: View {
             return
         }
 
-        viewContext.delete(session)
-        do {
-            try viewContext.save()
-            dismiss()
-        } catch {
-            handleError(error, context: "deleting session")
-            // Still dismiss even on error - delete was queued
-            dismiss()
+        // CRITICAL: Set isDeleting FIRST to prevent view from accessing session properties
+        // This immediately switches the view to show "Session Deleted" placeholder
+        isDeleting = true
+
+        // Small delay to let UI update before Core Data changes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
+            viewContext.delete(session)
+            do {
+                try viewContext.save()
+            } catch {
+                AppLogger.ui.error("Failed to save after delete: \(error)")
+            }
+            // Dismiss after a brief moment to ensure clean animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                dismiss()
+            }
         }
     }
 

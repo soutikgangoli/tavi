@@ -14,8 +14,9 @@ public struct ScanConfiguration {
 
     // MARK: - Lighting Calibration Thresholds
 
-    /// Maximum allowed lighting change between calibration and capture (30% threshold)
-    public static let maxLightingChangeThreshold: Double = 0.30
+    /// Maximum allowed lighting change between calibration and capture
+    /// Relaxed from 30% to 40% - allows minor natural lighting fluctuations
+    public static let maxLightingChangeThreshold: Double = 0.40
 
     /// Maximum allowed color temperature change (15% threshold)
     public static let maxColorTemperatureChangeThreshold: Double = 0.15
@@ -28,11 +29,13 @@ public struct ScanConfiguration {
 
     // MARK: - Face Expression Thresholds
 
-    /// Maximum jaw open blend shape for neutral expression (15%)
-    public static let maxJawOpenThreshold: Double = 0.15
+    /// Maximum jaw open blend shape for neutral expression
+    /// Relaxed from 15% to 25% - allows natural slight mouth opening
+    public static let maxJawOpenThreshold: Double = 0.25
 
     /// Maximum eye blink threshold for valid capture
-    public static let maxEyeBlinkThreshold: Double = 0.2
+    /// Relaxed from 0.2 to 0.35 - allows natural eye movement
+    public static let maxEyeBlinkThreshold: Double = 0.35
 
     /// Maximum smile threshold for neutral expression
     /// Increased from 0.1 to 0.25 to avoid false positives when looking down
@@ -156,18 +159,20 @@ public struct ScanConfiguration {
     /// Beyond this, insufficient detail for quality analysis
     public static let maxFaceDistance: Float = 0.60
 
-    // MARK: - Pose Validation Thresholds (STRICT for accurate 3D reconstruction)
+    // MARK: - Pose Validation Thresholds (Balanced for usability + quality)
 
     /// Maximum yaw angle for "look straight" (degrees)
-    /// Documentation specifies ±5° for center position
-    public static let maxCenterYawDegrees: Float = 5.0
+    /// Relaxed from ±5° to ±12° - still centered but easier to achieve
+    /// ARKit 3D mesh quality is not significantly affected by small angle variations
+    public static let maxCenterYawDegrees: Float = 12.0
 
     /// Maximum pitch angle for "look straight" (degrees)
-    public static let maxCenterPitchDegrees: Float = 5.0
+    /// Relaxed from ±5° to ±12° - reduces "move chin up/down" frustration
+    public static let maxCenterPitchDegrees: Float = 12.0
 
     /// Maximum roll angle for "look straight" (degrees)
-    /// Slightly more tolerant for natural head tilt
-    public static let maxCenterRollDegrees: Float = 8.0
+    /// Relaxed from ±8° to ±15° for natural head tilt
+    public static let maxCenterRollDegrees: Float = 15.0
 
     /// "Slightly left/right" detection threshold (degrees)
     /// Between center and full turn angles
@@ -205,7 +210,8 @@ public struct ScanConfiguration {
 
     /// Stability movement threshold (meters)
     /// Movement below this is considered stable
-    public static let stabilityMovementThreshold: Float = 0.03
+    /// Relaxed from 0.03m to 0.05m - ARKit handles slight motion well
+    public static let stabilityMovementThreshold: Float = 0.05
 
     // MARK: - Mesh Processing
 
