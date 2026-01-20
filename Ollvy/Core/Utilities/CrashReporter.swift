@@ -2,49 +2,22 @@
 //  CrashReporter.swift
 //  Ollvy
 //
-//  Crash reporting and error tracking utility
+//  Crash reporting and error tracking utility (Local logging only)
 //  Created on 2025-10-29.
-//
-//  🔧 SETUP INSTRUCTIONS:
-//  =====================
-//
-//  Before releasing to production, configure Sentry crash reporting:
-//
-//  1. Sign up at https://sentry.io (free tier available)
-//  2. Create a new iOS project in Sentry dashboard
-//  3. Copy your DSN (looks like: https://abc123@o123456.ingest.sentry.io/123456)
-//  4. Add to Info.plist:
-//     - Key: SENTRY_DSN
-//     - Type: String
-//     - Value: <your DSN from step 3>
-//
-//  OR for development testing, add to Xcode scheme environment variables:
-//     - Name: SENTRY_DSN
-//     - Value: <your DSN>
-//
-//  5. Build and test - check Xcode console for "📊 CrashReporter: Production mode - Sentry enabled"
-//  6. Verify in Sentry dashboard that events are received
-//
-//  Without configuration, crash reporting will be disabled (logged in console).
 //
 
 import Foundation
-#if canImport(Sentry)
-import Sentry
-#endif
+import OSLog
 
-/// Crash reporting manager for production monitoring
+/// Crash reporting manager using local logging
 ///
-/// Uses Sentry for crash and error tracking:
-/// - Automatic crash detection
+/// Provides error tracking via os.log for debugging:
 /// - Non-fatal error logging
-/// - Performance monitoring (20% sample rate)
-/// - Release tracking
-/// - User context and breadcrumbs
+/// - User context tracking
+/// - Breadcrumbs for debugging
 /// - Session tracking
 ///
-/// Configuration is done via Info.plist (SENTRY_DSN key) or environment variable.
-/// See file header for detailed setup instructions.
+/// All data stays on-device for privacy.
 class CrashReporter {
     static let shared = CrashReporter()
 
@@ -57,113 +30,9 @@ class CrashReporter {
 
     /// Configure crash reporting (call from app launch)
     func configure() {
-        #if canImport(Sentry)
-        configureSentry()
-        #else
-        AppLogger.app.warning("📊 CrashReporter: Sentry SDK not available - using local logging only")
-        AppLogger.app.info("   To enable Sentry: Add package dependency https://github.com/getsentry/sentry-cocoa.git")
+        AppLogger.app.info("📊 CrashReporter: Local logging enabled (privacy-first)")
         isEnabled = true
-        #endif
     }
-
-    #if canImport(Sentry)
-    private func configureSentry() {
-        // Get Sentry DSN from environment variable or Info.plist
-        let dsn = getSentryDSN()
-
-        #if DEBUG
-        AppLogger.app.info("📊 CrashReporter: Development mode - crashes logged locally")
-
-        if dsn.isEmpty {
-            AppLogger.app.warning("⚠️ Sentry DSN not configured. Crash reporting disabled in DEBUG mode.")
-            AppLogger.app.info("   To enable:")
-            AppLogger.app.info("   1. Sign up at https://sentry.io")
-            AppLogger.app.info("   2. Create a new iOS project")
-            AppLogger.app.info("   3. Add SENTRY_DSN to environment variables or Info.plist")
-            isEnabled = false
-            return
-        }
-
-        isEnabled = true
-
-        // Initialize Sentry in debug mode (only for testing)
-        SentrySDK.start { options in
-            options.dsn = dsn
-            options.environment = "development"
-            options.debug = true
-            options.enableAutoSessionTracking = true
-            options.sessionTrackingIntervalMillis = 5000
-
-            // Disable in debug to avoid noise, unless testing
-            options.enabled = ProcessInfo.processInfo.environment["SENTRY_ENABLED"] == "true"
-        }
-        #else
-        // PRODUCTION BUILD
-
-        if dsn.isEmpty {
-            AppLogger.app.error("❌ CRITICAL: Sentry DSN not configured in PRODUCTION build!")
-            AppLogger.app.error("   Crash reporting is DISABLED. This should not happen in production.")
-            AppLogger.app.error("   Add SENTRY_DSN to Info.plist before releasing to App Store.")
-            isEnabled = false
-            return
-        }
-
-        AppLogger.app.info("📊 CrashReporter: Production mode - Sentry enabled")
-        AppLogger.app.info("   DSN: \(dsn.prefix(20))...")
-        isEnabled = true
-
-        // Initialize Sentry for production
-        SentrySDK.start { options in
-            options.dsn = dsn
-            options.environment = "production"
-            options.debug = false
-
-            // Enable performance monitoring
-            options.enableAutoPerformanceTracing = true
-            options.tracesSampleRate = 0.2  // 20% of transactions
-
-            // Enable session tracking
-            options.enableAutoSessionTracking = true
-
-            // Attach stack traces to errors
-            options.attachStacktrace = true
-
-            // Set release version
-            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
-               let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-                options.releaseName = "\(version) (\(build))"
-            }
-
-            // Before send callback - filter out low priority errors
-            options.beforeSend = { event in
-                // Filter out cancellation errors (user-initiated)
-                if let exceptions = event.exceptions,
-                   exceptions.contains(where: { $0.type?.contains("CancellationError") ?? false }) {
-                    return nil
-                }
-                return event
-            }
-        }
-        #endif
-    }
-
-    /// Get Sentry DSN from environment or Info.plist
-    /// Priority: Environment variable > Info.plist > Empty string
-    private func getSentryDSN() -> String {
-        // 1. Try environment variable (for development/testing)
-        if let envDSN = ProcessInfo.processInfo.environment["SENTRY_DSN"], !envDSN.isEmpty {
-            return envDSN
-        }
-
-        // 2. Try Info.plist (for production builds)
-        if let plistDSN = Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN") as? String, !plistDSN.isEmpty {
-            return plistDSN
-        }
-
-        // 3. No DSN configured
-        return ""
-    }
-    #endif
 
     // MARK: - Error Logging
 
@@ -176,29 +45,6 @@ class CrashReporter {
 
         let errorInfo = formatError(error, context: context)
         logger.error("🔴 Error: \(errorInfo)")
-
-        // Send to Sentry
-        #if canImport(Sentry)
-        SentrySDK.capture(error: error) { scope in
-            // Add context as tags and extras
-            for (key, value) in context {
-                if let stringValue = value as? String, stringValue.count < 200 {
-                    scope.setTag(value: stringValue, key: key)
-                } else {
-                    // Convert Any to a Sentry-compatible value (must be NSObject for Objective-C bridge)
-                    scope.setExtra(value: self.toNSObject(value), key: key)
-                }
-            }
-
-            // Add error-specific context
-            if let scanError = error as? ScanError {
-                scope.setTag(value: scanError.id, key: "scan_error_type")
-                scope.setTag(value: String(scanError.isRecoverable), key: "is_recoverable")
-                scope.setTag(value: String(scanError.isBlockingError), key: "is_blocking")
-                scope.setLevel(.error)
-            }
-        }
-        #endif
     }
 
     /// Log a non-fatal message (for tracking issues that aren't exceptions)
@@ -227,27 +73,6 @@ class CrashReporter {
         case .critical:
             logger.critical("‼️ \(formattedMessage)")
         }
-
-        // Send to Sentry as breadcrumb or message
-        #if canImport(Sentry)
-        if level == .debug || level == .info {
-            // Low priority - just breadcrumb
-            let crumb = Breadcrumb(level: level.toSentryLevel(), category: "app.message")
-            crumb.message = message
-            SentrySDK.addBreadcrumb(crumb)
-        } else {
-            // Warning/error/critical - send as event
-            let event = Event(level: level.toSentryLevel())
-            event.message = SentryMessage(formatted: message)
-
-            for (key, value) in metadata {
-                // Convert Any to a compatible value (must be NSObject for Objective-C bridge)
-                event.extra?[key] = self.toNSObject(value)
-            }
-
-            SentrySDK.capture(event: event)
-        }
-        #endif
     }
 
     /// Log a scan-specific error
@@ -276,30 +101,13 @@ class CrashReporter {
     ///   - metadata: Additional user metadata
     func setUserContext(userID: String, metadata: [String: Any] = [:]) {
         guard isEnabled else { return }
-
         logger.info("👤 User context set: \(userID)")
-
-        // Set Sentry user context
-        #if canImport(Sentry)
-        let user = User(userId: userID)
-        for (key, value) in metadata {
-            // Convert Any to a compatible value (must be NSObject for Objective-C bridge)
-            user.data?[key] = self.toNSObject(value)
-        }
-        SentrySDK.setUser(user)
-        #endif
     }
 
     /// Clear user context (e.g., on logout)
     func clearUserContext() {
         guard isEnabled else { return }
-
         logger.info("👤 User context cleared")
-
-        // Clear Sentry user context
-        #if canImport(Sentry)
-        SentrySDK.setUser(nil)
-        #endif
     }
 
     // MARK: - Custom Keys (Breadcrumbs)
@@ -311,21 +119,7 @@ class CrashReporter {
     ///   - value: Value (will be converted to string)
     func setCustomKey(_ key: String, value: Any) {
         guard isEnabled else { return }
-
         logger.debug("🔑 Custom key: \(key) = \(String(describing: value))")
-
-        // Set as Sentry tag or context
-        #if canImport(Sentry)
-        SentrySDK.configureScope { scope in
-            if let stringValue = value as? String, stringValue.count < 200 {
-                scope.setTag(value: stringValue, key: key)
-            } else {
-                // Convert Any to a compatible dictionary value (must be NSObject for Objective-C bridge)
-                let contextDict: [String: Any] = [key: self.toNSObject(value)]
-                scope.setContext(value: contextDict, key: "custom_keys")
-            }
-        }
-        #endif
     }
 
     /// Log a user action breadcrumb
@@ -333,14 +127,6 @@ class CrashReporter {
     func logUserAction(_ action: String) {
         setCustomKey("last_action", value: action)
         logger.info("👆 User action: \(action)")
-
-        // Add Sentry breadcrumb
-        #if canImport(Sentry)
-        let crumb = Breadcrumb(level: .info, category: "user.action")
-        crumb.message = action
-        crumb.type = "user"
-        SentrySDK.addBreadcrumb(crumb)
-        #endif
     }
 
     // MARK: - Formatting Helpers
@@ -385,21 +171,6 @@ class CrashReporter {
         return parts.joined(separator: " ")
     }
 
-    // MARK: - Helper Methods
-
-    /// Convert Any value to NSObject for Sentry SDK
-    private func toNSObject(_ value: Any) -> NSObject {
-        if let str = value as? String {
-            return str as NSString
-        } else if let num = value as? NSNumber {
-            return num
-        } else if let bool = value as? Bool {
-            return NSNumber(value: bool)
-        } else {
-            return String(describing: value) as NSString
-        }
-    }
-
     // MARK: - Types
 
     enum LogLevel: Int {
@@ -408,24 +179,10 @@ class CrashReporter {
         case warning = 2
         case error = 3
         case critical = 4
-
-        #if canImport(Sentry)
-        func toSentryLevel() -> SentryLevel {
-            switch self {
-            case .debug: return .debug
-            case .info: return .info
-            case .warning: return .warning
-            case .error: return .error
-            case .critical: return .fatal
-            }
-        }
-        #endif
     }
 }
 
 // MARK: - Logger Extension
-
-import OSLog
 
 private extension Logger {
     static let crashReporter = Logger(subsystem: "com.ollvy.app", category: "CrashReporter")
