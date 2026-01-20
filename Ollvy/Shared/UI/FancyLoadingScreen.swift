@@ -12,10 +12,11 @@ import SwiftUI
 struct FancyLoadingScreen: View {
     @State private var progress: Double = 0
     @State private var showContent: Bool = false
-    @State private var ringScale: CGFloat = 0.8
-    @State private var ringOpacity: Double = 0
-    @State private var textOpacity: Double = 0
-    @State private var progressBarOpacity: Double = 0
+    // START VISIBLE - no delay before content appears
+    @State private var ringScale: CGFloat = 1.0
+    @State private var ringOpacity: Double = 1.0
+    @State private var textOpacity: Double = 1.0
+    @State private var progressBarOpacity: Double = 1.0
 
     var onComplete: () -> Void
 
@@ -134,43 +135,25 @@ struct FancyLoadingScreen: View {
     // MARK: - Loading Sequence
 
     private func startLoadingSequence() {
-        // SNAPPY: All animations happen nearly simultaneously
-        // Phase 1: Reveal logo immediately with fast spring
-        withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
-            ringScale = 1.0
-            ringOpacity = 1.0
-        }
-
-        // Phase 2: Reveal text immediately after
-        withAnimation(.easeOut(duration: 0.2).delay(0.08)) {
-            textOpacity = 1.0
-        }
-
-        // Phase 3: Show progress bar almost immediately
-        withAnimation(.easeOut(duration: 0.15).delay(0.12)) {
-            progressBarOpacity = 1.0
-        }
-
-        // Phase 4: Animate progress very quickly
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            animateProgress()
-        }
+        // INSTANT: Content already visible, just animate progress and complete
+        // Start progress animation immediately
+        animateProgress()
     }
 
     private func animateProgress() {
-        // Super fast progress - user barely sees it
-        withAnimation(.easeOut(duration: 0.12)) {
+        // Fast progress animation
+        withAnimation(.easeOut(duration: 0.15)) {
             progress = 60
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
             withAnimation(.easeOut(duration: 0.1)) {
                 progress = 100
             }
         }
 
-        // Complete very quickly - total ~0.4s from app start
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        // Complete quickly - total ~0.3s from app start
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             withAnimation(.easeOut(duration: 0.15)) {
                 onComplete()
             }

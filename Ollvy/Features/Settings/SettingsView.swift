@@ -106,77 +106,37 @@ public struct SettingsView: View {
                 // Legal Section
                 Section(header: Text(AppStrings.Settings.legal),
                         footer: Text("View our privacy policy, terms of service, and get support for the app.")) {
-                    Button {
-                        AnalyticsManager.shared.trackAction("tap", target: "privacy_policy_link")
-                        if let url = URL(string: "https://ollvy.app/privacy") {
-                            UIApplication.shared.open(url)
-                        }
+                    NavigationLink {
+                        PrivacyPolicyView()
                     } label: {
-                        HStack {
-                            Label(AppStrings.Settings.privacyPolicy, systemImage: "hand.raised.fill")
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        Label(AppStrings.Settings.privacyPolicy, systemImage: "hand.raised.fill")
                     }
-                    .foregroundColor(.primary)
                     .accessibilityLabel("Privacy Policy")
-                    .accessibilityHint("Opens privacy policy in Safari showing how we handle your data")
+                    .accessibilityHint("Opens privacy policy showing how we handle your data")
 
-                    Button {
-                        AnalyticsManager.shared.trackAction("tap", target: "terms_of_service_link")
-                        if let url = URL(string: "https://ollvy.app/terms") {
-                            UIApplication.shared.open(url)
-                        }
+                    NavigationLink {
+                        TermsOfServiceView()
                     } label: {
-                        HStack {
-                            Label(AppStrings.Settings.termsOfService, systemImage: "doc.text.fill")
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        Label(AppStrings.Settings.termsOfService, systemImage: "doc.text.fill")
                     }
-                    .foregroundColor(.primary)
                     .accessibilityLabel("Terms of Service")
-                    .accessibilityHint("Opens terms of service in Safari with app usage agreement")
+                    .accessibilityHint("Opens terms of service with app usage agreement")
 
-                    Button {
-                        AnalyticsManager.shared.trackAction("tap", target: "support_link")
-                        if let url = URL(string: "https://ollvy.app/support") {
-                            UIApplication.shared.open(url)
-                        }
+                    NavigationLink {
+                        SupportView()
                     } label: {
-                        HStack {
-                            Label("Support", systemImage: "questionmark.circle.fill")
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        Label("Support", systemImage: "questionmark.circle.fill")
                     }
-                    .foregroundColor(.primary)
                     .accessibilityLabel("Support")
-                    .accessibilityHint("Opens support page in Safari for help and contact information")
+                    .accessibilityHint("Opens help center and contact information")
 
-                    Button {
-                        AnalyticsManager.shared.trackAction("tap", target: "acknowledgments_link")
-                        if let url = URL(string: "https://ollvy.app/acknowledgments") {
-                            UIApplication.shared.open(url)
-                        }
+                    NavigationLink {
+                        AcknowledgmentsView()
                     } label: {
-                        HStack {
-                            Label("Acknowledgments", systemImage: "heart.fill")
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        Label("Acknowledgments", systemImage: "heart.fill")
                     }
-                    .foregroundColor(.primary)
                     .accessibilityLabel("Acknowledgments")
-                    .accessibilityHint("Opens acknowledgments page showing third-party libraries and credits")
+                    .accessibilityHint("Opens credits and acknowledgments")
                 }
 
                 // Onboarding Section

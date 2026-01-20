@@ -24,6 +24,7 @@ public struct PrivacySettingsView: View {
     @State private var exportedFileURL: URL?
     @State private var showingShareSheet = false
     @State private var showingTermsOfService = false
+    @State private var showingPrivacyPolicy = false
 
     public init() {}
 
@@ -128,18 +129,19 @@ public struct PrivacySettingsView: View {
 
                 // Legal links
                 Section {
-                    if let privacyURL = URL(string: "https://ollvy.app/privacy") {
-                        Link(destination: privacyURL) {
-                            HStack {
-                                Text("Privacy Policy")
-                                    .font(AppFont.bodyMedium)
+                    Button {
+                        showingPrivacyPolicy = true
+                    } label: {
+                        HStack {
+                            Text("Privacy Policy")
+                                .font(AppFont.bodyMedium)
+                                .foregroundColor(Designs.Colors.textPrimary)
 
-                                Spacer()
+                            Spacer()
 
-                                Image(systemName: "arrow.up.forward")
-                                    .font(.app(size: 13))
+                            Image(systemName: "chevron.right")
+                                .font(.app(size: 13, weight: .semibold))
                                 .foregroundColor(Designs.Colors.textTertiary)
-                            }
                         }
                     }
 
@@ -189,6 +191,9 @@ public struct PrivacySettingsView: View {
             }
             .sheet(isPresented: $showingTermsOfService) {
                 TermsOfServiceView()
+            }
+            .sheet(isPresented: $showingPrivacyPolicy) {
+                PrivacyPolicyView()
             }
         }
     }

@@ -53,10 +53,8 @@ struct OllvyApp: App {
     /// Deferred initialization - runs AFTER loading screen appears
     @MainActor
     private func initializeApp() async {
-        // Minimal delay - just enough for SwiftUI to commit first frame
-        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms (was 50ms)
-
-        // Now do heavy initialization (loading screen is already visible)
+        // No delay needed - loading screen is already visible with content
+        // Heavy initialization happens while user sees the loading screen
 
         // 1. Initialize Core Data (this triggers PersistenceController.shared)
         _ = PersistenceController.shared
