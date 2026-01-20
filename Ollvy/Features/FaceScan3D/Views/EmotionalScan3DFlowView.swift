@@ -1490,8 +1490,9 @@ public struct EmotionalScan3DFlowView: View {
             // Save face image and thumbnail
             if let faceImage = faceImage {
                 // Metal textures have origin at bottom-left, UIImage expects top-left
-                // Fix orientation by rotating 180 degrees before saving
-                let uiFaceImage = UIImage(cgImage: faceImage, scale: 1.0, orientation: .down)
+                // Front camera images are also mirrored horizontally
+                // Use .downMirrored to fix both: rotates 180° AND flips horizontally
+                let uiFaceImage = UIImage(cgImage: faceImage, scale: 1.0, orientation: .downMirrored)
                 // Render with correct orientation baked in (JPEG doesn't preserve orientation metadata)
                 UIGraphicsBeginImageContextWithOptions(uiFaceImage.size, false, 1.0)
                 uiFaceImage.draw(in: CGRect(origin: .zero, size: uiFaceImage.size))

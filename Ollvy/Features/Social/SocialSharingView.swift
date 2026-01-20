@@ -131,7 +131,7 @@ public struct SocialSharingView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.blue)
+                .background(Designs.Colors.success)
                 .foregroundColor(.white)
                 .cornerRadius(Designs.Radius.medium)
             }

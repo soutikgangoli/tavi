@@ -1531,7 +1531,7 @@ struct ResultsDetailView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
-                .background(Designs.Colors.primary)
+                .background(Designs.Colors.success)
                 .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
                 .shadow(
                     color: Designs.Shadows.button.color,

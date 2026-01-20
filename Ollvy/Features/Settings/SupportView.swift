@@ -38,7 +38,7 @@ public struct SupportView: View {
                         HStack(spacing: Designs.Spacing.sm) {
                             Image(systemName: "envelope.fill")
                                 .font(.app(size: 20))
-                                .foregroundColor(Designs.Colors.primary)
+                                .foregroundColor(Designs.Colors.success)
 
                             Text("Contact Us")
                                 .font(AppFont.headlineSecondary)
@@ -60,7 +60,7 @@ public struct SupportView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, Designs.Spacing.md)
-                            .background(Designs.Colors.primary)
+                            .background(Designs.Colors.success)
                             .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                         }
 
@@ -78,7 +78,7 @@ public struct SupportView: View {
                         HStack(spacing: Designs.Spacing.sm) {
                             Image(systemName: "questionmark.circle.fill")
                                 .font(.app(size: 20))
-                                .foregroundColor(Designs.Colors.primary)
+                                .foregroundColor(Designs.Colors.success)
 
                             Text("Frequently Asked Questions")
                                 .font(AppFont.headlineSecondary)
@@ -183,8 +183,12 @@ public struct SupportView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .foregroundColor(Designs.Colors.success)
                 }
             }
+            .toolbarBackground(Designs.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .alert("Email Not Available", isPresented: $showingMailError) {
                 Button("OK", role: .cancel) {}
                 Button("Copy Email") {
@@ -194,6 +198,7 @@ public struct SupportView: View {
                 Text("Mail is not configured on this device. You can email us directly at care@ollvy.com")
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - FAQ Item

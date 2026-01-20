@@ -127,13 +127,24 @@ extension SessionResult {
 
         // Generate thumbnail and save full face image SYNCHRONOUSLY to ensure data is saved
         // before context.save() is called. This fixes the issue where older scans have no images.
-        let uiFaceImage = UIImage(cgImage: faceImage)
-        self.faceImage = uiFaceImage.jpegData(compressionQuality: 0.9)
+        // Use .downMirrored to fix Metal texture origin AND front camera mirroring
+        let uiFaceImage = UIImage(cgImage: faceImage, scale: 1.0, orientation: .downMirrored)
+        // Render with correct orientation baked in (JPEG doesn't preserve orientation metadata)
+        UIGraphicsBeginImageContextWithOptions(uiFaceImage.size, false, 1.0)
+        uiFaceImage.draw(in: CGRect(origin: .zero, size: uiFaceImage.size))
+        let correctedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        self.faceImage = correctedImage?.jpegData(compressionQuality: 0.9)
 
-        // Generate thumbnail synchronously (JPEG at 0.9 quality for better clarity)
+        // Generate thumbnail synchronously from corrected image (JPEG at 0.9 quality for better clarity)
         // Increased from 200x200 to 600x600 to display sharply on modern devices
-        if let thumbnailImage = resizeImageSync(faceImage, to: CGSize(width: 600, height: 600)) {
-            self.thumbnail = thumbnailImage.jpegData(compressionQuality: 0.9)
+        if let correctedImage = correctedImage {
+            let thumbnailSize = CGSize(width: 600, height: 600)
+            UIGraphicsBeginImageContextWithOptions(thumbnailSize, false, 1.0)
+            correctedImage.draw(in: CGRect(origin: .zero, size: thumbnailSize))
+            let thumbnail = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            self.thumbnail = thumbnail?.jpegData(compressionQuality: 0.9)
         }
 
         // Save heatmaps synchronously (JPEG at 0.9 quality for better clarity)

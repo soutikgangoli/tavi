@@ -125,9 +125,14 @@ public struct AcknowledgmentsView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .foregroundColor(Designs.Colors.success)
                 }
             }
+            .toolbarBackground(Designs.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Section Builder
@@ -137,7 +142,7 @@ public struct AcknowledgmentsView: View {
             HStack(spacing: Designs.Spacing.sm) {
                 Image(systemName: icon)
                     .font(.app(size: 20))
-                    .foregroundColor(Designs.Colors.primary)
+                    .foregroundColor(Designs.Colors.success)
 
                 Text(title)
                     .font(AppFont.headlineSecondary)

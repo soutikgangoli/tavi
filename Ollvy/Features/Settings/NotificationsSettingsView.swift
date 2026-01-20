@@ -68,7 +68,7 @@ public struct NotificationsSettingsView: View {
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 12)
-                                    .background(Designs.Colors.primary)
+                                    .background(Designs.Colors.success)
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
                             }
                             .padding(.top, Designs.Spacing.sm)
@@ -203,7 +203,7 @@ public struct NotificationsSettingsView: View {
         case .denied:
             return .red
         default:
-            return Designs.Colors.primary
+            return Designs.Colors.success
         }
     }
 
