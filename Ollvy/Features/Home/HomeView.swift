@@ -128,11 +128,22 @@ public struct HomeView: View {
                             selectedSessionForDetail = nil
                         }
                 } else {
-                    // Session was deleted - show placeholder briefly before dismissing
+                    // Session was deleted - immediately clear and dismiss
                     Color.clear
                         .onAppear {
-                            selectedSessionForDetail = nil
+                            // Use immediate dispatch to clear the binding
+                            DispatchQueue.main.async {
+                                selectedSessionForDetail = nil
+                            }
                         }
+                }
+            }
+            // Additional safeguard: Clear invalid session reference when sessions change
+            .onChange(of: sessions.count) { _, _ in
+                // If selected session was deleted, clear it
+                if let selected = selectedSessionForDetail,
+                   selected.isDeleted || selected.isFault {
+                    selectedSessionForDetail = nil
                 }
             }
             .sheet(isPresented: $showChallengeDetail) {

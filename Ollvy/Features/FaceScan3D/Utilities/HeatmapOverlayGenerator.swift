@@ -10,9 +10,118 @@ import Foundation
 import UIKit
 import CoreGraphics
 import simd
+import Vision
 
 /// Generates visual overlays for 3D face metrics
 public class HeatmapOverlayGenerator {
+
+    // MARK: - Dynamic Face Bounds
+
+    /// Computed face bounds from actual face detection in the image
+    public struct DynamicFaceBounds {
+        /// Actual bounding box of the face (normalized 0-1, V=0 at top)
+        public let faceBounds: UVBounds
+
+        /// ROI positions relative to the face bounds
+        /// Maps anatomical proportions to actual face location
+        public func roiBounds(for roi: Face3DROI) -> UVBounds {
+            let faceWidth = faceBounds.maxU - faceBounds.minU
+            let faceHeight = faceBounds.maxV - faceBounds.minV
+
+            // Anatomical proportions within the face (0-1 relative to face)
+            let proportions: (minU: Float, maxU: Float, minV: Float, maxV: Float)
+            switch roi {
+            case .forehead:
+                // Top 5-28% of face, middle 60% horizontally
+                proportions = (0.20, 0.80, 0.02, 0.25)
+            case .leftCheek:
+                // Left third (viewer's right in selfie), middle vertically
+                proportions = (0.02, 0.35, 0.35, 0.65)
+            case .rightCheek:
+                // Right third (viewer's left in selfie), middle vertically
+                proportions = (0.65, 0.98, 0.35, 0.65)
+            case .noseBridge:
+                // Center, upper-middle vertically
+                proportions = (0.35, 0.65, 0.28, 0.55)
+            case .chin:
+                // Bottom center
+                proportions = (0.25, 0.75, 0.70, 0.95)
+            }
+
+            // Map to actual face location in image
+            let minU = faceBounds.minU + proportions.minU * faceWidth
+            let maxU = faceBounds.minU + proportions.maxU * faceWidth
+            let minV = faceBounds.minV + proportions.minV * faceHeight
+            let maxV = faceBounds.minV + proportions.maxV * faceHeight
+
+            return UVBounds(minU: minU, maxU: maxU, minV: minV, maxV: maxV)
+        }
+
+        /// Detect face bounds from image using Vision framework
+        public static func fromImage(_ image: CGImage) -> DynamicFaceBounds? {
+            let request = VNDetectFaceRectanglesRequest()
+            let handler = VNImageRequestHandler(cgImage: image, options: [:])
+
+            do {
+                try handler.perform([request])
+
+                guard let results = request.results, let face = results.first else {
+                    AppLogger.faceScan.warning("⚠️ No face detected in image for heatmap bounds")
+                    return nil
+                }
+
+                // Vision returns normalized coordinates with origin at bottom-left
+                // Convert to screen coordinates (origin at top-left)
+                let bbox = face.boundingBox
+                let minU = Float(bbox.minX)
+                let maxU = Float(bbox.maxX)
+                // Flip Y: screen V = 1 - vision Y
+                let minV = Float(1.0 - bbox.maxY)
+                let maxV = Float(1.0 - bbox.minY)
+
+                // Expand bounds slightly to include forehead (Vision bbox often cuts it off)
+                let faceHeight = maxV - minV
+                let expandedMinV = max(0, minV - faceHeight * 0.15)  // Add 15% above for forehead
+
+                let bounds = UVBounds(minU: minU, maxU: maxU, minV: expandedMinV, maxV: maxV)
+                AppLogger.faceScan.debug("📍 Face detected: U[\(minU)-\(maxU)] V[\(expandedMinV)-\(maxV)]")
+
+                return DynamicFaceBounds(faceBounds: bounds)
+            } catch {
+                AppLogger.faceScan.error("❌ Face detection failed: \(error.localizedDescription)")
+                return nil
+            }
+        }
+
+        /// Compute face bounds from mesh texture coordinates (fallback)
+        public static func fromMesh(_ mesh: UnifiedMesh) -> DynamicFaceBounds {
+            guard !mesh.textureCoordinates.isEmpty else {
+                return DynamicFaceBounds(faceBounds: UVBounds(minU: 0, maxU: 1, minV: 0, maxV: 1))
+            }
+
+            var minU: Float = 1.0
+            var maxU: Float = 0.0
+            var minV: Float = 1.0
+            var maxV: Float = 0.0
+
+            for uv in mesh.textureCoordinates {
+                minU = min(minU, uv.x)
+                maxU = max(maxU, uv.x)
+                let displayV = 1.0 - uv.y
+                minV = min(minV, displayV)
+                maxV = max(maxV, displayV)
+            }
+
+            let paddingU = (maxU - minU) * 0.05
+            let paddingV = (maxV - minV) * 0.05
+            minU = max(0, minU - paddingU)
+            maxU = min(1, maxU + paddingU)
+            minV = max(0, minV - paddingV)
+            maxV = min(1, maxV + paddingV)
+
+            return DynamicFaceBounds(faceBounds: UVBounds(minU: minU, maxU: maxU, minV: minV, maxV: maxV))
+        }
+    }
 
     // MARK: - Configuration
 
@@ -362,9 +471,9 @@ public class HeatmapOverlayGenerator {
     // MARK: - Regional Heatmap Generation
 
     /// Generate mesh-based heatmap that follows actual face mesh triangles
-    /// Falls back to ellipse-based method if mesh is not available
+    /// Generate heatmap with proper positioning using mesh geometry for face detection
     /// - Parameters:
-    ///   - mesh: Optional unified face mesh from ARKit
+    ///   - mesh: Optional unified face mesh from ARKit (used to determine actual face bounds)
     ///   - baseTexture: Base face texture to overlay on
     ///   - metrics: Face3DMetrics containing scores per ROI
     ///   - metricType: Type of heatmap to generate
@@ -375,29 +484,34 @@ public class HeatmapOverlayGenerator {
         metrics: Face3DMetrics,
         metricType: BeautifulHeatmapType
     ) -> UIImage? {
-        // DISABLED: Mesh-based rendering produces jagged triangle artifacts
-        // The ARKit mesh has sparse coverage and sharp edges that don't look good
-        // Always use the smooth ellipse-based gradient method instead
-        //
-        // TODO: If mesh-based rendering is needed in the future, apply:
-        // 1. Gaussian blur to smooth edges
-        // 2. Filter out triangles outside face bounds
-        // 3. Edge feathering for smooth transitions
+        // Use Vision face detection to find where the face actually is in the image
+        // This ensures overlays are positioned correctly regardless of face size/position
+        let dynamicBounds = DynamicFaceBounds.fromImage(baseTexture)
 
-        // Use smooth ellipse-based gradient method (looks professional)
+        if dynamicBounds != nil {
+            AppLogger.faceScan.debug("📍 Using Vision face detection for heatmap positioning")
+        } else {
+            AppLogger.faceScan.warning("⚠️ Face detection failed - using fallback uvBounds")
+        }
+
+        // Use smooth ellipse-based gradient method with detected face positioning
         return generateBeautifulHeatmap(
             baseTexture: baseTexture,
             metrics: metrics,
-            metricType: metricType
+            metricType: metricType,
+            dynamicBounds: dynamicBounds
         )
     }
 
     /// Generate a modern, gradient-based heatmap with smooth elliptical zones
     /// Each region gets a gradient fill that looks like a professional thermal map
+    /// - Parameters:
+    ///   - dynamicBounds: Optional computed face bounds for accurate ROI positioning
     public func generateBeautifulHeatmap(
         baseTexture: CGImage,
         metrics: Face3DMetrics,
-        metricType: BeautifulHeatmapType
+        metricType: BeautifulHeatmapType,
+        dynamicBounds: DynamicFaceBounds? = nil
     ) -> UIImage? {
         let width = baseTexture.width
         let height = baseTexture.height
@@ -410,24 +524,26 @@ public class HeatmapOverlayGenerator {
         let result = renderer.image { rendererContext in
             let context = rendererContext.cgContext
 
-            // CRITICAL: Flip the coordinate system for CGImage drawing
+            // Draw the base face texture
+            // The raw Metal texture has bottom-left origin, we need to flip it for UIKit (top-left)
+            // This matches the UV coordinate system used for overlays (V=0 at top)
+            let rect = CGRect(origin: .zero, size: size)
+
+            // Save state, flip vertically, draw, restore
+            context.saveGState()
             context.translateBy(x: 0, y: size.height)
             context.scaleBy(x: 1.0, y: -1.0)
-
-            // Draw the base face texture (right-side up)
-            let rect = CGRect(origin: .zero, size: size)
             context.draw(baseTexture, in: rect)
-
-            // Reset transform for overlay drawing
-            context.scaleBy(x: 1.0, y: -1.0)
-            context.translateBy(x: 0, y: -size.height)
+            context.restoreGState()
 
             // Draw gradient overlays for EACH face region
+            // Use dynamic bounds if available for accurate face positioning
             for roi in Face3DROI.allCases {
                 let regionScore = getRegionScore(roi: roi, metrics: metrics, metricType: metricType)
                 let regionColor = colorForScore(regionScore)
 
-                let bounds = roi.uvBounds
+                // Use dynamic bounds computed from mesh, or fall back to hardcoded legacy bounds
+                let bounds = dynamicBounds?.roiBounds(for: roi) ?? roi.uvBounds
                 let regionRect = uvBoundsToRect(bounds, in: size)
 
                 // Create elliptical gradient for organic look
@@ -443,7 +559,9 @@ public class HeatmapOverlayGenerator {
             for roi in Face3DROI.allCases {
                 let regionScore = getRegionScore(roi: roi, metrics: metrics, metricType: metricType)
                 let regionColor = colorForScore(regionScore)
-                let bounds = roi.uvBounds
+
+                // Use dynamic bounds computed from mesh, or fall back to hardcoded legacy bounds
+                let bounds = dynamicBounds?.roiBounds(for: roi) ?? roi.uvBounds
                 let regionRect = uvBoundsToRect(bounds, in: size)
 
                 drawModernScoreLabel(

@@ -115,7 +115,7 @@ public class ProcessingPipeline: ObservableObject {
         }
 
         // Defer @Published update to avoid "Publishing changes from within view updates" warning
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in self?.isMerging = true }
+        Task { @MainActor [weak self] in self?.isMerging = true }
 
         // Calculate total vertices to decide on merger strategy
         let totalVertices = sequence.captures.reduce(0) { $0 + $1.vertices.count }
@@ -137,7 +137,7 @@ public class ProcessingPipeline: ObservableObject {
                 // Check cancellation before streaming merge
                 guard !Task.isCancelled else {
                     AppLogger.mesh.info("🛑 Streaming merge cancelled before start")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in self?.isMerging = false }
+                    Task { @MainActor [weak self] in self?.isMerging = false }
                     return nil
                 }
 
@@ -147,7 +147,7 @@ public class ProcessingPipeline: ObservableObject {
                 }
             } catch is CancellationError {
                 AppLogger.mesh.info("🛑 Streaming merge cancelled")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in self?.isMerging = false }
+                Task { @MainActor [weak self] in self?.isMerging = false }
                 return nil
             } catch {
                 AppLogger.mesh.error("❌ Streaming merge failed: \(error.localizedDescription)")
@@ -159,7 +159,7 @@ public class ProcessingPipeline: ObservableObject {
                         "capture_count": captures.count
                     ]
                 )
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in self?.isMerging = false }
+                Task { @MainActor [weak self] in self?.isMerging = false }
                 return nil
             }
         } else {
@@ -196,18 +196,18 @@ public class ProcessingPipeline: ObservableObject {
         // CRITICAL: Check cancellation after merge completes
         guard !Task.isCancelled else {
             AppLogger.mesh.info("🛑 Mesh merge cancelled after merge completed")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in self?.isMerging = false }
+            Task { @MainActor [weak self] in self?.isMerging = false }
             return nil
         }
 
         guard let merged = merged else {
             AppLogger.mesh.error("❌ MERGE FAILED: Final merged mesh is nil")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in self?.isMerging = false }
+            Task { @MainActor [weak self] in self?.isMerging = false }
             return nil
         }
 
         // Store merged result - defer to avoid "Publishing changes from within view updates" warning
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             self?.mergedMesh = merged
             self?.isMerging = false
         }
@@ -241,12 +241,12 @@ public class ProcessingPipeline: ObservableObject {
         }
 
         // Defer @Published update to avoid "Publishing changes from within view updates" warning
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in self?.isBaking = true }
+        Task { @MainActor [weak self] in self?.isBaking = true }
 
         // Check cancellation before starting heavy bake operation
         guard !Task.isCancelled else {
             AppLogger.faceScan.info("🛑 Texture bake cancelled before bake operation")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in self?.isBaking = false }
+            Task { @MainActor [weak self] in self?.isBaking = false }
             return nil
         }
 
@@ -258,12 +258,12 @@ public class ProcessingPipeline: ObservableObject {
         // CRITICAL: Check cancellation after bake completes
         guard !Task.isCancelled else {
             AppLogger.faceScan.info("🛑 Texture bake cancelled after completion")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in self?.isBaking = false }
+            Task { @MainActor [weak self] in self?.isBaking = false }
             return nil
         }
 
         // Defer @Published updates
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             self?.bakeResult = result
             self?.isBaking = false
         }
@@ -335,7 +335,7 @@ public class ProcessingPipeline: ObservableObject {
     /// Reset processing state
     public func reset() {
         // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self else { return }
             self.mergedMesh = nil
             self.bakeResult = nil
@@ -392,7 +392,7 @@ public class ProcessingPipeline: ObservableObject {
             if !isMerging && !isBaking {
                 AppLogger.mesh.warning("🧹 High pressure: Clearing bake result")
                 // Defer @Published property update to avoid "Publishing changes from within view updates"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+                Task { @MainActor [weak self] in
                     self?.bakeResult = nil
                 }
             }
@@ -402,14 +402,14 @@ public class ProcessingPipeline: ObservableObject {
             if !isMerging {
                 AppLogger.mesh.error("🧹 Critical pressure: Clearing merged mesh")
                 // Defer @Published property update to avoid "Publishing changes from within view updates"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+                Task { @MainActor [weak self] in
                     self?.mergedMesh = nil
                 }
             }
             if !isBaking {
                 AppLogger.mesh.error("🧹 Critical pressure: Clearing bake result")
                 // Defer @Published property update to avoid "Publishing changes from within view updates"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+                Task { @MainActor [weak self] in
                     self?.bakeResult = nil
                 }
             }

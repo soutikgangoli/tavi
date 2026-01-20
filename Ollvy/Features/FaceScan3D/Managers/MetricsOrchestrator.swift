@@ -57,7 +57,7 @@ public class MetricsOrchestrator: ObservableObject {
         }
 
         // FIXED: Defer state update to avoid "Publishing changes from within view updates" warning
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             self?.isComputingMetrics = true
         }
 
@@ -66,7 +66,7 @@ public class MetricsOrchestrator: ObservableObject {
         // Check for cancellation before starting heavy computation
         guard !Task.isCancelled else {
             AppLogger.faceScan.info("🛑 Metrics computation cancelled before start")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.isComputingMetrics = false
             }
             return nil
@@ -117,14 +117,14 @@ public class MetricsOrchestrator: ObservableObject {
             metrics = try await task.value
         } catch is CancellationError {
             AppLogger.faceScan.info("🛑 Metrics computation cancelled during processing")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.isComputingMetrics = false
             }
             computationTask = nil
             return nil
         } catch {
             AppLogger.faceScan.error("❌ Metrics computation error: \(error.localizedDescription)")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.isComputingMetrics = false
             }
             computationTask = nil
@@ -137,7 +137,7 @@ public class MetricsOrchestrator: ObservableObject {
         // Check cancellation before updating state
         guard !Task.isCancelled else {
             AppLogger.faceScan.info("🛑 Metrics computation cancelled after processing")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.isComputingMetrics = false
             }
             return nil
@@ -155,7 +155,7 @@ public class MetricsOrchestrator: ObservableObject {
         }
 
         // Update state - defer to avoid "Publishing changes from within view updates" warning
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             self?.face3DMetrics = metrics
             self?.isComputingMetrics = false
         }
@@ -183,7 +183,7 @@ public class MetricsOrchestrator: ObservableObject {
         }
 
         // Defer state update to avoid "Publishing changes from within view updates" warning
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             self?.metricVisualizations = visualizations
         }
         AppLogger.faceScan.info("✅ Generated \(visualizations.count) visualizations")
@@ -327,7 +327,7 @@ public class MetricsOrchestrator: ObservableObject {
         }
 
         // Defer @Published property updates to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self else { return }
             self.face3DMetrics = nil
             self.metricVisualizations.removeAll()
@@ -355,7 +355,7 @@ public class MetricsOrchestrator: ObservableObject {
         if !metricVisualizations.isEmpty {
             AppLogger.faceScan.info("Clearing metric visualizations")
             // Defer @Published property update to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.metricVisualizations.removeAll()
             }
         }

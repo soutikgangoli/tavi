@@ -229,7 +229,7 @@ struct CameraPreviewView: UIViewRepresentable {
 
     func updateUIView(_ uiView: UIView, context: Context) {
         if let previewLayer = context.coordinator.previewLayer {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+            Task { @MainActor in
                 previewLayer.frame = uiView.bounds
             }
         }
@@ -306,7 +306,7 @@ public class LightingCalibrationViewModel: NSObject, ObservableObject, AVCapture
 
         let brightness = calculateBrightness(from: pixelBuffer)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             self?.currentBrightness = brightness
             self?.lightingQuality = self?.determineLightingQuality(brightness: brightness) ?? .optimal
         }

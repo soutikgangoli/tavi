@@ -210,8 +210,9 @@ public struct ScanConfiguration {
 
     /// Stability movement threshold (meters)
     /// Movement below this is considered stable
-    /// Relaxed from 0.03m to 0.05m - ARKit handles slight motion well
-    public static let stabilityMovementThreshold: Float = 0.05
+    /// Increased to 0.08m - allows natural micro-movements during pose adjustment
+    /// The blur/sharpness check catches any actual quality issues from movement
+    public static let stabilityMovementThreshold: Float = 0.08
 
     // MARK: - Mesh Processing
 
@@ -331,9 +332,9 @@ public struct ScanConfiguration {
 
     /// Quality check interval in frames
     /// Only check every N frames to prevent FPS drops
-    /// PERFORMANCE: Increased to 30 frames to reduce judder from expensive sharpness analysis
-    /// At 60fps, 30 frames = ~2 quality checks per second (was 4 per second)
-    public static let qualityCheckInterval: Int = 30
+    /// Reduced to 10 frames for faster response when conditions change
+    /// At 60fps, 10 frames = ~6 quality checks per second
+    public static let qualityCheckInterval: Int = 10
 
     /// Countdown tolerance frames
     /// Allow brief validation failures during countdown without canceling

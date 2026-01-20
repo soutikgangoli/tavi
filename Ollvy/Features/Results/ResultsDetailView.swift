@@ -214,6 +214,12 @@ struct ResultsDetailView: View {
             .padding(.top)
         }
         .padding()
+        // Auto-dismiss after a short delay to prevent app hang
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                dismiss()
+            }
+        }
     }
 
     // MARK: - Error View

@@ -192,7 +192,7 @@ public struct ScanPreparationView: View {
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
             // FIXED: Wrap state updates in DispatchQueue.main.async to avoid
             // "Publishing changes from within view updates" warnings
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+            Task { @MainActor in
                 if countdown > 1 {
                     countdown -= 1
                 } else {

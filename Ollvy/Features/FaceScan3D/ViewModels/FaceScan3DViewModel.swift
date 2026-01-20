@@ -295,7 +295,7 @@ public class FaceScan3DViewModel: ObservableObject {
         // This prevents "Publishing changes from within view updates" warnings
         // by ensuring SwiftUI is not in the middle of a render cycle
         // Using DispatchQueue.main.asyncAfter with 1ms delay to truly defer
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
 
             // ARFrames are heavy objects - retaining 11-13 of them causes memory warnings
@@ -313,7 +313,7 @@ public class FaceScan3DViewModel: ObservableObject {
         }
 
         // Defer calibration update to next run loop iteration to avoid synchronous publishing
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
             self.calibrationManager.updateCalibrationLightweight(
                 faceAnchor: faceAnchor,
@@ -327,7 +327,7 @@ public class FaceScan3DViewModel: ObservableObject {
         // Check if we should auto-capture during guidance
         if self.captureManager.isGuidanceActive && !self.captureManager.isCaptureInProgress {
             // Defer pose check as it can publish via CaptureSequenceManager
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
                 self.checkGuidancePoseAndCapture(faceAnchor: faceAnchor)
             }
@@ -341,7 +341,7 @@ public class FaceScan3DViewModel: ObservableObject {
 
         // CRITICAL FIX: Defer @Published property updates to next run loop iteration
         // Using asyncAfter with 1ms delay to truly defer
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
             self.faceDetected = false
             self.currentGeometry = nil
@@ -355,7 +355,7 @@ public class FaceScan3DViewModel: ObservableObject {
         guard !isCleaningUp && !shouldStopSession else { return }
 
         // Defer @Published property updates using asyncAfter to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
             self.isTracking = true
             self.errorMessage = nil
@@ -378,7 +378,7 @@ public class FaceScan3DViewModel: ObservableObject {
         AppLogger.faceScan.error("🚨 ARKit session failed: \(errorInfo.type) - \(errorInfo.message)")
 
         // Defer @Published property updates using asyncAfter to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self, errorInfo] in
+        Task { @MainActor [weak self] in
             guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
             self.isTracking = false
             self.errorInfo = errorInfo
@@ -400,7 +400,7 @@ public class FaceScan3DViewModel: ObservableObject {
         AppLogger.faceScan.warning("⚠️ ARKit session interrupted")
 
         // Defer @Published property updates using asyncAfter to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self, errorInfo] in
+        Task { @MainActor [weak self] in
             guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
             self.isTracking = false
             self.errorInfo = errorInfo
@@ -416,7 +416,7 @@ public class FaceScan3DViewModel: ObservableObject {
         AppLogger.faceScan.info("✅ ARKit session interruption ended")
 
         // Defer @Published property updates using asyncAfter to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self, !self.isCleaningUp && !self.shouldStopSession else { return }
             self.isTracking = true
             self.errorMessage = nil
@@ -441,7 +441,7 @@ public class FaceScan3DViewModel: ObservableObject {
             // Clear error and let tracking resume
             AppLogger.faceScan.info("🔄 Auto-recovering from error...")
             // Defer @Published property updates using asyncAfter to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.errorInfo = nil
                 self.errorMessage = nil
@@ -471,7 +471,7 @@ public class FaceScan3DViewModel: ObservableObject {
     /// Clear partial captures (user wants to start fresh)
     public func clearPartialCaptures() {
         // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self else { return }
             self.captureManager.capturedPoses = [:]
         }
@@ -483,7 +483,7 @@ public class FaceScan3DViewModel: ObservableObject {
         AppLogger.faceScan.info("▶️ Resuming scan with \(self.capturedPoseCount) poses preserved")
 
         // Defer @Published property updates using asyncAfter to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self else { return }
             // Clear error but keep captured poses
             self.errorInfo = nil
@@ -499,7 +499,7 @@ public class FaceScan3DViewModel: ObservableObject {
         AppLogger.faceScan.info("📋 Starting new capture sequence")
 
         // Defer @Published property updates using asyncAfter to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             self?.errorMessage = nil
         }
 
@@ -552,7 +552,7 @@ public class FaceScan3DViewModel: ObservableObject {
         self.metricsOrchestrator.reset()
 
         // Defer @Published property updates using asyncAfter to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self else { return }
             self.errorMessage = nil
             self.errorInfo = nil
@@ -575,7 +575,7 @@ public class FaceScan3DViewModel: ObservableObject {
 
         guard let sequence = self.captureManager.currentSequence else {
             // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.errorMessage = "No capture sequence found"
             }
             return nil
@@ -588,7 +588,7 @@ public class FaceScan3DViewModel: ObservableObject {
             self.captureManager.completeSequence()
         } else {
             // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.errorMessage = "Merge failed - try scanning again"
             }
         }
@@ -600,7 +600,7 @@ public class FaceScan3DViewModel: ObservableObject {
     public func bakeTextureFromSequence() async -> TextureBakeResult? {
         guard let merged = self.processingPipeline.mergedMesh else {
             // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.errorMessage = "No merged mesh available"
             }
             return nil
@@ -608,7 +608,7 @@ public class FaceScan3DViewModel: ObservableObject {
 
         guard let sequence = self.captureManager.currentSequence else {
             // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.errorMessage = "No capture sequence available"
             }
             return nil
@@ -617,7 +617,7 @@ public class FaceScan3DViewModel: ObservableObject {
         if sequence.textureSamples.isEmpty {
             AppLogger.faceScan.error("❌ bakeTextureFromSequence: No texture samples captured! Total captures: \(sequence.captures.count), but 0 texture samples.")
             // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.errorMessage = "No texture samples captured"
             }
             return nil
@@ -643,7 +643,7 @@ public class FaceScan3DViewModel: ObservableObject {
     public func compute3DMetrics() async -> Face3DMetrics? {
         guard let result = self.processingPipeline.bakeResult else {
             // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.errorMessage = "No baked result available - bake texture first"
             }
             return nil
@@ -992,7 +992,7 @@ public class FaceScan3DViewModel: ObservableObject {
 
         if !success && !calibrationManager.continueAnywayOverride {
             // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.errorMessage = "Pre-flight checks failed - please check conditions"
             }
         }
@@ -1047,7 +1047,7 @@ public class FaceScan3DViewModel: ObservableObject {
             .sink { [weak self] yaw in
                 guard let self = self, !self.isGuidanceActive else { return }
                 // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self.cachedYaw = yaw
                 }
             }
@@ -1058,7 +1058,7 @@ public class FaceScan3DViewModel: ObservableObject {
             .sink { [weak self] pitch in
                 guard let self = self, !self.isGuidanceActive else { return }
                 // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self.cachedPitch = pitch
                 }
             }
@@ -1069,7 +1069,7 @@ public class FaceScan3DViewModel: ObservableObject {
             .sink { [weak self] roll in
                 guard let self = self, !self.isGuidanceActive else { return }
                 // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self.cachedRoll = roll
                 }
             }
@@ -1080,7 +1080,7 @@ public class FaceScan3DViewModel: ObservableObject {
             .sink { [weak self] yaw in
                 guard let self = self, self.isGuidanceActive else { return }
                 // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self.cachedYaw = yaw
                 }
             }
@@ -1091,7 +1091,7 @@ public class FaceScan3DViewModel: ObservableObject {
             .sink { [weak self] pitch in
                 guard let self = self, self.isGuidanceActive else { return }
                 // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self.cachedPitch = pitch
                 }
             }
@@ -1102,7 +1102,7 @@ public class FaceScan3DViewModel: ObservableObject {
             .sink { [weak self] roll in
                 guard let self = self, self.isGuidanceActive else { return }
                 // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self.cachedRoll = roll
                 }
             }
@@ -1118,7 +1118,7 @@ public class FaceScan3DViewModel: ObservableObject {
         calibrationManager.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self?.objectWillChange.send()
                 }
             }
@@ -1127,7 +1127,7 @@ public class FaceScan3DViewModel: ObservableObject {
         captureManager.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self?.objectWillChange.send()
                 }
             }
@@ -1136,7 +1136,7 @@ public class FaceScan3DViewModel: ObservableObject {
         processingPipeline.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self?.objectWillChange.send()
                 }
             }
@@ -1145,7 +1145,7 @@ public class FaceScan3DViewModel: ObservableObject {
         metricsOrchestrator.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self?.objectWillChange.send()
                 }
             }
@@ -1164,7 +1164,7 @@ public class FaceScan3DViewModel: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+            Task { @MainActor in
                 self?.handleMemoryWarning()
             }
         }

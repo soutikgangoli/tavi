@@ -1148,8 +1148,11 @@ public struct EmotionalScan3DFlowView: View {
                 // Try to save with timeout - saveToCoreData() handles its own errors and shows alerts
                 // CRITICAL: Use PersistenceController directly to avoid Environment access warnings
                 let capturedContext = PersistenceController.shared.viewContext
-                // Get face image from bake result
-                let faceImage = bakeResult.albedoTexture
+
+                // Get raw face image from bake result
+                // IMPORTANT: Keep in Metal coordinates (bottom-left origin) for heatmap generation
+                // because Face3DROI UV bounds expect Metal texture coordinates
+                let rawFaceImage = bakeResult.albedoTexture
 
                 // Check for cancellation before heavy heatmap generation
                 guard !Task.isCancelled else {
@@ -1157,13 +1160,15 @@ public struct EmotionalScan3DFlowView: View {
                     return
                 }
 
-                // Generate beautiful heatmaps using the face texture
+                // Generate beautiful heatmaps using RAW texture (UV coords match Metal coordinates)
                 AppLogger.faceScan.info("📊 Generating beautiful heatmaps from face texture...")
 
                 let heatmapGenerator = HeatmapOverlayGenerator()
                 var heatmapDict: [HeatmapType: Data] = [:]
 
                 // Map BeautifulHeatmapType to HeatmapType and generate each
+                // NOTE: HeatmapOverlayGenerator handles coordinate flipping internally
+                // so heatmaps come out correctly oriented
                 let mappings: [(BeautifulHeatmapType, HeatmapType)] = [
                     (.overall, .composite),
                     (.sharpness, .sharpness),
@@ -1181,7 +1186,7 @@ public struct EmotionalScan3DFlowView: View {
 
                     if let heatmapImage = heatmapGenerator.generateMeshBasedHeatmap(
                         mesh: bakeResult.unifiedMesh,
-                        baseTexture: faceImage,
+                        baseTexture: rawFaceImage,
                         metrics: computedClinicalMetrics,
                         metricType: beautifulType
                     ), let imageData = heatmapImage.jpegData(compressionQuality: 0.85) {
@@ -1196,6 +1201,24 @@ public struct EmotionalScan3DFlowView: View {
                     AppLogger.faceScan.info("📊 Successfully generated \(count) beautiful heatmaps")
                 }
 
+                // Create orientation-corrected face image for Core Data storage
+                // (separate from heatmap generation which needs raw Metal coords)
+                let correctedFaceImage: CGImage = {
+                    let size = CGSize(width: rawFaceImage.width, height: rawFaceImage.height)
+                    UIGraphicsBeginImageContextWithOptions(size, false, 1.0)
+                    guard let context = UIGraphicsGetCurrentContext() else {
+                        UIGraphicsEndImageContext()
+                        return rawFaceImage
+                    }
+                    // Flip vertically to convert from Metal to UIKit coordinates
+                    context.translateBy(x: 0, y: size.height)
+                    context.scaleBy(x: 1.0, y: -1.0)
+                    context.draw(rawFaceImage, in: CGRect(origin: .zero, size: size))
+                    let result = UIGraphicsGetImageFromCurrentImageContext()?.cgImage ?? rawFaceImage
+                    UIGraphicsEndImageContext()
+                    return result
+                }()
+
                 do {
                     try await withTimeout(
                         seconds: timeEstimator.getDeviceAdjustedTimeout(ScanConfiguration.coreDataSaveTimeout),
@@ -1204,7 +1227,7 @@ public struct EmotionalScan3DFlowView: View {
                         await saveToCoreData(
                             emotionalMetrics: emotional,
                             clinicalMetrics: computedClinicalMetrics,
-                            faceImage: faceImage,
+                            faceImage: correctedFaceImage,
                             heatmapData: capturedHeatmapData,
                             context: capturedContext
                         )
@@ -1212,7 +1235,7 @@ public struct EmotionalScan3DFlowView: View {
                 } catch {
                     // Timeout error - add to persistent queue and alert user
                     AppLogger.faceScan.error("⚠️ Core Data save timed out: \(error.localizedDescription)")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                    Task { @MainActor in
                         self.saveQueue.enqueueSave(emotionalMetrics: emotional, clinicalMetrics: computedClinicalMetrics)
                         self.pendingSaveData = (emotional, computedClinicalMetrics)
                         self.saveErrorMessage = "Save operation timed out. Your results are queued for automatic retry."
@@ -1348,7 +1371,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 case .incompatible(let version, let reason):
                     AppLogger.faceScan.warning("⚠️ Incompatible clinical metrics version v\(version.versionString): \(reason)")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                    Task { @MainActor in
                         self.comparisonUnavailableReason = "Your previous scan is from an older app version and can't be compared"
                     }
                     return nil
@@ -1356,7 +1379,7 @@ public struct EmotionalScan3DFlowView: View {
                 case .corrupted(let error):
                     AppLogger.faceScan.error("❌ Corrupted clinical metrics data: \(error.localizedDescription)")
                     CrashReporter.shared.logError(error, context: ["operation": "json_decode_clinical_versioned"])
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                    Task { @MainActor in
                         self.comparisonUnavailableReason = "Your previous scan data appears to be damaged and can't be compared"
                     }
                     return nil
@@ -1409,7 +1432,7 @@ public struct EmotionalScan3DFlowView: View {
 
                 case .incompatible(let version, let reason):
                     AppLogger.faceScan.warning("⚠️ Incompatible emotional metrics version v\(version.versionString): \(reason)")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                    Task { @MainActor in
                         self.comparisonUnavailableReason = "Your previous scan is from an older app version and can't be compared"
                     }
                     return nil
@@ -1417,7 +1440,7 @@ public struct EmotionalScan3DFlowView: View {
                 case .corrupted(let error):
                     AppLogger.faceScan.error("❌ Corrupted emotional metrics data: \(error.localizedDescription)")
                     CrashReporter.shared.logError(error, context: ["operation": "json_decode_emotional_versioned"])
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                    Task { @MainActor in
                         self.comparisonUnavailableReason = "Your previous scan data appears to be damaged and can't be compared"
                     }
                     return nil
@@ -1898,7 +1921,7 @@ extension EmotionalScan3DFlowView {
         // FIXED: Wrap state updates in DispatchQueue.main.async to avoid
         // "Publishing changes from within view updates" warnings
         let timer = Timer(timeInterval: 0.05, repeats: true) { [self] _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+            Task { @MainActor in
                 // Smooth sine wave animation (completes full cycle every ~3 seconds)
                 breathingPhase += 0.1
                 if breathingPhase > .pi * 2 {
@@ -1999,7 +2022,7 @@ extension EmotionalScan3DFlowView {
         // FIXED: Wrap state updates in DispatchQueue.main.async to avoid
         // "Publishing changes from within view updates" warnings
         let timer = Timer(timeInterval: 3.0, repeats: true) { [self] _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+            Task { @MainActor in
                 withAnimation(Designs.Animation.standard) {
                     cyclingMessageIndex += 1
                 }
@@ -2018,7 +2041,7 @@ extension EmotionalScan3DFlowView {
     /// Smoothly animate progress to target step with intermediate values
     /// Uses DispatchQueue.main.async to avoid "Publishing changes from within view updates" warning
     private func smoothlyUpdateProgress(to targetStep: Int) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+        Task { @MainActor in
             withAnimation(Designs.Animation.linear) {
                 self.processingStep = Double(targetStep)
             }
@@ -2028,7 +2051,7 @@ extension EmotionalScan3DFlowView {
     /// Update processing progress description safely
     /// Uses DispatchQueue.main.async to avoid "Publishing changes from within view updates" warning
     private func updateProcessingProgress(_ description: String) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+        Task { @MainActor in
             self.processingProgress = description
         }
     }

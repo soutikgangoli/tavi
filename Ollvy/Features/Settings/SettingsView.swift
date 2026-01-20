@@ -265,6 +265,11 @@ public struct SettingsView: View {
                     .accessibilityHint("Closes settings and returns to previous screen")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Designs.Colors.background)
+            .toolbarBackground(Designs.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .alert(AppStrings.Confirmations.deleteAllDataTitle, isPresented: $showDeleteConfirmation) {
                 Button(AppStrings.Buttons.cancel, role: .cancel) { }
                 Button(AppStrings.Buttons.delete, role: .destructive) {
@@ -274,6 +279,7 @@ public struct SettingsView: View {
                 Text(AppStrings.Confirmations.deleteAllDataMessage)
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Data Deletion

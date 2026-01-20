@@ -231,7 +231,7 @@ public class CoreDataSaveQueue: ObservableObject {
         // FIXED: Use DispatchQueue.main.asyncAfter with 1ms delay to ensure
         // state updates are deferred to next run loop, avoiding "Publishing changes" warnings
         retryTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+            Task { @MainActor in
                 Task {
                     await self?.processQueue()
                 }

@@ -114,25 +114,47 @@ public enum Face3DROI: String, CaseIterable, Codable, Sendable {
     }
 
     /// UV bounds for this ROI in 2D portrait face image
-    /// These are calibrated for a centered face with ~20% padding around it
+    /// Calibrated for typical selfie where face is in center-lower portion of frame
     /// V coordinate: 0 = top of image, 1 = bottom (screen coordinates)
     public var uvBounds: UVBounds {
         switch self {
         case .forehead:
-            // Top portion of face, centered horizontally
-            return UVBounds(minU: 0.25, maxU: 0.75, minV: 0.08, maxV: 0.28)
+            // Top portion of face - face typically starts around V=0.22 in selfie
+            return UVBounds(minU: 0.25, maxU: 0.75, minV: 0.22, maxV: 0.38)
         case .leftCheek:
             // Left side of face (viewer's right), middle height
-            return UVBounds(minU: 0.10, maxU: 0.38, minV: 0.35, maxV: 0.58)
+            return UVBounds(minU: 0.12, maxU: 0.38, minV: 0.42, maxV: 0.62)
         case .rightCheek:
             // Right side of face (viewer's left), middle height
-            return UVBounds(minU: 0.62, maxU: 0.90, minV: 0.35, maxV: 0.58)
+            return UVBounds(minU: 0.62, maxU: 0.88, minV: 0.42, maxV: 0.62)
         case .noseBridge:
             // Center of face, middle height
-            return UVBounds(minU: 0.38, maxU: 0.62, minV: 0.32, maxV: 0.52)
+            return UVBounds(minU: 0.38, maxU: 0.62, minV: 0.42, maxV: 0.58)
         case .chin:
             // Bottom center of face
-            return UVBounds(minU: 0.30, maxU: 0.70, minV: 0.60, maxV: 0.80)
+            return UVBounds(minU: 0.30, maxU: 0.70, minV: 0.62, maxV: 0.78)
+        }
+    }
+
+    /// Canonical proportions for this ROI WITHIN the face bounds (0-1 relative to face)
+    /// These define anatomical positions that are mapped to actual face location dynamically
+    public var canonicalProportions: UVBounds {
+        switch self {
+        case .forehead:
+            // Top 10-30% of face, middle 50% horizontally
+            return UVBounds(minU: 0.20, maxU: 0.80, minV: 0.05, maxV: 0.28)
+        case .leftCheek:
+            // Left third, middle vertically (anatomical left = viewer's right in selfie)
+            return UVBounds(minU: 0.02, maxU: 0.35, minV: 0.32, maxV: 0.60)
+        case .rightCheek:
+            // Right third, middle vertically (anatomical right = viewer's left in selfie)
+            return UVBounds(minU: 0.65, maxU: 0.98, minV: 0.32, maxV: 0.60)
+        case .noseBridge:
+            // Center, middle-upper vertically
+            return UVBounds(minU: 0.35, maxU: 0.65, minV: 0.30, maxV: 0.52)
+        case .chin:
+            // Bottom center
+            return UVBounds(minU: 0.25, maxU: 0.75, minV: 0.65, maxV: 0.90)
         }
     }
 }

@@ -398,7 +398,7 @@ public class ProcessingTimeEstimator: ObservableObject {
         // CRITICAL FIX: Defer @Published property updates using asyncAfter to avoid
         // "Publishing changes from within view updates" warning
         // This ensures updates happen on next run loop iteration
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self = self else { return }
             self.elapsedSeconds = 0
             self.estimatedTotalSeconds = initialEstimate
@@ -412,7 +412,7 @@ public class ProcessingTimeEstimator: ObservableObject {
             guard let self = self else { return }
 
             // Use DispatchQueue.main.asyncAfter to avoid view update conflicts
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+            Task { @MainActor in
                 // Update elapsed time
                 if let start = self.processingStartTime {
                     self.elapsedSeconds = Int(Date().timeIntervalSince(start))
@@ -441,7 +441,7 @@ public class ProcessingTimeEstimator: ObservableObject {
             if remainingSeconds > 1 {
                 // Defer @Published property update using asyncAfter to avoid "Publishing changes from within view updates"
                 let newValue = remainingSeconds - 1
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+                Task { @MainActor [weak self] in
                     self?.remainingSeconds = newValue
                 }
             }
@@ -493,7 +493,7 @@ public class ProcessingTimeEstimator: ObservableObject {
         }
 
         // Defer @Published property updates using asyncAfter to avoid "Publishing changes from within view updates"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self else { return }
             self.progressPercent = newProgressPercent
             self.remainingSeconds = newRemainingSeconds
@@ -527,7 +527,7 @@ public class ProcessingTimeEstimator: ObservableObject {
         phaseStartTime = Date()
 
         // CRITICAL FIX: Defer @Published property update using asyncAfter to avoid view update conflicts
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             self?.currentPhase = phase
         }
 
@@ -605,14 +605,14 @@ public class ProcessingTimeEstimator: ObservableObject {
             }
             let remaining = startRemaining - animationStep
             if remaining >= 0 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self.remainingSeconds = remaining
                     self.progressPercent = 96 + Double(animationStep)
                 }
                 animationStep += 1
             } else {
                 timer.invalidate()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) {
+                Task { @MainActor in
                     self.remainingSeconds = 0
                     self.progressPercent = 100
                 }
@@ -630,7 +630,7 @@ public class ProcessingTimeEstimator: ObservableObject {
         processingStartTime = nil
 
         // CRITICAL FIX: Defer @Published property update using asyncAfter to avoid view update conflicts
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             self?.currentPhase = nil
         }
 
@@ -652,7 +652,7 @@ public class ProcessingTimeEstimator: ObservableObject {
         currentScanActualTimes = [:]
 
         // CRITICAL FIX: Defer @Published property updates using asyncAfter to avoid view update conflicts
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.001) { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self = self else { return }
             self.currentPhase = nil
             self.remainingSeconds = 0

@@ -107,9 +107,13 @@ struct ResultsHistoryView: View {
         .sheet(item: $selectedSession) { session in
             NavigationStack {
                 // Verify session is still valid before showing detail view
-                if viewContext.registeredObject(for: session.objectID) != nil {
+                if !session.isDeleted && !session.isFault && viewContext.registeredObject(for: session.objectID) != nil {
                     ResultsDetailView(session: session)
                         .environment(\.managedObjectContext, viewContext)
+                        .onDisappear {
+                            // Clear selection when sheet dismisses
+                            selectedSession = nil
+                        }
                 } else {
                     VStack(spacing: 20) {
                         Image(systemName: "exclamationmark.triangle")
@@ -119,13 +123,13 @@ struct ResultsHistoryView: View {
                         Text("Session Not Found")
                             .font(.title2)
                             .fontWeight(.semibold)
-                        
+
                         Text("This session may have been deleted or is no longer available.")
                             .font(.body)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
-                        
+
                         Button {
                             selectedSession = nil
                         } label: {
@@ -139,7 +143,20 @@ struct ResultsHistoryView: View {
                         }
                     }
                     .padding()
+                    // Auto-dismiss if session was deleted
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            selectedSession = nil
+                        }
+                    }
                 }
+            }
+        }
+        // Safeguard: Clear invalid session reference when sessions change
+        .onChange(of: sessions.count) { _, _ in
+            if let selected = selectedSession,
+               selected.isDeleted || selected.isFault {
+                selectedSession = nil
             }
         }
     }
