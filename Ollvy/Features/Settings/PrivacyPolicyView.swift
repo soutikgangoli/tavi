@@ -165,7 +165,7 @@ public struct PrivacyPolicyView: View {
                         • Portability: Export your data as JSON from Settings > Privacy > Export My Data
                         • Withdraw Consent: Stop using the app at any time; uninstalling removes all data
 
-                        To exercise these rights, use the in-app controls or contact: grievance@ollvy.app
+                        To exercise these rights, use the in-app controls or contact: care@ollvy.com
                         """
                     )
 
@@ -194,7 +194,7 @@ public struct PrivacyPolicyView: View {
                         • We do not knowingly collect data from children under 13
                         • If you believe a child under 13 has used the app, contact us to delete their data
 
-                        Contact: grievance@ollvy.app
+                        Contact: care@ollvy.com
                         """
                     )
 
@@ -232,7 +232,7 @@ public struct PrivacyPolicyView: View {
                         VStack(alignment: .leading, spacing: Designs.Spacing.xs) {
                             Text("Designation: Grievance Officer, Ollvy")
                                 .font(AppFont.bodySecondary)
-                            Text("Email: grievance@ollvy.app")
+                            Text("Email: care@ollvy.com")
                                 .font(AppFont.bodySecondary)
                             Text("Location: Gurugram, Haryana, India")
                                 .font(AppFont.bodySecondary)
@@ -253,8 +253,8 @@ public struct PrivacyPolicyView: View {
                         content: """
                         For privacy-related questions or concerns:
 
-                        General Support: support@ollvy.app
-                        Privacy/Grievances: grievance@ollvy.app
+                        General Support: care@ollvy.com
+                        Privacy/Grievances: care@ollvy.com
 
                         Response within 24 hours on business days.
                         """

@@ -231,7 +231,7 @@ public struct FAQView: View {
 
                         FAQItem(
                             question: "How do I contact support?",
-                            answer: "You can reach us at support@ollvy.app. We typically respond within 24-48 hours."
+                            answer: "You can reach us at care@ollvy.com. We typically respond within 24-48 hours."
                         )
                     }
 
@@ -267,7 +267,7 @@ public struct FAQView: View {
                             answer: """
                             As required by Indian law:
 
-                            Email: grievance@ollvy.app
+                            Email: care@ollvy.com
                             Response: Within 24 hours
                             Resolution: Within 15 days
 
@@ -282,7 +282,7 @@ public struct FAQView: View {
 
                         FAQItem(
                             question: "Which courts have jurisdiction?",
-                            answer: "Any disputes are subject to the exclusive jurisdiction of courts in Bangalore, Karnataka, India. You also have the right to approach Consumer Disputes Redressal Forums at District/State/National level."
+                            answer: "Any disputes are subject to the exclusive jurisdiction of courts in Gurugram, Haryana, India. You also have the right to approach Consumer Disputes Redressal Forums at District/State/National level."
                         )
                     }
 
@@ -296,7 +296,7 @@ public struct FAQView: View {
                                 .foregroundColor(Designs.Colors.textPrimary)
 
                             Button {
-                                if let url = URL(string: "mailto:support@ollvy.app") {
+                                if let url = URL(string: "mailto:care@ollvy.com") {
                                     UIApplication.shared.open(url)
                                 }
                             } label: {

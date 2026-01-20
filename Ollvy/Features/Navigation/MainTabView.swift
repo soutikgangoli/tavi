@@ -597,12 +597,17 @@ struct GentlerCenterButton: View {
 struct ProfileTabView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)],
-        predicate: nil,
-        animation: .default
-    )
+    // PERFORMANCE: Limit fetch to most recent 100 sessions for stats
+    // This balances accuracy with startup performance
+    @FetchRequest(fetchRequest: ProfileTabView.sessionsFetchRequest)
     private var sessions: FetchedResults<SessionResult>
+
+    private static var sessionsFetchRequest: NSFetchRequest<SessionResult> {
+        let request = NSFetchRequest<SessionResult>(entityName: "SessionResult")
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)]
+        request.fetchLimit = 100  // Reasonable limit for stats calculation
+        return request
+    }
 
     @State private var showChallengeDetail = false
     @State private var showAchievementDetail: Achievement?

@@ -114,7 +114,7 @@ struct InlineLoadingView: View {
                 .foregroundColor(Color(red: 60/255, green: 60/255, blue: 60/255))
 
             Button("Tap Me") {}
-                .buttonStyle(PrimaryButtonStyle())
+                .buttonStyle(.borderedProminent)
                 .padding()
         }
 
@@ -129,7 +129,7 @@ struct InlineLoadingView: View {
             .font(.title)
 
         Button("Button") {}
-            .buttonStyle(PrimaryButtonStyle())
+            .buttonStyle(.borderedProminent)
             .padding()
     }
     .loadingOverlay(isLoading: true, message: "Processing...")

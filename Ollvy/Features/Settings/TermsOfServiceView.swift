@@ -189,11 +189,11 @@ public struct TermsOfServiceView: View {
                         content: """
                         Governing Law: Laws of India
 
-                        Jurisdiction: Courts in Bangalore, Karnataka, India
+                        Jurisdiction: Courts in Gurugram, Haryana, India
 
                         Before legal proceedings, please:
-                        1. Contact support@ollvy.app
-                        2. Contact grievance@ollvy.app (response within 15 days)
+                        1. Contact care@ollvy.com
+                        2. Contact care@ollvy.com (response within 15 days)
 
                         You may also approach Consumer Forums under Consumer Protection Act, 2019.
                         """
@@ -243,7 +243,7 @@ public struct TermsOfServiceView: View {
                             .foregroundColor(Designs.Colors.textSecondary)
 
                         VStack(alignment: .leading, spacing: Designs.Spacing.xs) {
-                            Text("Email: grievance@ollvy.app")
+                            Text("Email: care@ollvy.com")
                                 .font(AppFont.bodySecondary)
                             Text("Response: Within 24 hours")
                                 .font(AppFont.bodySecondary)
@@ -273,8 +273,8 @@ public struct TermsOfServiceView: View {
                         number: "12",
                         title: "Contact Information",
                         content: """
-                        General Support: support@ollvy.app
-                        Grievances: grievance@ollvy.app
+                        General Support: care@ollvy.com
+                        Grievances: care@ollvy.com
                         App Store: Visit Ollvy on App Store > App Support
                         """
                     )

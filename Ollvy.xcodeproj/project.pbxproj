@@ -109,7 +109,6 @@
 		8D8BAF1F2A90624B6839DED4 /* EnvironmentalAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 462BA6ABBFC8AF126C7DAE78 /* EnvironmentalAdapter.swift */; };
 		8D9B6472508A45F8B640DD51 /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD6AAB9158A4E789D02EAF1 /* PrivacySettingsView.swift */; };
 		8E8FB05D0A3C75FB04A776BB /* ClinicalInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36CE3269431252BFA4CA1869 /* ClinicalInfoView.swift */; };
-		8F0AD9F0D5DFF0AF04F25860 /* FaceScan3DDemoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F4AF531C8C3561EAC93DEE /* FaceScan3DDemoView.swift */; };
 		93D4D0FC0AC1929A21DC04DE /* SpecularAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9961FDFCCC78E696A1B9D803 /* SpecularAnalyzer.swift */; };
 		950DEFDE84BC32059DB81F4F /* AlbedoEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8749084C99272D44C6B23230 /* AlbedoEstimator.swift */; };
 		9AB3D2BD0F0747E08363488E /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AA6C0FB229431E83905FAD /* AboutView.swift */; };
@@ -119,7 +118,6 @@
 		A19EAEDAEF7F731CE50142FF /* TextureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D022F426A297217275C6E6F /* TextureExtractor.swift */; };
 		A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* TaviModel.xcdatamodeld in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */; };
 		A33DCEF17DACB170BA92523B /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F004FB0FB5D0FF29C951E78 /* LoadingView.swift */; };
-		A767C7593E42BD4FC5FE42BE /* HeadspaceDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92A5F472A028D41A7D5022D /* HeadspaceDesignSystem.swift */; };
 		A7A6DCE377134090B5FBF8BA /* MetalAnalyzerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF4E2692C2A946D0A0A4B73F /* MetalAnalyzerBase.swift */; };
 		A7B1FF885E4B85CE1B3CBE9C /* FancyLoadingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D02CD1F895E305C70B9EB943 /* FancyLoadingScreen.swift */; };
 		A7DE163D7E8001747B4E1A49 /* ARKitErrorRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD4B868FD501E75A8E9BB82 /* ARKitErrorRecoveryView.swift */; };
@@ -138,11 +136,9 @@
 		B8EF9B902EAD30F82174B114 /* ScanConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FB79DBCE421C2B6DC922852 /* ScanConfiguration.swift */; };
 		BCC55497EA93283E5D895ACD /* AnalysisTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C46BA6FB2B70D75BB69A2ED /* AnalysisTypes.swift */; };
 		BDC6714190EB434489D4C144 /* DarknessDetection.metal in Sources */ = {isa = PBXBuildFile; fileRef = 2E24D81379E9495D8508DBF0 /* DarknessDetection.metal */; };
-		BFAAC29196A1D6F4AAAE45B9 /* TexturedMeshPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CFD47E8633F12AEA6407300 /* TexturedMeshPreviewView.swift */; };
 		C0630FC460D7CF61167C3BAE /* PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF92FAB265314F82481D94A /* PDFReportGenerator.swift */; };
 		C0F3993E3C6041DA9391CB67 /* MetalCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53FE875236804804B26E36C6 /* MetalCapabilities.swift */; };
 		C1147158F5469052492132EE /* MetricsOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D18BE57C1D993C59DC4ADEB /* MetricsOrchestrator.swift */; };
-		C119AE272490876698162196 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3B36ACDE83D0E9CE282988A /* DesignSystem.swift */; };
 		C2408617079AB33A0A4DA5B3 /* CaptureSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75F3DACA88C2BAE8D02A5828 /* CaptureSettingsView.swift */; };
 		C2CD14A188607D92AA6FC1E0 /* MeshExtender.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFCD811AF2A9475C240EA1A2 /* MeshExtender.swift */; };
 		C4DD0672AD64A6B5809E3001 /* ScanError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B879F044F2ADC81FC65D2BF1 /* ScanError.swift */; };
@@ -178,6 +174,9 @@
 		EEE706DD6CC0EAE18A4E1BC3 /* ARKitErrorAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15BA5870167432044EA62D8 /* ARKitErrorAnalyzer.swift */; };
 		F1CB69BD4D2CCA67027E7FD3 /* RednessAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04D06A6C52C4438A958C7367 /* RednessAnalyzer.swift */; };
 		F420D41B65A3B6343BE4354A /* TermsOfServiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAC430266D9270E9BA4072E /* TermsOfServiceView.swift */; };
+		AAAAAA111111111111111111 /* PrivacyPolicyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAAAA111111111111111112 /* PrivacyPolicyView.swift */; };
+		BBBBBB222222222222222221 /* SupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBB222222222222222222 /* SupportView.swift */; };
+		CCCCCC333333333333333331 /* AcknowledgmentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCCCC333333333333333332 /* AcknowledgmentsView.swift */; };
 		F4863FBB7D9848C3AFEE7A7C /* MemoryManagedResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30DEAFABD9D148D7B5463AD0 /* MemoryManagedResource.swift */; };
 		F4DEA18EB1FCE07F991EBB63 /* PoreAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15EC623A8C87285A2A33338 /* PoreAnalyzer.swift */; };
 		F6298A4BC13CF46406FA3B2E /* EmotionalMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61AF2748394F42FFC1D2C1FC /* EmotionalMetrics.swift */; };
@@ -247,7 +246,6 @@
 		3C0158E26324A3B9235271F6 /* Face3DMetricsAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Face3DMetricsAnalyzer.swift; sourceTree = "<group>"; };
 		3CCAD3E25DF463BD7440AB7A /* FaceBoundaryGuide.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceBoundaryGuide.swift; sourceTree = "<group>"; };
 		3CF92D55F97CFBB4137DF96E /* CoreDataMigrationManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CoreDataMigrationManager.swift; sourceTree = "<group>"; };
-		3CFD47E8633F12AEA6407300 /* TexturedMeshPreviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TexturedMeshPreviewView.swift; sourceTree = "<group>"; };
 		3D18BE57C1D993C59DC4ADEB /* MetricsOrchestrator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetricsOrchestrator.swift; sourceTree = "<group>"; };
 		3EF4EBA6781F668D5017E3F2 /* EmotionalScan3DFlowView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmotionalScan3DFlowView.swift; sourceTree = "<group>"; };
 		3F004FB0FB5D0FF29C951E78 /* LoadingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
@@ -350,14 +348,12 @@
 		C68A4CA9188B02696A332601 /* SkinElasticity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SkinElasticity.swift; sourceTree = "<group>"; };
 		C88A19250798639E43BF42BE /* MetricsResultView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetricsResultView.swift; sourceTree = "<group>"; };
 		C8A9CDF62E0F4EF79AD9BA75 /* MemoryBudgetManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MemoryBudgetManager.swift; sourceTree = "<group>"; };
-		C92A5F472A028D41A7D5022D /* HeadspaceDesignSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HeadspaceDesignSystem.swift; path = Ollvy/Shared/UI/HeadspaceDesignSystem.swift; sourceTree = "<group>"; };
 		C9EC0840422B42E784F5A70D /* GlowAnalysis.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = GlowAnalysis.metal; sourceTree = "<group>"; };
 		CC31E88D5F06C27300AF247D /* TemporalTracker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TemporalTracker.swift; sourceTree = "<group>"; };
 		CF675DA44DF685061893BCF7 /* GlowAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GlowAnalyzer.swift; sourceTree = "<group>"; };
 		CFCD811AF2A9475C240EA1A2 /* MeshExtender.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshExtender.swift; sourceTree = "<group>"; };
 		D02CD1F895E305C70B9EB943 /* FancyLoadingScreen.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FancyLoadingScreen.swift; sourceTree = "<group>"; };
 		D0555BBB92D646468DFB25B70793A3CF /* DebugSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DebugSettings.swift; path = Ollvy/Core/Utilities/DebugSettings.swift; sourceTree = "<group>"; };
-		D1F4AF531C8C3561EAC93DEE /* FaceScan3DDemoView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceScan3DDemoView.swift; sourceTree = "<group>"; };
 		D2F6ACDA1D1DB6D81FCAB766 /* ProgressGraphView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProgressGraphView.swift; path = Ollvy/Features/Home/ProgressGraphView.swift; sourceTree = "<group>"; };
 		D39CED2746B5AABEFB50801A /* MeshTopologyAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshTopologyAnalyzer.swift; sourceTree = "<group>"; };
 		D528A9FDA601DB84BBD5792A /* CalibrationManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalibrationManager.swift; sourceTree = "<group>"; };
@@ -368,13 +364,15 @@
 		DA3860CC62964D9CBF987578 /* RednessAnalysis.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = RednessAnalysis.metal; sourceTree = "<group>"; };
 		DB705E9E7DC1403D34B3D22B /* FaceGuidanceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceGuidanceView.swift; sourceTree = "<group>"; };
 		DDAC430266D9270E9BA4072E /* TermsOfServiceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TermsOfServiceView.swift; path = Ollvy/Features/Settings/TermsOfServiceView.swift; sourceTree = SOURCE_ROOT; };
+		AAAAAA111111111111111112 /* PrivacyPolicyView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PrivacyPolicyView.swift; path = Ollvy/Features/Settings/PrivacyPolicyView.swift; sourceTree = SOURCE_ROOT; };
+		BBBBBB222222222222222222 /* SupportView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SupportView.swift; path = Ollvy/Features/Settings/SupportView.swift; sourceTree = SOURCE_ROOT; };
+		CCCCCC333333333333333332 /* AcknowledgmentsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AcknowledgmentsView.swift; path = Ollvy/Features/Settings/AcknowledgmentsView.swift; sourceTree = SOURCE_ROOT; };
 		DEB7DF9F43C4254874B81D73 /* AsyncTimeout.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AsyncTimeout.swift; sourceTree = "<group>"; };
 		DF4E2692C2A946D0A0A4B73F /* MetalAnalyzerBase.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetalAnalyzerBase.swift; sourceTree = "<group>"; };
 		E090007A7AD1D87C747C7F1D /* MeshTextureExporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshTextureExporter.swift; sourceTree = "<group>"; };
 		E156067DDCF90ADE5634A3E1 /* DebugOverlayView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DebugOverlayView.swift; path = Debug/DebugOverlayView.swift; sourceTree = "<group>"; };
 		E15BA5870167432044EA62D8 /* ARKitErrorAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ARKitErrorAnalyzer.swift; sourceTree = "<group>"; };
 		E15EC623A8C87285A2A33338 /* PoreAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PoreAnalyzer.swift; sourceTree = "<group>"; };
-		E3B36ACDE83D0E9CE282988A /* DesignSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		E3FDB29A089E2E523A64A331 /* OutlierFilter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OutlierFilter.swift; sourceTree = "<group>"; };
 		E46190D0CE9141D1FEE2B8B0 /* SkinToneNormalizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SkinToneNormalizer.swift; sourceTree = "<group>"; };
 		E557D608A8032801829AFAD3 /* MeshValidator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshValidator.swift; sourceTree = "<group>"; };
@@ -641,6 +639,9 @@
 				4CDD8FAF2C3E90A61A0969F4 /* SettingsView.swift */,
 				DDAC430266D9270E9BA4072E /* TermsOfServiceView.swift */,
 				ACA96A3B6D0CE3F3A37E81A7 /* FAQView.swift */,
+				AAAAAA111111111111111112 /* PrivacyPolicyView.swift */,
+				BBBBBB222222222222222222 /* SupportView.swift */,
+				CCCCCC333333333333333332 /* AcknowledgmentsView.swift */,
 			);
 			name = Settings;
 			sourceTree = "<group>";
@@ -766,9 +767,7 @@
 				C319F01A24F23C6A322F2A67 /* ARFaceTrackingViewController.swift */,
 				72DEDCA89960B01DCBF49627 /* CalibrationOverlay.swift */,
 				23F995B81CBE850BD902F156 /* Face3DViewer.swift */,
-				D1F4AF531C8C3561EAC93DEE /* FaceScan3DDemoView.swift */,
 				F7495B578098FB4F168D44B9 /* FaceScan3DView.swift */,
-				3CFD47E8633F12AEA6407300 /* TexturedMeshPreviewView.swift */,
 				3EF4EBA6781F668D5017E3F2 /* EmotionalScan3DFlowView.swift */,
 				3BD4B868FD501E75A8E9BB82 /* ARKitErrorRecoveryView.swift */,
 				8F45A1C3318443539EF74ABC /* ScanPreparationView.swift */,
@@ -877,7 +876,6 @@
 				2D196059EDCE0D5AFE9351DB /* CalibrationHUD.swift */,
 				41ACBF8F0D22AE8491CD86B1 /* CaptureProgressView.swift */,
 				813438A5368386EB29168975 /* CardView.swift */,
-				E3B36ACDE83D0E9CE282988A /* DesignSystem.swift */,
 				8D8D48D4A9F64B049464B579 /* Designs.swift */,
 				4B487B6E8A3D4EE9BE7E2267 /* AppStrings.swift */,
 				3CCAD3E25DF463BD7440AB7A /* FaceBoundaryGuide.swift */,
@@ -939,7 +937,6 @@
 				ProductsGroup /* Products */,
 				F26EE79AEE3F8DEE65B3E851 /* Ollvy */,
 				0D2FF3EF032AFC967799B42C /* InputValidator.swift */,
-				C92A5F472A028D41A7D5022D /* HeadspaceDesignSystem.swift */,
 				APPFONTREF0000000000001 /* AppFont.swift */,
 				APPDEFAULTSREF00000001 /* AppDefaults.swift */,
 				SFSYMBOLSREF000000001 /* SFSymbols.swift */,
@@ -1113,9 +1110,7 @@
 				03DB3FE1D5A0448E87B0A0B2 /* ARFaceTrackingViewController.swift in Sources */,
 				53F5A66106A6B454335AAA9E /* CalibrationOverlay.swift in Sources */,
 				49D2383ADB286273BC81D16B /* Face3DViewer.swift in Sources */,
-				8F0AD9F0D5DFF0AF04F25860 /* FaceScan3DDemoView.swift in Sources */,
 				5012D310EF9708A97A3BE195 /* FaceScan3DView.swift in Sources */,
-				BFAAC29196A1D6F4AAAE45B9 /* TexturedMeshPreviewView.swift in Sources */,
 				DC0EAD19D591966D6EEAAF3C /* OnboardingModels.swift in Sources */,
 				781C19C5243988C05D1851B3 /* ResultsDetailView.swift in Sources */,
 				676B7259FE0CDF5EFBB60CBA /* ResultsHistoryView.swift in Sources */,
@@ -1125,7 +1120,6 @@
 				1BF09FF37AE7A9D47627C42B /* CalibrationHUD.swift in Sources */,
 				E085DD9DDE26F344F10D5437 /* CaptureProgressView.swift in Sources */,
 				512168C37838858B858CFFA0 /* CardView.swift in Sources */,
-				C119AE272490876698162196 /* DesignSystem.swift in Sources */,
 				B28B09534138461AAE60C5AD /* Designs.swift in Sources */,
 				E9573210E80E41F28D66126F /* AppStrings.swift in Sources */,
 				24B152F9C1A36194DF9530D7 /* FaceBoundaryGuide.swift in Sources */,
@@ -1213,7 +1207,6 @@
 				3F77F4BCA626A0318C5F2FF3 /* CaptureSequenceManager.swift in Sources */,
 				FDF6CF2E4577FCA4D7981B1B /* ProcessingPipeline.swift in Sources */,
 				C1147158F5469052492132EE /* MetricsOrchestrator.swift in Sources */,
-				A767C7593E42BD4FC5FE42BE /* HeadspaceDesignSystem.swift in Sources */,
 				APPFONT00000000000000001 /* AppFont.swift in Sources */,
 				APPDEFAULTS0000000000001 /* AppDefaults.swift in Sources */,
 				SFSYMBOLS00000000000001 /* SFSymbols.swift in Sources */,
@@ -1252,6 +1245,9 @@
 				D99DC7C3205DB50A97E270EF /* Face3DMetricsResultsView.swift in Sources */,
 				F420D41B65A3B6343BE4354A /* TermsOfServiceView.swift in Sources */,
 				FAAC3D8A2968FC0E3AA7AE81 /* FAQView.swift in Sources */,
+				AAAAAA111111111111111111 /* PrivacyPolicyView.swift in Sources */,
+				BBBBBB222222222222222221 /* SupportView.swift in Sources */,
+				CCCCCC333333333333333331 /* AcknowledgmentsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -64,7 +64,7 @@ public struct SupportView: View {
                             .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
                         }
 
-                        Text("support@ollvy.app")
+                        Text("care@ollvy.com")
                             .font(AppFont.caption)
                             .foregroundColor(Designs.Colors.textSecondary)
                             .frame(maxWidth: .infinity, alignment: .center)
@@ -188,10 +188,10 @@ public struct SupportView: View {
             .alert("Email Not Available", isPresented: $showingMailError) {
                 Button("OK", role: .cancel) {}
                 Button("Copy Email") {
-                    UIPasteboard.general.string = "support@ollvy.app"
+                    UIPasteboard.general.string = "care@ollvy.com"
                 }
             } message: {
-                Text("Mail is not configured on this device. You can email us directly at support@ollvy.app")
+                Text("Mail is not configured on this device. You can email us directly at care@ollvy.com")
             }
         }
     }
@@ -218,7 +218,7 @@ public struct SupportView: View {
     // MARK: - Email
 
     private func sendEmail() {
-        let email = "support@ollvy.app"
+        let email = "care@ollvy.com"
         let subject = "Ollvy Support Request"
         let body = """
 

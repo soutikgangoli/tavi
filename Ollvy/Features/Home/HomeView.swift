@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import CoreData
 
 // MARK: - Color Alias for cleaner code
 // Uses centralized Designs.GentlerStreak colors
@@ -27,6 +28,7 @@ public struct HomeView: View {
     @State private var selectedMetricType: UserMetricType?
     @State private var selectedSessionForDetail: SessionResult?
     @State private var expandedMetricName: String? = nil
+    @State private var showAllScans: Bool = false  // Expand to show all scans in home view
     @AppStorage(AppDefaultsKey.skipOnboarding) private var skipOnboarding: Bool = false
 
     // Fallback storage support
@@ -41,6 +43,7 @@ public struct HomeView: View {
         _showOnboarding = State(initialValue: !hasCompleted && !skipEnabled)
     }
 
+    // Fetch all sessions - user can expand to see all on home view
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)],
         animation: .default
@@ -116,8 +119,21 @@ public struct HomeView: View {
             .sheet(item: $selectedMetricType) { metricType in
                 MetricDetailView(metricType: metricType)
             }
-            .sheet(item: $selectedSessionForDetail) { session in
-                ResultsDetailView(session: session)
+            .sheet(item: $selectedSessionForDetail) { (session: SessionResult) in
+                // Guard: Only show detail if session is valid (not deleted/faulted)
+                if !session.isDeleted && !session.isFault {
+                    ResultsDetailView(session: session)
+                        .onDisappear {
+                            // Clear selection when sheet dismisses to prevent crash on deleted session
+                            selectedSessionForDetail = nil
+                        }
+                } else {
+                    // Session was deleted - show placeholder briefly before dismissing
+                    Color.clear
+                        .onAppear {
+                            selectedSessionForDetail = nil
+                        }
+                }
             }
             .sheet(isPresented: $showChallengeDetail) {
                 ChallengeDetailView()
@@ -890,7 +906,7 @@ public struct HomeView: View {
                 Button {
                     selectedTab = .history
                 } label: {
-                    Text("See All")
+                    Text("View All")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(HomeColors.accentCoral)
                 }
@@ -1280,12 +1296,12 @@ public struct HomeView: View {
                 .buttonStyle(PlainButtonStyle())
             }
 
-            // View all button
+            // View all button - show if more than 3 scans
             if sessions.count > 3 {
                 Button {
                     selectedTab = .history
                 } label: {
-                    Text("View All Scans")
+                    Text("View All")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(HomeColors.accentCoral)
                         .frame(maxWidth: .infinity)
@@ -1831,12 +1847,29 @@ public struct HomeView: View {
 
     private var recentScansSection: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text(AppStrings.Home.recentScans)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundColor(HomeColors.textPrimary)
+            HStack {
+                Text(AppStrings.Home.recentScans)
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(HomeColors.textPrimary)
+
+                Spacer()
+
+                // Show count badge if more than 5 scans
+                if sessions.count > 5 {
+                    Text("\(sessions.count)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(HomeColors.accentCoral)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(HomeColors.accentCoral.opacity(0.15))
+                        .clipShape(Capsule())
+                }
+            }
 
             VStack(spacing: 16) {
-                ForEach(Array(sessions.prefix(5)), id: \.id) { session in
+                // Show 5 or all sessions based on expanded state
+                let displayedSessions = showAllScans ? Array(sessions) : Array(sessions.prefix(5))
+                ForEach(displayedSessions, id: \.id) { session in
                     recentScanListItem(session)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
@@ -1850,17 +1883,19 @@ public struct HomeView: View {
                 }
             }
 
-            // View All button - only show if more than 5 scans
+            // View More / Show Less button - only show if more than 5 scans
             if sessions.count > 5 {
                 Button {
-                    selectedTab = .history
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showAllScans.toggle()
+                    }
                 } label: {
                     HStack {
-                        Text(AppStrings.Home.viewAllScans(sessions.count))
+                        Text(showAllScans ? "Show Less" : "View All")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(HomeColors.accentCoral)
 
-                        Image(systemName: SFSymbol.arrowRight)
+                        Image(systemName: showAllScans ? "chevron.up" : "chevron.down")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(HomeColors.accentCoral)
                     }

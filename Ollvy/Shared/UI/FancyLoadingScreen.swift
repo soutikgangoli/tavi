@@ -18,6 +18,8 @@ struct FancyLoadingScreen: View {
     @State private var textOpacity: Double = 1.0
     @State private var progressBarOpacity: Double = 1.0
 
+    /// Whether actual initialization is complete (set by parent)
+    var isReady: Bool = false
     var onComplete: () -> Void
 
     // Warm cream colors (matching onboarding)
@@ -130,31 +132,38 @@ struct FancyLoadingScreen: View {
         .onAppear {
             startLoadingSequence()
         }
+        // PERFORMANCE: Watch for actual initialization completion
+        .onChange(of: isReady) { _, ready in
+            if ready {
+                completeLoading()
+            }
+        }
     }
 
     // MARK: - Loading Sequence
 
     private func startLoadingSequence() {
-        // INSTANT: Content already visible, just animate progress and complete
-        // Start progress animation immediately
-        animateProgress()
+        // Animate progress to 80% quickly (gives visual feedback)
+        // Remaining 20% animates when actual init completes
+        withAnimation(.easeOut(duration: 0.2)) {
+            progress = 80
+        }
+
+        // If already ready (fast init), complete immediately
+        if isReady {
+            completeLoading()
+        }
     }
 
-    private func animateProgress() {
-        // Fast progress animation
+    private func completeLoading() {
+        // Animate to 100% and fade out
         withAnimation(.easeOut(duration: 0.15)) {
-            progress = 60
+            progress = 100
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            withAnimation(.easeOut(duration: 0.1)) {
-                progress = 100
-            }
-        }
-
-        // Complete quickly - total ~0.3s from app start
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            withAnimation(.easeOut(duration: 0.15)) {
+        // Brief delay to show 100% before fading
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            withAnimation(.easeOut(duration: 0.2)) {
                 onComplete()
             }
         }
@@ -164,7 +173,7 @@ struct FancyLoadingScreen: View {
 // MARK: - Preview
 
 #Preview {
-    FancyLoadingScreen {
-        AppLogger.ui.info("Loading complete!")
+    FancyLoadingScreen(isReady: true) {
+        print("Loading complete!")
     }
 }

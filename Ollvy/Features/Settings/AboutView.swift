@@ -179,7 +179,7 @@ public struct AboutView: View {
                             .font(AppFont.caption)
                             .foregroundColor(Designs.Colors.textSecondary)
 
-                        Text("© 2025 \(AppStrings.About.appName). \(AppStrings.About.allRightsReserved)")
+                        Text("© 2026 \(AppStrings.About.appName). \(AppStrings.About.allRightsReserved)")
                             .font(AppFont.footnote)
                             .foregroundColor(Designs.Colors.textTertiary)
                     }
@@ -239,7 +239,7 @@ public struct AboutView: View {
     // MARK: - Actions
 
     private func openEmail() {
-        if let url = URL(string: "mailto:support@ollvy.app") {
+        if let url = URL(string: "mailto:care@ollvy.com") {
             UIApplication.shared.open(url)
         }
     }

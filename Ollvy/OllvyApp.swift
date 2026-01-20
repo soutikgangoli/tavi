@@ -32,8 +32,9 @@ struct OllvyApp: App {
                 }
 
                 // Fancy loading screen (shows IMMEDIATELY on launch)
+                // PERFORMANCE: isReady tells loading screen when Core Data is initialized
                 if showLoadingScreen {
-                    FancyLoadingScreen {
+                    FancyLoadingScreen(isReady: isInitialized) {
                         // When loading animation completes, fade out
                         showLoadingScreen = false
                     }
@@ -51,25 +52,31 @@ struct OllvyApp: App {
     }
 
     /// Deferred initialization - runs AFTER loading screen appears
-    @MainActor
+    /// PERFORMANCE: Core Data is initialized on background thread to keep UI responsive
     private func initializeApp() async {
-        // No delay needed - loading screen is already visible with content
-        // Heavy initialization happens while user sees the loading screen
+        // 1. Initialize Core Data on BACKGROUND THREAD to avoid blocking main thread
+        // This is the key fix for startup lag - PersistenceController.loadPersistentStores
+        // can take significant time especially with many saved sessions
+        await Task.detached(priority: .userInitiated) {
+            _ = PersistenceController.shared
+            AppLogger.storage.info("✅ Core Data initialized on background thread")
+        }.value
 
-        // 1. Initialize Core Data (this triggers PersistenceController.shared)
-        _ = PersistenceController.shared
+        // 2. Configure crash reporting (lightweight - OK on main)
+        await MainActor.run {
+            CrashReporter.shared.configure()
+            CrashReporter.shared.logUserAction("app_launched")
+            CrashReporter.shared.setCustomKey("device_model", value: UIDevice.current.model)
+            CrashReporter.shared.setCustomKey("ios_version", value: UIDevice.current.systemVersion)
+        }
 
-        // 2. Configure crash reporting
-        CrashReporter.shared.configure()
-        CrashReporter.shared.logUserAction("app_launched")
-        CrashReporter.shared.setCustomKey("device_model", value: UIDevice.current.model)
-        CrashReporter.shared.setCustomKey("ios_version", value: UIDevice.current.systemVersion)
+        // 3. Start memory monitoring (lightweight - OK on main)
+        await MainActor.run {
+            MemoryMonitor.shared.startMonitoring()
+        }
 
-        // 3. Start memory monitoring
-        MemoryMonitor.shared.startMonitoring()
-
-        // 4. Process Core Data queue and migrations (background)
-        Task {
+        // 4. Process Core Data queue and migrations (background - no await needed)
+        Task.detached(priority: .utility) {
             await CoreDataSaveQueue.shared.processQueue()
             let migratedCount = await FallbackStorage.shared.migrateToCoreDataIfPossible()
             if migratedCount > 0 {
@@ -78,6 +85,8 @@ struct OllvyApp: App {
         }
 
         // Mark as initialized - ContentView will now render
-        isInitialized = true
+        await MainActor.run {
+            isInitialized = true
+        }
     }
 }

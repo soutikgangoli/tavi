@@ -10,6 +10,7 @@
 
 import SwiftUI
 import Charts
+import CoreData
 
 public struct InsightsTabView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -26,11 +27,17 @@ public struct InsightsTabView: View {
     private let gsSoftRed = Designs.GentlerStreak.softRed
     private let gsProgressTrack = Designs.GentlerStreak.progressTrack
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)],
-        animation: .default
-    )
+    // PERFORMANCE: Limit to 30 most recent for insights/charts
+    // This is plenty for trend analysis and keeps startup fast
+    @FetchRequest(fetchRequest: InsightsTabView.insightsFetchRequest)
     private var sessions: FetchedResults<SessionResult>
+
+    private static var insightsFetchRequest: NSFetchRequest<SessionResult> {
+        let request = NSFetchRequest<SessionResult>(entityName: "SessionResult")
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \SessionResult.date, ascending: false)]
+        request.fetchLimit = 30  // Sufficient for insights and trend charts
+        return request
+    }
 
     @State private var selectedTimeRange: ProgressTimePeriod = .month
 

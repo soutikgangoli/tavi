@@ -7,6 +7,31 @@
 
 import SwiftUI
 
+// MARK: - Primary Button Style
+
+public struct PrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppFont.bodyMedium)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Designs.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: Designs.Radius.md)
+                    .fill(isEnabled ? Designs.Colors.primary : Designs.Colors.primary.opacity(0.5))
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Primary Button View
+
 public struct PrimaryButton: View {
     let title: String
     let action: () -> Void
