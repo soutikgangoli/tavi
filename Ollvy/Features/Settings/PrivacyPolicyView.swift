@@ -3,7 +3,7 @@
 //  Ollvy
 //
 //  Privacy Policy displayed in-app (India/DPDPA 2023 compliant)
-//  Created on 2026-01-21
+//  Synced with Notion: https://skinny-wednesday-61d.notion.site/Privacy-Policy-Ollvy-23fe22666e7580a18104c21256536cc0
 //
 
 import SwiftUI
@@ -24,7 +24,7 @@ public struct PrivacyPolicyView: View {
                             .font(AppFont.pageTitle)
                             .foregroundColor(Designs.Colors.textPrimary)
 
-                        Text("Last Updated: January 21, 2026")
+                        Text("Last Updated: January 23, 2026")
                             .font(AppFont.caption)
                             .foregroundColor(Designs.Colors.textSecondary)
                     }
@@ -51,21 +51,21 @@ public struct PrivacyPolicyView: View {
                     .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
 
                     // Introduction
-                    Text("This Privacy Policy explains how Ollvy (\"we\", \"our\", or \"us\") collects, uses, and protects your information. This policy complies with the Digital Personal Data Protection Act, 2023 (DPDPA) and Information Technology Act, 2000 of India.")
+                    Text("This Privacy Policy explains how Ollvy collects, uses, and protects your information. This policy complies with the Digital Personal Data Protection Act, 2023 (DPDPA), Information Technology Act, 2000, and IT Rules, 2011 of India.")
                         .font(AppFont.bodySecondary)
                         .foregroundColor(Designs.Colors.textSecondary)
 
-                    // Sections
+                    // Section 1: Information We Collect
                     policySection(
                         number: "1",
                         title: "Information We Collect",
                         content: """
-                        Ollvy collects minimal data, all stored locally on your device:
+                        Data we collect (all stored locally on your device):
 
-                        • Facial Scan Data: 3D mesh geometry and texture analysis from TrueDepth camera scans
-                        • Skin Metrics: Calculated analysis results (texture, tone, hydration estimates, etc.)
-                        • App Preferences: Your settings and customization choices
-                        • Session History: Records of your past scans for progress tracking
+                        • 3D Facial Scans: Skin analysis using TrueDepth camera
+                        • Skin Analysis Results: Generated metrics and insights
+                        • Photos / Images: Track skin progress over time
+                        • Device Information: Crash reporting and diagnostics
 
                         We do NOT collect:
                         • Your name, email, or contact information
@@ -75,15 +75,39 @@ public struct PrivacyPolicyView: View {
                         """
                     )
 
+                    // Data Security Box
+                    VStack(alignment: .leading, spacing: Designs.Spacing.md) {
+                        HStack(spacing: Designs.Spacing.sm) {
+                            Image(systemName: "checkmark.shield.fill")
+                                .font(.app(size: 20))
+                                .foregroundColor(Designs.Colors.primary)
+
+                            Text("Data Security")
+                                .font(AppFont.headlineSecondary)
+                                .foregroundColor(Designs.Colors.textPrimary)
+                        }
+
+                        VStack(alignment: .leading, spacing: Designs.Spacing.sm) {
+                            securityPoint("On-device processing only")
+                            securityPoint("No cloud storage")
+                            securityPoint("No transmission over internet")
+                            securityPoint("User control to delete anytime")
+                            securityPoint("Explicit consent for camera")
+                        }
+                    }
+                    .padding(Designs.Spacing.lg)
+                    .background(Designs.Colors.primary.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
+
                     policySection(
                         number: "2",
                         title: "How We Use Your Information",
                         content: """
                         Your data is used exclusively for:
 
-                        • Performing Skin Analysis: Processing your facial scans to generate skin metrics
+                        • Performing Skin Analysis: Processing facial scans to generate skin metrics
                         • Progress Tracking: Comparing scans over time to show changes
-                        • Personalized Insights: Providing recommendations based on your results
+                        • Personalized Insights: Providing recommendations based on results
                         • App Functionality: Saving your preferences and settings
 
                         We do NOT use your data for:
@@ -129,8 +153,9 @@ public struct PrivacyPolicyView: View {
                         • No Network Transmission: Facial data never transmitted over the internet
                         • App Sandbox: Data isolated from other apps on your device
 
-                        Storage Location:
+                        Technical details:
                         • Core Data database on your device
+                        • iOS default encryption
                         • Accessible only by the Ollvy app
                         • Deleted when you uninstall the app
                         """
@@ -142,14 +167,14 @@ public struct PrivacyPolicyView: View {
                         content: """
                         We do NOT share your personal data with anyone.
 
-                        • No Third-Party Analytics: We don't use external analytics services
+                        • No Third-Party Analytics: No Firebase, Google Analytics, Mixpanel
                         • No Advertising Networks: No ad SDKs or tracking
                         • No Data Sales: We never sell your information
                         • No Cloud Sync: Your data stays on your device
 
-                        The only data that leaves your device:
-                        • Crash logs (anonymized, no personal data) - stored locally
-                        • App performance metrics (anonymized) - stored locally
+                        What leaves your device: NOTHING
+                        • Crash logs: Stored locally only (anonymized)
+                        • Facial data: Never transmitted
                         """
                     )
 
@@ -165,12 +190,41 @@ public struct PrivacyPolicyView: View {
                         • Portability: Export your data as JSON from Settings > Privacy > Export My Data
                         • Withdraw Consent: Stop using the app at any time; uninstalling removes all data
 
-                        To exercise these rights, use the in-app controls or contact: care@ollvy.com
+                        To exercise these rights, use the in-app controls or contact: support@ollvy.com
                         """
                     )
 
                     policySection(
                         number: "6",
+                        title: "Data Retention",
+                        content: """
+                        Data is retained until you choose to delete it:
+
+                        • Facial scans: Until user deletion (in-app or uninstall)
+                        • Analysis results: Until user deletion (in-app or uninstall)
+                        • Photos: Until user deletion (in-app or uninstall)
+                        • Crash reports: Until user deletion (anonymized, local only)
+
+                        There is no automatic expiration. You retain full control over your data.
+                        """
+                    )
+
+                    policySection(
+                        number: "7",
+                        title: "Cross-Border Data Transfer",
+                        content: """
+                        Your data is NOT transferred outside India or to any external servers:
+
+                        • Facial and biometric data: No transfer
+                        • Crash diagnostics: No transfer
+                        • Any personal data: No transfer
+
+                        All data remains on your device within your jurisdiction.
+                        """
+                    )
+
+                    policySection(
+                        number: "8",
                         title: "Camera & TrueDepth Usage",
                         content: """
                         Ollvy uses your device's TrueDepth camera system for facial scanning:
@@ -185,7 +239,7 @@ public struct PrivacyPolicyView: View {
                     )
 
                     policySection(
-                        number: "7",
+                        number: "9",
                         title: "Children's Privacy",
                         content: """
                         Ollvy is intended for users 13 years and older.
@@ -194,12 +248,12 @@ public struct PrivacyPolicyView: View {
                         • We do not knowingly collect data from children under 13
                         • If you believe a child under 13 has used the app, contact us to delete their data
 
-                        Contact: care@ollvy.com
+                        Contact: support@ollvy.com
                         """
                     )
 
                     policySection(
-                        number: "8",
+                        number: "10",
                         title: "Changes to This Policy",
                         content: """
                         We may update this Privacy Policy from time to time:
@@ -232,7 +286,7 @@ public struct PrivacyPolicyView: View {
                         VStack(alignment: .leading, spacing: Designs.Spacing.xs) {
                             Text("Designation: Grievance Officer, Ollvy")
                                 .font(AppFont.bodySecondary)
-                            Text("Email: care@ollvy.com")
+                            Text("Email: support@ollvy.com")
                                 .font(AppFont.bodySecondary)
                             Text("Location: Gurugram, Haryana, India")
                                 .font(AppFont.bodySecondary)
@@ -248,13 +302,14 @@ public struct PrivacyPolicyView: View {
                     .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.md))
 
                     policySection(
-                        number: "9",
+                        number: "11",
                         title: "Contact Us",
                         content: """
                         For privacy-related questions or concerns:
 
-                        General Support: care@ollvy.com
-                        Privacy/Grievances: care@ollvy.com
+                        General Support: support@ollvy.com
+                        Grievance Officer: support@ollvy.com
+                        App Store: App Store > Ollvy > App Support
 
                         Response within 24 hours on business days.
                         """
@@ -325,6 +380,18 @@ public struct PrivacyPolicyView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.app(size: 14))
                 .foregroundColor(.green)
+
+            Text(text)
+                .font(AppFont.bodySecondary)
+                .foregroundColor(Designs.Colors.textSecondary)
+        }
+    }
+
+    private func securityPoint(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: Designs.Spacing.sm) {
+            Image(systemName: "checkmark.shield.fill")
+                .font(.app(size: 14))
+                .foregroundColor(Designs.Colors.primary)
 
             Text(text)
                 .font(AppFont.bodySecondary)
