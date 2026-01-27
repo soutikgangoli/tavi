@@ -174,6 +174,6 @@ struct FancyLoadingScreen: View {
 
 #Preview {
     FancyLoadingScreen(isReady: true) {
-        print("Loading complete!")
+        AppLogger.app.debug("Loading complete")
     }
 }

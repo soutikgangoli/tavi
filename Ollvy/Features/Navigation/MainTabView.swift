@@ -83,14 +83,12 @@ public struct MainTabView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .sheet(isPresented: $showScanFlow) {
+        // Use fullScreenCover for immersive scan experience on all devices
+        .fullScreenCover(isPresented: $showScanFlow) {
             NavigationStack {
                 EmotionalScan3DFlowView()
                     .environment(\.managedObjectContext, viewContext)
             }
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-            .interactiveDismissDisabled(false)
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showScanFlow)
     }

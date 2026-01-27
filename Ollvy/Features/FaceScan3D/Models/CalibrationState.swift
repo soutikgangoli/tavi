@@ -135,10 +135,9 @@ public enum GuidanceStep: Int, CaseIterable, Sendable {
     case lookUp
     case lookDown
     
-    /// Active poses for capture (currently only lookStraight)
+    /// Active poses for capture - all 5 poses enabled for better scan accuracy
     public static var activePoses: [GuidanceStep] {
-        return [.lookStraight]
-        // TODO: Re-enable other poses: [.lookStraight, .turnLeft, .turnRight, .lookUp, .lookDown]
+        return [.lookStraight, .turnLeft, .turnRight, .lookUp, .lookDown]
     }
 
     var instruction: String {

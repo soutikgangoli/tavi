@@ -157,20 +157,38 @@ struct ResultsDetailView: View {
                 actionsSection
 
                 // Medical Disclaimer
-                VStack(spacing: 8) {
-                    Text("Important Information")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
+                // Medical Disclaimer - Enhanced for App Store Compliance
+                VStack(spacing: Designs.Spacing.sm) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(AppFont.cardTitle)
+                            .foregroundColor(Designs.Colors.error)
 
-                    Text("Ollvy provides skin insights for general awareness only. This is not medical advice, diagnosis, or treatment. For medical concerns, consult a qualified dermatologist.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        Text("Important Medical Information")
+                            .font(AppFont.subheadingPrimary)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Designs.Colors.textPrimary)
+                    }
+
+                    Text("Ollvy is NOT a medical device and does not provide medical diagnosis or treatment. This app provides skin analysis for general awareness and tracking purposes only.")
+                        .font(AppFont.bodySecondary)
+                        .foregroundColor(Designs.Colors.textPrimary)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text("Always seek a doctor's advice before making any medical decisions. For skin concerns, please consult a qualified dermatologist.")
+                        .font(AppFont.bodySecondary)
+                        .foregroundColor(Designs.Colors.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
+                .padding(Designs.Spacing.lg)
+                .background(Designs.Colors.error.opacity(Designs.Opacity.veryLight))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Designs.Radius.lg)
+                        .stroke(Designs.Colors.error.opacity(0.3), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: Designs.Radius.lg))
                 .padding(.horizontal)
                 .padding(.bottom, 20)
 

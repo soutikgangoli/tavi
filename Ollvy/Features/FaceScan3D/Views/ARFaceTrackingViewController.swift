@@ -74,6 +74,11 @@ public class ARFaceTrackingViewController: UIViewController {
     /// REDUCED from 4 to 2 to prevent ARFrame retention warnings (each frame ~10MB)
     private static let maxConcurrentFrameProcessing: Int = 2
 
+    /// MEMORY FIX: Store frame as weak reference to prevent retention in Task closures
+    /// Instead of capturing ARFrame strongly in Task closures (causing 11-13 frame retention),
+    /// we store it as weak and read from this property inside the Task
+    private weak var latestFrame: ARFrame?
+
     // MARK: - Lifecycle
 
     deinit {
@@ -130,6 +135,9 @@ public class ARFaceTrackingViewController: UIViewController {
 
         // Reset active frame processing counter to prevent stale Task tracking
         activeFrameProcessingCount = 0
+
+        // Clear weak frame reference
+        latestFrame = nil
 
         // CRITICAL: Clear delegates BEFORE pausing to prevent callbacks during teardown
         // This prevents FigXPCUtilities errors when camera resources are accessed during cleanup
@@ -475,12 +483,12 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
         let isCapturing = vm.captureManager.isCaptureInProgress
         let isGuidanceActive = vm.captureManager.isGuidanceActive
 
-        // OPTIMIZATION: Avoid implicit frame retention from ternary expression
-        // Only create frame reference when absolutely needed
-        var frameRef: ARFrame? = nil
-        if isCapturing || isGuidanceActive {
-            frameRef = frame
-        }
+        // MEMORY FIX: Store frame as weak reference instead of capturing in Task closure
+        // This allows the frame to be released while Tasks are waiting for MainActor
+        self.latestFrame = frame
+
+        // Track if we should pass frame to ViewModel (only during capture/guidance)
+        let shouldPassFrame = isCapturing || isGuidanceActive
 
         // Capture current frame sequence to allow early bailout for stale Tasks
         let frameSeq = self.frameSequenceNumber
@@ -488,7 +496,7 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
 
         // MEMORY FIX: Limit concurrent frame processing to prevent ARFrame accumulation
         // When too many Tasks are in flight, skip non-essential frame updates
-        if activeFrameProcessingCount >= Self.maxConcurrentFrameProcessing && frameRef == nil {
+        if activeFrameProcessingCount >= Self.maxConcurrentFrameProcessing && !shouldPassFrame {
             // Skip this frame - too many in flight and not capturing
             return
         }
@@ -496,7 +504,7 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
         // Track active processing
         activeFrameProcessingCount += 1
 
-        Task { [weak viewModel, weak self, faceAnchor, lightEstimation, frameRef] in
+        Task { [weak viewModel, weak self, faceAnchor, lightEstimation, shouldPassFrame] in
             // MEMORY FIX: Decrement counter when task completes
             defer {
                 self?.activeFrameProcessingCount -= 1
@@ -508,7 +516,7 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
 
             // Early bailout: skip if newer frames have been queued (unless in capture mode)
             // This releases stale frame references faster
-            if frameRef == nil, frameSeq < strongSelf.frameSequenceNumber - 2 {
+            if !shouldPassFrame, frameSeq < strongSelf.frameSequenceNumber - 2 {
                 return  // Skip stale tracking updates, release frame ref
             }
             // Skip if session was stopped (prevents deadlock during cleanup)
@@ -524,7 +532,17 @@ extension ARFaceTrackingViewController: ARSCNViewDelegate {
             await MainActor.run {
                 // Check cancellation and cleanup flags again after MainActor.run
                 guard !Task.isCancelled, !vm.shouldStopSession, !vm.isCleaningUp else { return }
-                vm.updateGeometry(faceAnchor: faceAnchor, lightEstimation: lightEstimation, captureFrame: frameRef)
+
+                // MEMORY FIX: Read frame from weak property instead of capturing in closure
+                // If frame was released (nil), that's OK - ViewModel handles nil gracefully
+                // This prevents 11-13 ARFrames from being retained in Task closures
+                let frameToPass: ARFrame? = shouldPassFrame ? strongSelf.latestFrame : nil
+
+                vm.updateGeometry(
+                    faceAnchor: faceAnchor,
+                    lightEstimation: lightEstimation,
+                    captureFrame: frameToPass
+                )
             }
         }
 

@@ -28,231 +28,264 @@ public struct SettingsView: View {
         )
     }
 
+    // MARK: - Body Sections (broken up for type-checking performance)
+
+    private var scanSettingsSection: some View {
+        Section(header: Text(AppStrings.Settings.scanSettings),
+                footer: Text("High Quality Mode enables 4K texture (vs 2K) and 5 frames per pose (vs 3). Expected confidence: 90-92% (vs 83-85%). Uses 4x storage and takes longer to process.")) {
+            Toggle(AppStrings.Settings.show3DFaceMesh, isOn: $enableFaceMesh)
+                .accessibilityLabel("Show 3D face mesh during scan")
+                .accessibilityHint("Displays a 3D wireframe overlay of your face during scanning")
+                .accessibilityValue(enableFaceMesh ? "On" : "Off")
+                .onChange(of: enableFaceMesh) { oldValue, newValue in
+                    AnalyticsManager.shared.trackSettingChanged(
+                        setting: "enable_face_mesh",
+                        value: String(newValue),
+                        previousValue: String(oldValue)
+                    )
+                }
+
+            Toggle(AppStrings.Settings.highQualityMode, isOn: $enableHighResCapture)
+                .accessibilityLabel("Enable high quality mode (4K texture + 5 frames)")
+                .accessibilityHint("High accuracy with 90-92% confidence. Uses 4x storage and slower processing.")
+                .accessibilityValue(enableHighResCapture ? "On" : "Off")
+                .onChange(of: enableHighResCapture) { oldValue, newValue in
+                    AnalyticsManager.shared.trackSettingChanged(
+                        setting: "enable_high_res_capture",
+                        value: String(newValue),
+                        previousValue: String(oldValue)
+                    )
+                }
+
+            Toggle(AppStrings.Settings.hapticFeedback, isOn: $enableHapticFeedback)
+                .accessibilityLabel("Enable haptic feedback during scan")
+                .accessibilityHint("Provides vibration feedback during face scanning process")
+                .accessibilityValue(enableHapticFeedback ? "On" : "Off")
+                .onChange(of: enableHapticFeedback) { oldValue, newValue in
+                    AnalyticsManager.shared.trackSettingChanged(
+                        setting: "enable_haptic_feedback",
+                        value: String(newValue),
+                        previousValue: String(oldValue)
+                    )
+                }
+        }
+    }
+
+    private var lightingSection: some View {
+        Section(header: Text(AppStrings.Settings.lightingValidation),
+                footer: Text(lightingStrictnessDescription)) {
+            Picker(AppStrings.Settings.lightingValidationToggle, selection: $lightingStrictness) {
+                Text("Strict").tag("Strict")
+                Text("Relaxed").tag("Relaxed")
+                Text("Off").tag("Off")
+            }
+            .accessibilityLabel("Lighting validation level")
+            .accessibilityHint("Controls how strictly the app validates lighting conditions before scanning")
+            .accessibilityValue(lightingStrictness)
+        }
+    }
+
+    private var advancedSection: some View {
+        Section("Advanced") {
+            NavigationLink {
+                CaptureSettingsView()
+            } label: {
+                Label("Capture Settings", systemImage: SFSymbol.cameraFill)
+            }
+            .accessibilityLabel("Capture Settings")
+            .accessibilityHint("Opens advanced camera and capture configuration options")
+
+            NavigationLink {
+                DeviceInfoView()
+            } label: {
+                Label("Device Information", systemImage: SFSymbol.infoCircleFill)
+            }
+            .accessibilityLabel("Device Information")
+            .accessibilityHint("Shows device capabilities and hardware specifications")
+        }
+    }
+
+    private var legalSection: some View {
+        Section(header: Text(AppStrings.Settings.legal),
+                footer: Text("View our privacy policy, terms of service, and get support for the app.")) {
+            NavigationLink {
+                PrivacyPolicyView()
+            } label: {
+                Label(AppStrings.Settings.privacyPolicy, systemImage: "hand.raised.fill")
+            }
+            .accessibilityLabel("Privacy Policy")
+            .accessibilityHint("Opens privacy policy showing how we handle your data")
+
+            NavigationLink {
+                TermsOfServiceView()
+            } label: {
+                Label(AppStrings.Settings.termsOfService, systemImage: "doc.text.fill")
+            }
+            .accessibilityLabel("Terms of Service")
+            .accessibilityHint("Opens terms of service with app usage agreement")
+
+            NavigationLink {
+                ScientificReferencesView()
+            } label: {
+                Label("Scientific References", systemImage: "book.fill")
+            }
+            .accessibilityLabel("Scientific References")
+            .accessibilityHint("Opens scientific research citations and medical information sources")
+
+            NavigationLink {
+                SupportView()
+            } label: {
+                Label("Support", systemImage: "questionmark.circle.fill")
+            }
+            .accessibilityLabel("Support")
+            .accessibilityHint("Opens help center and contact information")
+
+            NavigationLink {
+                AcknowledgmentsView()
+            } label: {
+                Label("Acknowledgments", systemImage: "heart.fill")
+            }
+            .accessibilityLabel("Acknowledgments")
+            .accessibilityHint("Opens credits and acknowledgments")
+        }
+    }
+
+    private var onboardingSection: some View {
+        Section(header: Text("Onboarding"),
+                footer: Text("Skip onboarding screen on app launch. You can reset onboarding to see it again.")) {
+            Toggle(AppStrings.Settings.skipOnboarding, isOn: $skipOnboarding)
+                .accessibilityLabel("Skip onboarding screen on app launch")
+                .accessibilityHint("When enabled, the welcome tutorial will not be shown on app launch")
+                .accessibilityValue(skipOnboarding ? "On" : "Off")
+                .onChange(of: skipOnboarding) { oldValue, newValue in
+                    AnalyticsManager.shared.trackSettingChanged(
+                        setting: "skip_onboarding",
+                        value: String(newValue),
+                        previousValue: String(oldValue)
+                    )
+                }
+
+            Button(AppStrings.Settings.resetOnboarding) {
+                UserDefaults.standard.removeObject(forKey: AppDefaultsKey.hasCompletedOnboarding)
+                skipOnboarding = false
+                dismiss()
+            }
+            .foregroundColor(.orange)
+            .accessibilityLabel("Reset Onboarding")
+            .accessibilityHint("Clears onboarding completion status so the tutorial will show again on next launch")
+        }
+    }
+
+    private var developerSection: some View {
+        Section(header: Text(AppStrings.Settings.developer),
+                footer: Text("Debug mode shows additional scan information. Verbose logging logs every 10 frames (vs 30) and may impact performance.")) {
+            Toggle(AppStrings.Settings.showDebugOverlay, isOn: $debugModeEnabled)
+                .accessibilityLabel("Enable debug mode for additional scan information")
+                .accessibilityHint("Shows technical details and validation information during scans")
+                .accessibilityValue(debugModeEnabled ? "On" : "Off")
+
+            if debugModeEnabled {
+                Toggle("Verbose Logging", isOn: verboseLoggingBinding)
+                    .accessibilityLabel("Enable verbose logging")
+                    .accessibilityHint("Logs every 10 frames instead of 30. May impact performance.")
+            }
+        }
+    }
+
+    private var dataManagementSection: some View {
+        Section(header: Text(AppStrings.Sections.dataManagement),
+                footer: Text("Warning: Deleting all data will permanently remove all scan results, progress history, and app settings. This action cannot be undone.")) {
+            Button(role: .destructive) {
+                showDeleteConfirmation = true
+            } label: {
+                Label(AppStrings.Settings.deleteAllData, systemImage: SFSymbol.trashFill)
+            }
+            .accessibilityLabel("Delete all data")
+            .accessibilityHint("Permanently deletes all scan results, progress history, and settings. Requires confirmation.")
+        }
+    }
+
+    private var notificationsSection: some View {
+        Section(AppStrings.Settings.notifications) {
+            NavigationLink {
+                NotificationsSettingsView()
+            } label: {
+                Label("Notification Preferences", systemImage: SFSymbol.bellFill)
+            }
+            .accessibilityLabel("Notification Preferences")
+            .accessibilityHint("Configure scan reminders and notification settings")
+        }
+    }
+
+    private var privacySection: some View {
+        Section(AppStrings.Settings.privacy) {
+            NavigationLink {
+                PrivacySettingsView()
+            } label: {
+                Label(AppStrings.Titles.privacyData, systemImage: SFSymbol.lockFill)
+            }
+            .accessibilityLabel(AppStrings.Titles.privacyData)
+            .accessibilityHint("Manage your data and privacy settings")
+        }
+    }
+
+    private var aboutSection: some View {
+        Section(AppStrings.About.about) {
+            NavigationLink {
+                AboutView()
+            } label: {
+                Label("\(AppStrings.About.about) \(AppStrings.About.appName)", systemImage: SFSymbol.infoCircleFill)
+            }
+            .accessibilityLabel("\(AppStrings.About.about) \(AppStrings.About.appName)")
+            .accessibilityHint("Learn more about the app, features, and support")
+
+            HStack {
+                Text("Version")
+                Spacer()
+                Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack {
+                Text("Build")
+                Spacer()
+                Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var deleteAccountSection: some View {
+        Section {
+            Button(role: .destructive) {
+                showDeleteConfirmation = true
+            } label: {
+                HStack {
+                    Label("Delete Account", systemImage: "person.crop.circle.badge.minus")
+                    Spacer()
+                }
+            }
+            .accessibilityLabel("Delete Account")
+            .accessibilityHint("Permanently deletes all your data and resets the app")
+        } footer: {
+            Text("Ollvy stores all data locally on your device. Deleting your account will permanently remove all scans, analysis results, achievements, and settings. This cannot be undone.")
+        }
+    }
+
     public var body: some View {
         NavigationStack {
             Form {
-                // Scan Settings Section
-                Section(header: Text(AppStrings.Settings.scanSettings),
-                        footer: Text("High Quality Mode enables 4K texture (vs 2K) and 5 frames per pose (vs 3). Expected confidence: 90-92% (vs 83-85%). Uses 4x storage and takes longer to process.")) {
-                    Toggle(AppStrings.Settings.show3DFaceMesh, isOn: $enableFaceMesh)
-                        .accessibilityLabel("Show 3D face mesh during scan")
-                        .accessibilityHint("Displays a 3D wireframe overlay of your face during scanning")
-                        .accessibilityValue(enableFaceMesh ? "On" : "Off")
-                        .onChange(of: enableFaceMesh) { oldValue, newValue in
-                            AnalyticsManager.shared.trackSettingChanged(
-                                setting: "enable_face_mesh",
-                                value: String(newValue),
-                                previousValue: String(oldValue)
-                            )
-                        }
-
-                    Toggle(AppStrings.Settings.highQualityMode, isOn: $enableHighResCapture)
-                        .accessibilityLabel("Enable high quality mode (4K texture + 5 frames)")
-                        .accessibilityHint("High accuracy with 90-92% confidence. Uses 4x storage and slower processing.")
-                        .accessibilityValue(enableHighResCapture ? "On" : "Off")
-                        .onChange(of: enableHighResCapture) { oldValue, newValue in
-                            AnalyticsManager.shared.trackSettingChanged(
-                                setting: "enable_high_res_capture",
-                                value: String(newValue),
-                                previousValue: String(oldValue)
-                            )
-                        }
-
-                    Toggle(AppStrings.Settings.hapticFeedback, isOn: $enableHapticFeedback)
-                        .accessibilityLabel("Enable haptic feedback during scan")
-                        .accessibilityHint("Provides vibration feedback during face scanning process")
-                        .accessibilityValue(enableHapticFeedback ? "On" : "Off")
-                        .onChange(of: enableHapticFeedback) { oldValue, newValue in
-                            AnalyticsManager.shared.trackSettingChanged(
-                                setting: "enable_haptic_feedback",
-                                value: String(newValue),
-                                previousValue: String(oldValue)
-                            )
-                        }
-                }
-
-                // Lighting Strictness Section
-                Section(header: Text(AppStrings.Settings.lightingValidation),
-                        footer: Text(lightingStrictnessDescription)) {
-                    Picker(AppStrings.Settings.lightingValidationToggle, selection: $lightingStrictness) {
-                        Text("Strict").tag("Strict")
-                        Text("Relaxed").tag("Relaxed")
-                        Text("Off").tag("Off")
-                    }
-                    .accessibilityLabel("Lighting validation level")
-                    .accessibilityHint("Controls how strictly the app validates lighting conditions before scanning")
-                    .accessibilityValue(lightingStrictness)
-                }
-
-                // Advanced Settings Section
-                Section("Advanced") {
-                    NavigationLink {
-                        CaptureSettingsView()
-                    } label: {
-                        Label("Capture Settings", systemImage: SFSymbol.cameraFill)
-                    }
-                    .accessibilityLabel("Capture Settings")
-                    .accessibilityHint("Opens advanced camera and capture configuration options")
-
-                    NavigationLink {
-                        DeviceInfoView()
-                    } label: {
-                        Label("Device Information", systemImage: SFSymbol.infoCircleFill)
-                    }
-                    .accessibilityLabel("Device Information")
-                    .accessibilityHint("Shows device capabilities and hardware specifications")
-                }
-
-                // Legal Section
-                Section(header: Text(AppStrings.Settings.legal),
-                        footer: Text("View our privacy policy, terms of service, and get support for the app.")) {
-                    NavigationLink {
-                        PrivacyPolicyView()
-                    } label: {
-                        Label(AppStrings.Settings.privacyPolicy, systemImage: "hand.raised.fill")
-                    }
-                    .accessibilityLabel("Privacy Policy")
-                    .accessibilityHint("Opens privacy policy showing how we handle your data")
-
-                    NavigationLink {
-                        TermsOfServiceView()
-                    } label: {
-                        Label(AppStrings.Settings.termsOfService, systemImage: "doc.text.fill")
-                    }
-                    .accessibilityLabel("Terms of Service")
-                    .accessibilityHint("Opens terms of service with app usage agreement")
-
-                    NavigationLink {
-                        SupportView()
-                    } label: {
-                        Label("Support", systemImage: "questionmark.circle.fill")
-                    }
-                    .accessibilityLabel("Support")
-                    .accessibilityHint("Opens help center and contact information")
-
-                    NavigationLink {
-                        AcknowledgmentsView()
-                    } label: {
-                        Label("Acknowledgments", systemImage: "heart.fill")
-                    }
-                    .accessibilityLabel("Acknowledgments")
-                    .accessibilityHint("Opens credits and acknowledgments")
-                }
-
-                // Onboarding Section
-                Section(header: Text("Onboarding"),
-                        footer: Text("Skip onboarding screen on app launch. You can reset onboarding to see it again.")) {
-                    Toggle(AppStrings.Settings.skipOnboarding, isOn: $skipOnboarding)
-                        .accessibilityLabel("Skip onboarding screen on app launch")
-                        .accessibilityHint("When enabled, the welcome tutorial will not be shown on app launch")
-                        .accessibilityValue(skipOnboarding ? "On" : "Off")
-                        .onChange(of: skipOnboarding) { oldValue, newValue in
-                            AnalyticsManager.shared.trackSettingChanged(
-                                setting: "skip_onboarding",
-                                value: String(newValue),
-                                previousValue: String(oldValue)
-                            )
-                        }
-
-                    Button(AppStrings.Settings.resetOnboarding) {
-                        UserDefaults.standard.removeObject(forKey: AppDefaultsKey.hasCompletedOnboarding)
-                        skipOnboarding = false
-                        dismiss()
-                    }
-                    .foregroundColor(.orange)
-                    .accessibilityLabel("Reset Onboarding")
-                    .accessibilityHint("Clears onboarding completion status so the tutorial will show again on next launch")
-                }
-
-                // Developer Section
-                Section(header: Text(AppStrings.Settings.developer),
-                        footer: Text("Debug mode shows additional scan information. Verbose logging logs every 10 frames (vs 30) and may impact performance.")) {
-                    Toggle(AppStrings.Settings.showDebugOverlay, isOn: $debugModeEnabled)
-                        .accessibilityLabel("Enable debug mode for additional scan information")
-                        .accessibilityHint("Shows technical details and validation information during scans")
-                        .accessibilityValue(debugModeEnabled ? "On" : "Off")
-
-                    if debugModeEnabled {
-                        Toggle("Verbose Logging", isOn: verboseLoggingBinding)
-                            .accessibilityLabel("Enable verbose logging")
-                            .accessibilityHint("Logs every 10 frames instead of 30. May impact performance.")
-                    }
-                }
-
-                // Data Management Section
-                Section(header: Text(AppStrings.Sections.dataManagement),
-                        footer: Text("Warning: Deleting all data will permanently remove all scan results, progress history, and app settings. This action cannot be undone.")) {
-                    Button(role: .destructive) {
-                        showDeleteConfirmation = true
-                    } label: {
-                        Label(AppStrings.Settings.deleteAllData, systemImage: SFSymbol.trashFill)
-                    }
-                    .accessibilityLabel("Delete all data")
-                    .accessibilityHint("Permanently deletes all scan results, progress history, and settings. Requires confirmation.")
-                }
-
-                // Notifications Section
-                Section(AppStrings.Settings.notifications) {
-                    NavigationLink {
-                        NotificationsSettingsView()
-                    } label: {
-                        Label("Notification Preferences", systemImage: SFSymbol.bellFill)
-                    }
-                    .accessibilityLabel("Notification Preferences")
-                    .accessibilityHint("Configure scan reminders and notification settings")
-                }
-
-                // Privacy Section
-                Section(AppStrings.Settings.privacy) {
-                    NavigationLink {
-                        PrivacySettingsView()
-                    } label: {
-                        Label(AppStrings.Titles.privacyData, systemImage: SFSymbol.lockFill)
-                    }
-                    .accessibilityLabel(AppStrings.Titles.privacyData)
-                    .accessibilityHint("Manage your data and privacy settings")
-                }
-
-                // About Section
-                Section(AppStrings.About.about) {
-                    NavigationLink {
-                        AboutView()
-                    } label: {
-                        Label("\(AppStrings.About.about) \(AppStrings.About.appName)", systemImage: SFSymbol.infoCircleFill)
-                    }
-                    .accessibilityLabel("\(AppStrings.About.about) \(AppStrings.About.appName)")
-                    .accessibilityHint("Learn more about the app, features, and support")
-
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
-                            .foregroundStyle(.secondary)
-                    }
-
-                    HStack {
-                        Text("Build")
-                        Spacer()
-                        Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                // Delete Account Section (App Store Requirement 5.1.1)
-                Section {
-                    Button(role: .destructive) {
-                        showDeleteConfirmation = true
-                    } label: {
-                        HStack {
-                            Label("Delete Account", systemImage: "person.crop.circle.badge.minus")
-                            Spacer()
-                        }
-                    }
-                    .accessibilityLabel("Delete Account")
-                    .accessibilityHint("Permanently deletes all your data and resets the app")
-                } footer: {
-                    Text("Ollvy stores all data locally on your device. Deleting your account will permanently remove all scans, analysis results, achievements, and settings. This cannot be undone.")
-                }
+                scanSettingsSection
+                lightingSection
+                advancedSection
+                legalSection
+                onboardingSection
+                developerSection
+                dataManagementSection
+                notificationsSection
+                privacySection
+                aboutSection
+                deleteAccountSection
             }
             .navigationTitle(AppStrings.Titles.settings)
             .navigationBarTitleDisplayMode(.inline)

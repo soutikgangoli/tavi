@@ -122,8 +122,8 @@ public class TextureCapture {
             // Simple approximation: light from above-front
             // In reality, ARKit doesn't give us directional info easily
             // We assume overhead lighting as default
-            lightDirection = SIMD3<Float>(0, 1, 0.5)  // Above and slightly forward
-            lightDirection = normalize(lightDirection!)
+            let rawDirection = SIMD3<Float>(0, 1, 0.5)  // Above and slightly forward
+            lightDirection = normalize(rawDirection)
         }
 
         // Calculate distance from camera

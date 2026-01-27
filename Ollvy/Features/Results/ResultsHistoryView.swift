@@ -293,44 +293,43 @@ struct ResultsHistoryView: View {
         let dateTimeText = isValidSession ? formattedDateTime(session.date) : ""
 
         return VStack(spacing: 0) {
-            // Main content
-            Button {
-                guard isValidSession else { return }
-                selectedSession = session
-            } label: {
-                HStack(spacing: 14) {
-                    // Score circle
-                    ZStack {
-                        Circle()
-                            .fill(gentlerScoreColor(score).opacity(0.15))
-                            .frame(width: 52, height: 52)
+            // Main content - entire row is tappable
+            HStack(spacing: 14) {
+                // Score circle
+                ZStack {
+                    Circle()
+                        .fill(gentlerScoreColor(score).opacity(0.15))
+                        .frame(width: 52, height: 52)
 
-                        Text("\(Int(score))")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(gentlerScoreColor(score))
-                    }
+                    Text("\(Int(score))")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(gentlerScoreColor(score))
+                }
 
-                    // Name, Date Time
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(dateText)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(gsTextPrimary)
+                // Name, Date Time
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(dateText)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(gsTextPrimary)
 
-                        Text(dateTimeText)
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundColor(gsTextSecondary)
-                    }
-
-                    Spacer()
-
-                    // Chevron
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .medium))
+                    Text(dateTimeText)
+                        .font(.system(size: 14, weight: .regular))
                         .foregroundColor(gsTextSecondary)
                 }
-                .padding(16)
+
+                Spacer()
+
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(gsTextSecondary)
             }
-            .buttonStyle(PlainButtonStyle())
+            .padding(16)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard isValidSession else { return }
+                selectedSession = session
+            }
 
             // Compare button (for non-latest scans)
             // Check both sessions are valid (not deleted) before showing comparison

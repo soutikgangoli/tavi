@@ -155,7 +155,10 @@ public class MeshExporter {
             obj += "\n"
 
             // Faces
-            for i in stride(from: 0, to: capture.triangleIndices.count, by: 3) {
+            let indexCount = capture.triangleIndices.count
+            for i in stride(from: 0, to: indexCount, by: 3) {
+                // Bounds check: ensure we have 3 indices for the face
+                guard i + 2 < indexCount else { break }
                 let i0 = Int(capture.triangleIndices[i]) + vertexOffset + 1
                 let i1 = Int(capture.triangleIndices[i + 1]) + vertexOffset + 1
                 let i2 = Int(capture.triangleIndices[i + 2]) + vertexOffset + 1
@@ -208,7 +211,10 @@ extension Data {
 
     mutating func append(captureData capture: MeshCapture) throws {
         // Step name length + data
-        let stepData = capture.step.data(using: .utf8)!
+        guard let stepData = capture.step.data(using: .utf8) else {
+            // Skip this capture if UTF-8 encoding fails (should never happen with valid strings)
+            return
+        }
         self.append(uint32: UInt32(stepData.count))
         self.append(stepData)
 

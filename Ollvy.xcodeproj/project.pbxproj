@@ -108,6 +108,7 @@
 		8CBC839EE552BEDA6DBE486E /* FallbackStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AFC179628704DA5216E280A /* FallbackStorage.swift */; };
 		8D8BAF1F2A90624B6839DED4 /* EnvironmentalAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 462BA6ABBFC8AF126C7DAE78 /* EnvironmentalAdapter.swift */; };
 		8D9B6472508A45F8B640DD51 /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD6AAB9158A4E789D02EAF1 /* PrivacySettingsView.swift */; };
+		SCRF0001A1B2C3D4E5F60001 /* ScientificReferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SCRF0001A1B2C3D4E5F60002 /* ScientificReferencesView.swift */; };
 		8E8FB05D0A3C75FB04A776BB /* ClinicalInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36CE3269431252BFA4CA1869 /* ClinicalInfoView.swift */; };
 		93D4D0FC0AC1929A21DC04DE /* SpecularAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9961FDFCCC78E696A1B9D803 /* SpecularAnalyzer.swift */; };
 		950DEFDE84BC32059DB81F4F /* AlbedoEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8749084C99272D44C6B23230 /* AlbedoEstimator.swift */; };
@@ -257,6 +258,7 @@
 		4BFAC0A6C236BEF06EE79A94 /* MetalHelpers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetalHelpers.swift; sourceTree = "<group>"; };
 		4C46BA6FB2B70D75BB69A2ED /* AnalysisTypes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalysisTypes.swift; sourceTree = "<group>"; };
 		4CDD8FAF2C3E90A61A0969F4 /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = Settings/SettingsView.swift; sourceTree = "<group>"; };
+		SCRF0001A1B2C3D4E5F60002 /* ScientificReferencesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScientificReferencesView.swift; path = Settings/ScientificReferencesView.swift; sourceTree = "<group>"; };
 		4E150EE199D874EE7672681D /* RoughnessAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RoughnessAnalyzer.swift; sourceTree = "<group>"; };
 		4EA0B928BDDC607328EB67CA /* ScoreSummaryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScoreSummaryView.swift; sourceTree = "<group>"; };
 		4F5A7134C20E9FCBC7DF834A /* MeshExporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshExporter.swift; sourceTree = "<group>"; };
@@ -642,6 +644,7 @@
 				AAAAAA111111111111111112 /* PrivacyPolicyView.swift */,
 				BBBBBB222222222222222222 /* SupportView.swift */,
 				CCCCCC333333333333333332 /* AcknowledgmentsView.swift */,
+				SCRF0001A1B2C3D4E5F60002 /* ScientificReferencesView.swift */,
 			);
 			name = Settings;
 			sourceTree = "<group>";
@@ -1220,6 +1223,7 @@
 				642B0FDF1ECC4FC985ED8A79 /* AchievementDetailView.swift in Sources */,
 				7DA93A8B2C994E4AB8B77D80 /* NotificationsSettingsView.swift in Sources */,
 				8D9B6472508A45F8B640DD51 /* PrivacySettingsView.swift in Sources */,
+				SCRF0001A1B2C3D4E5F60001 /* ScientificReferencesView.swift in Sources */,
 				9AB3D2BD0F0747E08363488E /* AboutView.swift in Sources */,
 				A8F3C9465EE24572AD31E80A /* AnalyzerCommon.metal in Sources */,
 				0ECD5B8277D34D5F8F7036CA /* HydrationAnalysis.metal in Sources */,
