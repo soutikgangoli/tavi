@@ -122,7 +122,6 @@
 		A7A6DCE377134090B5FBF8BA /* MetalAnalyzerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF4E2692C2A946D0A0A4B73F /* MetalAnalyzerBase.swift */; };
 		A7B1FF885E4B85CE1B3CBE9C /* FancyLoadingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D02CD1F895E305C70B9EB943 /* FancyLoadingScreen.swift */; };
 		A7DE163D7E8001747B4E1A49 /* ARKitErrorRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD4B868FD501E75A8E9BB82 /* ARKitErrorRecoveryView.swift */; };
-		A8F3C9465EE24572AD31E80A /* AnalyzerCommon.metal in Sources */ = {isa = PBXBuildFile; fileRef = AC2831201652495C93067A85 /* AnalyzerCommon.metal */; };
 		A98A28857E395A82F35ECCD7 /* DataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1551229E2CDA456D6F037D2E /* DataModels.swift */; };
 		ACB0D7B89495BEC09517B3F9 /* SimdExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F84777921DF0F4FCEF7C6FE4 /* SimdExtensions.swift */; };
 		AD0AB7EEBCD2CCB708854776 /* EmotionalScan3DFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EF4EBA6781F668D5017E3F2 /* EmotionalScan3DFlowView.swift */; };
@@ -328,7 +327,7 @@
 		A8E9DFA914896C448DF486B8 /* MeshMerger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshMerger.swift; sourceTree = "<group>"; };
 		A9A9A479EB85E2D7DFCE2DC1 /* TextureCapture.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TextureCapture.swift; sourceTree = "<group>"; };
 		AB146B2985764E9C95A98654 /* PoreDetection.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = PoreDetection.metal; sourceTree = "<group>"; };
-		AC2831201652495C93067A85 /* AnalyzerCommon.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = AnalyzerCommon.metal; sourceTree = "<group>"; };
+		AC2831201652495C93067A85 /* AnalyzerCommon.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = AnalyzerCommon.h; sourceTree = "<group>"; };
 		AC5B35DA91BC231D5E96E1B4 /* VolumeMetrics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolumeMetrics.swift; sourceTree = "<group>"; };
 		ACA96A3B6D0CE3F3A37E81A7 /* FAQView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FAQView.swift; path = Ollvy/Features/Settings/FAQView.swift; sourceTree = SOURCE_ROOT; };
 		AGSP0001000000000000001A /* AppleGlassSegmentedPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleGlassSegmentedPicker.swift; sourceTree = "<group>"; };
@@ -833,7 +832,7 @@
 				5CD7BC84D72050B8AAB1A979 /* MetalTextureProcessor.swift */,
 				4BFAC0A6C236BEF06EE79A94 /* MetalHelpers.swift */,
 				8F6708C1F9166922CDCAB4DC /* TextureProcessing.metal */,
-				AC2831201652495C93067A85 /* AnalyzerCommon.metal */,
+				AC2831201652495C93067A85 /* AnalyzerCommon.h */,
 				6C81A101E1294DBEB7F7310B /* HydrationAnalysis.metal */,
 				AB146B2985764E9C95A98654 /* PoreDetection.metal */,
 				DA3860CC62964D9CBF987578 /* RednessAnalysis.metal */,
@@ -1225,7 +1224,6 @@
 				8D9B6472508A45F8B640DD51 /* PrivacySettingsView.swift in Sources */,
 				SCRF0001A1B2C3D4E5F60001 /* ScientificReferencesView.swift in Sources */,
 				9AB3D2BD0F0747E08363488E /* AboutView.swift in Sources */,
-				A8F3C9465EE24572AD31E80A /* AnalyzerCommon.metal in Sources */,
 				0ECD5B8277D34D5F8F7036CA /* HydrationAnalysis.metal in Sources */,
 				5C050C61F3C84012BBD14E62 /* PoreDetection.metal in Sources */,
 				E4D22E5F13924E1EAE5E45DF /* RednessAnalysis.metal in Sources */,

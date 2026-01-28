@@ -10,7 +10,7 @@
 using namespace metal;
 
 // Import shared luminance helpers
-#include "AnalyzerCommon.metal"
+#include "AnalyzerCommon.h"
 
 // MARK: - Constants
 
