@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22758" systemVersion="23F79" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="2.0">
+    <entity name="SessionResult" representedClassName="SessionResult" syncable="YES">
+        <attribute name="blurQuality" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="chinScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="clinicalMetricsData" optional="YES" attributeType="Binary"/>
+        <attribute name="date" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deviceModel" attributeType="String"/>
+        <attribute name="deviceOS" attributeType="String"/>
+        <attribute name="discolorationIndex" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="emotionalMetricsData" optional="YES" attributeType="Binary"/>
+        <attribute name="faceImage" optional="YES" attributeType="Binary"/>
+        <attribute name="foreheadScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="heatmapComposite" optional="YES" attributeType="Binary"/>
+        <attribute name="heatmapMoisture" optional="YES" attributeType="Binary"/>
+        <attribute name="heatmapPigmentation" optional="YES" attributeType="Binary"/>
+        <attribute name="heatmapSharpness" optional="YES" attributeType="Binary"/>
+        <attribute name="heatmapTexture" optional="YES" attributeType="Binary"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="leftCheekScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="moistureSmoothness" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="moistureSpecular" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="overallScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="pigmentationAvg" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="poresScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="acneScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="rightCheekScore" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="textureAvg" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="thumbnail" optional="YES" attributeType="Binary"/>
+    </entity>
+</model>

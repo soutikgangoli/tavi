@@ -1,0 +1,111 @@
+================================================================================
+APP STORE DESCRIPTION - MEDICAL DISCLAIMER TEXT
+================================================================================
+
+CRITICAL: Add this disclaimer to your App Store description to comply with
+Guideline 1.4.1. This should be added to the "Description" field in App Store
+Connect.
+
+Option 1: Add this entire section at the END of your current description
+--------------------------------------------------------------------------------
+
+⚠️ IMPORTANT MEDICAL DISCLAIMER
+
+Ollvy is NOT a medical device and is not intended for medical diagnosis,
+treatment, cure, or prevention of any disease. This app provides skin analysis
+for general awareness and tracking purposes only.
+
+Always seek a doctor's advice in addition to using this app and before making
+any medical decisions. For skin concerns or medical conditions, please consult
+a qualified dermatologist.
+
+All facial scans and analysis are performed locally on your device. We do not
+store or transmit any biometric data.
+
+================================================================================
+
+Option 2: Shorter version (if character limit is tight)
+--------------------------------------------------------------------------------
+
+⚠️ Medical Disclaimer: This app is NOT a medical device and does not provide
+diagnosis or treatment. Always consult a qualified dermatologist for medical
+advice before making health decisions.
+
+================================================================================
+
+REPLY TO APP REVIEW TEAM
+================================================================================
+
+When replying to the review team in App Store Connect, copy and paste this:
+
+---
+
+Hello App Review Team,
+
+Thank you for your feedback. I have made the following updates to address
+Guideline 1.4.1 concerns:
+
+1. MEDICAL DISCLAIMER: I have updated the app's description to include a
+   prominent medical disclaimer stating that:
+   - Ollvy is NOT a medical device
+   - The app does not provide medical diagnosis or treatment
+   - Users should consult a qualified dermatologist for medical advice
+   - Users should seek a doctor's advice before making any medical decisions
+
+2. SCIENTIFIC CITATIONS: I have added a comprehensive "Scientific References"
+   section within the app (accessible via Settings > Scientific References)
+   that includes:
+   - 50+ peer-reviewed research citations supporting our analysis methods
+   - References for skin texture, pigmentation, wrinkles, hydration, acne,
+     pores, redness, sun damage, and 3D imaging techniques
+   - Clear medical disclaimers and methodology explanations
+   - Easily accessible to all users
+
+3. ENHANCED IN-APP DISCLAIMERS: I have made the medical disclaimers more
+   prominent throughout the app:
+   - Results screens now display a prominent disclaimer with warning icon
+   - Disclaimer includes direct link to Scientific References
+   - Clear statements that this is not medical advice
+
+All changes are now live in the build submitted for review. The app maintains
+its focus on general wellness and skin tracking while ensuring users understand
+it is not a substitute for professional medical care.
+
+Please let me know if you need any additional information.
+
+Best regards,
+[Your Name]
+
+---
+
+================================================================================
+ADDITIONAL NOTES
+================================================================================
+
+1. The medical disclaimer has been added to the APP DESCRIPTION (not just in
+   the app itself) as required by the review team.
+
+2. The "Scientific References" section is now accessible via:
+   Settings → Legal → Scientific References
+
+3. Enhanced disclaimers appear on:
+   - All results screens (CelebratoryResultsView, ResultsDetailView)
+   - FAQ section
+   - Terms of Service
+   - Scientific References page
+
+4. The disclaimers now explicitly state:
+   ✅ "NOT a medical device"
+   ✅ "Does not provide diagnosis or treatment"
+   ✅ "Consult a qualified dermatologist"
+   ✅ "Seek doctor's advice before medical decisions"
+
+5. Scientific citations include 50+ peer-reviewed references from journals
+   such as:
+   - Journal of Investigative Dermatology
+   - British Journal of Dermatology
+   - Skin Research and Technology
+   - Journal of the American Academy of Dermatology
+   - And many more
+
+================================================================================
