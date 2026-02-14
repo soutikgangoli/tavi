@@ -89,7 +89,7 @@ public struct InterpretedResults {
                 score: wrinkles.overallScore,
                 rating: ratingForScore(wrinkles.overallScore),
                 percentile: Int(wrinkles.overallScore),
-                description: "Wrinkle depth and fine line visibility",
+                description: "Wrinkle visibility and fine line appearance",
                 trend: nil
             ))
         }
@@ -325,7 +325,7 @@ class ResultsInterpretation {
                 priority: .medium,
                 area: "Wrinkles",
                 suggestion: "Consider retinol or anti-aging serum",
-                expectedImpact: "Reduced wrinkle depth"
+                expectedImpact: "Reduced wrinkle visibility"
             ))
         }
 
@@ -420,7 +420,7 @@ class ResultsInterpretation {
     private func interpretWrinkles(_ analysis: WrinkleAnalysis, temporal: TemporalComparison?) -> MetricInterpretation {
         let rating = ratingFromScore(analysis.overallScore)
 
-        let description = "Wrinkle depth: \(analysis.wrinkleDepth). Detected \(analysis.wrinkleCount) wrinkle regions"
+        let description = "Wrinkle visibility: \(analysis.wrinkleDepth). Identified \(analysis.wrinkleCount) wrinkle regions"
 
         let trend = temporal?.changesSinceLastScan["wrinkles"].flatMap { interpretTrend($0) }
 

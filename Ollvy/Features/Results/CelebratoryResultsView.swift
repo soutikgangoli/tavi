@@ -73,6 +73,11 @@ public struct CelebratoryResultsView: View {
                             .offset(y: showScore ? 0 : -10)
                     }
 
+                    // Cosmetic disclaimer
+                    CosmeticDisclaimer(compact: true)
+                        .opacity(showScore ? 1 : 0)
+                        .padding(.horizontal)
+
                     // Main score card
                     mainScoreCard
                         .opacity(showScore ? 1 : 0)
@@ -225,7 +230,7 @@ public struct CelebratoryResultsView: View {
                             .animation(Designs.Animation.slowEaseOut, value: animatedScore)
                     }
 
-                    Text("Your Skin Analysis Score")
+                    Text("Your Skin Appearance Score")
                         .font(.app(size: 18, weight: .medium))
                         .foregroundColor(.white.opacity(Designs.Opacity.almostOpaque))
                 }
@@ -294,7 +299,7 @@ public struct CelebratoryResultsView: View {
         ].filter { $0.1 < 60 }
 
         // Build summary based on analysis
-        let overallScore = emotionalMetrics.skinHealthScore
+        let overallScore = emotionalMetrics.skinAppearanceScore
 
         if overallScore >= 80 {
             if let topStrength = strengths.max(by: { $0.1 < $1.1 }) {
@@ -409,7 +414,7 @@ public struct CelebratoryResultsView: View {
                     title: "Texture",
                     icon: SFSymbol.waveformPath,
                     score: emotionalMetrics.smoothness,
-                    description: "Surface texture quality measured by analyzing pore size distribution, surface smoothness, and uniformity. We measure micro-variations in the skin surface to assess overall skin refinement.",
+                    description: "Surface texture quality assessed by analyzing pore size distribution, surface smoothness, and uniformity. We analyze visual patterns in the skin surface to assess overall skin refinement.",
                     metricId: "profile_texture",
                     metricType: .roughness,
                     trend: emotionalMetrics.trends?["smoothness"]
@@ -421,7 +426,7 @@ public struct CelebratoryResultsView: View {
                     title: "Hydration",
                     icon: "drop.fill",
                     score: emotionalMetrics.freshness,
-                    description: "Overall skin vitality measured by analyzing hydration markers and surface moisture levels. Higher scores indicate well-hydrated, healthy-looking skin with good moisture balance.",
+                    description: "Overall skin vitality assessed by analyzing visual hydration indicators and surface appearance. Higher scores indicate well-hydrated, healthy-looking skin with good moisture balance.",
                     metricId: "profile_hydration",
                     metricType: .hydration,
                     trend: emotionalMetrics.trends?["hydration"]
@@ -433,7 +438,7 @@ public struct CelebratoryResultsView: View {
                     title: "Radiance",
                     icon: SFSymbol.sparkles,
                     score: emotionalMetrics.radiance,
-                    description: "Light reflection quality measured by analyzing light reflection patterns, skin luminosity, and color vibrance across different facial zones. Higher scores indicate healthier, more luminous skin.",
+                    description: "Light reflection quality assessed by analyzing light reflection patterns, skin luminosity, and color vibrance across different facial zones. Higher scores indicate more luminous skin appearance.",
                     metricId: "profile_radiance",
                     metricType: .brightness,
                     trend: emotionalMetrics.trends?["radiance"]
@@ -445,24 +450,24 @@ public struct CelebratoryResultsView: View {
                     title: "Tone Evenness",
                     icon: "circle.hexagongrid.fill",
                     score: emotionalMetrics.evenness,
-                    description: "Skin tone uniformity calculated by measuring color consistency, detecting hyperpigmentation, and analyzing color distribution across facial regions.",
+                    description: "Skin tone uniformity assessed by analyzing color consistency, identifying visible spots, and reviewing color distribution across facial regions.",
                     metricId: "profile_evenness",
                     metricType: .pigmentation,
                     trend: emotionalMetrics.trends?["evenness"]
                 )
 
                 // Only show if analyzer actually ran (no fake 75 fallbacks)
-                if let rednessScore = emotionalMetrics.rednessScore {
+                if let colorEvennessScore = emotionalMetrics.colorEvennessScore {
                     Divider().padding(.horizontal, Designs.Spacing.lg)
 
                     profileMetricRow(
-                        title: "Redness Control",
+                        title: "Color Evenness",
                         icon: SFSymbol.heartFill,
-                        score: rednessScore,
-                        description: "Skin redness detected by analyzing red channel intensity, inflammation patterns, and vascular visibility across facial regions. Higher scores indicate calmer, less inflamed skin.",
-                        metricId: "profile_redness",
+                        score: colorEvennessScore,
+                        description: "Color evenness identified by analyzing color consistency and uniformity across facial regions. Higher scores indicate more even, balanced skin tone appearance.",
+                        metricId: "profile_colorEvenness",
                         metricType: .discoloration,
-                        trend: emotionalMetrics.trends?["redness"]
+                        trend: emotionalMetrics.trends?["colorEvenness"]
                     )
                 }
 
@@ -471,7 +476,7 @@ public struct CelebratoryResultsView: View {
                     Divider().padding(.horizontal, Designs.Spacing.lg)
 
                     profileMetricRow(
-                        title: "Acne",
+                        title: "Blemishes",
                         icon: "circle.fill",
                         score: acneScore,
                         description: acneDescription,
@@ -487,7 +492,7 @@ public struct CelebratoryResultsView: View {
                     title: "Lines & Wrinkles",
                     icon: "arrow.up.circle.fill",
                     score: emotionalMetrics.youthfulness,
-                    description: "Wrinkle assessment using advanced 3D mesh analysis to detect surface irregularities and depth variations. Wrinkle severity is calculated by measuring the depth, length, and density of facial creases across 50,000+ data points. Higher scores indicate fewer, shallower wrinkles.",
+                    description: "Wrinkle assessment using 3D surface analysis to identify visible lines and depth variations. Wrinkle appearance is evaluated by analyzing the visual characteristics of facial creases across multiple data points. Higher scores indicate fewer visible wrinkles.",
                     metricId: "profile_wrinkles",
                     metricType: .wrinkles,
                     trend: emotionalMetrics.trends?["youthfulness"]
@@ -501,7 +506,7 @@ public struct CelebratoryResultsView: View {
                         title: "Shine Detection",
                         icon: "sparkle",
                         score: oilControlScore,
-                        description: "Surface shine measured by analyzing specular highlights and reflection patterns. Detects areas with high reflectance that may indicate oiliness or product application. Higher scores indicate less shine and better matteness.",
+                        description: "Surface shine assessed by analyzing specular highlights and reflection patterns. Identifies areas with high reflectance that may indicate oiliness or product application. Higher scores indicate less visible shine.",
                         metricId: "profile_shine",
                         metricType: .hydration
                     )
@@ -515,7 +520,7 @@ public struct CelebratoryResultsView: View {
                         title: "Pore Visibility",
                         icon: "circle.grid.3x3.fill",
                         score: poreScore,
-                        description: "Pore size and visibility measured using high-frequency texture analysis. We detect enlarged pores, pore density, and size distribution across different facial zones. Higher scores indicate smaller, less visible pores.",
+                        description: "Pore visibility assessed using texture analysis. We identify visible pores, pore patterns, and distribution across different facial zones. Higher scores indicate smaller, less visible pores.",
                         metricId: "profile_pores",
                         metricType: .pores,
                         trend: emotionalMetrics.trends?["pores"]
@@ -537,22 +542,22 @@ public struct CelebratoryResultsView: View {
                         title: "Dark Circles",
                         icon: "eye.fill",
                         score: underEyeScore,
-                        description: "Under-eye darkness measured by analyzing the color intensity and contrast between the under-eye area and surrounding skin. Higher scores indicate less visible dark circles.",
+                        description: "Under-eye darkness assessed by analyzing the color intensity and contrast between the under-eye area and surrounding skin. Higher scores indicate less visible dark circles.",
                         metricId: "profile_darkcircles",
                         metricType: .brightness
                     )
                 }
 
-                // NEW: Lip Health
-                if let lipHealthScore = emotionalMetrics.lipHealthScore {
+                // NEW: Lip Appearance
+                if let lipAppearanceScore = emotionalMetrics.lipAppearanceScore {
                     Divider().padding(.horizontal, Designs.Spacing.lg)
 
                     profileMetricRow(
-                        title: "Lip Health",
+                        title: "Lip Appearance",
                         icon: "mouth.fill",
-                        score: lipHealthScore,
-                        description: "Lip texture and hydration measured by analyzing surface smoothness and moisture indicators. Higher scores indicate healthier, more hydrated lips.",
-                        metricId: "profile_liphealth",
+                        score: lipAppearanceScore,
+                        description: "Lip texture and moisture appearance assessed by analyzing surface smoothness and visual moisture indicators. Higher scores indicate smoother, more moisturized-looking lips.",
+                        metricId: "profile_lipappearance",
                         metricType: .hydration
                     )
                 }
@@ -1085,7 +1090,7 @@ public struct CelebratoryResultsView: View {
     }
 
     private var scoreInterpretationTitle: String {
-        switch emotionalMetrics.skinHealthScore {
+        switch emotionalMetrics.skinAppearanceScore {
         case 90...100: return "Outstanding results"
         case 80..<90: return "Excellent progress"
         case 70..<80: return "Great work"
@@ -1096,7 +1101,7 @@ public struct CelebratoryResultsView: View {
     }
 
     private var scoreGradient: LinearGradient {
-        switch emotionalMetrics.skinHealthScore {
+        switch emotionalMetrics.skinAppearanceScore {
         case 80...100: return Designs.Colors.mintGradient
         case 60..<80: return Designs.Colors.warmGradient
         default: return Designs.Colors.peachGradient
@@ -1104,7 +1109,7 @@ public struct CelebratoryResultsView: View {
     }
 
     private var scoreInterpretation: String {
-        switch emotionalMetrics.skinHealthScore {
+        switch emotionalMetrics.skinAppearanceScore {
         case 90...100: return "Your skin analysis is outstanding. Keep up your excellent routine to maintain these results."
         case 80..<90: return "Your skin analysis is in great shape. Continue your current routine for best results."
         case 70..<80: return "You're making good progress. Follow the recommendations below to improve further."
@@ -1244,7 +1249,7 @@ public struct CelebratoryResultsView: View {
 
         // Animate score circle from 0 to target value
         withAnimation(Designs.Animation.slowEaseOut.delay(0.3)) {
-            animatedScore = CGFloat(emotionalMetrics.skinHealthScore)
+            animatedScore = CGFloat(emotionalMetrics.skinAppearanceScore)
         }
 
         withAnimation(Designs.Animations.gentle.delay(0.3)) {

@@ -58,6 +58,7 @@
 		440E51B611C9C0BDA747B8B8 /* MeshTextureExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E090007A7AD1D87C747C7F1D /* MeshTextureExporter.swift */; };
 		45A1CF763698504622A5A6B4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39943B2D29103DF7193ED1A4 /* ContentView.swift */; };
 		4624B68F2182CD73ADD90301 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DE046EBD6EF428A854805AA /* StorageManager.swift */; };
+		46602CC5DE4317FAFE0A12F1 /* CitationLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 677D2D89F78C7E148A7320D2 /* CitationLink.swift */; };
 		4671C84C8262F6A25E024572 /* RegionalAnalyzers.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC393D853D09878A720EDC0B /* RegionalAnalyzers.swift */; };
 		476CFBF35490C785C739D2EC /* TextureProcessing.metal in Sources */ = {isa = PBXBuildFile; fileRef = 8F6708C1F9166922CDCAB4DC /* TextureProcessing.metal */; };
 		47B1B42D879AFD827E88E646 /* EdgeCaseDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C66C5FA618F040217B6B2E /* EdgeCaseDetector.swift */; };
@@ -108,7 +109,6 @@
 		8CBC839EE552BEDA6DBE486E /* FallbackStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AFC179628704DA5216E280A /* FallbackStorage.swift */; };
 		8D8BAF1F2A90624B6839DED4 /* EnvironmentalAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 462BA6ABBFC8AF126C7DAE78 /* EnvironmentalAdapter.swift */; };
 		8D9B6472508A45F8B640DD51 /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD6AAB9158A4E789D02EAF1 /* PrivacySettingsView.swift */; };
-		SCRF0001A1B2C3D4E5F60001 /* ScientificReferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SCRF0001A1B2C3D4E5F60002 /* ScientificReferencesView.swift */; };
 		8E8FB05D0A3C75FB04A776BB /* ClinicalInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36CE3269431252BFA4CA1869 /* ClinicalInfoView.swift */; };
 		93D4D0FC0AC1929A21DC04DE /* SpecularAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9961FDFCCC78E696A1B9D803 /* SpecularAnalyzer.swift */; };
 		950DEFDE84BC32059DB81F4F /* AlbedoEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8749084C99272D44C6B23230 /* AlbedoEstimator.swift */; };
@@ -117,12 +117,13 @@
 		9E47A5E348E3F07CE6C3666E /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 058616E444A18736A88D60C2 /* PrimaryButton.swift */; };
 		9F9180BC48FD44EDB8A5EC14 /* StreamingMeshMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D50E5227FC5623C8E7600E1 /* StreamingMeshMerger.swift */; };
 		A19EAEDAEF7F731CE50142FF /* TextureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D022F426A297217275C6E6F /* TextureExtractor.swift */; };
-		A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* TaviModel.xcdatamodeld in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */; };
+		A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* CoreData/TaviModel.xcdatamodeld in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* CoreData/TaviModel.xcdatamodeld */; };
 		A33DCEF17DACB170BA92523B /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F004FB0FB5D0FF29C951E78 /* LoadingView.swift */; };
 		A7A6DCE377134090B5FBF8BA /* MetalAnalyzerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF4E2692C2A946D0A0A4B73F /* MetalAnalyzerBase.swift */; };
 		A7B1FF885E4B85CE1B3CBE9C /* FancyLoadingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D02CD1F895E305C70B9EB943 /* FancyLoadingScreen.swift */; };
 		A7DE163D7E8001747B4E1A49 /* ARKitErrorRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD4B868FD501E75A8E9BB82 /* ARKitErrorRecoveryView.swift */; };
 		A98A28857E395A82F35ECCD7 /* DataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1551229E2CDA456D6F037D2E /* DataModels.swift */; };
+		AAAAAA111111111111111111 /* PrivacyPolicyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAAAA111111111111111112 /* PrivacyPolicyView.swift */; };
 		ACB0D7B89495BEC09517B3F9 /* SimdExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F84777921DF0F4FCEF7C6FE4 /* SimdExtensions.swift */; };
 		AD0AB7EEBCD2CCB708854776 /* EmotionalScan3DFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EF4EBA6781F668D5017E3F2 /* EmotionalScan3DFlowView.swift */; };
 		AGSP0002000000000000002B /* AppleGlassSegmentedPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AGSP0001000000000000001A /* AppleGlassSegmentedPicker.swift */; };
@@ -134,6 +135,7 @@
 		B5C6DD54747F64D7A64A5E31 /* FaceIDStyleGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 517033E2F35AECB6551F9E72 /* FaceIDStyleGuide.swift */; };
 		B637D03B1593445988220595 /* MemoryDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07948E26B89D4CE590D0BA2F /* MemoryDiagnosticsView.swift */; };
 		B8EF9B902EAD30F82174B114 /* ScanConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FB79DBCE421C2B6DC922852 /* ScanConfiguration.swift */; };
+		BBBBBB222222222222222221 /* SupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBB222222222222222222 /* SupportView.swift */; };
 		BCC55497EA93283E5D895ACD /* AnalysisTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C46BA6FB2B70D75BB69A2ED /* AnalysisTypes.swift */; };
 		BDC6714190EB434489D4C144 /* DarknessDetection.metal in Sources */ = {isa = PBXBuildFile; fileRef = 2E24D81379E9495D8508DBF0 /* DarknessDetection.metal */; };
 		C0630FC460D7CF61167C3BAE /* PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF92FAB265314F82481D94A /* PDFReportGenerator.swift */; };
@@ -148,6 +150,7 @@
 		CA450B4AA0FF5CDB55D2DFFE /* CoreDataSaveQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796F4467DF8E3CFC0E19C43D /* CoreDataSaveQueue.swift */; };
 		CA96CDA4235E7CF53A3F4616 /* SocialSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BE7572AD186CB93CA75F9B /* SocialSharingView.swift */; };
 		CBF5F05A80EB7AF1C661A286 /* HoleFiller.swift in Sources */ = {isa = PBXBuildFile; fileRef = B242FF021916A4AC9DC29F69 /* HoleFiller.swift */; };
+		CCCCCC333333333333333331 /* AcknowledgmentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCCCC333333333333333332 /* AcknowledgmentsView.swift */; };
 		CDFE2B93AF08350BD6387FAC /* Face3DMetricsAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0158E26324A3B9235271F6 /* Face3DMetricsAnalyzer.swift */; };
 		CE9F91521BBCC4A033C4FA83 /* TemporalTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC31E88D5F06C27300AF247D /* TemporalTracker.swift */; };
 		D0A2F46E545B7226DD2A7A3D /* MeshSmoother.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E2C9B4E236ABF9500D8DB58 /* MeshSmoother.swift */; };
@@ -172,11 +175,9 @@
 		EC194364848D2FCE947511D0 /* MetricExplanations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6468EC87DE7FC8447CE54ACD /* MetricExplanations.swift */; };
 		ECA039220CF197F5DA10E8EF /* MeshTopologyAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D39CED2746B5AABEFB50801A /* MeshTopologyAnalyzer.swift */; };
 		EEE706DD6CC0EAE18A4E1BC3 /* ARKitErrorAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15BA5870167432044EA62D8 /* ARKitErrorAnalyzer.swift */; };
+		EF95F85883BB14B73C58631A /* CosmeticDisclaimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D33A51D971ACE0DC6A63265C /* CosmeticDisclaimer.swift */; };
 		F1CB69BD4D2CCA67027E7FD3 /* RednessAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04D06A6C52C4438A958C7367 /* RednessAnalyzer.swift */; };
 		F420D41B65A3B6343BE4354A /* TermsOfServiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDAC430266D9270E9BA4072E /* TermsOfServiceView.swift */; };
-		AAAAAA111111111111111111 /* PrivacyPolicyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAAAA111111111111111112 /* PrivacyPolicyView.swift */; };
-		BBBBBB222222222222222221 /* SupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBB222222222222222222 /* SupportView.swift */; };
-		CCCCCC333333333333333331 /* AcknowledgmentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCCCC333333333333333332 /* AcknowledgmentsView.swift */; };
 		F4863FBB7D9848C3AFEE7A7C /* MemoryManagedResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30DEAFABD9D148D7B5463AD0 /* MemoryManagedResource.swift */; };
 		F4DEA18EB1FCE07F991EBB63 /* PoreAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15EC623A8C87285A2A33338 /* PoreAnalyzer.swift */; };
 		F6298A4BC13CF46406FA3B2E /* EmotionalMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61AF2748394F42FFC1D2C1FC /* EmotionalMetrics.swift */; };
@@ -201,6 +202,7 @@
 		GS10REGULAR0000000000000000000010 /* GeneralSans-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS10REGULARREF000000000000000010 /* GeneralSans-Regular.otf */; };
 		GS11SEMIBOLD000000000000000000011 /* GeneralSans-Semibold.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS11SEMIBOLDREF00000000000000011 /* GeneralSans-Semibold.otf */; };
 		GS12SEMIBOLDIT00000000000000000012 /* GeneralSans-SemiboldItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = GS12SEMIBOLDITREF000000000000012 /* GeneralSans-SemiboldItalic.otf */; };
+		SCRF0001A1B2C3D4E5F60001 /* ScientificReferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SCRF0001A1B2C3D4E5F60002 /* ScientificReferencesView.swift */; };
 		SFSYMBOLS00000000000001 /* SFSymbols.swift in Sources */ = {isa = PBXBuildFile; fileRef = SFSYMBOLSREF000000001 /* SFSymbols.swift */; };
 /* End PBXBuildFile section */
 
@@ -257,7 +259,6 @@
 		4BFAC0A6C236BEF06EE79A94 /* MetalHelpers.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetalHelpers.swift; sourceTree = "<group>"; };
 		4C46BA6FB2B70D75BB69A2ED /* AnalysisTypes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AnalysisTypes.swift; sourceTree = "<group>"; };
 		4CDD8FAF2C3E90A61A0969F4 /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = Settings/SettingsView.swift; sourceTree = "<group>"; };
-		SCRF0001A1B2C3D4E5F60002 /* ScientificReferencesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScientificReferencesView.swift; path = Settings/ScientificReferencesView.swift; sourceTree = "<group>"; };
 		4E150EE199D874EE7672681D /* RoughnessAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RoughnessAnalyzer.swift; sourceTree = "<group>"; };
 		4EA0B928BDDC607328EB67CA /* ScoreSummaryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScoreSummaryView.swift; sourceTree = "<group>"; };
 		4F5A7134C20E9FCBC7DF834A /* MeshExporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshExporter.swift; sourceTree = "<group>"; };
@@ -279,6 +280,7 @@
 		6428AB82056616FCD8F66757 /* HomeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		6468EC87DE7FC8447CE54ACD /* MetricExplanations.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetricExplanations.swift; sourceTree = "<group>"; };
 		66E57E306EBBC57412EE495B /* WrinkleAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WrinkleAnalyzer.swift; sourceTree = "<group>"; };
+		677D2D89F78C7E148A7320D2 /* CitationLink.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CitationLink.swift; sourceTree = "<group>"; };
 		6892E328A3BE31AD1F119545 /* CelebrationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CelebrationView.swift; sourceTree = "<group>"; };
 		6C81A101E1294DBEB7F7310B /* HydrationAnalysis.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = HydrationAnalysis.metal; sourceTree = "<group>"; };
 		6D022F426A297217275C6E6F /* TextureExtractor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TextureExtractor.swift; sourceTree = "<group>"; };
@@ -326,6 +328,7 @@
 		A68CEA584FE1B25A7214710F /* DebugViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DebugViewModel.swift; path = Debug/DebugViewModel.swift; sourceTree = "<group>"; };
 		A8E9DFA914896C448DF486B8 /* MeshMerger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshMerger.swift; sourceTree = "<group>"; };
 		A9A9A479EB85E2D7DFCE2DC1 /* TextureCapture.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TextureCapture.swift; sourceTree = "<group>"; };
+		AAAAAA111111111111111112 /* PrivacyPolicyView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PrivacyPolicyView.swift; path = Ollvy/Features/Settings/PrivacyPolicyView.swift; sourceTree = SOURCE_ROOT; };
 		AB146B2985764E9C95A98654 /* PoreDetection.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = PoreDetection.metal; sourceTree = "<group>"; };
 		AC2831201652495C93067A85 /* AnalyzerCommon.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = AnalyzerCommon.h; sourceTree = "<group>"; };
 		AC5B35DA91BC231D5E96E1B4 /* VolumeMetrics.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VolumeMetrics.swift; sourceTree = "<group>"; };
@@ -335,12 +338,13 @@
 		APPFONTREF0000000000001 /* AppFont.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppFont.swift; path = Ollvy/Shared/UI/AppFont.swift; sourceTree = "<group>"; };
 		B242FF021916A4AC9DC29F69 /* HoleFiller.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HoleFiller.swift; sourceTree = "<group>"; };
 		B27D9D3FED53D8B5D3E58A0D /* CalibrationState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalibrationState.swift; sourceTree = "<group>"; };
-		B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CoreData/TaviModel.xcdatamodeld; sourceTree = "<group>"; };
+		B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* CoreData/TaviModel.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CoreData/TaviModel.xcdatamodeld; sourceTree = "<group>"; };
 		B591178BA8F83750059D6FF7 /* ProcessingPipeline.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProcessingPipeline.swift; sourceTree = "<group>"; };
 		B5BDF38A009147F437A39E78 /* FrameAverager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FrameAverager.swift; sourceTree = "<group>"; };
 		B604BFC89DE914D082466007 /* ResultsHistoryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ResultsHistoryView.swift; path = Results/ResultsHistoryView.swift; sourceTree = "<group>"; };
 		B879F044F2ADC81FC65D2BF1 /* ScanError.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScanError.swift; sourceTree = "<group>"; };
 		B8D18EF36E74E3DA3C369530 /* HistogramView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HistogramView.swift; path = Debug/HistogramView.swift; sourceTree = "<group>"; };
+		BBBBBB222222222222222222 /* SupportView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SupportView.swift; path = Ollvy/Features/Settings/SupportView.swift; sourceTree = SOURCE_ROOT; };
 		BD69287B6E469916F702CE25 /* ImageQualityAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImageQualityAnalyzer.swift; sourceTree = "<group>"; };
 		BE86DBCA6B5C694D330D3B18 /* ComparisonView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ComparisonView.swift; sourceTree = "<group>"; };
 		C2D4901C615F51448D87EB72 /* FaceScan3DAPI.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceScan3DAPI.swift; sourceTree = "<group>"; };
@@ -351,11 +355,13 @@
 		C8A9CDF62E0F4EF79AD9BA75 /* MemoryBudgetManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MemoryBudgetManager.swift; sourceTree = "<group>"; };
 		C9EC0840422B42E784F5A70D /* GlowAnalysis.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = GlowAnalysis.metal; sourceTree = "<group>"; };
 		CC31E88D5F06C27300AF247D /* TemporalTracker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TemporalTracker.swift; sourceTree = "<group>"; };
+		CCCCCC333333333333333332 /* AcknowledgmentsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AcknowledgmentsView.swift; path = Ollvy/Features/Settings/AcknowledgmentsView.swift; sourceTree = SOURCE_ROOT; };
 		CF675DA44DF685061893BCF7 /* GlowAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GlowAnalyzer.swift; sourceTree = "<group>"; };
 		CFCD811AF2A9475C240EA1A2 /* MeshExtender.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshExtender.swift; sourceTree = "<group>"; };
 		D02CD1F895E305C70B9EB943 /* FancyLoadingScreen.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FancyLoadingScreen.swift; sourceTree = "<group>"; };
 		D0555BBB92D646468DFB25B70793A3CF /* DebugSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DebugSettings.swift; path = Ollvy/Core/Utilities/DebugSettings.swift; sourceTree = "<group>"; };
 		D2F6ACDA1D1DB6D81FCAB766 /* ProgressGraphView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ProgressGraphView.swift; path = Ollvy/Features/Home/ProgressGraphView.swift; sourceTree = "<group>"; };
+		D33A51D971ACE0DC6A63265C /* CosmeticDisclaimer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CosmeticDisclaimer.swift; sourceTree = "<group>"; };
 		D39CED2746B5AABEFB50801A /* MeshTopologyAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshTopologyAnalyzer.swift; sourceTree = "<group>"; };
 		D528A9FDA601DB84BBD5792A /* CalibrationManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalibrationManager.swift; sourceTree = "<group>"; };
 		D5396817D3682E5DACAF2CD4 /* GamificationSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GamificationSystem.swift; sourceTree = "<group>"; };
@@ -365,9 +371,6 @@
 		DA3860CC62964D9CBF987578 /* RednessAnalysis.metal */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.metal; path = RednessAnalysis.metal; sourceTree = "<group>"; };
 		DB705E9E7DC1403D34B3D22B /* FaceGuidanceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FaceGuidanceView.swift; sourceTree = "<group>"; };
 		DDAC430266D9270E9BA4072E /* TermsOfServiceView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TermsOfServiceView.swift; path = Ollvy/Features/Settings/TermsOfServiceView.swift; sourceTree = SOURCE_ROOT; };
-		AAAAAA111111111111111112 /* PrivacyPolicyView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PrivacyPolicyView.swift; path = Ollvy/Features/Settings/PrivacyPolicyView.swift; sourceTree = SOURCE_ROOT; };
-		BBBBBB222222222222222222 /* SupportView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SupportView.swift; path = Ollvy/Features/Settings/SupportView.swift; sourceTree = SOURCE_ROOT; };
-		CCCCCC333333333333333332 /* AcknowledgmentsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AcknowledgmentsView.swift; path = Ollvy/Features/Settings/AcknowledgmentsView.swift; sourceTree = SOURCE_ROOT; };
 		DEB7DF9F43C4254874B81D73 /* AsyncTimeout.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AsyncTimeout.swift; sourceTree = "<group>"; };
 		DF4E2692C2A946D0A0A4B73F /* MetalAnalyzerBase.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetalAnalyzerBase.swift; sourceTree = "<group>"; };
 		E090007A7AD1D87C747C7F1D /* MeshTextureExporter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MeshTextureExporter.swift; sourceTree = "<group>"; };
@@ -403,6 +406,7 @@
 		GS10REGULARREF000000000000000010 /* GeneralSans-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "GeneralSans-Regular.otf"; sourceTree = "<group>"; };
 		GS11SEMIBOLDREF00000000000000011 /* GeneralSans-Semibold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "GeneralSans-Semibold.otf"; sourceTree = "<group>"; };
 		GS12SEMIBOLDITREF000000000000012 /* GeneralSans-SemiboldItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "GeneralSans-SemiboldItalic.otf"; sourceTree = "<group>"; };
+		SCRF0001A1B2C3D4E5F60002 /* ScientificReferencesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScientificReferencesView.swift; path = Settings/ScientificReferencesView.swift; sourceTree = "<group>"; };
 		SFSYMBOLSREF000000001 /* SFSymbols.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SFSymbols.swift; path = Ollvy/Shared/SFSymbols.swift; sourceTree = "<group>"; };
 		TaviApp /* Ollvy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ollvy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -893,6 +897,8 @@
 				99ECC296944DB75ACEDE6944 /* ROIOverlay.swift */,
 				4EA0B928BDDC607328EB67CA /* ScoreSummaryView.swift */,
 				D02CD1F895E305C70B9EB943 /* FancyLoadingScreen.swift */,
+				D33A51D971ACE0DC6A63265C /* CosmeticDisclaimer.swift */,
+				677D2D89F78C7E148A7320D2 /* CitationLink.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -949,7 +955,7 @@
 			);
 			sourceTree = "<group>";
 		};
-		P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1 /* Fonts */ = {
+		P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1 /* Resources/Fonts */ = {
 			isa = PBXGroup;
 			children = (
 				GS01BOLDREF0000000000000000001 /* GeneralSans-Bold.otf */,
@@ -985,8 +991,8 @@
 				D8B235600CEB8B02576410D8 /* Shared */,
 				384DC700FEA2E36C5C2DEEF6 /* OllvyApp.swift */,
 				39D36200F591BF9382118EAA /* Assets.xcassets */,
-				B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* TaviModel.xcdatamodeld */,
-				P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1 /* Fonts */,
+				B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7 /* CoreData/TaviModel.xcdatamodeld */,
+				P6Q7R8S9T0U1V2W3X4Y5Z6A7B8C9D0E1 /* Resources/Fonts */,
 				7B0FA72460DB37D8AF2330DD /* Info.plist */,
 			);
 			path = Ollvy;
@@ -1046,7 +1052,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FDDAA531EBDE8B051AC04C7E /* Assets.xcassets in Resources */,
-				A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* TaviModel.xcdatamodeld in Resources */,
+				A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5 /* CoreData/TaviModel.xcdatamodeld in Resources */,
 				GS01BOLD000000000000000000000001 /* GeneralSans-Bold.otf in Resources */,
 				GS02BOLDIT00000000000000000000002 /* GeneralSans-BoldItalic.otf in Resources */,
 				GS03EXLT000000000000000000000003 /* GeneralSans-Extralight.otf in Resources */,
@@ -1250,6 +1256,8 @@
 				AAAAAA111111111111111111 /* PrivacyPolicyView.swift in Sources */,
 				BBBBBB222222222222222221 /* SupportView.swift in Sources */,
 				CCCCCC333333333333333331 /* AcknowledgmentsView.swift in Sources */,
+				EF95F85883BB14B73C58631A /* CosmeticDisclaimer.swift in Sources */,
+				46602CC5DE4317FAFE0A12F1 /* CitationLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1385,7 +1393,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ollvy/Ollvy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				INFOPLIST_FILE = Ollvy/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -1397,7 +1405,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.soutik.ollvy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1413,7 +1421,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ollvy/Ollvy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				INFOPLIST_FILE = Ollvy/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -1425,7 +1433,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.soutik.ollvy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

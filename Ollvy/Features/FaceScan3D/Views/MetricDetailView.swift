@@ -600,12 +600,12 @@ public struct MetricDetailView: View {
             // Try to use full Face3DMetrics first (contains ALL calculated metrics)
             if let metrics = session.face3DMetrics {
                 // SKIN ANALYSIS METRICS (included in Overall Score - 5 metrics only)
-                Text("Skin Analysis Metrics (In Overall Score)")
+                Text("Skin Appearance Metrics (In Overall Score)")
                     .font(AppFont.subheadingPrimary)
                     .foregroundColor(Designs.Colors.textPrimary)
                     .padding(.top, Designs.Spacing.xSmall)
 
-                Text("These 5 high-confidence metrics (70%+ confidence) are included in your Overall Score.")
+                Text("These 5 visual assessment factors are included in your Overall Score.")
                     .font(AppFont.footnote)
                     .foregroundColor(Designs.Colors.textSecondary)
                     .padding(.bottom, 4)
@@ -640,10 +640,10 @@ public struct MetricDetailView: View {
                     color: Color(red: 255/255, green: 179/255, blue: 102/255)
                 )
 
-                // 5. Acne (14.9%)
+                // 5. Blemishes (14.9%)
                 if let acne = metrics.acneAnalysis {
                     MetricBar(
-                        label: "Acne (14.9%)",
+                        label: "Blemishes (14.9%)",
                         score: Double(acne.overallScore),
                         color: Designs.Colors.accent
                     )
@@ -657,7 +657,7 @@ public struct MetricDetailView: View {
                     .font(AppFont.subheadingPrimary)
                     .foregroundColor(Designs.Colors.textSecondary)
 
-                Text("These metrics provide supplementary insights but aren't included in the Overall Score due to measurement limitations.")
+                Text("These metrics provide supplementary insights but aren't included in the Overall Score.")
                     .font(AppFont.footnote)
                     .foregroundColor(Designs.Colors.textSecondary)
                     .padding(.bottom, 4)
@@ -734,7 +734,7 @@ public struct MetricDetailView: View {
                     .foregroundColor(Designs.Colors.textSecondary)
 
                 MetricBar(
-                    label: "Skin Analysis (Composite)",
+                    label: "Skin Appearance (Composite)",
                     score: Double(metrics.glowAnalysis?.skinHealthScore ?? 0),
                     color: Designs.Colors.secondary
                 )
@@ -1041,19 +1041,19 @@ struct MetricInfoSheet: View {
     private var metricDescription: String {
         switch metricType {
         case .overall:
-            return "Your overall skin analysis score is calculated using 5 high-confidence metrics (70%+ confidence): Smoothness (22.4%), Pigmentation (22.4%), Pores (14.9%), Discoloration (14.9%), and Acne (14.9%). Additional indicators (Elasticity, Hydration, Oil Control, Redness) are displayed separately due to measurement limitations but aren't included in the Overall Score."
+            return "Your overall skin appearance score is calculated using 5 visual assessment factors: Smoothness (22.4%), Pigmentation (22.4%), Pores (14.9%), Discoloration (14.9%), and Blemishes (14.9%). Additional indicators (Elasticity, Hydration, Oil Control, Redness) are displayed separately as supplementary insights."
         case .smoothness:
-            return "Smoothness measures the texture quality of your skin surface, including fine lines, pores, and overall surface consistency. Higher scores indicate smoother, more refined skin texture."
+            return "Smoothness assesses the texture quality of your skin surface, including fine lines, pores, and overall surface consistency. Higher scores indicate smoother, more refined skin texture."
         case .hydration:
             return "Hydration reflects your skin's moisture levels and water content. Well-hydrated skin appears plump, supple, and resilient, while dehydrated skin may look dull or feel tight."
         case .pigmentation:
-            return "Evenness measures the uniformity of your skin tone and pigmentation. Higher scores indicate more consistent coloring without dark spots, redness, or uneven patches."
+            return "Evenness assesses the uniformity of your skin tone and pigmentation. Higher scores indicate more consistent coloring without dark spots, redness, or uneven patches."
         case .wrinkles:
-            return "Wrinkles analysis measures the depth and distribution of lines on your face, categorized as fine lines, moderate wrinkles, or deep wrinkles. This metric uses 3D depth measurement to detect creases and folds. Higher scores indicate fewer or shallower wrinkles."
+            return "Wrinkles analysis assesses the visibility and distribution of lines on your face, categorized as fine lines, moderate wrinkles, or deep wrinkles. This uses 3D surface analysis to identify creases and folds. Higher scores indicate fewer visible wrinkles."
         case .elasticity:
-            return "Elasticity measures your skin's ability to bounce back and recover from deformation. The recovery rate (0-1 scale) indicates how quickly your skin returns to its original shape. Higher scores suggest better collagen health and skin firmness."
+            return "Elasticity assesses your skin's apparent firmness and resilience. The recovery rate indicates how your skin appears to maintain its shape. Higher scores suggest better apparent firmness."
         case .volume:
-            return "Volume analysis measures facial structure changes including cheek protrusion (in mm), volume loss percentage, under-eye bags, and facial symmetry. These measurements track structural changes in your face over time, distinct from skin surface quality."
+            return "Volume analysis assesses facial structure appearance including cheek fullness, under-eye appearance, and facial symmetry. These assessments track visible structural changes in your face over time."
         }
     }
 

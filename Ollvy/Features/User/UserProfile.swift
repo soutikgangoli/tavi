@@ -86,7 +86,7 @@ public enum SkinType: String, Codable, CaseIterable, Sendable {
 public enum SkinConcern: String, Codable, CaseIterable, Hashable {
     case wrinkles = "Wrinkles & Fine Lines"
     case darkCircles = "Dark Circles"
-    case acne = "Acne"
+    case acne = "Blemishes"
     case dryness = "Dryness"
     case oiliness = "Oiliness"
     case largePores = "Large Pores"
@@ -104,7 +104,7 @@ public enum SkinGoal: String, Codable, CaseIterable, Hashable {
     case minimizePores = "Minimize Pores"
     case firmness = "Improve Firmness"
     case reduceWrinkles = "Reduce Wrinkles"
-    case clearAcne = "Clear Acne"
+    case clearAcne = "Clear Blemishes"
     case soothe = "Soothe Sensitivity"
     case glow = "Achieve Glow"
 }

@@ -51,6 +51,9 @@ public struct InsightsTabView: View {
                 VStack(spacing: 24) {
                     titleSection
 
+                    // Cosmetic disclaimer
+                    CosmeticDisclaimer(compact: true)
+
                     if sessions.isEmpty {
                         emptyStateContent
                     } else if sessions.count == 1 {
@@ -204,7 +207,7 @@ public struct InsightsTabView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     baselineMetricRow(label: "Overall Score", value: session.overallScore)
                     if let glowAnalysis = session.skinMetrics?.glowAnalysis {
-                        baselineMetricRow(label: "Skin Analysis", value: Double(glowAnalysis.skinHealthScore))
+                        baselineMetricRow(label: "Skin Appearance", value: Double(glowAnalysis.skinHealthScore))
                     }
                     if let metrics = session.skinMetrics {
                         let moistureValues = metrics.roiMetrics.values.map { $0.moistureProxy.moistureIndex * 100 }
@@ -261,7 +264,7 @@ public struct InsightsTabView: View {
                 VStack(spacing: 16) {
                     // Skin Analysis Metrics
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Skin Analysis (In Overall Score)")
+                        Text("Skin Appearance (In Overall Score)")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(gsTextPrimary)
 
@@ -276,7 +279,7 @@ public struct InsightsTabView: View {
                             metricProgressBar(label: "Discoloration", score: Double(metrics.globalDiscolorationScore), color: gsSoftYellow)
 
                             if let acne = metrics.acneAnalysis {
-                                metricProgressBar(label: "Acne", score: Double(acne.overallScore), color: gsSoftRed)
+                                metricProgressBar(label: "Blemishes", score: Double(acne.overallScore), color: gsSoftRed)
                             }
                         }
                     }
@@ -336,7 +339,7 @@ public struct InsightsTabView: View {
                             .foregroundColor(gsTextSecondary)
 
                         VStack(spacing: 12) {
-                            metricProgressBar(label: "Skin Analysis", score: Double(metrics.glowAnalysis?.skinHealthScore ?? 0), color: gsSoftYellow)
+                            metricProgressBar(label: "Skin Appearance", score: Double(metrics.glowAnalysis?.skinHealthScore ?? 0), color: gsSoftYellow)
                         }
                     }
                 }
@@ -980,7 +983,7 @@ public struct InsightsTabView: View {
         if let latestGlow = latest.skinMetrics?.glowAnalysis?.skinHealthScore,
            let prevGlow = previous.skinMetrics?.glowAnalysis?.skinHealthScore {
             let change = Double(latestGlow - prevGlow)
-            if change > 2 { improvements.append(("Skin Analysis", change)) }
+            if change > 2 { improvements.append(("Skin Appearance", change)) }
         }
 
         if let latestMetrics = latest.skinMetrics,
@@ -1035,10 +1038,10 @@ public struct InsightsTabView: View {
 
         let allMetrics: [(String, Double, String)] = [
             ("Overall", latest.overallScore, qualityLabel(latest.overallScore)),
-            ("Acne", Double(metrics.acneAnalysis?.overallScore ?? 0), qualityLabel(Double(metrics.acneAnalysis?.overallScore ?? 0))),
+            ("Blemishes", Double(metrics.acneAnalysis?.overallScore ?? 0), qualityLabel(Double(metrics.acneAnalysis?.overallScore ?? 0))),
             ("Smoothness", Double(metrics.globalRoughnessScore), qualityLabel(Double(metrics.globalRoughnessScore))),
             ("Hydration", avgMoisture, qualityLabel(avgMoisture)),
-            ("Skin Analysis", Double(metrics.glowAnalysis?.skinHealthScore ?? 0), qualityLabel(Double(metrics.glowAnalysis?.skinHealthScore ?? 0))),
+            ("Skin Appearance", Double(metrics.glowAnalysis?.skinHealthScore ?? 0), qualityLabel(Double(metrics.glowAnalysis?.skinHealthScore ?? 0))),
             ("Pigmentation", Double(metrics.globalPigmentationScore), qualityLabel(Double(metrics.globalPigmentationScore))),
             ("Redness", Double(metrics.rednessAnalysis?.overallScore ?? 0), qualityLabel(Double(metrics.rednessAnalysis?.overallScore ?? 0))),
             ("Roughness", Double(metrics.globalRoughnessScore), qualityLabel(Double(metrics.globalRoughnessScore)))
@@ -1090,8 +1093,8 @@ public struct InsightsTabView: View {
         switch metric {
         case "Hydration" where score >= 85:
             return ("Your hydration levels are excellent!", "Continue using moisturizer twice daily to maintain these results. Also consider sun protection.")
-        case "Acne" where score >= 85:
-            return ("Your acne control is excellent!", "Maintain your current routine. Continue gentle cleansing and avoid touching your face.")
+        case "Blemishes" where score >= 85:
+            return ("Your blemish control is excellent!", "Maintain your current routine. Continue gentle cleansing and avoid touching your face.")
         case "Glow" where score >= 85:
             return ("Your skin glow is outstanding!", "Keep up your vitamin C routine and stay hydrated. Consider adding antioxidants.")
         default:
@@ -1423,7 +1426,7 @@ public struct InsightsTabView: View {
         }
 
         if let acne = metrics.acneAnalysis, acne.overallScore < 70 {
-            products.append(("Salicylic Acid Cleanser", "Acne Treatment"))
+            products.append(("Salicylic Acid Cleanser", "Blemish Treatment"))
         }
 
         if products.isEmpty {

@@ -24,7 +24,7 @@ public struct MetricTrend: Codable, Sendable {
 
 /// Emotional metrics that consumers actually understand and care about
 public struct EmotionalMetrics: Codable, Sendable {
-    let skinHealthScore: Int              // 0-100 unified "how good does my skin look" score (Skin Analysis Index)
+    let skinAppearanceScore: Int          // 0-100 unified "how good does my skin look" score (Skin Appearance Index)
     let primaryInsight: String            // Main message: "Your skin looks AMAZING! ✨"
     let celebration: String               // Emoji-rich celebration message
     let improvements: [EmotionalImprovement]
@@ -38,12 +38,12 @@ public struct EmotionalMetrics: Codable, Sendable {
     let smoothness: Int                   // 0-100: "How smooth does it feel?" (Texture)
     let evenness: Int                     // 0-100: "Is my tone even?"
     let youthfulness: Int                 // 0-100: "Do I look young?" (Lines & Wrinkles)
-    let freshness: Int                    // 0-100: "Do I look fresh and awake?" (Hydration proxy)
+    let freshness: Int                    // 0-100: "Do I look fresh and awake?" (Moisture appearance proxy)
 
     // New: Real analyzer scores (nil if analyzer didn't run - no fake 75 fallbacks)
-    let acneScore: Int?                   // 0-100: Acne/blemish clarity (from acneAnalysis)
+    let acneScore: Int?                   // 0-100: Acne clarity score (from acneAnalysis)
     let blemishCount: Int?                // Exact number of detected blemishes (from acneAnalysis)
-    let rednessScore: Int?                // 0-100: Redness control (from rednessAnalysis)
+    let colorEvennessScore: Int?          // 0-100: Color evenness (from rednessAnalysis)
     let oilControlScore: Int?             // 0-100: Oil/shine control (from globalSpecularScore)
     let poreScore: Int?                   // 0-100: Pore visibility (from poreAnalysis)
 
@@ -55,8 +55,8 @@ public struct EmotionalMetrics: Codable, Sendable {
     let underEyeScore: Int?               // 0-100: Higher = less darkness
     let underEyeSeverity: String?         // "None", "Mild", "Moderate", "Severe"
 
-    // Lip health
-    let lipHealthScore: Int?              // 0-100: Lip texture/hydration
+    // Lip appearance
+    let lipAppearanceScore: Int?          // 0-100: Lip texture/moisture appearance
     let lipHydrationLevel: String?        // "Well Hydrated", "Normal", "Dry", "Very Dry"
 
     // Elasticity (requires 2+ scans for accurate temporal analysis)
@@ -71,7 +71,7 @@ public struct EmotionalMetrics: Codable, Sendable {
 
     // Memberwise initializer for direct instantiation
     public init(
-        skinHealthScore: Int,
+        skinAppearanceScore: Int,
         primaryInsight: String,
         celebration: String,
         improvements: [EmotionalImprovement],
@@ -86,14 +86,14 @@ public struct EmotionalMetrics: Codable, Sendable {
         freshness: Int,
         acneScore: Int?,
         blemishCount: Int? = nil,
-        rednessScore: Int?,
+        colorEvennessScore: Int?,
         oilControlScore: Int?,
         poreScore: Int?,
         skinType: String? = nil,
         skinTypeConfidence: Int? = nil,
         underEyeScore: Int? = nil,
         underEyeSeverity: String? = nil,
-        lipHealthScore: Int? = nil,
+        lipAppearanceScore: Int? = nil,
         lipHydrationLevel: String? = nil,
         elasticityScore: Int? = nil,
         elasticityLevel: String? = nil,
@@ -102,7 +102,7 @@ public struct EmotionalMetrics: Codable, Sendable {
         scanNumber: Int = 1,
         trends: [String: MetricTrend]? = nil
     ) {
-        self.skinHealthScore = skinHealthScore
+        self.skinAppearanceScore = skinAppearanceScore
         self.primaryInsight = primaryInsight
         self.celebration = celebration
         self.improvements = improvements
@@ -117,14 +117,14 @@ public struct EmotionalMetrics: Codable, Sendable {
         self.freshness = freshness
         self.acneScore = acneScore
         self.blemishCount = blemishCount
-        self.rednessScore = rednessScore
+        self.colorEvennessScore = colorEvennessScore
         self.oilControlScore = oilControlScore
         self.poreScore = poreScore
         self.skinType = skinType
         self.skinTypeConfidence = skinTypeConfidence
         self.underEyeScore = underEyeScore
         self.underEyeSeverity = underEyeSeverity
-        self.lipHealthScore = lipHealthScore
+        self.lipAppearanceScore = lipAppearanceScore
         self.lipHydrationLevel = lipHydrationLevel
         self.elasticityScore = elasticityScore
         self.elasticityLevel = elasticityLevel
@@ -137,9 +137,10 @@ public struct EmotionalMetrics: Codable, Sendable {
     // Custom decoder to handle backward compatibility with old saved data
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        // Support both old "glowScore" and new "skinHealthScore" for backward compatibility
-        skinHealthScore = try container.decodeIfPresent(Int.self, forKey: .skinHealthScore) ?? 
-                         (try? container.decode(Int.self, forKey: .glowScore)) ?? 75
+        // Support old "glowScore", "skinHealthScore", and new "skinAppearanceScore" for backward compatibility
+        skinAppearanceScore = try container.decodeIfPresent(Int.self, forKey: .skinAppearanceScore) ??
+                             (try? container.decode(Int.self, forKey: .skinHealthScore)) ??
+                             (try? container.decode(Int.self, forKey: .glowScore)) ?? 75
         primaryInsight = try container.decode(String.self, forKey: .primaryInsight)
         celebration = try container.decode(String.self, forKey: .celebration)
         improvements = try container.decode([EmotionalImprovement].self, forKey: .improvements)
@@ -152,10 +153,12 @@ public struct EmotionalMetrics: Codable, Sendable {
         evenness = try container.decode(Int.self, forKey: .evenness)
         youthfulness = try container.decode(Int.self, forKey: .youthfulness)
         freshness = try container.decode(Int.self, forKey: .freshness)
-        // nil if old data doesn't have these fields (no fake 75 fallbacks)
+        // Acne score (unchanged - nil if old data doesn't have this field)
         acneScore = try container.decodeIfPresent(Int.self, forKey: .acneScore)
         blemishCount = try container.decodeIfPresent(Int.self, forKey: .blemishCount)
-        rednessScore = try container.decodeIfPresent(Int.self, forKey: .rednessScore)
+        // Support old "rednessScore" and new "colorEvennessScore" for backward compatibility
+        colorEvennessScore = try container.decodeIfPresent(Int.self, forKey: .colorEvennessScore) ??
+                             (try? container.decode(Int.self, forKey: .rednessScore))
         oilControlScore = try container.decodeIfPresent(Int.self, forKey: .oilControlScore)
         poreScore = try container.decodeIfPresent(Int.self, forKey: .poreScore)
         // New properties (optional for backward compatibility)
@@ -163,7 +166,9 @@ public struct EmotionalMetrics: Codable, Sendable {
         skinTypeConfidence = try container.decodeIfPresent(Int.self, forKey: .skinTypeConfidence)
         underEyeScore = try container.decodeIfPresent(Int.self, forKey: .underEyeScore)
         underEyeSeverity = try container.decodeIfPresent(String.self, forKey: .underEyeSeverity)
-        lipHealthScore = try container.decodeIfPresent(Int.self, forKey: .lipHealthScore)
+        // Support old "lipHealthScore" and new "lipAppearanceScore" for backward compatibility
+        lipAppearanceScore = try container.decodeIfPresent(Int.self, forKey: .lipAppearanceScore) ??
+                             (try? container.decode(Int.self, forKey: .lipHealthScore))
         lipHydrationLevel = try container.decodeIfPresent(String.self, forKey: .lipHydrationLevel)
         elasticityScore = try container.decodeIfPresent(Int.self, forKey: .elasticityScore)
         elasticityLevel = try container.decodeIfPresent(String.self, forKey: .elasticityLevel)
@@ -173,10 +178,10 @@ public struct EmotionalMetrics: Codable, Sendable {
         trends = try container.decodeIfPresent([String: MetricTrend].self, forKey: .trends)
     }
     
-    // Custom encoder to always save with new "skinHealthScore" key
+    // Custom encoder to always save with new property names
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(skinHealthScore, forKey: .skinHealthScore)
+        try container.encode(skinAppearanceScore, forKey: .skinAppearanceScore)
         try container.encode(primaryInsight, forKey: .primaryInsight)
         try container.encode(celebration, forKey: .celebration)
         try container.encode(improvements, forKey: .improvements)
@@ -191,7 +196,7 @@ public struct EmotionalMetrics: Codable, Sendable {
         try container.encode(freshness, forKey: .freshness)
         try container.encodeIfPresent(acneScore, forKey: .acneScore)
         try container.encodeIfPresent(blemishCount, forKey: .blemishCount)
-        try container.encodeIfPresent(rednessScore, forKey: .rednessScore)
+        try container.encodeIfPresent(colorEvennessScore, forKey: .colorEvennessScore)
         try container.encodeIfPresent(oilControlScore, forKey: .oilControlScore)
         try container.encodeIfPresent(poreScore, forKey: .poreScore)
         // New properties
@@ -199,7 +204,7 @@ public struct EmotionalMetrics: Codable, Sendable {
         try container.encodeIfPresent(skinTypeConfidence, forKey: .skinTypeConfidence)
         try container.encodeIfPresent(underEyeScore, forKey: .underEyeScore)
         try container.encodeIfPresent(underEyeSeverity, forKey: .underEyeSeverity)
-        try container.encodeIfPresent(lipHealthScore, forKey: .lipHealthScore)
+        try container.encodeIfPresent(lipAppearanceScore, forKey: .lipAppearanceScore)
         try container.encodeIfPresent(lipHydrationLevel, forKey: .lipHydrationLevel)
         try container.encodeIfPresent(elasticityScore, forKey: .elasticityScore)
         try container.encodeIfPresent(elasticityLevel, forKey: .elasticityLevel)
@@ -210,14 +215,18 @@ public struct EmotionalMetrics: Codable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case glowScore, skinHealthScore  // Support both for backward compatibility
+        // Support old keys for backward compatibility when decoding
+        case glowScore, skinHealthScore, skinAppearanceScore
         case primaryInsight, celebration, improvements, concerns
         case personalizedMessage, nextSteps, timeEstimate, radiance, smoothness
         case evenness, youthfulness, freshness
-        case acneScore, blemishCount, rednessScore, oilControlScore, poreScore
+        case acneScore, blemishCount
+        case rednessScore, colorEvennessScore  // rednessScore (old) -> colorEvennessScore (new)
+        case oilControlScore, poreScore
         case skinType, skinTypeConfidence
         case underEyeScore, underEyeSeverity
-        case lipHealthScore, lipHydrationLevel
+        case lipHealthScore, lipAppearanceScore  // lipHealthScore (old) -> lipAppearanceScore (new)
+        case lipHydrationLevel
         case elasticityScore, elasticityLevel, elasticityConfidence, elasticityIsTemporal
         case scanNumber, trends
     }
@@ -303,8 +312,8 @@ public class EmotionalMetricsGenerator {
             return nil
         }
 
-        // 1. Calculate Skin Analysis Index (unified 0-100)
-        let skinHealthScore = calculateSkinHealthScore(from: clinicalMetrics)
+        // 1. Calculate Skin Appearance Index (unified 0-100)
+        let skinAppearanceScore = calculateSkinAppearanceScore(from: clinicalMetrics)
 
         // 2. Calculate emotional sub-scores
         let radiance = calculateRadiance(from: clinicalMetrics)
@@ -342,12 +351,12 @@ public class EmotionalMetricsGenerator {
         }
 
         // 3. Generate primary insight (now metric-specific)
-        let primaryInsight = generatePrimaryInsight(skinHealthScore: skinHealthScore, metrics: clinicalMetrics)
+        let primaryInsight = generatePrimaryInsight(skinAppearanceScore: skinAppearanceScore, metrics: clinicalMetrics)
 
         // 4. Generate celebration message
         let celebration = generateCelebration(
-            skinHealthScore: skinHealthScore,
-            previousScore: previousMetrics.map { calculateSkinHealthScore(from: $0) }
+            skinAppearanceScore: skinAppearanceScore,
+            previousScore: previousMetrics.map { calculateSkinAppearanceScore(from: $0) }
         )
 
         // 5. Identify improvements
@@ -361,7 +370,7 @@ public class EmotionalMetricsGenerator {
 
         // 7. Generate personalized message (now metric-specific)
         let personalizedMessage = generatePersonalizedMessage(
-            skinHealthScore: skinHealthScore,
+            skinAppearanceScore: skinAppearanceScore,
             metrics: clinicalMetrics,
             improvements: improvements,
             concerns: concerns,
@@ -372,7 +381,7 @@ public class EmotionalMetricsGenerator {
         let nextSteps = generateNextSteps(
             concerns: concerns,
             metrics: clinicalMetrics,
-            skinHealthScore: skinHealthScore,
+            skinAppearanceScore: skinAppearanceScore,
             userProfile: userProfile
         )
 
@@ -382,7 +391,7 @@ public class EmotionalMetricsGenerator {
         // 10. Extract real analyzer scores (nil if analyzer didn't run - no fake 75 fallbacks)
         let acneScore: Int? = clinicalMetrics.acneAnalysis.map { Int($0.overallScore) }
         let blemishCount: Int? = clinicalMetrics.acneAnalysis?.blemishCount
-        let rednessScore: Int? = clinicalMetrics.rednessAnalysis.map { Int($0.overallScore) }
+        let colorEvennessScore: Int? = clinicalMetrics.rednessAnalysis.map { Int($0.overallScore) }
         let oilControlScore: Int? = clinicalMetrics.globalSpecularScore.map { Int($0) }
         let poreScore: Int? = clinicalMetrics.poreAnalysis.map { Int($0.visibilityScore) }
 
@@ -394,8 +403,8 @@ public class EmotionalMetricsGenerator {
         let underEyeScore: Int? = clinicalMetrics.regionalAnalysis?.underEyeDarkness.map { Int($0.score) }
         let underEyeSeverity: String? = clinicalMetrics.regionalAnalysis?.underEyeDarkness?.severity.rawValue
 
-        // 13. Extract lip health
-        let lipHealthScore: Int? = clinicalMetrics.regionalAnalysis?.lipAnalysis.map { Int($0.textureScore) }
+        // 13. Extract lip appearance
+        let lipAppearanceScore: Int? = clinicalMetrics.regionalAnalysis?.lipAnalysis.map { Int($0.textureScore) }
         let lipHydrationLevel: String? = clinicalMetrics.regionalAnalysis?.lipAnalysis?.hydrationLevel.rawValue
 
         // 14. Extract elasticity (requires 2+ scans for accurate temporal analysis)
@@ -408,7 +417,7 @@ public class EmotionalMetricsGenerator {
         // These are now passed in as parameters from MetricsOrchestrator
 
         return EmotionalMetrics(
-            skinHealthScore: skinHealthScore,
+            skinAppearanceScore: skinAppearanceScore,
             primaryInsight: primaryInsight,
             celebration: celebration,
             improvements: improvements,
@@ -423,14 +432,14 @@ public class EmotionalMetricsGenerator {
             freshness: freshness,
             acneScore: acneScore,
             blemishCount: blemishCount,
-            rednessScore: rednessScore,
+            colorEvennessScore: colorEvennessScore,
             oilControlScore: oilControlScore,
             poreScore: poreScore,
             skinType: skinType,
             skinTypeConfidence: skinTypeConfidence,
             underEyeScore: underEyeScore,
             underEyeSeverity: underEyeSeverity,
-            lipHealthScore: lipHealthScore,
+            lipAppearanceScore: lipAppearanceScore,
             lipHydrationLevel: lipHydrationLevel,
             elasticityScore: elasticityScore,
             elasticityLevel: elasticityLevel,
@@ -444,10 +453,10 @@ public class EmotionalMetricsGenerator {
 
     // MARK: - Calculators
 
-    private static func calculateSkinHealthScore(from metrics: Face3DMetrics) -> Int {
+    private static func calculateSkinAppearanceScore(from metrics: Face3DMetrics) -> Int {
         // Use GlowAnalyzer results if available (preferred method)
         if let glowAnalysis = metrics.glowAnalysis {
-            return Int(glowAnalysis.skinHealthScore.rounded())
+            return Int(glowAnalysis.skinHealthScore.rounded())  // Note: glowAnalysis property name unchanged
         }
 
         // Fallback: Calculate manually if glowAnalysis not available (legacy data)
@@ -456,7 +465,7 @@ public class EmotionalMetricsGenerator {
         let discoloration = metrics.globalDiscolorationScore
         let specular = metrics.globalSpecularScore ?? 50.0
 
-        // Skin Analysis Index = 40% smoothness + 30% evenness + 20% discoloration + 10% healthy shine
+        // Skin Appearance Index = 40% smoothness + 30% evenness + 20% discoloration + 10% healthy shine
         let score = (smoothness * 0.4) + (evenness * 0.3) + (discoloration * 0.2) + (specular * 0.1)
 
         return Int(score.rounded())
@@ -548,26 +557,26 @@ public class EmotionalMetricsGenerator {
 
     // MARK: - Message Generators
 
-    private static func generatePrimaryInsight(skinHealthScore: Int, metrics: Face3DMetrics) -> String {
+    private static func generatePrimaryInsight(skinAppearanceScore: Int, metrics: Face3DMetrics) -> String {
         // Get top and lowest metrics for specific insights
         let topMetric = getTopMetric(metrics)
         let lowestMetric = getLowestMetric(metrics)
         let topConcerns = getTopConcerns(metrics, limit: 2)
-        
-        switch skinHealthScore {
+
+        switch skinAppearanceScore {
         case 90...100:
-            return "Your skin analysis score is \(skinHealthScore)/100. Your \(topMetric) is particularly strong. Keep doing what you're doing."
+            return "Your skin analysis score is \(skinAppearanceScore)/100. Your \(topMetric) is particularly strong. Keep doing what you're doing."
         case 80..<90:
-            return "Your skin analysis score is \(skinHealthScore)/100. Your \(topMetric) is strong. Focus on improving \(lowestMetric) to reach the next level."
+            return "Your skin analysis score is \(skinAppearanceScore)/100. Your \(topMetric) is strong. Focus on improving \(lowestMetric) to reach the next level."
         case 70..<80:
-            return "Your skin analysis score is \(skinHealthScore)/100. Prioritize \(topConcerns.joined(separator: " and ")) for noticeable improvement."
+            return "Your skin analysis score is \(skinAppearanceScore)/100. Prioritize \(topConcerns.joined(separator: " and ")) for noticeable improvement."
         case 60..<70:
             let primaryConcern = topConcerns.first ?? "your main concern"
-            return "Your skin analysis score is \(skinHealthScore)/100. Focus on \(primaryConcern) first. Small consistent changes will show results in 3-4 weeks."
+            return "Your skin analysis score is \(skinAppearanceScore)/100. Focus on \(primaryConcern) first. Small consistent changes will show results in 3-4 weeks."
         case 50..<60:
-            return "Your skin analysis score is \(skinHealthScore)/100. Let's build a targeted routine. Start with the most critical issue below and track progress weekly."
+            return "Your skin analysis score is \(skinAppearanceScore)/100. Let's build a targeted routine. Start with the most critical issue below and track progress weekly."
         default:
-            return "Your skin analysis score is \(skinHealthScore)/100. We've identified specific areas to address. Follow the action plan below to see improvement."
+            return "Your skin analysis score is \(skinAppearanceScore)/100. We've identified specific areas to address. Follow the action plan below to see improvement."
         }
     }
     
@@ -618,27 +627,27 @@ public class EmotionalMetricsGenerator {
         return Array(concerns.prefix(limit))
     }
 
-    private static func generateCelebration(skinHealthScore: Int, previousScore: Int?) -> String {
+    private static func generateCelebration(skinAppearanceScore: Int, previousScore: Int?) -> String {
         if let prev = previousScore {
-            let change = skinHealthScore - prev
+            let change = skinAppearanceScore - prev
             if change > 10 {
-                return "Your skin analysis score improved from \(prev) to \(skinHealthScore) (+\(change) points). Your routine is working!"
+                return "Your skin analysis score improved from \(prev) to \(skinAppearanceScore) (+\(change) points). Your routine is working!"
             } else if change > 5 {
-                return "Your skin analysis score improved from \(prev) to \(skinHealthScore) (+\(change) points). Keep up the consistent care!"
+                return "Your skin analysis score improved from \(prev) to \(skinAppearanceScore) (+\(change) points). Keep up the consistent care!"
             } else if change > 0 {
-                return "Your skin analysis score improved from \(prev) to \(skinHealthScore) (+\(change) points). Small progress adds up!"
+                return "Your skin analysis score improved from \(prev) to \(skinAppearanceScore) (+\(change) points). Small progress adds up!"
             } else if change == 0 {
-                return "Your skin analysis score is \(skinHealthScore)/100, same as last time. Consistency is key - keep maintaining your routine!"
+                return "Your skin analysis score is \(skinAppearanceScore)/100, same as last time. Consistency is key - keep maintaining your routine!"
             } else {
                 let decline = abs(change)
-                return "Your skin analysis score decreased from \(prev) to \(skinHealthScore) (-\(decline) points). Review the recommendations below to get back on track."
+                return "Your skin analysis score decreased from \(prev) to \(skinAppearanceScore) (-\(decline) points). Review the recommendations below to get back on track."
             }
         } else {
             // First scan
-            if skinHealthScore >= 80 {
-                return "Your baseline skin analysis score is \(skinHealthScore)/100. Great starting point! Track changes over time to see your progress."
+            if skinAppearanceScore >= 80 {
+                return "Your baseline skin analysis score is \(skinAppearanceScore)/100. Great starting point! Track changes over time to see your progress."
             } else {
-                return "Your baseline skin analysis score is \(skinHealthScore)/100. This is your starting point. Follow the recommendations to improve."
+                return "Your baseline skin analysis score is \(skinAppearanceScore)/100. This is your starting point. Follow the recommendations to improve."
             }
         }
     }
@@ -820,7 +829,7 @@ public class EmotionalMetricsGenerator {
     }
 
     private static func generatePersonalizedMessage(
-        skinHealthScore: Int,
+        skinAppearanceScore: Int,
         metrics: Face3DMetrics,
         improvements: [EmotionalImprovement],
         concerns: [EmotionalConcern],
@@ -834,21 +843,21 @@ public class EmotionalMetricsGenerator {
                 return "\(name), your \(improvement.title.lowercased()) improved by \(improvement.percentChange) points! Your routine is working - keep it up."
             }
             return "\(name), your routine is paying off! Keep up the consistent care."
-        } else if skinHealthScore >= 80 {
+        } else if skinAppearanceScore >= 80 {
             let topMetric = getTopMetric(metrics)
-            return "\(name), your skin analysis score is \(skinHealthScore)/100. Your \(topMetric) is particularly strong. Maintain your current routine."
+            return "\(name), your skin analysis score is \(skinAppearanceScore)/100. Your \(topMetric) is particularly strong. Maintain your current routine."
         } else if concerns.isEmpty {
-            return "\(name), your skin analysis score is \(skinHealthScore)/100. You're doing well. Focus on the recommendations below to reach the next level."
+            return "\(name), your skin analysis score is \(skinAppearanceScore)/100. You're doing well. Focus on the recommendations below to reach the next level."
         } else {
             let primaryConcern = concerns.first?.title.lowercased() ?? "main concern"
-            return "\(name), your skin analysis score is \(skinHealthScore)/100. We've identified \(primaryConcern) as the priority. Follow the action plan below."
+            return "\(name), your skin analysis score is \(skinAppearanceScore)/100. We've identified \(primaryConcern) as the priority. Follow the action plan below."
         }
     }
 
     private static func generateNextSteps(
         concerns: [EmotionalConcern],
         metrics: Face3DMetrics,
-        skinHealthScore: Int,
+        skinAppearanceScore: Int,
         userProfile: UserProfile?
     ) -> [ActionableStep] {
         var steps: [ActionableStep] = []
@@ -955,7 +964,7 @@ public class EmotionalMetricsGenerator {
         }
 
         // Hydration (always good if score is low)
-        if skinHealthScore < 80 {
+        if skinAppearanceScore < 80 {
             let hydrationScore = metrics.hydrationEstimate?.overallScore ?? 70
             let action = getSpecificHydrationAction(score: hydrationScore, profile: userProfile)
             let timeframe = getRealisticTimeframe(score: hydrationScore)

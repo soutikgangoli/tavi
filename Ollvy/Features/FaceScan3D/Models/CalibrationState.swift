@@ -197,16 +197,16 @@ public enum GuidanceStep: Int, CaseIterable, Sendable {
                    abs(roll) <= ScanConfiguration.maxCenterRollDegrees
 
         case .lookUp:
-            // pitch must be upward (10-22°)
-            return pitch >= ScanConfiguration.minLookUpPitchDegrees &&
-                   pitch <= ScanConfiguration.maxLookUpPitchDegrees &&
+            // pitch must be upward (negative in ARKit camera-relative coordinates)
+            return pitch <= -ScanConfiguration.minLookUpPitchDegrees &&
+                   pitch >= -ScanConfiguration.maxLookUpPitchDegrees &&
                    abs(yaw) <= ScanConfiguration.upDownPoseToleranceYawRollDegrees &&
                    abs(roll) <= ScanConfiguration.maxCenterRollDegrees
 
         case .lookDown:
-            // pitch must be downward (-12° to -25°)
-            return pitch <= ScanConfiguration.minLookDownPitchDegrees &&
-                   pitch >= ScanConfiguration.maxLookDownPitchDegrees &&
+            // pitch must be downward (positive in ARKit camera-relative coordinates)
+            return pitch >= -ScanConfiguration.minLookDownPitchDegrees &&
+                   pitch <= -ScanConfiguration.maxLookDownPitchDegrees &&
                    abs(yaw) <= ScanConfiguration.upDownPoseToleranceYawRollDegrees &&
                    abs(roll) <= ScanConfiguration.maxCenterRollDegrees
         }
@@ -300,12 +300,12 @@ public enum GuidanceStep: Int, CaseIterable, Sendable {
             return "Hold that position"
 
         case .lookUp:
-            // Need positive pitch (look up)
-            if pitch < (ScanConfiguration.minLookUpPitchDegrees - 5) {
+            // Need negative pitch (look up = negative in ARKit camera-relative)
+            if pitch > (-ScanConfiguration.minLookUpPitchDegrees + 5) {
                 return "Tilt your head UP more"
-            } else if pitch < ScanConfiguration.minLookUpPitchDegrees {
+            } else if pitch > -ScanConfiguration.minLookUpPitchDegrees {
                 return "Almost there, tilt up a bit more"
-            } else if pitch > ScanConfiguration.maxLookUpPitchDegrees {
+            } else if pitch < -ScanConfiguration.maxLookUpPitchDegrees {
                 return "Too far, tilt down slightly"
             } else if abs(yaw) > ScanConfiguration.upDownPoseToleranceYawRollDegrees {
                 return "Good angle - face more forward"
@@ -315,12 +315,12 @@ public enum GuidanceStep: Int, CaseIterable, Sendable {
             return "Hold that position"
 
         case .lookDown:
-            // Need negative pitch (look down)
-            if pitch > (ScanConfiguration.minLookDownPitchDegrees + 5) {
+            // Need positive pitch (look down = positive in ARKit camera-relative)
+            if pitch < (-ScanConfiguration.minLookDownPitchDegrees - 5) {
                 return "Tilt your head DOWN more"
-            } else if pitch > ScanConfiguration.minLookDownPitchDegrees {
+            } else if pitch < -ScanConfiguration.minLookDownPitchDegrees {
                 return "Almost there, tilt down a bit more"
-            } else if pitch < ScanConfiguration.maxLookDownPitchDegrees {
+            } else if pitch > -ScanConfiguration.maxLookDownPitchDegrees {
                 return "Too far, tilt up slightly"
             } else if abs(yaw) > ScanConfiguration.upDownPoseToleranceYawRollDegrees {
                 return "Good angle - face more forward"

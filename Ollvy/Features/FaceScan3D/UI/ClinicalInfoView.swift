@@ -34,7 +34,7 @@ public struct ClinicalInfoView: View {
                         .font(.headline)
                         .foregroundColor(.blue)
 
-                    Text("The Science Behind Your Results")
+                    Text("How We Analyze Your Appearance")
                         .font(.headline)
                         .foregroundColor(.primary)
 
@@ -152,7 +152,7 @@ public struct ClinicalInfoView: View {
                                             Image(systemName: "checkmark.shield.fill")
                                                 .font(.caption2)
                                                 .foregroundColor(.green)
-                                            Text("✅ Accurate - Directly measured from texture")
+                                            Text("Visual texture pattern analysis")
                                                 .font(.caption)
                                                 .foregroundColor(.green)
                                                 .fontWeight(.medium)
@@ -181,7 +181,7 @@ public struct ClinicalInfoView: View {
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
-                                        Text("40% of Healthy Shine")
+                                        Text("40% of Natural Shine")
                                             .font(.subheadline)
                                         Spacer()
                                         Text("\(String(format: "%.1f", clinicalMetrics.globalSpecularScore ?? 50.0))")
@@ -220,7 +220,7 @@ public struct ClinicalInfoView: View {
                                                 Image(systemName: "checkmark.shield.fill")
                                                     .font(.caption2)
                                                     .foregroundColor(.green)
-                                                Text("✅ Accurate - Natural light reflection measured")
+                                                Text("Light reflection pattern observed")
                                                     .font(.caption)
                                                     .foregroundColor(.green)
                                                     .fontWeight(.medium)
@@ -366,7 +366,7 @@ public struct ClinicalInfoView: View {
                                             Image(systemName: "checkmark.shield.fill")
                                                 .font(.caption2)
                                                 .foregroundColor(.green)
-                                            Text("✅ Accurate - 3D mesh + texture frequency analysis")
+                                            Text("Surface texture pattern assessment")
                                                 .font(.caption)
                                                 .foregroundColor(.green)
                                                 .fontWeight(.medium)
@@ -377,7 +377,7 @@ public struct ClinicalInfoView: View {
                                     .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
                                     .cornerRadius(Designs.CornerRadius.small)
 
-                                    Text("Algorithm: Detects sub-millimeter texture irregularities using gradient analysis")
+                                    Text("Algorithm: Identifies fine texture patterns using gradient analysis")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                         .italic()
@@ -507,7 +507,7 @@ public struct ClinicalInfoView: View {
                                             Image(systemName: "checkmark.shield.fill")
                                                 .font(.caption2)
                                                 .foregroundColor(.green)
-                                            Text("✅ Accurate - Normalized for all skin tones")
+                                            Text("Adjusted for skin tone variations")
                                                 .font(.caption)
                                                 .foregroundColor(.green)
                                                 .fontWeight(.medium)
@@ -610,7 +610,7 @@ public struct ClinicalInfoView: View {
                                             Image(systemName: "checkmark.shield.fill")
                                                 .font(.caption2)
                                                 .foregroundColor(.green)
-                                            Text("✅ Accurate - From smoothness analysis above")
+                                            Text("Based on smoothness analysis above")
                                                 .font(.caption)
                                                 .foregroundColor(.green)
                                                 .fontWeight(.medium)
@@ -710,7 +710,7 @@ public struct ClinicalInfoView: View {
                                     .background(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
                                     .cornerRadius(Designs.CornerRadius.small)
 
-                                    Text("Note: Wrinkle depth measurement uses empirical calibration and is undergoing validation")
+                                    Text("Note: Wrinkle visibility assessment is for cosmetic reference only")
                                         .font(.caption)
                                         .foregroundColor(.orange)
                                         .italic()
@@ -812,7 +812,7 @@ public struct ClinicalInfoView: View {
                                             Image(systemName: "checkmark.shield.fill")
                                                 .font(.caption2)
                                                 .foregroundColor(.green)
-                                            Text("✅ Accurate - From evenness analysis above")
+                                            Text("Based on evenness analysis above")
                                                 .font(.caption)
                                                 .foregroundColor(.green)
                                                 .fontWeight(.medium)
@@ -860,7 +860,7 @@ public struct ClinicalInfoView: View {
                                             Image(systemName: "checkmark.shield.fill")
                                                 .font(.caption2)
                                                 .foregroundColor(.green)
-                                            Text("✅ Accurate - From smoothness analysis above")
+                                            Text("Based on smoothness analysis above")
                                                 .font(.caption)
                                                 .foregroundColor(.green)
                                                 .fontWeight(.medium)
@@ -926,7 +926,7 @@ public struct ClinicalInfoView: View {
     private func radianceEmotionalSummary(score: Int) -> String {
         switch score {
         case 80...100:
-            return "Your skin is radiating beautifully! We measured how much light your skin reflects using LAB color space analysis and found bright, healthy luminosity. Your skin has that lit-from-within glow that catches the light perfectly."
+            return "Your skin is radiating beautifully! We analyzed how much light your skin reflects and found bright, natural luminosity. Your skin has that lit-from-within glow that catches the light perfectly."
         case 60...79:
             return "Your skin has decent radiance, but could be brighter. We analyzed your skin's light reflection and brightness levels. With proper exfoliation and hydration, you can boost that luminous quality."
         case 40...59:
@@ -954,7 +954,7 @@ public struct ClinicalInfoView: View {
     private func evennessEmotionalSummary(score: Int) -> String {
         switch score {
         case 80...100:
-            return "Your skin tone is beautifully balanced! We measured how consistent your color is across your whole face. The more even your tone, the more unified and flawless your complexion looks."
+            return "Your skin tone is beautifully balanced! We analyzed how consistent your color is across your whole face. The more even your tone, the more unified and flawless your complexion looks."
         case 60...79:
             return "Your skin tone is fairly consistent, but there are some areas with color variations. We noticed some unevenness across different parts of your face. Evening this out will give you a more unified complexion."
         case 40...59:
@@ -1012,7 +1012,7 @@ public struct ClinicalInfoView: View {
                     ConfidenceRow(metric: "Pore Analysis", confidence: pores.confidence)
                 }
                 if let acne = clinicalMetrics.acneAnalysis {
-                    ConfidenceRow(metric: "Acne Detection", confidence: acne.confidence)
+                    ConfidenceRow(metric: "Blemish Detection", confidence: acne.confidence)
                 }
                 if let wrinkles = clinicalMetrics.wrinkleAnalysis {
                     ConfidenceRow(metric: "Wrinkle Detection", confidence: wrinkles.confidence)
@@ -1171,7 +1171,7 @@ struct ClinicalInfoView_Previews: PreviewProvider {
 
     static var previewEmotionalMetrics: EmotionalMetrics {
         EmotionalMetrics(
-            skinHealthScore: 85,
+            skinAppearanceScore: 85,
             primaryInsight: "Your skin looks amazing today!",
             celebration: "Great starting point!",
             improvements: [],
@@ -1185,7 +1185,7 @@ struct ClinicalInfoView_Previews: PreviewProvider {
             youthfulness: 75,
             freshness: 81,
             acneScore: 80,
-            rednessScore: 75,
+            colorEvennessScore: 75,
             oilControlScore: 70,
             poreScore: 75
         )

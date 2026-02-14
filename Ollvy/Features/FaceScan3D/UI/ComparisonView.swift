@@ -296,9 +296,9 @@ struct MetricComparisonList: View {
     // Calculate overall improvement
     private var metricsComparison: [(name: String, before: Float, after: Float, unit: String, lowerIsBetter: Bool)] {
         [
-            ("Overall Health", 70, 78, "/100", false),
+            ("Overall Score", 70, 78, "/100", false),
             ("Skin Texture", 65, 72, "/100", false),
-            ("Wrinkle Depth", 0.45, 0.42, "mm", true),
+            ("Wrinkle Appearance", 75, 80, "/100", false),
             ("Hydration", 60, 68, "/100", false),
             ("Pore Visibility", 25, 18, "%", true),
             ("Pigmentation", 79, 81, "/100", false)
@@ -352,7 +352,7 @@ struct MetricComparisonList: View {
                 .padding(.bottom, 8)
 
                 MetricComparisonRow(
-                    name: "Overall Health",
+                    name: "Overall Score",
                     before: 70,
                     after: 78,
                     unit: "/100"
@@ -366,11 +366,10 @@ struct MetricComparisonList: View {
                 )
 
                 MetricComparisonRow(
-                    name: "Wrinkle Depth",
-                    before: 0.45,
-                    after: 0.42,
-                    unit: "mm",
-                    lowerIsBetter: true
+                    name: "Wrinkle Appearance",
+                    before: 75,
+                    after: 80,
+                    unit: "/100"
                 )
 
                 MetricComparisonRow(

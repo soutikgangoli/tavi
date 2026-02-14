@@ -25,13 +25,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Ollvy uses your camera to capture 3D facial scans for personalized skin analysis. All face data is processed locally on your device.</string>
+	<string>Ollvy uses your camera to capture 3D facial images for personalized skin appearance assessment. All data is processed locally on your device.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Ollvy performs 3D facial scanning for skin analysis only. This is not biometric authentication. All data stays on your device.</string>
+	<string>Ollvy uses TrueDepth for 3D facial imaging to assess your skin's appearance. This is not biometric authentication. All data stays on your device.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Ollvy saves your facial scans and skin analysis results to your photo library so you can track your skin analysis progress over time.</string>
+	<string>Ollvy saves your facial images and results to your photo library so you can track your skin appearance progress over time.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Ollvy accesses your photo library to let you review previous scans and compare your skin analysis journey.</string>
+	<string>Ollvy accesses your photo library to let you review previous images and compare your skin appearance over time.</string>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>
@@ -79,19 +79,6 @@
 	</array>
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeHealthAndFitness</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<true/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-			</array>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-		</dict>
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypePhotosAndVideos</string>

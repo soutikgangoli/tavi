@@ -29,6 +29,7 @@ public struct Recommendation {
     let timeframe: String
     let productRecommendations: [ProductRecommendation]
     let lifestyleTips: [String]
+    let citationKeys: [CitationKey]  // Scientific references for this recommendation
 }
 
 public enum Priority: String {
@@ -283,7 +284,8 @@ public class PersonalizedRecommendationEngine {
                 "Drink 8 glasses of water daily",
                 "Use a gentle cleanser (avoid harsh scrubs)",
                 "Always apply SPF 30+ in the morning"
-            ]
+            ],
+            citationKeys: [.texture]
         )
     }
 
@@ -309,7 +311,7 @@ public class PersonalizedRecommendationEngine {
             priority: priority,
             severity: severity,
             suggestion: suggestion,
-            expectedImpact: "Reduced wrinkle depth and smoothed fine lines",
+            expectedImpact: "Reduced wrinkle appearance and smoothed fine lines",
             timeframe: timeframe,
             productRecommendations: [
                 ProductRecommendation(
@@ -336,7 +338,8 @@ public class PersonalizedRecommendationEngine {
                 "Avoid smoking (accelerates wrinkles)",
                 "Manage stress (cortisol ages skin)",
                 "Sleep on your back (reduces face compression)"
-            ]
+            ],
+            citationKeys: [.wrinkles]
         )
     }
 
@@ -375,7 +378,8 @@ public class PersonalizedRecommendationEngine {
                 "Use a humidifier (especially in winter)",
                 "Avoid hot showers (strip natural oils)",
                 "Limit caffeine and alcohol (dehydrating)"
-            ]
+            ],
+            citationKeys: [.hydration]
         )
     }
 
@@ -414,7 +418,8 @@ public class PersonalizedRecommendationEngine {
                 "Exfoliate 2-3x weekly (prevents clogging)",
                 "Avoid touching your face",
                 "Keep hair products away from face"
-            ]
+            ],
+            citationKeys: [.pores]
         )
     }
 
@@ -459,7 +464,8 @@ public class PersonalizedRecommendationEngine {
                 "Wear a hat outdoors",
                 "Avoid tanning beds completely",
                 "Be patient - pigmentation takes months to fade"
-            ]
+            ],
+            citationKeys: [.pigmentation, .sunDamage]
         )
     }
 
@@ -479,7 +485,8 @@ public class PersonalizedRecommendationEngine {
                 expectedImpact: "Prevent early signs of aging",
                 timeframe: "Ongoing",
                 productRecommendations: [],
-                lifestyleTips: ["SPF is the #1 anti-aging tool", "Start retinol early for prevention"]
+                lifestyleTips: ["SPF is the #1 anti-aging tool", "Start retinol early for prevention"],
+                citationKeys: [.sunDamage, .wrinkles]
             ))
         } else if age >= 35 && age < 50 {
             recommendations.append(Recommendation(
@@ -492,7 +499,8 @@ public class PersonalizedRecommendationEngine {
                 expectedImpact: "Combat visible signs of aging",
                 timeframe: "8-12 weeks",
                 productRecommendations: [],
-                lifestyleTips: ["Consider professional in-office treatments recommended by your dermatologist", "Consistent routine is key"]
+                lifestyleTips: ["Consider professional in-office treatments recommended by your dermatologist", "Consistent routine is key"],
+                citationKeys: [.wrinkles, .sunDamage]
             ))
         } else if age >= 50 {
             recommendations.append(Recommendation(
@@ -505,7 +513,8 @@ public class PersonalizedRecommendationEngine {
                 expectedImpact: "Maintain skin quality and firmness",
                 timeframe: "Ongoing",
                 productRecommendations: [],
-                lifestyleTips: ["Consider dermatologist consultation", "Explore professional in-office treatments"]
+                lifestyleTips: ["Consider dermatologist consultation", "Explore professional in-office treatments"],
+                citationKeys: [.wrinkles, .sunDamage]
             ))
         }
 

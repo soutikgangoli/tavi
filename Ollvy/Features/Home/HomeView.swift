@@ -338,7 +338,7 @@ public struct HomeView: View {
                 // Row 1
                 HStack(spacing: 10) {
                     metricTag(icon: "waveform.path", name: "Smoothness", color: HomeColors.accentTeal,
-                              description: "Measures skin texture uniformity by analyzing surface variation patterns.")
+                              description: "Assesses skin texture uniformity by analyzing surface variation patterns.")
                     metricTag(icon: "drop.fill", name: "Hydration", color: HomeColors.softGreen,
                               description: "Estimates moisture levels by analyzing skin's light reflection and surface properties.")
                 }
@@ -347,19 +347,19 @@ public struct HomeView: View {
                     metricTag(icon: "sparkles", name: "Glow", color: HomeColors.softYellow,
                               description: "Evaluates skin radiance and luminosity based on light diffusion patterns.")
                     metricTag(icon: "circle.hexagongrid.fill", name: "Evenness", color: HomeColors.accentCoral,
-                              description: "Detects color variations and pigmentation irregularities across skin regions.")
+                              description: "Identifies color variations and pigmentation irregularities across skin regions.")
                 }
                 // Row 3
                 HStack(spacing: 10) {
-                    metricTag(icon: "circle.fill", name: "Acne", color: HomeColors.softRed,
-                              description: "Identifies active breakouts, inflammation, and blemish patterns.")
+                    metricTag(icon: "circle.fill", name: "Blemishes", color: HomeColors.softRed,
+                              description: "Identifies visible blemishes, surface irregularities, and breakout patterns.")
                     metricTag(icon: "sun.max.fill", name: "Sun Damage", color: HomeColors.softYellow,
                               description: "Assesses UV-related skin changes including dark spots and photo-aging signs.")
                 }
                 // Row 4
                 HStack(spacing: 10) {
                     metricTag(icon: "heart.fill", name: "Redness", color: HomeColors.softRed,
-                              description: "Measures skin redness and irritation levels in different facial zones.")
+                              description: "Assesses skin redness and irritation levels in different facial zones.")
                     metricTag(icon: "circle.dotted", name: "Pores", color: HomeColors.accentTeal,
                               description: "Analyzes pore visibility and density, particularly in the T-zone area.")
                 }

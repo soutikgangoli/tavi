@@ -64,7 +64,7 @@ public struct ScientificReferencesView: View {
                                     citation: "37(5):497-505"
                                 )
                             ],
-                            description: "Surface texture analysis measures micro-variations in skin smoothness using established image analysis techniques validated in peer-reviewed dermatological research."
+                            description: "Surface texture analysis assesses variations in skin smoothness using established image analysis techniques referenced in peer-reviewed research."
                         )
 
                         referenceSection(
@@ -122,7 +122,7 @@ public struct ScientificReferencesView: View {
                                     citation: "8(7):1457-1469"
                                 )
                             ],
-                            description: "3D mesh analysis detects depth and distribution of facial creases using techniques validated in clinical aging research."
+                            description: "3D mesh analysis identifies depth and distribution of facial creases using established visual analysis techniques."
                         )
 
                         referenceSection(
@@ -155,7 +155,7 @@ public struct ScientificReferencesView: View {
                         )
 
                         referenceSection(
-                            title: "Acne & Inflammation",
+                            title: "Blemishes & Skin Clarity",
                             icon: "circle.fill",
                             references: [
                                 Reference(
@@ -180,7 +180,7 @@ public struct ScientificReferencesView: View {
                                     citation: "20(2):147-151"
                                 )
                             ],
-                            description: "Breakout detection uses surface irregularity analysis and inflammation markers referenced in clinical acne assessment literature."
+                            description: "Blemish detection uses surface irregularity analysis and inflammation markers referenced in clinical dermatology literature."
                         )
 
                         referenceSection(

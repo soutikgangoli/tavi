@@ -194,7 +194,7 @@ public enum AppStrings {
         public static let elasticity = "Elasticity"
         public static let volume = "Volume"
         public static let pores = "Pores"
-        public static let acne = "Acne"
+        public static let acne = "Blemishes"
         public static let redness = "Redness"
         public static let oilControl = "Oil Control"
         public static let skinHealth = "Skin Analysis"
@@ -246,7 +246,7 @@ public enum AppStrings {
         public static let lastScan = "Last Scan"
 
         // Hero rings
-        public static let overallHealth = "Overall Health"
+        public static let overallHealth = "Overall Score"
         public static let viewAllMetrics = "View All Metrics"
 
         // Summary
@@ -266,9 +266,9 @@ public enum AppStrings {
         public static let startYourFirstScan = "Start Your First Scan"
         public static let getCompleteAnalysis = "Get your complete skin analysis in just 1 minute"
         public static let startYourScan = "Start Your Scan"
-        public static let poweredByBiometrics = "Powered by Advanced Biometrics"
-        public static let scienceBehindGlow = "The Science Behind Your Glow"
-        public static let clinicalGradeImaging = "Advanced 3D imaging and AI skin analysis reveal details invisible to the naked eye."
+        public static let poweredByBiometrics = "Powered by AI Visual Analysis"
+        public static let scienceBehindGlow = "The Technology Behind Your Glow"
+        public static let clinicalGradeImaging = "Advanced 3D imaging helps you understand your skin's appearance."
         public static let whatYoullGet = "What You'll Get"
         public static let eightSkinMetrics = "8 Skin Analysis Metrics"
         public static let comprehensiveAnalysis = "Comprehensive analysis of your skin"
@@ -278,7 +278,7 @@ public enum AppStrings {
         public static let recommendationsTailored = "Get recommendations tailored to you"
 
         // Scan card
-        public static let yourSkinHealthScore = "Your Skin Analysis Score"
+        public static let yourSkinHealthScore = "Your Skin Appearance Score"
         public static let lastScanned = "Last scanned"
         public static let viewDetails = "View details"
         public static let skinScore = "Skin Score"

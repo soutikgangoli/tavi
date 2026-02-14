@@ -279,7 +279,7 @@ public struct SocialSharingView: View {
         switch selectedShareType {
         case .progress:
             return """
-            My Skin Analysis Index: \(emotionalMetrics.skinHealthScore)/100!
+            My Skin Analysis Index: \(emotionalMetrics.skinAppearanceScore)/100!
             \(emotionalMetrics.primaryInsight)
 
             Tracking my skincare journey with Ollvy
@@ -305,7 +305,7 @@ public struct SocialSharingView: View {
                 Consistency is key!
                 """
             }
-            return "Building healthy skincare habits!"
+            return "Building great skincare habits!"
 
         case .challenge:
             if let challenge = challenge {
@@ -345,7 +345,7 @@ struct ProgressShareCard: View {
 
                 // Big score
                 VStack(spacing: Designs.Spacing.xSmall) {
-                    Text("\(metrics.skinHealthScore)")
+                    Text("\(metrics.skinAppearanceScore)")
                         .font(AppFont.custom(size: 72, weight: .bold))
                         .foregroundColor(scoreColor)
 
@@ -379,7 +379,7 @@ struct ProgressShareCard: View {
         // - 30-70: Yellow (fair)
         // - 70-89: Green (good)
         // - 90-100: Bright green (excellent)
-        switch metrics.skinHealthScore {
+        switch metrics.skinAppearanceScore {
         case 90...100: return Color(red: 0.18, green: 0.82, blue: 0.35)  // Bright green
         case 70..<90: return .green
         case 30..<70: return .yellow
@@ -615,7 +615,7 @@ struct SocialButton: View {
 #Preview {
     SocialSharingView(
         emotionalMetrics: EmotionalMetrics(
-            skinHealthScore: 87,
+            skinAppearanceScore: 87,
             primaryInsight: "Your skin looks amazing today! 🌟",
             celebration: "Amazing progress! Up 12 points! 🎉",
             improvements: [],
@@ -629,7 +629,7 @@ struct SocialButton: View {
             youthfulness: 90,
             freshness: 86,
             acneScore: 85,
-            rednessScore: 80,
+            colorEvennessScore: 80,
             oilControlScore: 75,
             poreScore: 82
         ),

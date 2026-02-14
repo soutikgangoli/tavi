@@ -84,7 +84,7 @@ public enum ProcessingPhase: Int, CaseIterable {
                 "Detecting sun damage and hyperpigmentation",
                 "Analyzing sebum distribution and shine",
                 "Evaluating collagen density indicators",
-                "Measuring wrinkle depth and distribution",
+                "Analyzing wrinkle patterns and distribution",
                 "Assessing overall skin clarity and radiance",
                 "Computing texture entropy across regions"
             ]
@@ -133,7 +133,7 @@ public enum ProcessingPhase: Int, CaseIterable {
     var qualityExplanation: String? {
         switch self {
         case .meshMerge:
-            return "Taking time to ensure millimeter-accurate results"
+            return "Taking time to ensure high-quality results"
         case .textureBake:
             return "Ensuring every detail is captured clearly"
         case .metricsAnalysis:

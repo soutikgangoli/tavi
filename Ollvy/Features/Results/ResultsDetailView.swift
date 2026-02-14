@@ -126,6 +126,10 @@ struct ResultsDetailView: View {
                 // Header
                 headerSection
 
+                // Cosmetic disclaimer
+                CosmeticDisclaimer(compact: true)
+                    .padding(.horizontal)
+
                 // Face Image with Heatmap Toggle
                 imageSection
 
@@ -560,10 +564,10 @@ struct ResultsDetailView: View {
                         isCoreMetric: true
                     )
 
-                    // 5. ACNE (14.9%) - NEW CARD
+                    // 5. BLEMISHES (14.9%) - NEW CARD
                     if let acne = metrics.acneAnalysis {
                         ResultsMetricCardWithConfidence(
-                            title: "Acne",
+                            title: "Blemishes",
                             value: Double(acne.overallScore),
                             confidence: Double(acne.confidence),
                             icon: "allergens",
@@ -629,7 +633,7 @@ struct ResultsDetailView: View {
                     // Wrinkles (categorical)
                     if let wrinkleAnalysis = metrics.wrinkleAnalysis {
                         CategoricalMetricCard(
-                            title: "Wrinkle Depth",
+                            title: "Wrinkle Visibility",
                             category: wrinkleAnalysis.wrinkleDepth.rawValue,
                             confidence: Double(wrinkleAnalysis.confidence),
                             icon: "waveform.path",
@@ -680,7 +684,7 @@ struct ResultsDetailView: View {
                 .font(AppFont.sectionHeader)
                 .foregroundColor(Designs.Colors.textPrimary)
 
-            Text("Understanding the difference between your skin's overall health and pure luminosity.")
+            Text("Understanding the difference between your skin's overall appearance and pure luminosity.")
                 .font(AppFont.caption)
                 .foregroundColor(Designs.Colors.textSecondary)
 
@@ -697,7 +701,7 @@ struct ResultsDetailView: View {
                                 .foregroundColor(Designs.Colors.success)
                                 .font(AppFont.footnote)
                         }
-                        Text("Glow (Health)")
+                        Text("Glow Score")
                             .font(AppFont.subheadingPrimary)
                             .foregroundColor(Designs.Colors.textPrimary)
                     }
@@ -706,7 +710,7 @@ struct ResultsDetailView: View {
                         .font(AppFont.title2)
                         .foregroundColor(scoreColorFor(analysis.skinHealthScore))
 
-                    Text("Overall health index")
+                    Text("Overall appearance index")
                         .font(AppFont.footnote)
                         .foregroundColor(Designs.Colors.textSecondary)
 
@@ -836,7 +840,7 @@ struct ResultsDetailView: View {
                 Image(systemName: "lightbulb.fill")
                     .font(AppFont.caption)
                     .foregroundColor(Designs.Colors.warning)
-                Text("**Glow** measures overall skin analysis (texture + tone + shine), while **Radiance** measures how much light your skin reflects (physics-based brightness).")
+                Text("**Glow** assesses overall skin appearance (texture + tone + shine), while **Radiance** evaluates how much light your skin reflects (brightness).")
                     .font(AppFont.caption)
                     .foregroundColor(Designs.Colors.textSecondary)
             }
@@ -975,7 +979,7 @@ struct ResultsDetailView: View {
                                 .foregroundColor(Designs.Colors.textPrimary)
                                 .padding(.top, Designs.Spacing.sm)
 
-                            Text("These high-confidence metrics (70%+ confidence) are included in your Overall Score calculation.")
+                            Text("These primary visual factors are included in your Overall Score calculation.")
                                 .font(AppFont.caption)
                                 .foregroundColor(Designs.Colors.textSecondary)
                         }
@@ -1019,11 +1023,11 @@ struct ResultsDetailView: View {
                             weight: "14.9%"
                         )
 
-                        // 5. Acne
+                        // 5. Blemishes
                         if let acne = metrics.acneAnalysis {
                             clinicalMetricRow(
                                 icon: "allergens",
-                                title: "Acne",
+                                title: "Blemishes",
                                 score: Int(acne.overallScore),
                                 confidence: Int(acne.confidence),
                                 weight: "14.9%",
@@ -1178,7 +1182,7 @@ struct ResultsDetailView: View {
                                     .font(AppFont.bodySecondary)
                                     .foregroundColor(Designs.Colors.textSecondary)
 
-                                Text("Wrinkle Depth: \(wrinkles.wrinkleDepth.rawValue)")
+                                Text("Wrinkle Visibility: \(wrinkles.wrinkleDepth.rawValue)")
                                     .font(AppFont.bodySecondary)
                                     .foregroundColor(Designs.Colors.textSecondary)
 
@@ -1283,13 +1287,13 @@ struct ResultsDetailView: View {
                                 }
 
                                 if let underEyeBags = volume.underEyeBags {
-                                    Text("Under-Eye: \(underEyeBags.severity.rawValue), \(String(format: "%.2f", underEyeBags.protrusion))mm")
+                                    Text("Under-Eye: \(underEyeBags.severity.rawValue)")
                                         .font(AppFont.caption)
                                         .foregroundColor(Designs.Colors.textSecondary)
                                 }
 
                                 if let facialSymmetry = volume.facialSymmetry {
-                                    Text("Symmetry: \(Int(facialSymmetry.score))/100, \(String(format: "%.2f", facialSymmetry.leftRightDeviation))mm deviation")
+                                    Text("Symmetry: \(Int(facialSymmetry.score))/100")
                                         .font(AppFont.caption)
                                         .foregroundColor(Designs.Colors.textSecondary)
                                 }
@@ -1347,11 +1351,11 @@ struct ResultsDetailView: View {
                             Circle()
                                 .fill(Designs.Colors.info.opacity(Designs.Opacity.veryLight))
                                 .frame(width: Designs.Sizes.iconSmall, height: Designs.Sizes.iconSmall)
-                            Image(systemName: "stethoscope")
+                            Image(systemName: "chart.bar.doc.horizontal")
                                 .foregroundColor(Designs.Colors.info)
                                 .font(AppFont.footnote)
                         }
-                        Text("Clinical Data")
+                        Text("Detailed Analysis")
                             .font(AppFont.headlineSecondary)
                             .foregroundColor(Designs.Colors.textPrimary)
                         Spacer()
@@ -1673,7 +1677,7 @@ struct ResultsDetailView: View {
     func generateShareText() -> String {
         // Get top 3 metrics
         let metrics: [(name: String, value: Double)] = [
-            ("Overall Health", session.overallScore),
+            ("Overall Score", session.overallScore),
             ("Texture Quality", session.textureAvg),
             ("Pigmentation", session.pigmentationAvg),
             ("Moisture", session.moistureSpecular),

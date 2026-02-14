@@ -435,7 +435,7 @@ public struct MetricExplanationView: View {
                 Divider()
 
                 // Content sections
-                MetricSectionView(title: "What It Measures") {
+                MetricSectionView(title: "What We Assess") {
                     Text(metric.whatItMeasures)
                         .font(.system(size: 16))
                         .foregroundColor(OnboardingColors.textPrimary)
@@ -447,7 +447,7 @@ public struct MetricExplanationView: View {
                         .foregroundColor(OnboardingColors.textPrimary)
                 }
 
-                MetricSectionView(title: "How We Measure It") {
+                MetricSectionView(title: "How We Analyze It") {
                     Text(metric.howWeMeasure)
                         .font(.system(size: 16))
                         .foregroundColor(OnboardingColors.textPrimary)
@@ -571,30 +571,30 @@ extension AnalysisMetricType {
     var whatItMeasures: String {
         switch self {
         case .roughness:
-            return "Skin texture roughness measures how smooth or uneven your skin surface is. We analyze microscopic texture patterns across your entire face."
+            return "Skin texture roughness assesses how smooth or uneven your skin surface appears. We analyze texture patterns across your entire face."
         case .wrinkles:
-            return "We measure actual wrinkle depth in millimeters using 3D geometry. This includes fine lines, crow's feet, forehead lines, and smile lines."
+            return "We estimate wrinkle appearance using 3D surface analysis. This includes fine lines, crow's feet, forehead lines, and smile lines."
         case .hydration:
             return "Skin hydration indicates how well-moisturized your skin appears. We estimate this from surface texture and light reflection patterns."
         case .pores:
-            return "Pore visibility measures how prominent your pores appear. We analyze pore density and average size across different facial regions."
+            return "Pore visibility assesses how prominent your pores appear. We analyze pore patterns and visibility across different facial regions."
         case .pigmentation:
-            return "Pigmentation evenness measures color consistency across your face. We detect dark spots, hyperpigmentation, and overall tone uniformity."
+            return "Pigmentation evenness assesses color consistency across your face. We identify visible dark spots, hyperpigmentation, and overall tone uniformity."
         case .discoloration:
-            return "Discoloration measures color variations and uneven tone across different facial regions. We analyze color differences between areas to detect discoloration patterns."
+            return "Discoloration assesses color variations and uneven tone across different facial regions. We analyze color differences between areas to identify discoloration patterns."
         case .specular:
-            return "Specular highlights measure how much light your skin reflects, indicating oiliness and shine. We analyze reflection patterns to assess oil production levels."
+            return "Specular highlights assess how much light your skin reflects, indicating shine levels. We analyze reflection patterns to evaluate visible oiliness."
         case .luminance:
-            return "Luminance measures the overall brightness and lightness of your skin. We analyze the perceived brightness across your face to assess skin radiance."
+            return "Luminance assesses the overall brightness and lightness of your skin's appearance. We analyze the perceived brightness across your face to evaluate skin radiance."
         case .brightness:
-            return "Luminance measures the overall brightness and lightness of your skin. We analyze the perceived brightness across your face to assess skin radiance."
+            return "Luminance assesses the overall brightness and lightness of your skin's appearance. We analyze the perceived brightness across your face to evaluate skin radiance."
         }
     }
 
     var whyItMatters: String {
         switch self {
         case .roughness:
-            return "Smooth skin reflects light better and looks healthier. Rough texture can indicate dehydration, sun damage, or aging."
+            return "Smooth skin reflects light better and looks more radiant. Rough texture can indicate dehydration, sun damage, or aging."
         case .wrinkles:
             return "Wrinkles are a natural part of aging, but deeper wrinkles can indicate collagen loss, sun damage, or dehydration. Tracking them helps you see if your skincare routine is working."
         case .hydration:
@@ -604,36 +604,36 @@ extension AnalysisMetricType {
         case .pigmentation:
             return "Even skin tone is a key indicator of skin analysis. Uneven pigmentation can result from sun damage, hormones, or inflammation."
         case .discoloration:
-            return "Color uniformity across your face is important for a healthy, youthful appearance. Regional discoloration can indicate sun damage, inflammation, or circulation issues."
+            return "Color uniformity across your face is important for a vibrant, youthful appearance. Regional discoloration can indicate sun damage, inflammation, or circulation issues."
         case .specular:
-            return "Balanced oil production is essential for healthy skin. Too much shine can indicate excess sebum, while too little can mean dry skin. Proper oil balance helps prevent acne and maintains skin barrier function."
+            return "Balanced oil production is essential for good-looking skin. Too much shine can indicate excess sebum, while too little can mean dry skin. Proper oil balance helps prevent breakouts and maintains skin barrier function."
         case .luminance:
-            return "Overall skin brightness is associated with healthy, youthful skin. Dull skin can indicate dehydration, poor circulation, or buildup of dead skin cells. Radiant skin reflects good health."
+            return "Overall skin brightness is associated with vibrant, youthful skin. Dull skin can indicate dehydration, poor circulation, or buildup of dead skin cells. Radiant skin reflects good care."
         case .brightness:
-            return "Overall skin brightness is associated with healthy, youthful skin. Dull skin can indicate dehydration, poor circulation, or buildup of dead skin cells. Radiant skin reflects good health."
+            return "Overall skin brightness is associated with vibrant, youthful skin. Dull skin can indicate dehydration, poor circulation, or buildup of dead skin cells. Radiant skin reflects good care."
         }
     }
 
     var howWeMeasure: String {
         switch self {
         case .roughness:
-            return "Using high-resolution texture analysis, we calculate surface roughness from the 12MP camera texture mapped to your 3D face model."
+            return "Using high-resolution texture analysis, we assess surface appearance from the camera texture mapped to your 3D face model."
         case .wrinkles:
-            return "We use 3D curvature analysis to measure actual wrinkle depth in millimeters. This is unique to 3D scanning - 2D photos can't measure depth!"
+            return "We use 3D curvature analysis to estimate wrinkle appearance. 3D scanning provides depth context that 2D photos cannot."
         case .hydration:
             return "We estimate hydration from specular reflectance (how shiny your skin is) combined with roughness data. Very dry skin is rough and non-reflective."
         case .pores:
-            return "High-frequency texture analysis detects small dark spots (pores) and calculates their density and average size per square centimeter."
+            return "Texture analysis identifies visible pore patterns and assesses their density and average visibility across facial regions."
         case .pigmentation:
             return "We analyze color variance across your face in the LAB color space, which is designed for human perception. We also detect dark spots and hyperpigmentation."
         case .discoloration:
-            return "We compare color consistency across different facial regions using LAB color space analysis. This detects regional color variations and discoloration patterns."
+            return "We compare color consistency across different facial regions using color analysis. This identifies regional color variations and discoloration patterns."
         case .specular:
-            return "We measure specular highlights by analyzing how light reflects off your skin surface. Higher specular values indicate more oil production and shine."
+            return "We assess surface shine by analyzing how light reflects off your skin surface. Higher values indicate more visible shine."
         case .luminance:
-            return "We calculate the L* (lightness) component in LAB color space, which represents the perceived brightness of your skin independent of color."
+            return "We analyze the brightness of your skin's appearance, representing the perceived luminosity independent of color."
         case .brightness:
-            return "We calculate the L* (lightness) component in LAB color space, which represents the perceived brightness of your skin independent of color."
+            return "We analyze the brightness of your skin's appearance, representing the perceived luminosity independent of color."
         }
     }
 
